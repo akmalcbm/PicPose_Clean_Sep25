@@ -1,0 +1,15 @@
+<resources>
+    <style name="Theme.PicPose" parent="Theme.Material3.DynamicColors.DayNight">
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="Theme.PicPose.Splash" parent="Theme.PicPose">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_splash</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="android:windowSplashScreenAnimationDuration">300</item>
+        <item name="android:statusBarColor">@color/splash_bg</item>
+        <item name="android:navigationBarColor">@color/splash_bg</item>
+    </style>
+</resources>
