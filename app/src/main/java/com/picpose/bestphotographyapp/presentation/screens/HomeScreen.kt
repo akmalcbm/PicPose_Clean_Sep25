@@ -1026,6 +1026,7 @@ private fun AIPromptsRow(
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun AIPromptCard(
     prompt: AIPrompt,
@@ -1033,6 +1034,9 @@ private fun AIPromptCard(
     onCopy: () -> Unit
 ) {
     var showFullPrompt by remember { mutableStateOf(false) }
+    var imageLoading by remember { mutableStateOf(true) }
+    var imageError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -1048,21 +1052,85 @@ private fun AIPromptCard(
         )
     ) {
         Column {
-            // AI Generated Image
+            // AI Generated Image with Loading State
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
             ) {
+                // Background for loading/error states
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                )
+                            )
+                        )
+                )
+
+                // Image
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
+                    model = ImageRequest.Builder(context)
                         .data(prompt.imageUrl)
                         .crossfade(true)
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_report_image)
                         .build(),
                     contentDescription = prompt.title,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    onLoading = { imageLoading = true },
+                    onSuccess = {
+                        imageLoading = false
+                        imageError = false
+                    },
+                    onError = {
+                        imageLoading = false
+                        imageError = true
+                    }
                 )
+
+                // Loading indicator
+                if (imageLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+
+                // Error state
+                if (imageError) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BrokenImage,
+                                contentDescription = "Image failed to load",
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                            Text(
+                                text = "AI Sample",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                }
 
                 // AI Badge
                 Card(
@@ -1165,93 +1233,134 @@ private fun AIPromptCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Prompt Preview/Full
-                AnimatedVisibility(
-                    visible = !showFullPrompt,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Text(
-                        text = prompt.shortPrompt,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = showFullPrompt,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column {
-                        Text(
-                            text = prompt.fullPrompt,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                // Prompt Preview/Full with better animations
+                AnimatedContent(
+                    targetState = showFullPrompt,
+                    transitionSpec = {
+                        slideInVertically(
+                            animationSpec = tween(300),
+                            initialOffsetY = { if (targetState) 50 else -50 }
+                        ) with slideOutVertically(
+                            animationSpec = tween(300),
+                            targetOffsetY = { if (targetState) -50 else 50 }
                         )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Copy Button
-                        Button(
-                            onClick = {
-                                onCopy()
-                                // Show feedback
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Copy Full Prompt")
-                        }
-                    }
-                }
-
-                if (!showFullPrompt) {
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Bottom Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Likes
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = Color(0xFFE91E63)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                    },
+                    label = "prompt_content"
+                ) { isExpanded ->
+                    if (!isExpanded) {
+                        // Short prompt
+                        Column {
                             Text(
-                                text = formatNumber(prompt.likes),
+                                text = prompt.shortPrompt,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
-                        }
 
-                        // Tap to expand hint
-                        Text(
-                            text = "Tap to view full prompt",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Bottom Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Likes
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color(0xFFE91E63)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = formatNumber(prompt.likes),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+
+                                // Tap to expand hint
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Tap to view full prompt",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Full prompt
+                        Column {
+                            Text(
+                                text = prompt.fullPrompt,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Action buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Copy Button
+                                Button(
+                                    onClick = {
+                                        onCopy()
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "✨ Prompt copied to clipboard!",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Copy")
+                                }
+
+                                // Collapse button
+                                OutlinedButton(
+                                    onClick = { showFullPrompt = false },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ExpandLess,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Collapse")
+                                }
+                            }
+                        }
                     }
                 }
             }
