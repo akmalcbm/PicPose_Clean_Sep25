@@ -2,6 +2,12 @@
 agp = "8.12.2" # Using a stable AGP version, ensure it is compatible with your project
 kotlin = "2.0.0" # Aligned with the Compose compiler plugin
 
+coil = "2.4.0"
+lottie = "6.1.0"
+
+retrofit = "2.11.0" # latest stable Retrofit
+gson-converter = "2.11.0"
+
 # AndroidX
 coreKtx = "1.13.1"
 appcompat = "1.7.0"
@@ -46,6 +52,12 @@ androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscree
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
+
+retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "gson-converter" }
 
 # Dependency Injection
 #hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

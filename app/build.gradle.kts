@@ -97,6 +97,14 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    implementation(libs.coil.compose)
+    implementation(libs.lottie.compose)
+
+    // Retrofit + Gson
+    implementation(libs.retrofit2)
+    implementation(libs.converter.gson)
+
+
     // Hilt
     //implementation(libs.hilt.android)
     //implementation(libs.androidx.hilt.navigation.compose)
