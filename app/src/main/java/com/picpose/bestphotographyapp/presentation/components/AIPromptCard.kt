@@ -32,7 +32,7 @@ fun AIPromptCard(
     onCopy: () -> Unit,
     onFavoriteClick: ((AIPrompt) -> Unit)? = null,
     isCompact: Boolean = false,
-    showFavoriteIcon: Boolean = true, // ADD THIS PARAMETER
+    showFavoriteIcon: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current

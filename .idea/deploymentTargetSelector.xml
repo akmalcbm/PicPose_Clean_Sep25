@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-09-08T09:12:02.254446300Z">
+        <DropdownSelection timestamp="2025-09-08T11:08:47.888448200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Akmal\.android\avd\OPPO_K12x.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=RZCX8230L0M" />
             </handle>
           </Target>
         </DropdownSelection>

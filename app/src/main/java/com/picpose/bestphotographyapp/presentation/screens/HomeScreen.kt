@@ -49,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.components.AIPromptCardOnlyHome
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModelFactory
 
@@ -1495,7 +1496,7 @@ fun AIPromptsRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(prompts) { prompt ->
-            AIPromptCard(
+            AIPromptCardOnlyHome(
                 prompt = prompt,
                 onClick = { onPromptClick(prompt) },
                 onCopy = { onCopyPrompt(prompt) },
