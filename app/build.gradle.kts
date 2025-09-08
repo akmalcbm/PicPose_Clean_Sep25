@@ -104,6 +104,10 @@ dependencies {
     implementation(libs.retrofit2)
     implementation(libs.converter.gson)
 
+    // Room Database
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Hilt
     //implementation(libs.hilt.android)

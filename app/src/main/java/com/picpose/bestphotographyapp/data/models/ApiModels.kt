@@ -1,5 +1,43 @@
 package com.picpose.bestphotographyapp.data.models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class AIPromptResponse(
+    val success: Boolean,
+    val data: List<AIPromptDto>,
+    val message: String? = null
+)
+
+@Serializable
+data class AIPromptDto(
+    val id: String,
+    val title: String,
+    val shortPrompt: String,
+    val fullPrompt: String,
+    val imageUrl: String,
+    val category: String,
+    val tags: List<String> = emptyList(),
+    val likes: Int = 0,
+    val isPopular: Boolean = false,
+    val status: String = "published",
+    val priority: Int = 0,
+    val createdAt: String? = null,
+    val updatedAt: String? = null
+) {
+    fun toAIPrompt() = AIPrompt(
+        id = id,
+        title = title,
+        shortPrompt = shortPrompt,
+        fullPrompt = fullPrompt,
+        imageUrl = imageUrl,
+        category = category,
+        tags = tags,
+        likes = likes,
+        isPopular = isPopular
+    )
+}
+
 data class PostResponse(
     val success: Boolean,
     val message: String,
@@ -43,17 +81,12 @@ data class UserStats(
 data class AIPrompt(
     val id: String,
     val title: String,
-    val shortPrompt: String, // 1-2 lines preview
-    val fullPrompt: String,  // Complete detailed prompt
+    val shortPrompt: String,
+    val fullPrompt: String,
     val imageUrl: String,
     val category: String,
     val tags: List<String> = emptyList(),
     val likes: Int = 0,
-    val isPopular: Boolean = false
-)
-
-data class AIPromptResponse(
-    val success: Boolean,
-    val message: String,
-    val data: List<AIPrompt>
+    val isPopular: Boolean = false,
+    val isFavorite: Boolean = false
 )

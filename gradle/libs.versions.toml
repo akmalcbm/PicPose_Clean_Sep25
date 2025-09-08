@@ -16,6 +16,8 @@ activity = "1.9.1"
 lifecycle = "2.8.3"
 splashscreen = "1.0.1"
 
+room = "2.6.1"
+
 # Navigation & DI
 navigation-compose = "2.8.0"
 #hilt = "2.51.1" # A compatible Hilt version for Kotlin 2.0.0
@@ -56,8 +58,14 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 
+# Retrofit and GSON
 retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "gson-converter" }
+
+# Room Database
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 # Dependency Injection
 #hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

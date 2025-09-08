@@ -1,5 +1,8 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -17,25 +20,29 @@ data class HomeUiState(
     val recentPosts: List<Post> = emptyList(),
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
+    val favoritePromptsCount: Int = 0, // Added for favorites count
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
 
-class HomeViewModel : ViewModel() {
-    private val repository = HomeRepository()
+class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val photographyTips = listOf(
-        "Use the rule of thirds for better composition",
-        "Golden hour provides the most flattering natural light",
-        "Focus on the eyes in portrait photography",
-        "Use leading lines to guide the viewer's attention",
-        "Experiment with different angles and perspectives",
-        "Learn to use negative space effectively",
-        "Master manual camera settings for creative control",
-        "Practice the art of storytelling through images"
+        "🎯 Use the rule of thirds for better composition",
+        "🌅 Golden hour provides the most flattering natural light",
+        "👁️ Focus on the eyes in portrait photography",
+        "🛤️ Use leading lines to guide the viewer's attention",
+        "📐 Experiment with different angles and perspectives",
+        "⚪ Learn to use negative space effectively",
+        "⚙️ Master manual camera settings for creative control",
+        "📖 Practice the art of storytelling through images",
+        "🤖 Try AI prompts: 'Professional headshot, soft lighting, clean background'",
+        "✨ AI Prompt: 'Cinematic portrait, golden hour, bokeh background'",
+        "🎨 Use AI: 'Street photography style, black and white, urban setting'",
+        "🌟 AI Magic: 'Fashion photography, dramatic lighting, studio setup'"
     )
 
     private var currentTipIndex = 0
@@ -43,6 +50,7 @@ class HomeViewModel : ViewModel() {
     init {
         loadHomeData()
         loadAIPrompts()
+        loadFavoriteCount()
     }
 
     fun loadHomeData() {
@@ -110,28 +118,132 @@ class HomeViewModel : ViewModel() {
     private fun loadAIPrompts() {
         viewModelScope.launch {
             try {
-                // For now, use mock data. Later connect to your API
+                // Try to load from repository first
+                repository.getFeaturedAIPrompts().collect { result ->
+                    result.fold(
+                        onSuccess = { prompts ->
+                            _uiState.value = _uiState.value.copy(aiPrompts = prompts)
+                        },
+                        onFailure = {
+                            // Use mock data as fallback
+                            val mockPrompts = repository.getMockAIPrompts()
+                            _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts)
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                // Fallback to mock data
                 val mockPrompts = repository.getMockAIPrompts()
                 _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts)
-            } catch (e: Exception) {
-                // Handle error
             }
         }
     }
 
-    // Add this function for copying prompts
-    fun copyPromptToClipboard(context: android.content.Context, prompt: String) {
-        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        val clip = android.content.ClipData.newPlainText("AI Prompt", prompt)
+    private fun loadFavoriteCount() {
+        viewModelScope.launch {
+            try {
+                val count = repository.getFavoriteCount()
+                _uiState.value = _uiState.value.copy(favoritePromptsCount = count)
+            } catch (e: Exception) {
+                // Handle error silently
+            }
+        }
+    }
+
+    // Copy prompt to clipboard
+    fun copyPromptToClipboard(context: Context, prompt: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("AI Prompt", prompt)
         clipboard.setPrimaryClip(clip)
     }
 
-    fun refreshData() {
+    // Toggle favorite for a prompt
+    fun togglePromptFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-            loadHomeData()
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            try {
+                repository.toggleFavorite(prompt).collect { result ->
+                    result.fold(
+                        onSuccess = { isFavorite ->
+                            // Update the prompt in the current list
+                            val updatedPrompts = _uiState.value.aiPrompts.map {
+                                if (it.id == prompt.id) {
+                                    it.copy(isFavorite = isFavorite)
+                                } else it
+                            }
+                            _uiState.value = _uiState.value.copy(aiPrompts = updatedPrompts)
+
+                            // Reload favorite count
+                            loadFavoriteCount()
+                        },
+                        onFailure = { exception ->
+                            _uiState.value = _uiState.value.copy(error = exception.message)
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
         }
+    }
+
+    // Toggle like for a post
+    fun togglePostLike(postId: String) {
+        viewModelScope.launch {
+            try {
+                // Update the post in featured posts
+                val updatedFeaturedPosts = _uiState.value.featuredPosts.map { post ->
+                    if (post.id == postId) {
+                        post.copy(
+                            likes = post.likes + 1 // Just increment likes (your Post model has 'likes')
+                        )
+                    } else post
+                }
+
+                // Update the post in recent posts
+                val updatedRecentPosts = _uiState.value.recentPosts.map { post ->
+                    if (post.id == postId) {
+                        post.copy(
+                            likes = post.likes + 1
+                        )
+                    } else post
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    featuredPosts = updatedFeaturedPosts,
+                    recentPosts = updatedRecentPosts
+                )
+
+                // TODO: Send like to server
+                // repository.togglePostLike(postId)
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    // Fixed sharePost method - using your Post model properties
+    fun sharePost(context: Context, post: Post) {
+        try {
+            // Use 'title' and 'description' from your Post model
+            val shareText = "Check out this amazing photo: ${post.title}\n\n${post.description}\n\n#PicPose #Photography"
+
+            // Copy to clipboard as a simple share mechanism
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Shared Post", shareText)
+            clipboard.setPrimaryClip(clip)
+
+            android.widget.Toast.makeText(context, "Post details copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(error = "Failed to share post")
+        }
+    }
+
+
+    // Photography tip functions
+    fun getCurrentTip(): String {
+        return photographyTips[currentTipIndex]
     }
 
     fun getNextTip(): String {
@@ -139,5 +251,65 @@ class HomeViewModel : ViewModel() {
         return photographyTips[currentTipIndex]
     }
 
-    fun getCurrentTip(): String = photographyTips[currentTipIndex]
+    fun getPreviousTip(): String {
+        currentTipIndex = if (currentTipIndex > 0) currentTipIndex - 1 else photographyTips.size - 1
+        return photographyTips[currentTipIndex]
+    }
+
+    // Refresh all data
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
+
+            loadHomeData()
+            loadAIPrompts()
+            loadFavoriteCount()
+
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
+        }
+    }
+
+    // Clear error
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    // Search prompts (for future use)
+    fun searchPrompts(query: String) {
+        viewModelScope.launch {
+            try {
+                if (query.isBlank()) {
+                    loadAIPrompts() // Reload all prompts
+                } else {
+                    val filteredPrompts = _uiState.value.aiPrompts.filter { prompt ->
+                        prompt.title.contains(query, ignoreCase = true) ||
+                                prompt.shortPrompt.contains(query, ignoreCase = true) ||
+                                prompt.category.contains(query, ignoreCase = true)
+                    }
+                    _uiState.value = _uiState.value.copy(aiPrompts = filteredPrompts)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    // Get prompt by ID (for navigation)
+    fun getPromptById(promptId: String): AIPrompt? {
+        return _uiState.value.aiPrompts.find { it.id == promptId }
+    }
+
+    // Analytics functions (for future use)
+    fun logPromptView(promptId: String) {
+        // TODO: Send analytics event
+    }
+
+    fun logPromptCopy(promptId: String) {
+        // TODO: Send analytics event
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up any resources if needed
+    }
 }
