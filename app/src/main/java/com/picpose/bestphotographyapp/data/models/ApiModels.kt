@@ -54,7 +54,10 @@ data class Post(
     val created_at: String,
     val likes: Int = 0,
     val views: Int = 0,
-    val is_featured: Boolean = false
+    val is_featured: Boolean = false,
+    val tags: List<String> = emptyList(), // Add tags field
+    val isLiked: Boolean = false, // Add isLiked field for UI state
+    val authorId: String = "" // Add authorId field
 )
 
 data class CategoryResponse(

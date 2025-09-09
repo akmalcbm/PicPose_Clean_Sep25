@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.presentation.components
+package com.picpose.bestphotographyapp.presentation.components.home
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -9,6 +9,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -71,7 +72,7 @@ fun AIPromptCardOnlyHome(
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isPressed) 12.dp else 8.dp
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             Color(0xFFF1F5F9)
         )

@@ -264,18 +264,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-    fun refresh() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-
-            loadAllPrompts()
-            loadFavoritePrompts()
-            loadCategories()
-
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
-        }
-    }
-
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

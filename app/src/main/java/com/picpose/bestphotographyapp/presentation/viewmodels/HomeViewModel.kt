@@ -115,6 +115,31 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
+    fun refreshAllData() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                // Load all data concurrently
+                loadFeaturedPosts()
+                loadRecentPosts()
+                loadCategories()
+
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Unknown error occurred",
+                    isLoading = false
+                )
+            }
+        }
+    }
+
+    fun getNextTip(): String {
+        currentTipIndex = (currentTipIndex + 1) % photographyTips.size
+        return photographyTips[currentTipIndex]
+    }
+
     private fun loadAIPrompts() {
         viewModelScope.launch {
             try {
@@ -240,16 +265,53 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
+    // Add these if you don't have them already
+    private fun loadFeaturedPosts() {
+        // Your existing implementation or add this:
+        viewModelScope.launch {
+            try {
+                // Load featured posts from repository
+                // val posts = repository.getFeaturedPosts()
+                // _uiState.value = _uiState.value.copy(featuredPosts = posts)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    private fun loadRecentPosts() {
+        // Your existing implementation or add this:
+        viewModelScope.launch {
+            try {
+                // Load recent posts from repository
+                // val posts = repository.getRecentPosts()
+                // _uiState.value = _uiState.value.copy(recentPosts = posts)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    private fun loadCategories() {
+        // Your existing implementation or add this:
+        viewModelScope.launch {
+            try {
+                // Load categories from repository
+                // val categories = repository.getCategories()
+                // _uiState.value = _uiState.value.copy(categories = categories)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
 
     // Photography tip functions
     fun getCurrentTip(): String {
         return photographyTips[currentTipIndex]
     }
 
-    fun getNextTip(): String {
-        currentTipIndex = (currentTipIndex + 1) % photographyTips.size
-        return photographyTips[currentTipIndex]
-    }
+
 
     fun getPreviousTip(): String {
         currentTipIndex = if (currentTipIndex > 0) currentTipIndex - 1 else photographyTips.size - 1

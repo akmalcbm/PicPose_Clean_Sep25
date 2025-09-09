@@ -18,6 +18,8 @@ splashscreen = "1.0.1"
 
 room = "2.6.1"
 
+accompanist = "0.32.0"
+
 # Navigation & DI
 navigation-compose = "2.8.0"
 #hilt = "2.51.1" # A compatible Hilt version for Kotlin 2.0.0
@@ -32,7 +34,8 @@ composeBom = "2024.06.00" # Use a stable BOM version
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-constraintlayout = "2.2.0" # This may not be needed for Compose projects
+constraintlayout = "2.2.0"
+material3 = "1.3.2" # This may not be needed for Compose projects
 
 [libraries]
 # Core
@@ -67,6 +70,9 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
+accompanist-swiperefresh = { group = "com.google.accompanist", name = "accompanist-swiperefresh", version.ref = "accompanist" }
+
+
 # Dependency Injection
 #hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 #hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -90,6 +96,7 @@ androidx-compose-material3-window-size = { group = "androidx.compose.material3",
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

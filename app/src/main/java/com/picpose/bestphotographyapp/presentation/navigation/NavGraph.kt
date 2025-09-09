@@ -33,6 +33,7 @@ fun NavGraph(navController: NavHostController) {
             SplashScreen(navController = navController, viewModel = viewModel)
         }
 
+        // ✅ FIXED: Single HomeScreen composable with correct parameters
         composable(route = Screen.Home.route) {
             val context = LocalContext.current
             val homeRepository = remember { HomeRepository(context) }
@@ -46,14 +47,23 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToFavorites = {
                     navController.navigate(Screen.AIPromptFavorites.route)
                 },
-                onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId))
+                // ✅ FIXED: Use correct parameter names
+                onNavigateToCategory = { category ->
+                    // TODO: Add category navigation when you have CategoryScreen
+                    // navController.navigate(Screen.Category.createRoute(category.id))
+                },
+                onNavigateToPostDetail = { post ->
+                    // TODO: Add post detail navigation when you have PostDetailScreen
+                    // navController.navigate(Screen.PostDetail.createRoute(post.id))
+                },
+                onNavigateToPromptDetail = { aiPrompt ->
+                    navController.navigate(Screen.PromptDetail.createRoute(aiPrompt.id))
                 }
             )
         }
 
         composable(route = Screen.Explore.route) {
-            ExploreScreen() // Move this file from viewmodels to screens folder
+            ExploreScreen()
         }
 
         composable(route = Screen.Create.route) {
@@ -68,13 +78,13 @@ fun NavGraph(navController: NavHostController) {
             ProfileScreen()
         }
 
-        // AI Prompts Screens - Using your existing files
+        // AI Prompts Screens
         composable(route = Screen.AllAIPrompts.route) {
             val context = LocalContext.current
             val homeRepository = remember { HomeRepository(context) }
             val viewModel = remember { AIPromptViewModel(homeRepository) }
 
-            AllAIPromptsScreen( // Your existing file
+            AllAIPromptsScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )
@@ -85,46 +95,9 @@ fun NavGraph(navController: NavHostController) {
             val homeRepository = remember { HomeRepository(context) }
             val viewModel = remember { AIPromptViewModel(homeRepository) }
 
-            AIPromptFavoritesScreen( // Your existing file
+            AIPromptFavoritesScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = Screen.PromptDetail.route,
-            arguments = listOf(
-                navArgument("promptId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val promptId = backStackEntry.arguments?.getString("promptId") ?: ""
-            val context = LocalContext.current
-            val homeRepository = remember { HomeRepository(context) }
-            val viewModel = remember { AIPromptViewModel(homeRepository) }
-
-            PromptDetailScreen( // Your existing file
-                promptId = promptId,
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(route = Screen.Home.route) {
-            val context = LocalContext.current
-            val homeRepository = remember { HomeRepository(context) }
-            val homeViewModel = remember { HomeViewModel(homeRepository) }
-
-            HomeScreen(
-                viewModel = homeViewModel,
-                onNavigateToAllPrompts = {
-                    navController.navigate(Screen.AllAIPrompts.route)
-                },
-                onNavigateToFavorites = {
-                    navController.navigate(Screen.AIPromptFavorites.route)
-                },
-                onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId))
-                }
             )
         }
 
