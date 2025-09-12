@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.*
 import androidx.room.Room
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import java.util.concurrent.Executors
 
 // Favorite entity
 @Entity(tableName = "favorite_prompts")
@@ -50,7 +51,7 @@ interface FavoritePromptDao {
     version = 1,
     exportSchema = false
 )
-@TypeConverters(Converters::class) // Add this line
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoritePromptDao
 
@@ -64,7 +65,12 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "picpose_database"
-                ).fallbackToDestructiveMigration() // Add this for development
+                )
+                    .fallbackToDestructiveMigration()
+                    .setQueryCallback(RoomDatabase.QueryCallback { sqlQuery, bindArgs ->
+                        // Optional: Log slow queries for debugging
+                        println("SQL Query: $sqlQuery")
+                    }, Executors.newSingleThreadExecutor())
                     .build()
                 INSTANCE = instance
                 instance

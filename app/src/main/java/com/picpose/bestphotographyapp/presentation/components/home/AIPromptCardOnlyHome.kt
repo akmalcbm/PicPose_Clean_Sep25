@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -288,9 +289,9 @@ fun AIPromptCardOnlyHome(
                     Column {
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Divider(
-                            color = Color(0xFFF1F5F9),
-                            thickness = 1.dp
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = Color(0xFFF1F5F9)
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))

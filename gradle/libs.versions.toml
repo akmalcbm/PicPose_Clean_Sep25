@@ -2,11 +2,12 @@
 agp = "8.12.2" # Using a stable AGP version, ensure it is compatible with your project
 kotlin = "2.0.0" # Aligned with the Compose compiler plugin
 
-coil = "2.4.0"
+coil = "2.5.0"
 lottie = "6.1.0"
 
 retrofit = "2.11.0" # latest stable Retrofit
 gson-converter = "2.11.0"
+okhttp = "4.12.0"
 
 # AndroidX
 coreKtx = "1.13.1"
@@ -15,15 +16,15 @@ material = "1.12.0"
 activity = "1.9.1"
 lifecycle = "2.8.3"
 splashscreen = "1.0.1"
-
 room = "2.6.1"
-
 accompanist = "0.32.0"
 
 # Navigation & DI
 navigation-compose = "2.8.0"
-#hilt = "2.51.1" # A compatible Hilt version for Kotlin 2.0.0
-#hilt-navigation-compose = "1.2.0"
+
+hilt = "2.48"
+hilt-navigation-compose = "1.1.0"
+
 kotlinx-serialization = "1.6.3" # Update version
 ksp = "2.0.0-1.0.21" # Align with Kotlin version
 
@@ -34,8 +35,7 @@ composeBom = "2024.06.00" # Use a stable BOM version
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-constraintlayout = "2.2.0"
-material3 = "1.3.2" # This may not be needed for Compose projects
+constraintlayout = "2.2.0" # This may not be needed for Compose projects
 
 [libraries]
 # Core
@@ -58,25 +58,25 @@ androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscree
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
+# UI Libraries
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
+accompanist-swiperefresh = { group = "com.google.accompanist", name = "accompanist-swiperefresh", version.ref = "accompanist" }
 
-# Retrofit and GSON
+# Networking
 retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "gson-converter" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
 # Room Database
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
-accompanist-swiperefresh = { group = "com.google.accompanist", name = "accompanist-swiperefresh", version.ref = "accompanist" }
-
-
-# Dependency Injection
-#hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
-#hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-#androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
+# Dependency Injection - Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
 
 # Compose BOM (platform)
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -96,12 +96,11 @@ androidx-compose-material3-window-size = { group = "androidx.compose.material3",
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-#hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

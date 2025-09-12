@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -89,7 +91,7 @@ fun PromptDetailScreen(
                 title = { Text("AI Prompt Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -239,7 +241,7 @@ fun PromptDetailScreen(
 
                                 if (promptData.tags.isNotEmpty()) {
                                     StatChip(
-                                        icon = Icons.Default.Label,
+                                        icon = Icons.AutoMirrored.Filled.Label,
                                         text = "${promptData.tags.size} tags",
                                         color = Color(0xFF6366F1)
                                     )

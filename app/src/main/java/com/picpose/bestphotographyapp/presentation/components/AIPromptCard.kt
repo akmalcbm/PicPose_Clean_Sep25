@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.components
 
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,17 +15,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import androidx.core.graphics.drawable.toDrawable
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIPromptCard(
     prompt: AIPrompt,
@@ -62,17 +67,25 @@ fun AIPromptCard(
                     )
                 )
         ) {
-            // Image Section with overlay
+            // Image Section with AsyncImage
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isCompact) 140.dp else 180.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .height(if (isCompact) 100.dp else 180.dp)
             ) {
                 AsyncImage(
-                    model = prompt.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(prompt.imageUrl)
+                        .placeholder(Color.Gray.toArgb().toDrawable()) // ✅ Use ColorDrawable
+                        .error(Color.Red.copy(alpha = 0.3f).toArgb().toDrawable()) // ✅ Use ColorDrawable
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = prompt.title,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                     contentScale = ContentScale.Crop
                 )
 

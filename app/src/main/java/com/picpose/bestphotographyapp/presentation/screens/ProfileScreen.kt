@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -173,7 +174,7 @@ fun ProfileScreen() {
                 )
             ) {
                 Icon(
-                    Icons.Filled.Logout,
+                    Icons.AutoMirrored.Filled.Logout,
                     contentDescription = "Logout",
                     modifier = Modifier.size(18.dp)
                 )

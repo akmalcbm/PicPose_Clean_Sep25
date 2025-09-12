@@ -86,7 +86,10 @@ fun NavGraph(navController: NavHostController) {
 
             AllAIPromptsScreen(
                 viewModel = viewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onPromptClick = { promptId -> // ✅ Expecting String ID
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId))
+                }
             )
         }
 
@@ -97,7 +100,10 @@ fun NavGraph(navController: NavHostController) {
 
             AIPromptFavoritesScreen(
                 viewModel = viewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onPromptClick = { promptId -> // ✅ Expecting String ID
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId))
+                }
             )
         }
 
