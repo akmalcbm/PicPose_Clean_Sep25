@@ -11,7 +11,10 @@ sealed class Screen(val route: String) {
     // AI Prompts screens
     object AllAIPrompts : Screen("all_ai_prompts")
     object AIPromptFavorites : Screen("ai_prompt_favorites")
+
     object PromptDetail : Screen("prompt_detail/{promptId}") {
-        fun createRoute(promptId: String) = "prompt_detail/$promptId"
+        const val ARG_PROMPT_ID = "promptId"            // constant
+        private const val BASE = "prompt_detail"
+        fun createRoute(promptId: String) = "$BASE/$promptId"
     }
 }

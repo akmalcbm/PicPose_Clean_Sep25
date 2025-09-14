@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModelFactory
@@ -30,7 +31,9 @@ fun HomeScreen(
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
     viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(LocalContext.current)
+        factory = HomeViewModelFactory(
+            HomeRepository(LocalContext.current)
+        )
     )
 ) {
     val context = LocalContext.current
