@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -76,17 +77,15 @@ fun AIPromptCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(prompt.imageUrl)
-                        .placeholder(Color.Gray.toArgb().toDrawable()) // ✅ Use ColorDrawable
-                        .error(Color.Red.copy(alpha = 0.3f).toArgb().toDrawable()) // ✅ Use ColorDrawable
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
-                        .crossfade(true)
+                        .crossfade(true) // ✅ Smooth transitions
                         .build(),
-                    contentDescription = prompt.title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                    contentScale = ContentScale.Crop
+                    contentDescription = prompt.title ?: "AI Generated Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(Color.Gray.copy(alpha = 0.3f)), // ✅ Subtle placeholder
+                    error = ColorPainter(Color.Red.copy(alpha = 0.2f)) // ✅ Subtle error state
                 )
 
                 // Gradient overlay

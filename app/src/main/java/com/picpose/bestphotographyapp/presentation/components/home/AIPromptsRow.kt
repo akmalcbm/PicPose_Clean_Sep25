@@ -18,8 +18,12 @@ fun AIPromptsRow(
 ) {
     LazyRow(
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // 🔧 CRITICAL: Enhanced padding for shadows
+        contentPadding = PaddingValues(
+            horizontal = 8.dp,
+            vertical = 8.dp // ✨ This prevents shadow clipping!
+        ),
+        horizontalArrangement = Arrangement.spacedBy(8.dp) // ✨ Better spacing
     ) {
         items(prompts) { prompt ->
             AIPromptCardOnlyHome(
