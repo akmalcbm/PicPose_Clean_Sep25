@@ -4,7 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,17 +16,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +42,9 @@ fun PromptDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     // Find the prompt by ID
     val prompt = remember(promptId, uiState.allPrompts) {
@@ -50,341 +56,332 @@ fun PromptDetailScreen(
         viewModel.loadPromptById(promptId)
     }
 
-    if (prompt == null && !uiState.isLoading) {
-        // Prompt not found
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Prompt not found",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onBack) {
-                    Text("Go Back")
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        when {
+            prompt == null && !uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Prompt not found",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onBack) {
+                            Text("Go Back")
+                        }
+                    }
                 }
             }
-        }
-        return
-    }
 
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    prompt?.let { promptData ->
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Top App Bar
-            TopAppBar(
-                title = { Text("AI Prompt Details") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    // Share button
-                    IconButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
-                            Toast.makeText(context, "Prompt shared to clipboard!", Toast.LENGTH_SHORT).show()
-                        }
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
-
-                    // Favorite button
-                    IconButton(
-                        onClick = { viewModel.toggleFavorite(promptData) }
-                    ) {
-                        Icon(
-                            if (promptData.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorite",
-                            tint = if (promptData.isFavorite) Color(0xFFE91E63) else LocalContentColor.current
-                        )
-                    }
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-            )
+            }
 
-            // Scrollable content
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                // Hero Image
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                    ) {
-                        AsyncImage(
-                            model = promptData.imageUrl,
-                            contentDescription = promptData.title,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+            else -> {
+                prompt?.let { promptData ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Top App Bar
+                        TopAppBar(
+                            title = { Text("AI Prompt Details") },
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            },
+                            actions = {
+                                // Share button
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
+                                        Toast.makeText(
+                                            context,
+                                            "Prompt copied for sharing!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = "Share")
+                                }
+
+                                // Favorite button
+                                IconButton(
+                                    onClick = { viewModel.toggleFavorite(promptData) }
+                                ) {
+                                    Icon(
+                                        if (promptData.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "Favorite",
+                                        tint = if (promptData.isFavorite)
+                                            MaterialTheme.colorScheme.error
+                                        else
+                                            LocalContentColor.current
+                                    )
+                                }
+                            }
                         )
 
-                        // Gradient overlay
-                        Box(
+                        // Scrollable content
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            Color.Black.copy(alpha = 0.4f)
-                                        ),
-                                        startY = 100f
-                                    )
-                                )
-                        )
-
-                        // Badges overlay
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(innerPadding),
+                            contentPadding = PaddingValues(bottom = 32.dp)
                         ) {
-                            // Category badge
-                            Surface(
-                                color = Color(0xFF6366F1),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text(
-                                    text = promptData.category,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                            // Hero Image
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp)
+                                ) {
+                                    SubcomposeAsyncImage(
+                                        model = promptData.imageUrl,
+                                        contentDescription = promptData.title,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(
+                                                RoundedCornerShape(
+                                                    bottomStart = 16.dp,
+                                                    bottomEnd = 16.dp
+                                                )
+                                            ),
+                                        contentScale = ContentScale.Crop
+                                    ) {
+                                        when (painter.state) {
+                                            is AsyncImagePainter.State.Loading -> {
+                                                Box(
+                                                    Modifier.fillMaxSize(),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator()
+                                                }
+                                            }
+
+                                            is AsyncImagePainter.State.Error -> {
+                                                Icon(
+                                                    Icons.Default.BrokenImage,
+                                                    contentDescription = "Image load error",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(64.dp)
+                                                )
+                                            }
+
+                                            else -> SubcomposeAsyncImageContent()
+                                        }
+                                    }
+
+                                    // Gradient overlay (remembered)
+                                    val gradient = remember {
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color.Black.copy(alpha = 0.4f)
+                                            ),
+                                            startY = 100f
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(gradient)
+                                    )
+                                }
                             }
 
-                            // Popular badge
-                            if (promptData.isPopular) {
-                                Surface(
-                                    color = Color(0xFFEF4444),
-                                    shape = RoundedCornerShape(20.dp)
+                            // Title + Stats Card
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Whatshot,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = Color.White
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                    Column(modifier = Modifier.padding(20.dp)) {
                                         Text(
-                                            text = "Popular",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.SemiBold
+                                            text = promptData.title,
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            StatChip(
+                                                icon = Icons.Default.FavoriteBorder,
+                                                text = "${promptData.likes} likes",
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+
+                                            if (promptData.tags.isNotEmpty()) {
+                                                StatChip(
+                                                    icon = Icons.AutoMirrored.Filled.Label,
+                                                    text = "${promptData.tags.size} tags",
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        Text(
+                                            text = promptData.shortPrompt,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            lineHeight = 24.sp
                                         )
                                     }
                                 }
                             }
-                        }
-                    }
-                }
 
-                // Content Section
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            // Title
-                            Text(
-                                text = promptData.title,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1E293B)
-                            )
+                            // Full Prompt Section
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(20.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.AutoAwesome,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Full AI Prompt",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(16.dp))
 
-                            // Stats row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                StatChip(
-                                    icon = Icons.Default.FavoriteBorder,
-                                    text = "${promptData.likes} likes",
-                                    color = Color(0xFFE91E63)
-                                )
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.background,
+                                            shape = RoundedCornerShape(12.dp),
+                                            border = BorderStroke(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                            )
+                                        ) {
+                                            Text(
+                                                text = promptData.fullPrompt,
+                                                modifier = Modifier.padding(16.dp),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                lineHeight = 22.sp
+                                            )
+                                        }
 
-                                if (promptData.tags.isNotEmpty()) {
-                                    StatChip(
-                                        icon = Icons.AutoMirrored.Filled.Label,
-                                        text = "${promptData.tags.size} tags",
-                                        color = Color(0xFF6366F1)
-                                    )
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        Button(
+                                            onClick = {
+                                                clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            contentPadding = PaddingValues(vertical = 16.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.ContentCopy,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Copy Full Prompt",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Short description
-                            Text(
-                                text = promptData.shortPrompt,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color(0xFF64748B),
-                                lineHeight = 24.sp
-                            )
-                        }
-                    }
-                }
-
-                // Full Prompt Section
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFF8FAFC)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = Color(0xFF6366F1)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Full AI Prompt",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Full prompt text
-                            Surface(
-                                color = Color.White,
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                            ) {
-                                Text(
-                                    text = promptData.fullPrompt,
-                                    modifier = Modifier.padding(16.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF374151),
-                                    lineHeight = 22.sp
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Copy button
-                            Button(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
-                                    Toast.makeText(context, "✨ Prompt copied to clipboard!", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF6366F1)
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(vertical = 16.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Copy Full Prompt",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Tags Section
-                if (promptData.tags.isNotEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp)
-                            ) {
-                                Text(
-                                    text = "🏷️ Tags",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Tags grid
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    promptData.tags.forEach { tag ->
-                                        Surface(
-                                            color = Color(0xFFF1F5F9),
-                                            shape = RoundedCornerShape(20.dp),
-                                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                                        ) {
+                            // Tags Section
+                            if (promptData.tags.isNotEmpty()) {
+                                item {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(20.dp)) {
                                             Text(
-                                                text = "#$tag",
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color(0xFF475569),
-                                                fontWeight = FontWeight.Medium
+                                                text = "🏷️ Tags",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
                                             )
+
+                                            Spacer(modifier = Modifier.height(12.dp))
+
+                                            FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                promptData.tags.forEach { tag ->
+                                                    Surface(
+                                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                                        shape = RoundedCornerShape(20.dp),
+                                                        border = BorderStroke(
+                                                            1.dp,
+                                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                                        )
+                                                    ) {
+                                                        Text(
+                                                            text = "#$tag",
+                                                            modifier = Modifier.padding(
+                                                                horizontal = 12.dp,
+                                                                vertical = 6.dp
+                                                            ),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -428,17 +425,14 @@ private fun StatChip(
     }
 }
 
-// FlowRow implementation (if not available in your Compose version)
+// Simple FlowRow fallback (replace with Accompanist FlowRow if available)
 @Composable
 private fun FlowRow(
     horizontalArrangement: Arrangement.Horizontal,
     verticalArrangement: Arrangement.Vertical,
     content: @Composable () -> Unit
 ) {
-    // Simple implementation - you can replace with actual FlowRow when available
-    Column(
-        verticalArrangement = verticalArrangement
-    ) {
+    Column(verticalArrangement = verticalArrangement) {
         content()
     }
 }

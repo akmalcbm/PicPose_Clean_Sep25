@@ -12,29 +12,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
-import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel,
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToCategory: (Category) -> Unit,
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
-    viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(
-            HomeRepository(LocalContext.current)
-        )
-    )
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()

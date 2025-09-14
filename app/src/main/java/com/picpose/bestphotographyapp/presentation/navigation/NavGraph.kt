@@ -32,8 +32,6 @@ fun NavGraph(navController: NavHostController) {
         composable(route = Screen.Home.route) {
             val context = LocalContext.current
             val repo = remember { HomeRepository(context) }
-
-            // Use your HomeViewModelFactory (so ViewModel is lifecycle-aware)
             val homeVM: HomeViewModel = viewModel(factory = HomeViewModelFactory(repo))
 
             HomeScreen(
@@ -48,19 +46,17 @@ fun NavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
-                onNavigateToCategory = { category ->
-                    // add when Category screen exists
-                },
-                onNavigateToPostDetail = { post ->
-                    // add when PostDetail route exists
-                },
+                onNavigateToCategory = { /* TODO */ },
+                onNavigateToPostDetail = { /* TODO */ },
                 onNavigateToPromptDetail = { aiPrompt ->
-                    navController.navigate(Screen.PromptDetail.createRoute(aiPrompt.id)) {
+                    val safeId = android.net.Uri.encode(aiPrompt.id)
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
                         launchSingleTop = true
                     }
                 }
             )
         }
+
 
         // Explore / Create / Rewards / Profile
         composable(route = Screen.Explore.route) { ExploreScreen() }
