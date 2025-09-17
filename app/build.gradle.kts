@@ -1,11 +1,12 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget // Required import
-import org.gradle.api.JavaVersion // Required import
+import com.android.build.gradle.internal.generators.BuildConfigData
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.JavaVersion
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.compose.compiler) // Apply the Compose compiler plugin
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
 }
@@ -16,12 +17,22 @@ android {
 
     defaultConfig {
         applicationId = "com.picpose.bestphotographyapp"
-        minSdk = 25
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        // API key in BuildConfig
+        buildConfigField(
+            "String",
+            "API_KEY",
+            "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+        )
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables { useSupportLibrary = true }
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
@@ -31,14 +42,22 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Ensure BuildConfig is generated for release builds too
+            buildConfigField(
+                "String",
+                "API_KEY",
+                "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+            )
         }
         debug {
             isMinifyEnabled = false
+            // BuildConfig field is inherited from defaultConfig, but you can override if needed
         }
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -46,20 +65,18 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11 // Use a more modern JVM version
-        targetCompatibility = JavaVersion.VERSION_11 // Match the target version
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlin {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11) // Align with compileOptions
+            jvmTarget.set(JvmTarget.JVM_11)
         }
     }
 }
 
-// Use the new DSL for Compose compiler options
 composeCompiler {
-    // Optional: Enable strong skipping mode for improved performance
     enableStrongSkippingMode = true
 }
 
@@ -112,7 +129,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
-    ksp(libs.hilt.compiler)  // Use KSP instead of kapt for better performance
+    ksp(libs.hilt.compiler)
 
     // Window Size
     implementation(libs.androidx.compose.material3.window.size)

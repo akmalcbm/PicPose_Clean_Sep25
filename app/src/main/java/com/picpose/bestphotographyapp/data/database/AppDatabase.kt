@@ -20,7 +20,9 @@ data class FavoritePrompt(
     val isPopular: Boolean,
     val tags: List<String> = emptyList(),
     val dateAdded: Long = System.currentTimeMillis(),
-    val favoritedAt: Long = System.currentTimeMillis()
+    val favoritedAt: Long = System.currentTimeMillis(),
+    val status: String = "published",
+    val priority: Int = 0
 )
 
 // DAO
