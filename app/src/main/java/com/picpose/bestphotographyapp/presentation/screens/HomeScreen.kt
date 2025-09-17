@@ -17,7 +17,7 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
-
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,20 +34,40 @@ fun HomeScreen(
     var currentTipIndex by remember { mutableIntStateOf(0) }
     var isRefreshing by remember { mutableStateOf(false) }
 
-    // Daily tips that complement your ViewModel's photography tips
-    val dailyTips = remember {
-        listOf(
-            "Use specific descriptive words in your prompts for better AI results! 🎯",
-            "Try combining different art styles like 'watercolor meets cyberpunk' for unique effects! 🎨",
-            "Add lighting conditions like 'golden hour' or 'dramatic shadows' to enhance your images! ✨",
-            "Specify camera angles like 'bird's eye view' or 'close-up portrait' for better composition! 📸",
-            "Use emotion words like 'serene', 'energetic', or 'mysterious' to set the mood! 😊"
-        )
+    // Fallback hardcoded tips (keeps UX stable if API not loaded yet)
+    val fallbackTips = listOf(
+        "Use specific descriptive words in your prompts for better AI results! 🎯",
+        "Try combining different art styles like 'watercolor meets cyberpunk' for unique effects! 🎨",
+        "Add lighting conditions like 'golden hour' or 'dramatic shadows' to enhance your images! ✨",
+        "Specify camera angles like 'bird's eye view' or 'close-up portrait' for better composition! 📸",
+        "Use emotion words like 'serene', 'energetic', or 'mysterious' to set the mood! 😊"
+    )
+
+    // Map server tips to displayable list. Assumes each DailyTip has a 'tip' field.
+    val serverTips: List<String> = uiState.dailyTips
+        ?.mapNotNull { it.tip }
+        ?: emptyList()
+
+    // Effective tips used by UI (server first, otherwise fallback)
+    val dailyTips = remember(serverTips) {
+        if (serverTips.isNotEmpty()) serverTips else fallbackTips
     }
 
-    // Handle refresh state from ViewModel
+    // Fetch daily tips when the screen launches (idempotent)
+    LaunchedEffect(Unit) {
+        // Call your ViewModel function to fetch tips.
+        // If your function has a different name, update it accordingly.
+        viewModel.fetchDailyTips()
+    }
+
+    // Keep refresh state in sync
     LaunchedEffect(uiState.isRefreshing) {
         isRefreshing = uiState.isRefreshing
+    }
+
+    // Reset currentTipIndex if tips list changes (prevents index OOB)
+    LaunchedEffect(dailyTips.size) {
+        if (currentTipIndex >= dailyTips.size) currentTipIndex = 0
     }
 
     // Clear error after some time
@@ -64,7 +84,7 @@ fun HomeScreen(
                 title = {
                     HomeTopBar(
                         onSearchClick = {
-                            // You can implement search later using viewModel.searchPrompts()
+                            // implement search using viewModel.searchPrompts() if present
                         },
                         onProfileClick = { /* Handle profile */ }
                     )
@@ -78,7 +98,7 @@ fun HomeScreen(
         // Show error snackbar if there's an error
         uiState.error?.let { error ->
             LaunchedEffect(error) {
-                // You could show a Snackbar here if needed
+                // optionally show Snackbar here
             }
         }
 
@@ -95,7 +115,6 @@ fun HomeScreen(
                 )
             }
             else -> {
-                // Pull-to-refresh wrapper (optional)
                 PullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = { viewModel.refresh() }
@@ -112,10 +131,11 @@ fun HomeScreen(
                             AnimatedWelcomeHeader()
                         }
 
-                        // Daily Tip with ViewModel integration
+                        // Daily Tip (now from server)
                         item {
+                            val tipToShow = dailyTips.getOrNull(currentTipIndex) ?: dailyTips.first()
                             AnimatedDailyTipCard(
-                                tip = dailyTips[currentTipIndex],
+                                tip = tipToShow,
                                 onNextTip = {
                                     currentTipIndex = (currentTipIndex + 1) % dailyTips.size
                                 }
@@ -150,14 +170,11 @@ fun HomeScreen(
                                 AIPromptsRow(
                                     prompts = uiState.aiPrompts,
                                     onPromptClick = { aiPrompt ->
-                                        // Log analytics
                                         viewModel.logPromptView(aiPrompt.id)
                                         onNavigateToPromptDetail(aiPrompt)
                                     },
                                     onCopyPrompt = { aiPrompt ->
-                                        // ✅ Fixed: Use fullPrompt
                                         viewModel.copyPromptToClipboard(context, aiPrompt.fullPrompt)
-                                        // Log analytics
                                         viewModel.logPromptCopy(aiPrompt.id)
                                     },
                                     onFavoriteClick = { aiPrompt ->
@@ -252,19 +269,16 @@ fun HomeScreen(
     }
 }
 
-// Optional: Custom Pull-to-Refresh implementation (if you don't have it)
+// --- PullToRefreshBox and EmptyStateCard unchanged from your original file ---
+
 @Composable
 fun PullToRefreshBox(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    // Simple implementation - you can use Material3's PullToRefreshContainer
-    // or implement your own pull-to-refresh logic here
     Box {
         content()
-
-        // Show refresh indicator if refreshing
         if (isRefreshing) {
             Box(
                 modifier = Modifier
@@ -281,7 +295,6 @@ fun PullToRefreshBox(
     }
 }
 
-// Optional: Empty state component
 @Composable
 fun EmptyStateCard(
     onRefresh: () -> Unit
@@ -322,4 +335,3 @@ fun EmptyStateCard(
         }
     }
 }
-

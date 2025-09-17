@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
+import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ data class HomeUiState(
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
     val favoritePromptsCount: Int = 0, // Added for favorites count
+    val dailyTips: List<DailyTip> = emptyList(), // <-- server tips here
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
@@ -30,6 +32,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    // Local photography tips used as fallback (if API fails)
     private val photographyTips = listOf(
         "🎯 Use the rule of thirds for better composition",
         "🌅 Golden hour provides the most flattering natural light",
@@ -45,14 +48,33 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         "🌟 AI Magic: 'Fashion photography, dramatic lighting, studio setup'"
     )
 
+    // Helper to convert fallback tips into DailyTip objects (order preserved)
+    private fun fallbackDailyTips(): List<DailyTip> =
+        photographyTips.mapIndexed { idx, tip ->
+            // adapt fields to match your DailyTip model
+            DailyTip(
+                id = "fallback_$idx",
+                tip = tip,
+                isActive = true,
+                order = idx,
+                createdAt = null,
+                updatedAt = null
+            )
+        }
+
     private var currentTipIndex = 0
 
     init {
         loadHomeData()
         loadAIPrompts()
         loadFavoriteCount()
+        fetchDailyTips() // fetch tips on init
     }
 
+    /**
+     * Fetch home sections (featured, recent, categories).
+     * This function tries to load data from repository flows and uses fallbacks on failure.
+     */
     fun loadHomeData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -115,15 +137,54 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
+    /**
+     * Public method to fetch daily tips from API via repository.
+     * Exposed so UI can trigger it explicitly if needed.
+     */
+    fun fetchDailyTips() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                repository.getDailyTips().collect { result: Result<List<com.picpose.bestphotographyapp.data.models.DailyTip>> ->
+                    result.fold(
+                        onSuccess = { tips ->
+                            if (tips.isNotEmpty()) {
+                                _uiState.value = _uiState.value.copy(dailyTips = tips)
+                            } else {
+                                _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
+                            }
+                        },
+                        onFailure = { throwable ->
+                            _uiState.value = _uiState.value.copy(
+                                dailyTips = fallbackDailyTips(),
+                                error = throwable.message
+                            )
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    dailyTips = fallbackDailyTips(),
+                    error = e.message
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+
     fun refreshAllData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                // Load all data concurrently
+                // Load all data concurrently where possible
                 loadFeaturedPosts()
                 loadRecentPosts()
                 loadCategories()
+                fetchDailyTips()
 
                 _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
@@ -135,31 +196,36 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
+    // Optional convenience for UI if needed
     fun getNextTip(): String {
-        currentTipIndex = (currentTipIndex + 1) % photographyTips.size
-        return photographyTips[currentTipIndex]
+        val tips = _uiState.value.dailyTips
+        return if (tips.isNotEmpty()) {
+            currentTipIndex = (currentTipIndex + 1) % tips.size
+            tips[currentTipIndex].tip
+        } else {
+            currentTipIndex = (currentTipIndex + 1) % photographyTips.size
+            photographyTips[currentTipIndex]
+        }
     }
 
     private fun loadAIPrompts() {
         viewModelScope.launch {
             try {
-                // Try to load from repository first
-                repository.getFeaturedAIPrompts().collect { result ->
+                repository.getAllAIPromptsSimple(limit = 12).collect { result: Result<List<com.picpose.bestphotographyapp.data.models.AIPrompt>> ->
                     result.fold(
                         onSuccess = { prompts ->
                             _uiState.value = _uiState.value.copy(aiPrompts = prompts)
                         },
-                        onFailure = {
-                            // Use mock data as fallback
+                        onFailure = { throwable ->
+                            // fallback to your mock prompts already available
                             val mockPrompts = repository.getMockAIPrompts()
-                            _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts)
+                            _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts, error = throwable.message)
                         }
                     )
                 }
             } catch (e: Exception) {
-                // Fallback to mock data
                 val mockPrompts = repository.getMockAIPrompts()
-                _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts)
+                _uiState.value = _uiState.value.copy(aiPrompts = mockPrompts, error = e.message)
             }
         }
     }
@@ -267,12 +333,19 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     // Add these if you don't have them already
     private fun loadFeaturedPosts() {
-        // Your existing implementation or add this:
         viewModelScope.launch {
             try {
-                // Load featured posts from repository
-                // val posts = repository.getFeaturedPosts()
-                // _uiState.value = _uiState.value.copy(featuredPosts = posts)
+                // If you already have repository flows, you may use them directly.
+                repository.getFeaturedPosts().collect { result ->
+                    result.fold(
+                        onSuccess = { posts ->
+                            _uiState.value = _uiState.value.copy(featuredPosts = posts)
+                        },
+                        onFailure = {
+                            _uiState.value = _uiState.value.copy(featuredPosts = repository.getMockFeaturedPosts())
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
@@ -280,12 +353,18 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     }
 
     private fun loadRecentPosts() {
-        // Your existing implementation or add this:
         viewModelScope.launch {
             try {
-                // Load recent posts from repository
-                // val posts = repository.getRecentPosts()
-                // _uiState.value = _uiState.value.copy(recentPosts = posts)
+                repository.getRecentPosts().collect { result ->
+                    result.fold(
+                        onSuccess = { posts ->
+                            _uiState.value = _uiState.value.copy(recentPosts = posts)
+                        },
+                        onFailure = {
+                            _uiState.value = _uiState.value.copy(recentPosts = repository.getMockFeaturedPosts())
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
@@ -293,32 +372,46 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     }
 
     private fun loadCategories() {
-        // Your existing implementation or add this:
         viewModelScope.launch {
             try {
-                // Load categories from repository
-                // val categories = repository.getCategories()
-                // _uiState.value = _uiState.value.copy(categories = categories)
+                repository.getCategories().collect { result ->
+                    result.fold(
+                        onSuccess = { categories ->
+                            _uiState.value = _uiState.value.copy(categories = categories)
+                        },
+                        onFailure = {
+                            _uiState.value = _uiState.value.copy(categories = repository.getMockCategories())
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
-
-    // Photography tip functions
+    // Photography tip functions (keeps original behaviour if needed)
     fun getCurrentTip(): String {
-        return photographyTips[currentTipIndex]
+        val tips = _uiState.value.dailyTips
+        return if (tips.isNotEmpty()) {
+            tips.getOrNull(currentTipIndex)?.tip ?: photographyTips.getOrNull(currentTipIndex) ?: photographyTips.first()
+        } else {
+            photographyTips.getOrNull(currentTipIndex) ?: photographyTips.first()
+        }
     }
-
-
 
     fun getPreviousTip(): String {
-        currentTipIndex = if (currentTipIndex > 0) currentTipIndex - 1 else photographyTips.size - 1
-        return photographyTips[currentTipIndex]
+        val tips = _uiState.value.dailyTips
+        if (tips.isNotEmpty()) {
+            currentTipIndex = if (currentTipIndex > 0) currentTipIndex - 1 else tips.size - 1
+            return tips[currentTipIndex].tip
+        } else {
+            currentTipIndex = if (currentTipIndex > 0) currentTipIndex - 1 else photographyTips.size - 1
+            return photographyTips[currentTipIndex]
+        }
     }
 
-    // Refresh all data
+    // Refresh all data (used by UI)
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true)
@@ -326,6 +419,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
             loadHomeData()
             loadAIPrompts()
             loadFavoriteCount()
+            fetchDailyTips()
 
             _uiState.value = _uiState.value.copy(isRefreshing = false)
         }

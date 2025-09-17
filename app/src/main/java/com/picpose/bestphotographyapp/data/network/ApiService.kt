@@ -1,12 +1,19 @@
 package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.AIPromptResponse
+import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.PostResponse
+import com.picpose.bestphotographyapp.data.remote.ApiResponseDailyTips
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
+    @GET("get_daily_tips.php")
+    suspend fun getDailyTips(
+        @Query("api_key") apiKey: String
+    ): Response<ApiResponseDailyTips<List<DailyTip>>>
+
     @GET("get_posts.php")
     suspend fun getPosts(
         @Query("api_key") apiKey: String,

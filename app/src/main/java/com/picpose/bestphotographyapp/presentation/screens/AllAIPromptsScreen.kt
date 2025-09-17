@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.launch
 
 // Define ViewMode enum
 enum class ViewMode {
@@ -36,176 +37,190 @@ enum class ViewMode {
 @Composable
 fun AllAIPromptsScreen(
     onBack: () -> Unit,
-    onPromptClick: (String) -> Unit = {}, // Add navigation callback
+    onPromptClick: (String) -> Unit = {}, // navigation callback
     viewModel: AIPromptViewModel = viewModel()
 ) {
-    // Refresh data when screen opens
-    LaunchedEffect(Unit) {
-        viewModel.loadAllPrompts()
-        viewModel.refreshFavoriteState()
-    }
-
     val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var showSearch by remember { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
 
-    // Load data when screen opens
+    // Initial load (run once)
     LaunchedEffect(Unit) {
         viewModel.loadAllPrompts()
+        viewModel.refreshFavoriteState()
         viewModel.loadCategories()
     }
 
-    // Get filtered prompts based on current state
-    val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
-        viewModel.getFilteredPrompts()
-    }
-
-    val categories = remember(uiState.categories) {
-        uiState.categories
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = {
-                Text(
-                    text = if (uiState.selectedCategory != "All")
-                        "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
-                    else
-                        "All AI Prompts (${displayPrompts.size})"
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            },
-            actions = {
-                // Search Toggle
-                IconButton(onClick = { showSearch = !showSearch }) {
-                    Icon(
-                        if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
-                        contentDescription = "Search"
-                    )
-                }
-
-                // View Mode Toggle
-                IconButton(onClick = {
-                    viewMode = if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID
-                }) {
-                    Icon(
-                        if (viewMode == ViewMode.GRID) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                        contentDescription = "Change View"
-                    )
-                }
-            }
-        )
-
-        // Search Bar
-        if (showSearch) {
-            SearchBar(
-                query = uiState.searchQuery,
-                onQueryChange = viewModel::searchPrompts,
-                onClear = { viewModel.searchPrompts("") }, // Clear search
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
-        }
-
-        // Category Filter Chips
-        if (categories.isNotEmpty()) {
-            CategoryFilterRow(
-                categories = categories,
-                selectedCategory = uiState.selectedCategory,
-                onCategorySelected = viewModel::filterByCategory,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-
-        // Loading State
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        // Empty State
-        else if (displayPrompts.isEmpty()) {
-            EmptyPromptsState(
-                searchQuery = uiState.searchQuery,
-                selectedCategory = uiState.selectedCategory,
-                onClearFilters = {
-                    viewModel.searchPrompts("")
-                    viewModel.filterByCategory("All")
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        // Content
-        else {
-            when (viewMode) {
-                ViewMode.GRID -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(displayPrompts) { prompt ->
-                            AIPromptCard(
-                                prompt = prompt,
-                                onClick = { onPromptClick(prompt.id) },
-                                onCopy = {
-                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
-                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                },
-                                onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                                showFavoriteIcon = true,
-                                isCompact = true // Smaller version for grid
-                            )
-                        }
-                    }
-                }
-                ViewMode.LIST -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(displayPrompts) { prompt ->
-                            AIPromptCard(
-                                prompt = prompt,
-                                onClick = { onPromptClick(prompt.id) },
-                                onCopy = {
-                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
-                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                },
-                                onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                                showFavoriteIcon = true,
-                                isCompact = false // Full version for list
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Error State
-        uiState.error?.let { error ->
-            LaunchedEffect(error) {
-                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+    // Show errors as Snackbars and clear after showing
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(msg)
                 viewModel.clearError()
             }
         }
     }
+
+    // Derived display list (filtered)
+    val displayPrompts by remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
+        derivedStateOf { viewModel.getFilteredPrompts() }
+    }
+
+    val categories = uiState.categories
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (uiState.selectedCategory != "All")
+                            "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
+                        else
+                            "All AI Prompts (${displayPrompts.size})"
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Refresh action
+                    IconButton(onClick = { viewModel.loadAllPrompts() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+
+                    // Search Toggle
+                    IconButton(onClick = { showSearch = !showSearch }) {
+                        Icon(
+                            if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
+                            contentDescription = "Search"
+                        )
+                    }
+
+                    // View Mode Toggle
+                    IconButton(onClick = {
+                        viewMode = if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID
+                    }) {
+                        Icon(
+                            if (viewMode == ViewMode.GRID) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                            contentDescription = "Change View"
+                        )
+                    }
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+        ) {
+            // Search Bar
+            if (showSearch) {
+                SearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = viewModel::searchPrompts,
+                    onClear = { viewModel.searchPrompts("") }, // Clear search
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            }
+
+            // Category Filter Chips
+            if (categories.isNotEmpty()) {
+                CategoryFilterRow(
+                    categories = categories,
+                    selectedCategory = uiState.selectedCategory,
+                    onCategorySelected = viewModel::filterByCategory,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Loading overlay (centered)
+                if (uiState.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    // Empty State
+                    if (displayPrompts.isEmpty()) {
+                        EmptyPromptsState(
+                            searchQuery = uiState.searchQuery,
+                            selectedCategory = uiState.selectedCategory,
+                            onClearFilters = {
+                                viewModel.searchPrompts("")
+                                viewModel.filterByCategory("All")
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Content
+                        when (viewMode) {
+                            ViewMode.GRID -> {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    contentPadding = PaddingValues(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(displayPrompts, key = { it.id }) { prompt ->
+                                        AIPromptCard(
+                                            prompt = prompt,
+                                            onClick = { onPromptClick(prompt.id) },
+                                            onCopy = {
+                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+                                            showFavoriteIcon = true,
+                                            isCompact = true // Smaller version for grid
+                                        )
+                                    }
+                                }
+                            }
+                            ViewMode.LIST -> {
+                                LazyColumn(
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(displayPrompts, key = { it.id }) { prompt ->
+                                        AIPromptCard(
+                                            prompt = prompt,
+                                            onClick = { onPromptClick(prompt.id) },
+                                            onCopy = {
+                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+                                            showFavoriteIcon = true,
+                                            isCompact = false // Full version for list
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+/* ------------------------
+   Reused helper composables
+   (kept mostly same as your original)
+   ------------------------ */
 
 @Composable
 private fun SearchBar(

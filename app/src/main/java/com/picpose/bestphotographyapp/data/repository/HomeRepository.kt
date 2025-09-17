@@ -7,12 +7,17 @@ import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePrompt
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.models.AIPromptDto
 import com.picpose.bestphotographyapp.data.models.Category
+import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.MetaDto
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.data.models.toAIPrompt
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.remote.ApiResponseDailyTips
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import retrofit2.Response
@@ -49,6 +54,137 @@ class HomeRepository(
             Result.failure(e)
         }
     }
+
+    // --- inside HomeRepository class get Daily Tips ---
+    suspend fun getDailyTips(): Flow<Result<List<DailyTip>>> = flow {
+        if (useMocks) {
+            // convert fallback strings to DailyTip objects
+            val fallback = photographyTips.mapIndexed { idx: Int, tip: String ->
+                DailyTip(
+                    id = "fallback_$idx",
+                    tip = tip,
+                    isActive = true,
+                    order = idx,
+                    createdAt = null,
+                    updatedAt = null
+                )
+            }
+            emit(Result.success(fallback))
+            return@flow
+        }
+
+        // call safeApiCall which returns Result<T> where T = ApiResponseDailyTips<List<DailyTip>>
+        val result: Result<ApiResponseDailyTips<List<DailyTip>>> = safeApiCall { apiService.getDailyTips(apiKey = apiKey) }
+
+        result.fold(
+            onSuccess = { body: ApiResponseDailyTips<List<DailyTip>> ->
+                try {
+                    val tips: List<DailyTip> = body.data ?: emptyList()
+                    emit(Result.success(tips))
+                } catch (e: Exception) {
+                    emit(Result.failure(e))
+                }
+            },
+            onFailure = { err: Throwable ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun mapAnyListToAIPromptList(data: Any?): List<AIPrompt> {
+        if (data == null) return emptyList()
+
+        // If it's already a List<AIPrompt>, return filtered list
+        if (data is List<*>) {
+            val list = data as List<*>
+            if (list.isEmpty()) return emptyList()
+
+            // Case 1: Already domain models
+            if (list.first() is AIPrompt) {
+                return list.filterIsInstance<AIPrompt>()
+            }
+
+            // Case 2: DTO objects - map to AIPrompt
+            if (list.first() is AIPromptDto) {
+                return list.filterIsInstance<AIPromptDto>().map { dto ->
+                    // check favorite status from Room (safe)
+                    val fav = try { favoriteDao.isFavorite(dto.id ?: "") } catch (_: Exception) { false }
+                    dto.toAIPrompt(isFavorite = fav)
+                }
+            }
+
+            // Case 3: Maybe Gson created LinkedTreeMap etc — attempt to convert via Gson to AIPrompt
+            try {
+                // Use Gson to map each element to AIPrompt (requires Gson available)
+                val gson = com.google.gson.Gson()
+                val mapped = list.mapNotNull { elem ->
+                    try {
+                        val json = gson.toJson(elem)
+                        gson.fromJson(json, AIPrompt::class.java)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                if (mapped.isNotEmpty()) return mapped
+            } catch (_: Exception) { /* ignore */ }
+        }
+
+        return emptyList()
+    }
+
+    suspend fun getAllAIPromptsSimple(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+        search: String? = null
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        if (useMocks) {
+            emit(Result.success(getMockAIPrompts()))
+            return@flow
+        }
+
+        // call retrofit - your safeApiCall returns Result<T> where T is whatever Response.body() is
+        val apiResult: Result<Any?> = safeApiCall {
+            // your ApiService returns Response<AIPromptResponse> but safeApiCall has generic; call the service
+            apiService.getAllAIPrompts(apiKey = apiKey, page = page, limit = limit, category = category, search = search)
+        }
+
+        apiResult.fold(
+            onSuccess = { rawBody ->
+                try {
+                    // rawBody may be an ApiResponse wrapper object (with 'data'), or an AIPromptResponse, etc.
+                    val extractedList: List<AIPrompt> = when (rawBody) {
+                        is ApiResponseDailyTips<*> -> {
+                            // generic wrapper: data should already be typed as List<*> (probably List<AIPromptDto> or List<AIPrompt>)
+                            val data = rawBody.data
+                            mapAnyListToAIPromptList(data)
+                        }
+                        else -> {
+                            // try reflection / property-access fallback to get field named 'data'
+                            val dataField = try {
+                                rawBody?.javaClass?.getDeclaredField("data")?.also { it.isAccessible = true }?.get(rawBody)
+                            } catch (e: Exception) {
+                                null
+                            }
+                            mapAnyListToAIPromptList(dataField)
+                        }
+                    }
+
+                    emit(Result.success(extractedList))
+                } catch (e: Exception) {
+                    emit(Result.failure(e))
+                }
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.catch { e ->
+        emit(Result.failure(e))
+    }.flowOn(Dispatchers.IO)
+
+
 
     // -------------------------
     // POSTS (Featured / Recent)
@@ -506,6 +642,21 @@ class HomeRepository(
             prompt.copy(isFavorite = isFavorite)
         }
     }
+
+    private val photographyTips = listOf(
+        "🎯 Use the rule of thirds for better composition",
+        "🌅 Golden hour provides the most flattering natural light",
+        "👁️ Focus on the eyes in portrait photography",
+        "🛤️ Use leading lines to guide the viewer's attention",
+        "📐 Experiment with different angles and perspectives",
+        "⚪ Learn to use negative space effectively",
+        "⚙️ Master manual camera settings for creative control",
+        "📖 Practice the art of storytelling through images",
+        "🤖 Try AI prompts: 'Professional headshot, soft lighting, clean background'",
+        "✨ AI Prompt: 'Cinematic portrait, golden hour, bokeh background'",
+        "🎨 Use AI: 'Street photography style, black and white, urban setting'",
+        "🌟 AI Magic: 'Fashion photography, dramatic lighting, studio setup'"
+    )
 
     fun getMockAIPrompts(): List<AIPrompt> = listOf(
         AIPrompt(

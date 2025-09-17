@@ -52,23 +52,22 @@ data class AIPrompt(
     val updatedAt: String? = null
 )
 
-// Mapper: AIPromptDto -> AIPrompt (safe defaults)
+// mapper extension - adapt field names if your AIPromptDto uses other names
 fun AIPromptDto.toAIPrompt(isFavorite: Boolean = false): AIPrompt {
     return AIPrompt(
-        id = id,
-        title = title,
-        shortPrompt = shortPrompt?.takeIf { it.isNotBlank() }
-            ?: fullPrompt?.takeIf { it.isNotBlank() } ?: "",
-        fullPrompt = fullPrompt ?: "",
-        imageUrl = imageUrl ?: "",
-        category = category ?: "",
-        tags = tags ?: emptyList(),
-        likes = likes,
-        isPopular = isPopular,
-        isFavorite = isFavorite,
-        status = status ?: "published",
-        priority = priority,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        id = this.id ?: "",
+        title = this.title ?: "",
+        shortPrompt = this.shortPrompt ?: "",
+        fullPrompt = this.fullPrompt ?: "",
+        imageUrl = this.imageUrl ?: "",
+        category = this.category ?: "",
+        tags = this.tags ?: emptyList(),
+        likes = this.likes ?: 0,
+        isPopular = this.isPopular ?: false,
+        status = this.status ?: "published",
+        priority = this.priority ?: 0,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        isFavorite = isFavorite
     )
 }
