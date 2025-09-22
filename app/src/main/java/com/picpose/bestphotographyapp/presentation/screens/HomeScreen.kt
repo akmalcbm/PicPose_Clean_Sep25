@@ -17,7 +17,6 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +132,7 @@ fun HomeScreen(
 
                         // Daily Tip (now from server)
                         item {
-                            val tipToShow = dailyTips.getOrNull(currentTipIndex) ?: dailyTips.first()
+                            val tipToShow = dailyTips.getOrNull(currentTipIndex) ?: dailyTips.firstOrNull() ?: ""
                             AnimatedDailyTipCard(
                                 tip = tipToShow,
                                 onNextTip = {

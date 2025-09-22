@@ -82,6 +82,12 @@ fun AIPromptCardOnlyHome(
         label = "cardScale"
     )
 
+    // Safe string helpers to avoid passing null to Text
+    val safeTitle = prompt.title ?: ""
+    val safeShortPrompt = prompt.shortPrompt ?: ""
+    val safeFullPrompt = prompt.fullPrompt ?: ""
+    val safeCategory = prompt.category ?: ""
+
     // ✅ Box with enhanced shadow breathing room
     Box(
         modifier = modifier
@@ -143,7 +149,7 @@ fun AIPromptCardOnlyHome(
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .crossfade(400) // ✨ Slightly longer crossfade
                             .build(),
-                        contentDescription = prompt.title ?: "AI Generated Image",
+                        contentDescription = safeTitle.ifBlank { "AI Generated Image" },
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         placeholder = ColorPainter(Color.Gray.copy(alpha = 0.2f)),
@@ -180,7 +186,7 @@ fun AIPromptCardOnlyHome(
                             shadowElevation = 4.dp // ✨ Added subtle shadow
                         ) {
                             Text(
-                                text = prompt.category,
+                                text = safeCategory,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
@@ -227,7 +233,7 @@ fun AIPromptCardOnlyHome(
                                 IconButton(
                                     onClick = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                        clipboardManager.setText(AnnotatedString(safeFullPrompt))
                                         Toast.makeText(
                                             context,
                                             "Prompt copied to clipboard!",
@@ -309,7 +315,7 @@ fun AIPromptCardOnlyHome(
                 ) {
                     // Title
                     Text(
-                        text = prompt.title,
+                        text = safeTitle,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E293B),
@@ -321,7 +327,7 @@ fun AIPromptCardOnlyHome(
 
                     // Short prompt
                     Text(
-                        text = prompt.shortPrompt,
+                        text = safeShortPrompt,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF64748B),
                         maxLines = if (isExpanded) Int.MAX_VALUE else (if (isCompact) 2 else 3),
@@ -375,7 +381,7 @@ fun AIPromptCardOnlyHome(
                             ) {
                                 SelectionContainer { // ✨ Made text selectable
                                     Text(
-                                        text = prompt.fullPrompt,
+                                        text = safeFullPrompt,
                                         modifier = Modifier.padding(16.dp),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color(0xFF374151),
@@ -390,7 +396,7 @@ fun AIPromptCardOnlyHome(
                             OutlinedButton(
                                 onClick = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                    clipboardManager.setText(AnnotatedString(safeFullPrompt))
                                     Toast.makeText(
                                         context,
                                         "Full prompt copied!",
@@ -492,6 +498,3 @@ fun AIPromptCardOnlyHome(
         }
     }
 }
-
-
-

@@ -75,13 +75,14 @@ fun AIPromptCard(
                         .data(prompt.imageUrl)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
-                        .crossfade(true) // ✅ Smooth transitions
+                        .crossfade(true)
                         .build(),
+                    // ensure non-null contentDescription
                     contentDescription = prompt.title ?: "AI Generated Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    placeholder = ColorPainter(Color.Gray.copy(alpha = 0.3f)), // ✅ Subtle placeholder
-                    error = ColorPainter(Color.Red.copy(alpha = 0.2f)) // ✅ Subtle error state
+                    placeholder = ColorPainter(Color.Gray.copy(alpha = 0.3f)),
+                    error = ColorPainter(Color.Red.copy(alpha = 0.2f))
                 )
 
                 // Gradient overlay
@@ -113,7 +114,7 @@ fun AIPromptCard(
                         shape = RoundedCornerShape(20.dp)
                     ) {
                         Text(
-                            text = prompt.category,
+                            text = prompt.category ?: "",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
@@ -196,9 +197,9 @@ fun AIPromptCard(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Title
+                // Title - ensure non-null string
                 Text(
-                    text = prompt.title,
+                    text = prompt.title ?: "",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B),
@@ -208,9 +209,9 @@ fun AIPromptCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Short prompt
+                // Short prompt - ensure non-null string
                 Text(
-                    text = prompt.shortPrompt,
+                    text = prompt.shortPrompt ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF64748B),
                     maxLines = if (isCompact) 2 else 3,
@@ -251,7 +252,8 @@ fun AIPromptCard(
                         // Copy button
                         FilledTonalButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                // Use safe fallback for clipboard text
+                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
                                 onCopy()
                             },
                             colors = ButtonDefaults.filledTonalButtonColors(

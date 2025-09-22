@@ -178,7 +178,7 @@ fun AllAIPromptsScreen(
                                             prompt = prompt,
                                             onClick = { onPromptClick(prompt.id) },
                                             onCopy = {
-                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
                                                 Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                                             },
                                             onFavoriteClick = { viewModel.toggleFavorite(prompt) },
@@ -199,7 +199,7 @@ fun AllAIPromptsScreen(
                                             prompt = prompt,
                                             onClick = { onPromptClick(prompt.id) },
                                             onCopy = {
-                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
                                                 Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                                             },
                                             onFavoriteClick = { viewModel.toggleFavorite(prompt) },

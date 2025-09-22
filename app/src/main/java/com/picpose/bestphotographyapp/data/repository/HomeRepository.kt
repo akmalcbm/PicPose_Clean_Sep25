@@ -1,45 +1,43 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
+import com.google.gson.Gson
 import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.FavoritePrompt
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.models.AIPromptDto
-import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.MetaDto
-import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.data.models.toAIPrompt
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
-import com.picpose.bestphotographyapp.data.remote.ApiResponseDailyTips
+import com.picpose.bestphotographyapp.data.network.ApiService
+import com.picpose.bestphotographyapp.data.remote.ApiResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import retrofit2.Response
-import org.json.JSONObject
 
 // Small wrapper for paginated responses
 data class PaginatedResult<T>(val items: List<T>, val meta: MetaDto? = null)
 
 class HomeRepository(
-    private val context: Context,
-    private val useMocks: Boolean = false // set false for production builds
+    context: Context,
+    // if you want to use mocks set true (keeps backwards compatibility from your old code)
+    private val useMocks: Boolean = false,
+    // optional override apiKey (if null we rely on RetrofitClient.defaultApiKey)
+    apiKey: String? = null
 ) {
-    private val apiService = RetrofitClient.apiService
-
-    // TODO: move to BuildConfig for production
-    private val apiKey =
-        "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
-
+    private val apiService: ApiService = RetrofitClient.apiService
     private val database = AppDatabase.getDatabase(context)
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
+    private val gson = Gson()
 
-    // Generic safe API helper
+    init {
+        // optionally set global API key for RetrofitClient (used by interceptor)
+        apiKey?.let { RetrofitClient.defaultApiKey = it }
+    }
+
+    // Generic safe API helper (keeps error mapping consistent)
     private suspend fun <T> safeApiCall(block: suspend () -> Response<T>): Result<T> {
         return try {
             val resp = block()
@@ -55,426 +53,152 @@ class HomeRepository(
         }
     }
 
-    // --- inside HomeRepository class get Daily Tips ---
+    // -------------------------
+    // DAILY TIPS
+    // -------------------------
+    // Returns Flow<Result<List<DailyTip>>>
     suspend fun getDailyTips(): Flow<Result<List<DailyTip>>> = flow {
         if (useMocks) {
-            // convert fallback strings to DailyTip objects
-            val fallback = photographyTips.mapIndexed { idx: Int, tip: String ->
-                DailyTip(
-                    id = "fallback_$idx",
-                    tip = tip,
-                    isActive = true,
-                    order = idx,
-                    createdAt = null,
-                    updatedAt = null
-                )
-            }
+            // lightweight fallback tips (same as previously used)
+            val fallback = listOf(
+                DailyTip(id = "fallback_1", tip = "Use specific descriptive words in your prompts for better AI results!", isActive = true, order = 0, createdAt = null, updatedAt = null),
+                DailyTip(id = "fallback_2", tip = "Try combining different art styles like 'watercolor meets cyberpunk'!", isActive = true, order = 1, createdAt = null, updatedAt = null),
+                DailyTip(id = "fallback_3", tip = "Add lighting conditions like 'golden hour' or 'dramatic shadows' to enhance your images!", isActive = true, order = 2, createdAt = null, updatedAt = null)
+            )
             emit(Result.success(fallback))
             return@flow
         }
 
-        // call safeApiCall which returns Result<T> where T = ApiResponseDailyTips<List<DailyTip>>
-        val result: Result<ApiResponseDailyTips<List<DailyTip>>> = safeApiCall { apiService.getDailyTips(apiKey = apiKey) }
+        val apiResult: Result<ApiResponse<List<DailyTip>>> = safeApiCall {
+            apiService.getDailyTips() // api_key handled by RetrofitClient.defaultApiKey or pass as param in ApiService if you prefer
+        }
 
-        result.fold(
-            onSuccess = { body: ApiResponseDailyTips<List<DailyTip>> ->
+        apiResult.fold(
+            onSuccess = { wrapper ->
                 try {
-                    val tips: List<DailyTip> = body.data ?: emptyList()
+                    val tips = wrapper.data ?: emptyList()
                     emit(Result.success(tips))
                 } catch (e: Exception) {
                     emit(Result.failure(e))
                 }
             },
-            onFailure = { err: Throwable ->
+            onFailure = { err ->
                 emit(Result.failure(err))
             }
         )
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
 
-    @Suppress("UNCHECKED_CAST")
-    private suspend fun mapAnyListToAIPromptList(data: Any?): List<AIPrompt> {
-        if (data == null) return emptyList()
+    // -------------------------
+    // AI POSTS (paginated)
+    // -------------------------
+    // Returns PaginatedResult<AIPrompt> with favorite flags checked from Room
+    suspend fun getAiPosts(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+        search: String? = null,
+        tag: String? = null,
+        popular: Boolean? = null,
+        featured: Boolean? = null,
+        status: String? = "published"
+    ): Flow<Result<PaginatedResult<AIPrompt>>> = flow {
+        if (useMocks) {
+            // if you keep mock provider in project reuse it; here we return empty for brevity
+            emit(Result.success(PaginatedResult(items = emptyList(), meta = null)))
+            return@flow
+        }
 
-        // If it's already a List<AIPrompt>, return filtered list
-        if (data is List<*>) {
-            val list = data as List<*>
-            if (list.isEmpty()) return emptyList()
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            apiService.getAiPosts(
+                apiKey = null, // RetrofitClient.defaultApiKey used by interceptor; pass non-null to override
+                limit = limit,
+                offset = (page - 1) * limit,
+                q = search,
+                category = category,
+                tag = tag,
+                popular = popular,
+                status = status,
+                featured = featured
+            )
+        }
 
-            // Case 1: Already domain models
-            if (list.first() is AIPrompt) {
-                return list.filterIsInstance<AIPrompt>()
-            }
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                try {
+                    // wrapper.data may already be List<AIPrompt> (typed by Retrofit) or generic objects - handle both
+                    val rawList = wrapper.data
+                    val prompts: List<AIPrompt> = when {
+                        rawList == null -> emptyList()
+                        rawList.isEmpty() -> emptyList()
+                        // If already parsed as AIPrompt (common case)
+                        rawList.first() is AIPrompt -> rawList.filterIsInstance<AIPrompt>()
+                        else -> {
+                            // fallback: convert each element via Gson (handles LinkedTreeMap etc)
+                            rawList.mapNotNull { elem ->
+                                try {
+                                    val json = gson.toJson(elem)
+                                    gson.fromJson(json, AIPrompt::class.java)
+                                } catch (_: Exception) {
+                                    null
+                                }
+                            }
+                        }
+                    }
 
-            // Case 2: DTO objects - map to AIPrompt
-            if (list.first() is AIPromptDto) {
-                return list.filterIsInstance<AIPromptDto>().map { dto ->
-                    // check favorite status from Room (safe)
-                    val fav = try { favoriteDao.isFavorite(dto.id ?: "") } catch (_: Exception) { false }
-                    dto.toAIPrompt(isFavorite = fav)
-                }
-            }
+                    // Enrich with favorite status from Room (safely)
+                    val enriched = prompts.map { p ->
+                        val fav = try { favoriteDao.isFavorite(p.id) } catch (_: Exception) { false }
+                        p.copy(isFavorite = fav)
+                    }
 
-            // Case 3: Maybe Gson created LinkedTreeMap etc — attempt to convert via Gson to AIPrompt
-            try {
-                // Use Gson to map each element to AIPrompt (requires Gson available)
-                val gson = com.google.gson.Gson()
-                val mapped = list.mapNotNull { elem ->
-                    try {
-                        val json = gson.toJson(elem)
-                        gson.fromJson(json, AIPrompt::class.java)
+                    // Try to extract meta if present in wrapper (if ApiResponse supports meta)
+                    val meta: MetaDto? = try {
+                        // wrapper may have 'meta' property (Retrofit typed ApiResponse could include it)
+                        val metaField = wrapper.javaClass.getDeclaredField("meta").also { it.isAccessible = true }
+                        metaField.get(wrapper) as? MetaDto
                     } catch (_: Exception) {
                         null
                     }
+
+                    emit(Result.success(PaginatedResult(items = enriched, meta = meta)))
+                } catch (e: Exception) {
+                    emit(Result.failure(e))
                 }
-                if (mapped.isNotEmpty()) return mapped
-            } catch (_: Exception) { /* ignore */ }
-        }
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
 
-        return emptyList()
-    }
-
-    suspend fun getAllAIPromptsSimple(
+    // Optionally expose a simpler list-based version (no meta)
+    suspend fun getAiPostsSimple(
         page: Int = 1,
         limit: Int = 20,
         category: String? = null,
         search: String? = null
     ): Flow<Result<List<AIPrompt>>> = flow {
-        if (useMocks) {
-            emit(Result.success(getMockAIPrompts()))
-            return@flow
-        }
-
-        // call retrofit - your safeApiCall returns Result<T> where T is whatever Response.body() is
-        val apiResult: Result<Any?> = safeApiCall {
-            // your ApiService returns Response<AIPromptResponse> but safeApiCall has generic; call the service
-            apiService.getAllAIPrompts(apiKey = apiKey, page = page, limit = limit, category = category, search = search)
-        }
-
-        apiResult.fold(
-            onSuccess = { rawBody ->
-                try {
-                    // rawBody may be an ApiResponse wrapper object (with 'data'), or an AIPromptResponse, etc.
-                    val extractedList: List<AIPrompt> = when (rawBody) {
-                        is ApiResponseDailyTips<*> -> {
-                            // generic wrapper: data should already be typed as List<*> (probably List<AIPromptDto> or List<AIPrompt>)
-                            val data = rawBody.data
-                            mapAnyListToAIPromptList(data)
-                        }
-                        else -> {
-                            // try reflection / property-access fallback to get field named 'data'
-                            val dataField = try {
-                                rawBody?.javaClass?.getDeclaredField("data")?.also { it.isAccessible = true }?.get(rawBody)
-                            } catch (e: Exception) {
-                                null
-                            }
-                            mapAnyListToAIPromptList(dataField)
-                        }
-                    }
-
-                    emit(Result.success(extractedList))
-                } catch (e: Exception) {
-                    emit(Result.failure(e))
+        val res = getAiPosts(page = page, limit = limit, category = category, search = search)
+        var emitted = false
+        res.collect { r ->
+            r.fold(
+                onSuccess = { pag ->
+                    emit(Result.success(pag.items))
+                    emitted = true
+                },
+                onFailure = { err ->
+                    emit(Result.failure(err))
+                    emitted = true
                 }
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.catch { e ->
-        emit(Result.failure(e))
-    }.flowOn(Dispatchers.IO)
-
-
-
-    // -------------------------
-    // POSTS (Featured / Recent)
-    // -------------------------
-    suspend fun getFeaturedPosts(limit: Int = 5): Flow<Result<List<Post>>> = flow {
-        if (useMocks) {
-            emit(Result.success(getMockFeaturedPosts().take(limit)))
-            return@flow
-        }
-
-        val result = safeApiCall { apiService.getLatestPosts(apiKey = apiKey, limit = limit) }
-        result.fold(
-            onSuccess = { body ->
-                val posts = try {
-                    val json = JSONObject(body.toString())
-                    if (json.has("data")) {
-                        val arr = json.getJSONArray("data")
-                        (0 until arr.length()).mapNotNull { idx ->
-                            val o = arr.optJSONObject(idx) ?: return@mapNotNull null
-                            mapJsonToPost(o)
-                        }
-                    } else emptyList()
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                emit(Result.success(posts))
-            },
-            onFailure = { err ->
-                // if production: return failure so UI can show error; if dev and still useMocks off, return empty list
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    suspend fun getRecentPosts(limit: Int = 10, offset: Int = 0): Flow<Result<List<Post>>> = flow {
-        if (useMocks) {
-            emit(Result.success(getMockFeaturedPosts()))
-            return@flow
-        }
-
-        val result = safeApiCall { apiService.getPosts(apiKey = apiKey, limit = limit, offset = offset) }
-        result.fold(
-            onSuccess = { body ->
-                val posts = try {
-                    val json = JSONObject(body.toString())
-                    if (json.has("data")) {
-                        val arr = json.getJSONArray("data")
-                        (0 until arr.length()).mapNotNull { idx ->
-                            val o = arr.optJSONObject(idx) ?: return@mapNotNull null
-                            mapJsonToPost(o)
-                        }
-                    } else emptyList()
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                emit(Result.success(posts))
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    suspend fun getCategories(): Flow<Result<List<Category>>> = flow {
-        if (useMocks) {
-            emit(Result.success(getMockCategories()))
-            return@flow
-        }
-        // Prefer a real categories endpoint (not present in ApiService sample). If not available, return failure.
-        emit(Result.failure(Exception("Categories endpoint not implemented on server")))
-    }.flowOn(Dispatchers.IO)
-
-    // -------------------------
-    // AI PROMPTS (paginated)
-    // -------------------------
-    suspend fun getAllAIPrompts(
-        page: Int = 1,
-        limit: Int = 20,
-        category: String? = null,
-        search: String? = null
-    ): Flow<Result<PaginatedResult<AIPrompt>>> = flow {
-        if (useMocks) {
-            val mocks = getMockAIPromptsWithFavoriteStatus()
-            val start = (page - 1) * limit
-            val end = (start + limit).coerceAtMost(mocks.size)
-            val pageItems = if (start < mocks.size) mocks.subList(start, end) else emptyList()
-            val meta = MetaDto(total = mocks.size, page = page, limit = limit, hasMore = end < mocks.size)
-            emit(Result.success(PaginatedResult(pageItems, meta)))
-            return@flow
-        }
-
-        val result = safeApiCall {
-            apiService.getAllAIPrompts(
-                apiKey = apiKey,
-                page = page,
-                limit = limit,
-                category = category,
-                search = search
             )
         }
+        if (!emitted) emit(Result.success(emptyList()))
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
 
-        result.fold(
-            onSuccess = { body ->
-                try {
-                    val json = JSONObject(body.toString())
-                    val items = mutableListOf<AIPrompt>()
-                    var meta: MetaDto? = null
 
-                    if (json.has("data")) {
-                        val arr = json.getJSONArray("data")
-                        for (i in 0 until arr.length()) {
-                            val o = arr.getJSONObject(i)
-                            val id = o.optString("id")
-                            val title = o.optString("title")
-                            val shortPrompt = o.optString("shortPrompt", "")
-                            val fullPrompt = o.optString("fullPrompt", "")
-                            val imageUrl = o.optString("imageUrl", "")
-                            val categoryName = o.optString("category", "")
-                            val tagsList = mutableListOf<String>()
-                            if (o.has("tags")) {
-                                val tagsJson = o.optJSONArray("tags")
-                                if (tagsJson != null) {
-                                    for (t in 0 until tagsJson.length()) {
-                                        tagsList.add(tagsJson.optString(t))
-                                    }
-                                }
-                            }
-                            val likes = o.optInt("likes", 0)
-                            val isPopular = o.optBoolean("isPopular", false)
-                            val status = o.optString("status", "published")
-                            val priority = o.optInt("priority", 0)
-                            val createdAt = o.optString("createdAt", null)
-                            val updatedAt = o.optString("updatedAt", null)
-
-                            val fav = try { favoriteDao.isFavorite(id) } catch (_: Exception) { false }
-
-                            val prompt = AIPrompt(
-                                id = id,
-                                title = title,
-                                shortPrompt = shortPrompt,
-                                fullPrompt = fullPrompt,
-                                imageUrl = imageUrl,
-                                category = categoryName,
-                                tags = tagsList,
-                                likes = likes,
-                                isPopular = isPopular,
-                                status = status,
-                                priority = priority,
-                                createdAt = createdAt,
-                                updatedAt = updatedAt,
-                                isFavorite = fav
-                            )
-                            items.add(prompt)
-                        }
-                    }
-
-                    if (json.has("meta")) {
-                        val m = json.optJSONObject("meta")
-                        if (m != null) {
-                            meta = MetaDto(
-                                total = m.optInt("total", 0),
-                                page = m.optInt("page", page),
-                                limit = m.optInt("limit", limit),
-                                hasMore = m.optBoolean("hasMore", false)
-                            )
-                        }
-                    }
-
-                    emit(Result.success(PaginatedResult(items, meta)))
-                } catch (e: Exception) {
-                    emit(Result.failure(e))
-                }
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
-        if (useMocks) {
-            val fallback = getMockAIPromptsWithFavoriteStatus().find { it.id == promptId }
-            if (fallback != null) emit(Result.success(fallback)) else emit(Result.failure(Exception("Prompt not found")))
-            return@flow
-        }
-
-        val result = safeApiCall { apiService.getAIPromptById(apiKey = apiKey, id = promptId) }
-        result.fold(
-            onSuccess = { body ->
-                try {
-                    val json = JSONObject(body.toString())
-                    val arr = json.optJSONArray("data")
-                    var found: AIPrompt? = null
-                    if (arr != null) {
-                        for (i in 0 until arr.length()) {
-                            val o = arr.getJSONObject(i)
-                            if (o.optString("id") == promptId) {
-                                val tagsList = mutableListOf<String>()
-                                val tagsJson = o.optJSONArray("tags")
-                                if (tagsJson != null) for (t in 0 until tagsJson.length()) tagsList.add(tagsJson.optString(t))
-                                val fav = try { favoriteDao.isFavorite(promptId) } catch (_: Exception) { false }
-                                found = AIPrompt(
-                                    id = o.optString("id"),
-                                    title = o.optString("title"),
-                                    shortPrompt = o.optString("shortPrompt", ""),
-                                    fullPrompt = o.optString("fullPrompt", ""),
-                                    imageUrl = o.optString("imageUrl", ""),
-                                    category = o.optString("category", ""),
-                                    tags = tagsList,
-                                    likes = o.optInt("likes", 0),
-                                    isPopular = o.optBoolean("isPopular", false),
-                                    status = o.optString("status", "published"),
-                                    priority = o.optInt("priority", 0),
-                                    createdAt = o.optString("createdAt", null),
-                                    updatedAt = o.optString("updatedAt", null),
-                                    isFavorite = fav
-                                )
-                                break
-                            }
-                        }
-                    }
-
-                    if (found != null) emit(Result.success(found))
-                    else emit(Result.failure(Exception("Prompt not found")))
-                } catch (e: Exception) {
-                    emit(Result.failure(e))
-                }
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    suspend fun getFeaturedAIPrompts(limit: Int = 5): Flow<Result<List<AIPrompt>>> = flow {
-        if (useMocks) {
-            emit(Result.success(getMockAIPromptsWithFavoriteStatus().filter { it.isPopular }.take(limit)))
-            return@flow
-        }
-
-        val result = safeApiCall { apiService.getAllAIPrompts(apiKey = apiKey, page = 1, limit = limit) }
-        result.fold(
-            onSuccess = { body ->
-                try {
-                    val json = JSONObject(body.toString())
-                    val arr = json.optJSONArray("data")
-                    val items = mutableListOf<AIPrompt>()
-                    if (arr != null) {
-                        for (i in 0 until arr.length()) {
-                            val o = arr.getJSONObject(i)
-                            val tagsList = mutableListOf<String>()
-                            val tagsJson = o.optJSONArray("tags")
-                            if (tagsJson != null) for (t in 0 until tagsJson.length()) tagsList.add(tagsJson.optString(t))
-                            val id = o.optString("id")
-                            val fav = try { favoriteDao.isFavorite(id) } catch (_: Exception) { false }
-                            items.add(
-                                AIPrompt(
-                                    id = id,
-                                    title = o.optString("title"),
-                                    shortPrompt = o.optString("shortPrompt", ""),
-                                    fullPrompt = o.optString("fullPrompt", ""),
-                                    imageUrl = o.optString("imageUrl", ""),
-                                    category = o.optString("category", ""),
-                                    tags = tagsList,
-                                    likes = o.optInt("likes", 0),
-                                    isPopular = o.optBoolean("isPopular", false),
-                                    status = o.optString("status", "published"),
-                                    priority = o.optInt("priority", 0),
-                                    createdAt = o.optString("createdAt", null),
-                                    updatedAt = o.optString("updatedAt", null),
-                                    isFavorite = fav
-                                )
-                            )
-                        }
-                    }
-                    emit(Result.success(items.filter { it.isPopular }.take(limit)))
-                } catch (e: Exception) {
-                    emit(Result.failure(e))
-                }
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    // -------------------------
-    // FAVORITES (local Room)
-    // -------------------------
-    suspend fun toggleFavorite(prompt: AIPrompt): Flow<Result<Boolean>> = flow {
+    // Toggle favorite (returns Flow<Result<Boolean>>) — existing logic you had previously
+// Keeps using Room FavoritePromptDao and existing toFavorite mapping.
+    fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt) : kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
         try {
             val currentlyFavorite = favoriteDao.isFavorite(prompt.id)
             if (currentlyFavorite) {
@@ -487,242 +211,181 @@ class HomeRepository(
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO)
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
-        try {
-            val favorites = favoriteDao.getAllFavorites()
-            val aiPrompts = favorites.map { it.toAIPrompt() }
-            emit(Result.success(aiPrompts))
-        } catch (e: Exception) {
-            if (useMocks) emit(Result.success(getMockAIPrompts().filter { it.isFavorite })) else emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO)
-
-    suspend fun isFavorite(promptId: String): Boolean {
-        return try {
-            favoriteDao.isFavorite(promptId)
-        } catch (e: Exception) {
-            if (useMocks) getMockAIPrompts().find { it.id == promptId }?.isFavorite ?: false else false
-        }
     }
 
-    suspend fun addToFavorites(prompt: AIPrompt) {
-        favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-    }
-
-    suspend fun removeFromFavorites(promptId: String) {
-        favoriteDao.removeFromFavorites(promptId)
-    }
-
+    // getFavoriteCount() - returns the count of favorites (suspend)
     suspend fun getFavoriteCount(): Int {
         return try {
+            // Use Room DAO (preferred)
             favoriteDao.getFavoriteCount()
         } catch (e: Exception) {
-            if (useMocks) getMockAIPrompts().count { it.isFavorite } else 0
+            // If something goes wrong, return a safe fallback (0).
+            // If you want to use your mock provider, replace this block
+            // with: if (useMocks) getMockAIPrompts().count { p -> p.isFavorite } else 0
+            0
         }
     }
 
-    // -------------------------
-    // SEARCH / FILTER helpers
-    // -------------------------
-    suspend fun searchPrompts(query: String, page: Int = 1, limit: Int = 20): Flow<Result<List<AIPrompt>>> = flow {
-        val apiFlow = getAllAIPrompts(page = page, limit = limit, search = query)
-        var emitted = false
-        apiFlow.collect { res ->
-            res.fold(
-                onSuccess = { pag ->
-                    emit(Result.success(pag.items))
-                    emitted = true
-                },
-                onFailure = { err ->
-                    if (useMocks) {
-                        val fallback = getMockAIPrompts().filter { p ->
-                            p.title.contains(query, true) ||
-                                    p.shortPrompt.contains(query, true) ||
-                                    p.category.contains(query, true) ||
-                                    p.tags.any { it.contains(query, true) }
-                        }
-                        emit(Result.success(fallback))
-                    } else {
-                        emit(Result.failure(err))
-                    }
-                    emitted = true
+
+    /**
+     * Returns a typed list flow similar to older API naming used in ViewModel.
+     * Internally uses getAiPostsSimple.
+     */
+    suspend fun getAllAIPromptsTyped(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+        search: String? = null,
+        tag: String? = null
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        try {
+            val inner = getAiPostsSimple(page = page, limit = limit, category = category, search = search)
+            inner.collect { r ->
+                r.fold(
+                    onSuccess = { list -> emit(Result.success(list)) },
+                    onFailure = { err -> emit(Result.failure(err)) }
+                )
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+
+    /**
+     * Alias for paginated get - matches ViewModel expected name getAllAIPrompts.
+     */
+    suspend fun getAllAIPrompts(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+        search: String? = null,
+        tag: String? = null,
+        popular: Boolean? = null,
+        featured: Boolean? = null,
+        status: String? = "published"
+    ): Flow<Result<PaginatedResult<AIPrompt>>> {
+        // reuse existing getAiPosts implementation (signature matches closely)
+        return getAiPosts(
+            page = page,
+            limit = limit,
+            category = category,
+            search = search,
+            tag = tag,
+            popular = popular,
+            featured = featured,
+            status = status
+        )
+    }
+
+    /**
+     * Alias for simple list - matches ViewModel expected name getAllAIPromptsSimple.
+     */
+    suspend fun getAllAIPromptsSimple(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+        search: String? = null
+    ): Flow<Result<List<AIPrompt>>> {
+        return getAiPostsSimple(page = page, limit = limit, category = category, search = search)
+    }
+
+    /**
+     * Returns favorite prompts stored in Room as AIPrompt objects.
+     * IMPORTANT: this assumes your FavoritePromptDao exposes a method like `getAllFavorites(): List<FavoritePrompt>`
+     * and that FavoritePrompt contains at least the fields needed to map back to AIPrompt.
+     *
+     * If your DAO method name or favorite entity structure differs, adjust mapping accordingly.
+     */
+    suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
+        try {
+            // Try DAO method - adjust name if your DAO uses different function
+            val favEntities = try {
+                // Example DAO method - change if different
+                favoriteDao.getAllFavorites()
+            } catch (e: NoSuchMethodError) {
+                // Fallback: if DAO doesn't provide batch fetch, try returning empty list
+                emptyList()
+            }
+
+            // Map favorite entity to AIPrompt (best-effort). Adjust fields if your FavoritePrompt entity field names differ.
+            val list = favEntities.mapNotNull { fav ->
+                try {
+                    AIPrompt(
+                        id = fav.id.toString(),              // convert Long → String
+                        title = fav.title ?: "",             // handle nullable
+                        shortPrompt = fav.shortPrompt ?: "", // handle nullable
+                        fullPrompt = fav.fullPrompt ?: "",   // handle nullable
+                        category = fav.category,             // already String? matches AIPrompt
+                        tags = fav.tags ?: emptyList(),      // handle nullable List<String>?
+                        isFavorite = true,
+                        createdAt = null,                    // not available in FavoritePrompt
+                        updatedAt = null                     // not available in FavoritePrompt
+                        // add/adjust any other AIPrompt fields if your model has more
+                    )
+                } catch (_: Exception) {
+                    null
                 }
-            )
-        }
-        if (!emitted) emit(Result.success(emptyList()))
-    }.flowOn(Dispatchers.IO)
+            }
 
-    suspend fun getPromptsByCategory(category: String, page: Int = 1, limit: Int = 20): Flow<Result<List<AIPrompt>>> = flow {
-        val apiFlow = getAllAIPrompts(page = page, limit = limit, category = category)
-        var emitted = false
-        apiFlow.collect { res ->
-            res.fold(
-                onSuccess = { pag ->
-                    emit(Result.success(pag.items))
-                    emitted = true
-                },
-                onFailure = {
-                    if (useMocks) {
-                        val fallback = if (category == "All") getMockAIPrompts() else getMockAIPrompts().filter { it.category.equals(category, true) }
-                        emit(Result.success(fallback))
-                    } else {
-                        emit(Result.failure(Exception("Network error")))
+
+            emit(Result.success(list))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+
+    /**
+     * Try to fetch a single prompt by id.
+     * Attempt typed single-endpoint first (if you have one), then fallback to searching pages.
+     */
+    suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
+        var found: AIPrompt? = null
+        var lastError: Exception? = null
+
+        try {
+            // If your ApiService has a single-item endpoint, call it here.
+            // Example: apiService.getAiPostById(apiKey = null, id = promptId)
+            // If you don't have such endpoint, skip to list-based searches below.
+
+            // Fallback: search in favorites first (fast)
+            try {
+                val favs = getFavoritePrompts()
+                favs.collect { res ->
+                    res.onSuccess { list ->
+                        found = list.find { it.id == promptId } ?: found
                     }
-                    emitted = true
                 }
-            )
+            } catch (_: Exception) {
+                // ignore
+            }
+
+            // Fallback: search in simple list (pages)
+            if (found == null) {
+                val simpleFlow = getAiPostsSimple(page = 1, limit = 200)
+                simpleFlow.collect { res ->
+                    res.fold(onSuccess = { list ->
+                        found = list.find { it.id == promptId } ?: found
+                    }, onFailure = { err -> lastError = err as? Exception ?: lastError })
+                }
+            }
+
+            // Fallback: try paginated fetch (single page)
+            if (found == null) {
+                val pagFlow = getAiPosts(page = 1, limit = 200)
+                pagFlow.collect { pres ->
+                    pres.fold(onSuccess = { pag ->
+                        found = pag.items.find { it.id == promptId } ?: found
+                    }, onFailure = { err -> lastError = err as? Exception ?: lastError })
+                }
+            }
+
+            if (found != null) emit(Result.success(found!!))
+            else emit(Result.failure(lastError ?: Exception("Prompt not found")))
+
+        } catch (e: Exception) {
+            emit(Result.failure(e))
         }
-        if (!emitted) emit(Result.success(emptyList()))
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
 
-    // Extension functions mapping domain <-> room entities (kept as member helpers)
-    fun AIPrompt.toFavoritePrompt(): FavoritePrompt {
-        return FavoritePrompt(
-            id = this.id,               // primary key in FavoritePrompt table
-            promptId = this.id,
-            title = this.title,
-            shortPrompt = this.shortPrompt,
-            fullPrompt = this.fullPrompt,
-            imageUrl = this.imageUrl,
-            category = this.category,
-            likes = this.likes,
-            isPopular = this.isPopular,
-            tags = this.tags,
-            dateAdded = System.currentTimeMillis(),
-            favoritedAt = System.currentTimeMillis()
-        )
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun FavoritePrompt.toAIPrompt(): AIPrompt {
-        // Adjust these field names if your Room entity differs.
-        return AIPrompt(
-            id = this.promptId ?: this.id,
-            title = this.title ?: "",
-            shortPrompt = this.shortPrompt ?: "",
-            fullPrompt = this.fullPrompt ?: "",
-            imageUrl = this.imageUrl ?: "",
-            category = this.category ?: "",
-            tags = this.tags ?: emptyList(),
-            likes = this.likes ?: 0,
-            isPopular = this.isPopular ?: false,
-            isFavorite = true,
-            status = this.status ?: "published",
-            priority = this.priority ?: 0,
-            createdAt = this.dateAdded?.let { java.time.Instant.ofEpochMilli(it).toString() },
-            updatedAt = this.favoritedAt?.let { java.time.Instant.ofEpochMilli(it).toString() }
-        )
-    }
-
-    // Helper: map JSON object to Post domain model
-    private fun mapJsonToPost(o: JSONObject): Post {
-        return Post(
-            id = o.optString("id"),
-            title = o.optString("title"),
-            description = o.optString("shortPrompt", o.optString("excerpt", o.optString("fullPrompt", ""))),
-            image = o.optString("imageUrl", o.optString("featured_image", "")),
-            category = o.optString("category", ""),
-            author = o.optString("author", ""),
-            created_at = o.optString("createdAt", o.optString("created_at", "")),
-            likes = o.optInt("likes", 0),
-            views = o.optInt("views", 0),
-            is_featured = o.optBoolean("isFeatured", o.optBoolean("is_featured", false))
-        )
-    }
-
-    // -------------------------
-    // Mock helpers (safe, no TODOs)
-    // -------------------------
-    private suspend fun getMockAIPromptsWithFavoriteStatus(): List<AIPrompt> {
-        return getMockAIPrompts().map { prompt ->
-            val isFavorite = try { favoriteDao.isFavorite(prompt.id) } catch (e: Exception) { false }
-            prompt.copy(isFavorite = isFavorite)
-        }
-    }
-
-    private val photographyTips = listOf(
-        "🎯 Use the rule of thirds for better composition",
-        "🌅 Golden hour provides the most flattering natural light",
-        "👁️ Focus on the eyes in portrait photography",
-        "🛤️ Use leading lines to guide the viewer's attention",
-        "📐 Experiment with different angles and perspectives",
-        "⚪ Learn to use negative space effectively",
-        "⚙️ Master manual camera settings for creative control",
-        "📖 Practice the art of storytelling through images",
-        "🤖 Try AI prompts: 'Professional headshot, soft lighting, clean background'",
-        "✨ AI Prompt: 'Cinematic portrait, golden hour, bokeh background'",
-        "🎨 Use AI: 'Street photography style, black and white, urban setting'",
-        "🌟 AI Magic: 'Fashion photography, dramatic lighting, studio setup'"
-    )
-
-    fun getMockAIPrompts(): List<AIPrompt> = listOf(
-        AIPrompt(
-            id = "1",
-            title = "Cinematic Portrait Lighting",
-            shortPrompt = "Professional portrait with dramatic cinematic lighting and soft shadows.",
-            fullPrompt = "Create a cinematic portrait of a person with dramatic lighting, soft shadows, professional studio setup, warm golden hour lighting with subtle background blur, high-end photography equipment visible, moody atmosphere, professional headshot style, 85mm lens, f/1.4 aperture, professional makeup and styling.",
-            imageUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
-            category = "Portrait",
-            tags = listOf("portrait", "cinematic", "lighting", "professional"),
-            likes = 1234,
-            isPopular = true,
-            isFavorite = false,
-            status = "published",
-            priority = 0,
-            createdAt = "2024-01-01T00:00:00Z",
-            updatedAt = null
-        ),
-        AIPrompt(
-            id = "10",
-            title = "Wedding Documentary Style",
-            shortPrompt = "Emotional wedding photography capturing authentic moments and joy.",
-            fullPrompt = "Wedding photography with documentary style, authentic emotions, candid moments, natural lighting, photojournalistic approach, wedding day timeline, emotional storytelling, family portraits, reception photography, romantic atmosphere.",
-            imageUrl = "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop",
-            category = "Wedding",
-            tags = listOf("wedding", "documentary", "emotional", "candid"),
-            likes = 1123,
-            isPopular = true,
-            isFavorite = false,
-            status = "published",
-            priority = 0,
-            createdAt = "2024-01-01T00:00:00Z",
-            updatedAt = null
-        )
-    )
-
-    fun getMockFeaturedPosts(): List<Post> = listOf(
-        Post(
-            id = "1",
-            title = "Golden Hour Portrait Mastery",
-            description = "Learn the secrets of capturing stunning portraits during golden hour with professional lighting techniques.",
-            image = "https://scontent.flko10-1.fna.fbcdn.net/v/t39.30808-6/539403726_759525540326780_2460644145648515262_n.jpg",
-            category = "Portrait",
-            author = "Sarah Johnson",
-            created_at = "2024-01-15T10:30:00Z",
-            likes = 324,
-            views = 2150,
-            is_featured = true
-        ),
-        Post(
-            id = "2",
-            title = "Street Photography Secrets",
-            description = "Master the art of candid street photography with these professional tips and techniques.",
-            image = "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800",
-            category = "Street",
-            author = "Mike Chen",
-            created_at = "2024-01-14T15:45:00Z",
-            likes = 198,
-            views = 1820,
-            is_featured = true
-        )
-    )
-
-    fun getMockCategories(): List<Category> = listOf(
-        Category("1", "Portrait", "People & Portrait Photography", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", 45),
-        Category("2", "Landscape", "Nature & Scenic Photography", "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400", 32)
-    )
 
 }

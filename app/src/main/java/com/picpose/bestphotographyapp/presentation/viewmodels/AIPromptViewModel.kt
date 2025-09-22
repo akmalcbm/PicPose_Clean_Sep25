@@ -32,7 +32,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AIPromptUiState())
     val uiState: StateFlow<AIPromptUiState> = _uiState.asStateFlow()
 
-    // derived state: favorites (kept simple using Eagerly to avoid WhileSubscribed timeout complexity)
+    // derived state: favorites (eagerly kept)
     val favoritePrompts: StateFlow<List<AIPrompt>> = uiState
         .map { it.favoritePrompts }
         .stateIn(
@@ -42,34 +42,36 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         )
 
     init {
+        // initial loads
         loadAllPrompts()
         loadFavoritePrompts()
         loadCategories()
     }
 
     /**
-     * Loads paginated prompts (page 1 default). Unwraps PaginatedResult -> items
+     * Loads prompts using a typed API flow (expects repository.getAllAIPromptsTyped)
      */
-    fun loadAllPrompts(page: Int = 1, limit: Int = 100) {
+    fun loadAllPrompts(page: Int = 1, limit: Int = 100, category: String? = null, search: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                repository.getAllAIPrompts(page = page, limit = limit).collect { result ->
+                // explicit type so Kotlin can infer correctly
+                val flow = repository.getAllAIPromptsTyped(page = page, limit = limit, category = category, search = search)
+                flow.collect { result: Result<List<AIPrompt>> ->
                     result.fold(
-                        onSuccess = { paginated ->
-                            // paginated is PaginatedResult<AIPrompt>
-                            val items = paginated.items
+                        onSuccess = { prompts: List<AIPrompt> ->
+                            // ensure non-null list
+                            val safePrompts = prompts.map { it.copy(isFavorite = it.isFavorite) }
                             _uiState.value = _uiState.value.copy(
-                                allPrompts = items,
+                                allPrompts = safePrompts,
                                 isLoading = false,
                                 error = null
                             )
-                            // update categories now that prompts loaded
-                            updateCategoriesFromPrompts(items)
+                            updateCategoriesFromPrompts(safePrompts)
                         },
-                        onFailure = { exception ->
+                        onFailure = { ex: Throwable ->
                             _uiState.value = _uiState.value.copy(
-                                error = exception.message ?: "Unknown error",
+                                error = ex.message ?: "Failed to load prompts",
                                 isLoading = false
                             )
                         }
@@ -77,7 +79,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Exception",
+                    error = e.message ?: "Exception while loading prompts",
                     isLoading = false
                 )
             }
@@ -90,18 +92,18 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     fun toggleFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
             try {
-                repository.toggleFavorite(prompt).collect { result ->
+                val flow = repository.toggleFavorite(prompt)
+                flow.collect { result: Result<Boolean> ->
                     result.fold(
-                        onSuccess = { isNowFavorite ->
+                        onSuccess = { isNowFavorite: Boolean ->
                             // Update allPrompts list
-                            val updatedAll = _uiState.value.allPrompts.map {
-                                if (it.id == prompt.id) it.copy(isFavorite = isNowFavorite) else it
+                            val updatedAll = _uiState.value.allPrompts.map { p ->
+                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
                             }
 
-                            // Update favorite list
+                            // Update favorite list accordingly
                             val updatedFavorites = if (isNowFavorite) {
-                                // add prompt (ensure dedup)
-                                (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
+                                ( _uiState.value.favoritePrompts + prompt.copy(isFavorite = true) )
                                     .distinctBy { it.id }
                             } else {
                                 _uiState.value.favoritePrompts.filter { it.id != prompt.id }
@@ -112,14 +114,13 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                                 favoritePrompts = updatedFavorites
                             )
                         },
-                        onFailure = { exception ->
-                            _uiState.value =
-                                _uiState.value.copy(error = exception.message ?: "Failed to toggle favorite")
+                        onFailure = { ex: Throwable ->
+                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to toggle favorite")
                         }
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception")
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception toggling favorite")
             }
         }
     }
@@ -130,50 +131,49 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     fun loadFavoritePrompts() {
         viewModelScope.launch {
             try {
-                repository.getFavoritePrompts().collect { result ->
+                val flow = repository.getFavoritePrompts()
+                flow.collect { result: Result<List<AIPrompt>> ->
                     result.fold(
-                        onSuccess = { favs ->
-                            _uiState.value = _uiState.value.copy(favoritePrompts = favs)
+                        onSuccess = { favs: List<AIPrompt> ->
+                            val safeFavs = favs.map { it.copy(isFavorite = true) }
+                            _uiState.value = _uiState.value.copy(favoritePrompts = safeFavs)
                             // Update isFavorite flags in allPrompts
-                            val favIds = favs.map { it.id }.toSet()
-                            val updatedAll = _uiState.value.allPrompts.map {
-                                it.copy(isFavorite = favIds.contains(it.id))
+                            val favIds = safeFavs.map { it.id }.toSet()
+                            val updatedAll = _uiState.value.allPrompts.map { p ->
+                                p.copy(isFavorite = favIds.contains(p.id))
                             }
                             _uiState.value = _uiState.value.copy(allPrompts = updatedAll)
                         },
-                        onFailure = { ex ->
-                            _uiState.value =
-                                _uiState.value.copy(error = ex.message ?: "Failed to load favorites")
+                        onFailure = { ex: Throwable ->
+                            // on failure, keep existing favorites and surface error
+                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to load favorites")
                         }
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception")
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading favorites")
             }
         }
     }
 
     /**
      * Refresh favorite state by collecting favorite prompts once and updating local flags.
-     * This implementation uses suspend collect safely in coroutine.
      */
     fun refreshFavoriteState() {
         viewModelScope.launch {
             try {
-                // collect one result from flow
                 var favIds = emptySet<String>()
-                repository.getFavoritePrompts().collect { result ->
+                val flow = repository.getFavoritePrompts()
+                flow.collect { result: Result<List<AIPrompt>> ->
                     result.onSuccess { favs ->
                         favIds = favs.map { it.id }.toSet()
                     }
-                    result.onFailure {
-                        // in case of error keep favIds empty
-                    }
+                    // ignore onFailure for this short refresh
                 }
                 val updated = _uiState.value.allPrompts.map { it.copy(isFavorite = favIds.contains(it.id)) }
                 _uiState.value = _uiState.value.copy(allPrompts = updated)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception")
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception refreshing favorites")
             }
         }
     }
@@ -186,8 +186,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             try {
                 updateCategoriesFromPrompts(_uiState.value.allPrompts)
             } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(error = e.message ?: "Exception loading categories")
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading categories")
             }
         }
     }
@@ -202,86 +201,78 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Load single prompt by id (adds to allPrompts if not present)
-     * This function first tries the single-item endpoint, and falls back to loading the list and searching.
      */
     fun loadPromptById(promptId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                // If already present, short-circuit
                 val existing = _uiState.value.allPrompts.find { it.id == promptId }
                 if (existing != null) {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     return@launch
                 }
 
-                // Primary: try repository single-item endpoint
+                // Try repository single-item endpoint (typed)
                 var foundPrompt: AIPrompt? = null
-                var lastErrorMsg: String? = null
+                var lastError: String? = null
 
-                repository.getPromptById(promptId).collect { res ->
-                    res.fold(
-                        onSuccess = { prompt ->
-                            foundPrompt = prompt
-                        },
-                        onFailure = { ex ->
-                            lastErrorMsg = ex.message ?: "getPromptById failed"
-                        }
-                    )
-                }
-
-                // If primary succeeded, add it and finish
-                if (foundPrompt != null) {
-                    val updated = _uiState.value.allPrompts + foundPrompt!!
-                    _uiState.value = _uiState.value.copy(allPrompts = updated, isLoading = false)
-                    return@launch
-                }
-
-                // Fallback 1: try fetching the list of prompts from server and search
                 try {
-                    repository.getAllAIPrompts(page = 1, limit = 200).collect { listRes ->
-                        listRes.fold(
-                            onSuccess = { paginated ->
-                                val item = paginated.items.find { it.id == promptId }
-                                if (item != null) {
-                                    foundPrompt = item
-                                }
+                    val flow = repository.getPromptById(promptId)
+                    flow.collect { res: Result<AIPrompt> ->
+                        res.fold(
+                            onSuccess = { p: AIPrompt ->
+                                foundPrompt = p
                             },
-                            onFailure = { ex ->
-                                if (lastErrorMsg.isNullOrBlank()) lastErrorMsg = ex.message
+                            onFailure = { ex: Throwable ->
+                                lastError = ex.message ?: "getPromptById failed"
                             }
                         )
                     }
                 } catch (e: Exception) {
-                    if (lastErrorMsg.isNullOrBlank()) lastErrorMsg = e.message
+                    lastError = lastError ?: e.message
                 }
 
-                // Fallback 2: try getAllAIPromptsSimple if available (safer typed list)
+                // Fallback: try loading list and searching
                 if (foundPrompt == null) {
                     try {
-                        repository.getAllAIPromptsSimple(page = 1, limit = 200).collect { result ->
-                            result.fold(
+                        val flow = repository.getAllAIPrompts(page = 1, limit = 200)
+                        flow.collect { listRes: Result<com.picpose.bestphotographyapp.data.repository.PaginatedResult<AIPrompt>> ->
+                            listRes.fold(
+                                onSuccess = { paginated ->
+                                    val item = paginated.items.find { it.id == promptId }
+                                    if (item != null) foundPrompt = item
+                                },
+                                onFailure = { ex -> lastError = lastError ?: ex.message }
+                            )
+                        }
+                    } catch (e: Exception) {
+                        lastError = lastError ?: e.message
+                    }
+                }
+
+                // Another fallback: simple typed list
+                if (foundPrompt == null) {
+                    try {
+                        val flow = repository.getAllAIPromptsSimple(page = 1, limit = 200)
+                        flow.collect { res: Result<List<AIPrompt>> ->
+                            res.fold(
                                 onSuccess = { list ->
                                     val item = list.find { it.id == promptId }
                                     if (item != null) foundPrompt = item
                                 },
-                                onFailure = { ex ->
-                                    if (lastErrorMsg.isNullOrBlank()) lastErrorMsg = ex.message
-                                }
+                                onFailure = { ex -> lastError = lastError ?: ex.message }
                             )
                         }
                     } catch (_: Exception) {
-                        // optional helper may not exist; ignore
+                        // ignore
                     }
                 }
 
-                // Finalize: if found, add to state; else set error
                 if (foundPrompt != null) {
                     val updated = _uiState.value.allPrompts + foundPrompt!!
                     _uiState.value = _uiState.value.copy(allPrompts = updated, isLoading = false)
                 } else {
-                    val msg = lastErrorMsg ?: "Prompt not found"
-                    _uiState.value = _uiState.value.copy(error = msg, isLoading = false)
+                    _uiState.value = _uiState.value.copy(error = lastError ?: "Prompt not found", isLoading = false)
                 }
 
             } catch (e: Exception) {
@@ -292,7 +283,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Simple search that filters currently loaded prompts.
-     * For server-side search use repository.getAllAIPrompts(search=...)
      */
     fun searchPrompts(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
@@ -303,10 +293,14 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 val filtered = _uiState.value.allPrompts.filter { p ->
-                    p.title.contains(query, ignoreCase = true) ||
-                            p.shortPrompt.contains(query, ignoreCase = true) ||
-                            (p.category?.contains(query, ignoreCase = true) ?: false) ||
-                            p.tags.any { it.contains(query, ignoreCase = true) }
+                    val title = p.title ?: ""
+                    val short = p.shortPrompt ?: ""
+                    val categoryContains = p.category?.contains(query, ignoreCase = true) ?: false
+                    val tags = p.tags ?: emptyList()
+                    (title.contains(query, ignoreCase = true)
+                            || short.contains(query, ignoreCase = true)
+                            || categoryContains
+                            || tags.any { it.contains(query, ignoreCase = true) })
                 }
                 _uiState.value = _uiState.value.copy(allPrompts = filtered)
             } catch (e: Exception) {
@@ -342,13 +336,17 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         val category = _uiState.value.selectedCategory
 
         return prompts.filter { prompt ->
-            val matchesSearch = query.isBlank() ||
-                    prompt.title.contains(query, ignoreCase = true) ||
-                    prompt.shortPrompt.contains(query, ignoreCase = true) ||
-                    (prompt.category?.contains(query, ignoreCase = true) ?: false) ||
-                    prompt.tags.any { it.contains(query, ignoreCase = true) }
+            val title = prompt.title ?: ""
+            val short = prompt.shortPrompt ?: ""
+            val tags = prompt.tags ?: emptyList()
 
-            val matchesCategory = category == "All" || prompt.category == category
+            val matchesSearch = query.isBlank() ||
+                    title.contains(query, ignoreCase = true) ||
+                    short.contains(query, ignoreCase = true) ||
+                    (prompt.category?.contains(query, ignoreCase = true) ?: false) ||
+                    tags.any { it.contains(query, ignoreCase = true) }
+
+            val matchesCategory = category == "All" || (prompt.category ?: "") == category
 
             matchesSearch && matchesCategory
         }

@@ -110,7 +110,7 @@ fun PromptDetailScreen(
 
             // 3) Prompt present -> show detail UI
             else -> {
-                val promptData = prompt!!
+                val promptData = prompt
 
                 // Full-image dialog (shows entire image without crop)
                 if (showImageDialog) {
@@ -196,7 +196,7 @@ fun PromptDetailScreen(
                             // Share button
                             IconButton(
                                 onClick = {
-                                    clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
+                                    clipboardManager.setText(AnnotatedString(promptData.fullPrompt ?: ""))
                                     Toast.makeText(
                                         context,
                                         "Prompt copied for sharing!",
@@ -323,10 +323,10 @@ fun PromptDetailScreen(
                                             color = MaterialTheme.colorScheme.error
                                         )
 
-                                        if (promptData.tags.isNotEmpty()) {
+                                        promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                                             StatChip(
                                                 icon = Icons.AutoMirrored.Filled.Label,
-                                                text = "${promptData.tags.size} tags",
+                                                text = "${tags.size} tags",
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                         }
@@ -335,7 +335,7 @@ fun PromptDetailScreen(
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     Text(
-                                        text = promptData.shortPrompt,
+                                        text = promptData.shortPrompt ?: "",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 24.sp
@@ -383,7 +383,7 @@ fun PromptDetailScreen(
                                         )
                                     ) {
                                         Text(
-                                            text = promptData.fullPrompt,
+                                            text = promptData.fullPrompt ?: "",
                                             modifier = Modifier.padding(16.dp),
                                             style = MaterialTheme.typography.bodyMedium,
                                             lineHeight = 22.sp
@@ -394,7 +394,7 @@ fun PromptDetailScreen(
 
                                     Button(
                                         onClick = {
-                                            clipboardManager.setText(AnnotatedString(promptData.fullPrompt))
+                                            clipboardManager.setText(AnnotatedString(promptData.fullPrompt ?: ""))
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             coroutineScope.launch {
                                                 snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
@@ -424,7 +424,7 @@ fun PromptDetailScreen(
                         }
 
                         // Tags Section
-                        if (promptData.tags.isNotEmpty()) {
+                        promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
                                 Card(
                                     modifier = Modifier
@@ -449,7 +449,7 @@ fun PromptDetailScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            promptData.tags.forEach { tag ->
+                                            tags.forEach { tag ->
                                                 Surface(
                                                     color = MaterialTheme.colorScheme.surfaceVariant,
                                                     shape = RoundedCornerShape(20.dp),

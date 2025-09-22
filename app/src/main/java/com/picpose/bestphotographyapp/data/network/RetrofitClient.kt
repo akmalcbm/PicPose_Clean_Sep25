@@ -9,22 +9,27 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // Use your actual base (ensure trailing slash). If your PHP sits at / picpose_admin/api/ use that.
+    // Base URL - make sure trailing slash present.
     private const val BASE_URL = "https://picpose.iamakmal.in/api/"
 
-    // Optional: central API key used in many calls (or provide per-call)
+    // Central API key (optional). If set, it will be appended as query param
+    // unless the request already contains an "api_key" query param.
     var defaultApiKey: String? = null
 
+    // Logging interceptor - enable only during debug builds
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    // Interceptor that appends api_key as query param WHEN the request does not already include api_key
     private val apiKeyInterceptor = Interceptor { chain ->
         val req = chain.request()
         val originalUrl = req.url
 
-        // Example: attach api_key as query param if defaultApiKey set
-        val newUrl = if (!defaultApiKey.isNullOrBlank()) {
+        // If request already includes api_key, don't append default
+        val alreadyHasApiKey = originalUrl.queryParameterNames.any { it.equals("api_key", ignoreCase = true) }
+
+        val newUrl = if (!alreadyHasApiKey && !defaultApiKey.isNullOrBlank()) {
             originalUrl.newBuilder()
                 .addQueryParameter("api_key", defaultApiKey)
                 .build()
@@ -32,8 +37,6 @@ object RetrofitClient {
 
         val newReq = req.newBuilder()
             .url(newUrl)
-            // If you prefer header style:
-            // .addHeader("API-Key", defaultApiKey ?: "")
             .build()
         chain.proceed(newReq)
     }
@@ -42,9 +45,8 @@ object RetrofitClient {
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
-        // Add logging only in debug; you can gate by BuildConfig.DEBUG
-        .addInterceptor(logging)
-        // Add apiKeyInterceptor if you use defaultApiKey
+        // Use logging only in debug. Uncomment the next line or gate it with BuildConfig.DEBUG
+        // .addInterceptor(logging)
         .addInterceptor(apiKeyInterceptor)
         .build()
 
@@ -52,9 +54,7 @@ object RetrofitClient {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttp)
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
+            .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
     }

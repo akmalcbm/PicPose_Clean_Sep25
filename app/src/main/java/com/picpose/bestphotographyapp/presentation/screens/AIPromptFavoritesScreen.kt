@@ -39,11 +39,6 @@ fun AIPromptFavoritesScreen(
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
-    // Load favorites when screen opens
-    LaunchedEffect(Unit) {
-        viewModel.loadFavoritePrompts()
-    }
-
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -63,7 +58,7 @@ fun AIPromptFavoritesScreen(
                         onClick = {
                             // Export all favorites to clipboard
                             val allPrompts = favoritePrompts.joinToString("\n\n") { prompt ->
-                                "${prompt.title}\n${prompt.fullPrompt}"
+                                "${prompt.title}\n${prompt.fullPrompt ?: ""}"
                             }
                             clipboardManager.setText(AnnotatedString(allPrompts))
                             Toast.makeText(context, "All favorites exported to clipboard!", Toast.LENGTH_SHORT).show()
@@ -99,9 +94,11 @@ fun AIPromptFavoritesScreen(
                 items(favoritePrompts) { prompt ->
                     AIPromptCard(
                         prompt = prompt,
-                        onClick = { onPromptClick(prompt.id) }, // Navigate to detail
+                        // Safely call navigation only when id is non-null
+                        onClick = { prompt.id?.let { id -> onPromptClick(id) } },
                         onCopy = {
-                            clipboardManager.setText(AnnotatedString(prompt.fullPrompt))
+                            val textToCopy = prompt.fullPrompt ?: ""
+                            clipboardManager.setText(AnnotatedString(textToCopy))
                             Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                         },
                         onFavoriteClick = { viewModel.toggleFavorite(prompt) },
