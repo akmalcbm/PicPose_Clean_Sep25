@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import retrofit2.Response
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
 private const val TAG = "HomeRepository"
@@ -58,10 +60,12 @@ class HomeRepository(
                 val message = try { resp.errorBody()?.string() } catch (_: Exception) { resp.message() }
                 Result.failure(Exception("HTTP ${resp.code()}: $message"))
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e // important: propagate cancellation
             Result.failure(e)
         }
     }
+
 
     /**
      * Executes a network call with concurrency limiting and retries (exponential backoff + jitter).
@@ -74,25 +78,38 @@ class HomeRepository(
         block: suspend () -> Response<T>
     ): Response<T> {
         var currentDelay = initialDelayMs
-        var lastEx: Exception? = null
 
         repeat(maxRetries) { attempt ->
             try {
-                Log.d(TAG, "API attempt ${attempt + 1} - executing request")
-                // limit concurrent requests
-                return apiSemaphore.withPermit { block() }
-            } catch (e: Exception) {
-                lastEx = e
-                val jitter = Random.nextLong(0, 200)
+                // Execute the network call within the semaphore
+                val resp = apiSemaphore.withPermit { block() }
+
+                // If HTTP 4xx -> don't retry (client error / unauthorized etc.)
+                val code = resp.code()
+                if (code in 400..499) {
+                    Log.w(TAG, "Non-retriable HTTP $code received - not retrying")
+                    return resp
+                }
+
+                // otherwise return (200 or 5xx -> let caller decide)
+                return resp
+            } catch (e: Throwable) {
+                // If coroutine was cancelled, rethrow immediately so upstream can handle it.
+                if (e is CancellationException) {
+                    Log.w(TAG, "API call cancelled: ${e.message}")
+                    throw e
+                }
+
+                // For other exceptions (e.g., IOExceptions), retry after backoff.
+                val jitter = kotlin.random.Random.nextLong(0, 200)
                 val delayMs = (currentDelay + jitter).coerceAtMost(10_000)
                 Log.w(TAG, "API attempt ${attempt + 1} failed: ${e.message}. Retrying in ${delayMs}ms")
-                delay(delayMs)
+                kotlinx.coroutines.delay(delayMs)
                 currentDelay = (currentDelay * factor).toLong()
             }
         }
 
-        // final attempt (let exception bubble if fails)
-        Log.d(TAG, "Final API attempt (no more retries)")
+        // Final attempt (let exceptions bubble)
         return apiSemaphore.withPermit { block() }
     }
 
@@ -279,13 +296,12 @@ class HomeRepository(
     // getFavoriteCount() - returns the count of favorites (suspend)
     suspend fun getFavoriteCount(): Int {
         return try {
-            // Use Room DAO (preferred)
-            favoriteDao.getFavoriteCount()
+            // Ensure DAO access runs on IO dispatcher to avoid "Cannot access database on the main thread"
+            withContext(Dispatchers.IO) {
+                favoriteDao.getFavoriteCount()
+            }
         } catch (e: Exception) {
             Log.w(TAG, "getFavoriteCount failed: ${e.message}")
-            // If something goes wrong, return a safe fallback (0).
-            // If you want to use your mock provider, replace this block
-            // with: if (useMocks) getMockAIPrompts().count { p -> p.isFavorite } else 0
             0
         }
     }
