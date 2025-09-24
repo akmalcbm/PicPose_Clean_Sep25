@@ -1,21 +1,28 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
 import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.MetaDto
-import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.network.ApiService
+import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.remote.ApiResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import retrofit2.Response
+import kotlin.random.Random
+
+private const val TAG = "HomeRepository"
 
 // Small wrapper for paginated responses
 data class PaginatedResult<T>(val items: List<T>, val meta: MetaDto? = null)
@@ -25,7 +32,10 @@ class HomeRepository(
     // if you want to use mocks set true (keeps backwards compatibility from your old code)
     private val useMocks: Boolean = false,
     // optional override apiKey (if null we rely on RetrofitClient.defaultApiKey)
-    apiKey: String? = null
+    apiKey: String? = null,
+
+    // Limit concurrent API calls (protect backend)
+    private val apiSemaphore: Semaphore = Semaphore(3)
 ) {
     private val apiService: ApiService = RetrofitClient.apiService
     private val database = AppDatabase.getDatabase(context)
@@ -53,6 +63,39 @@ class HomeRepository(
         }
     }
 
+    /**
+     * Executes a network call with concurrency limiting and retries (exponential backoff + jitter).
+     * The block *must* return a retrofit Response<T>.
+     */
+    private suspend fun <T> callWithRetries(
+        maxRetries: Int = 3,
+        initialDelayMs: Long = 400,
+        factor: Double = 2.0,
+        block: suspend () -> Response<T>
+    ): Response<T> {
+        var currentDelay = initialDelayMs
+        var lastEx: Exception? = null
+
+        repeat(maxRetries) { attempt ->
+            try {
+                Log.d(TAG, "API attempt ${attempt + 1} - executing request")
+                // limit concurrent requests
+                return apiSemaphore.withPermit { block() }
+            } catch (e: Exception) {
+                lastEx = e
+                val jitter = Random.nextLong(0, 200)
+                val delayMs = (currentDelay + jitter).coerceAtMost(10_000)
+                Log.w(TAG, "API attempt ${attempt + 1} failed: ${e.message}. Retrying in ${delayMs}ms")
+                delay(delayMs)
+                currentDelay = (currentDelay * factor).toLong()
+            }
+        }
+
+        // final attempt (let exception bubble if fails)
+        Log.d(TAG, "Final API attempt (no more retries)")
+        return apiSemaphore.withPermit { block() }
+    }
+
     // -------------------------
     // DAILY TIPS
     // -------------------------
@@ -69,8 +112,11 @@ class HomeRepository(
             return@flow
         }
 
+        // Use callWithRetries wrapped by safeApiCall to get consistent Result<T> mapping
         val apiResult: Result<ApiResponse<List<DailyTip>>> = safeApiCall {
-            apiService.getDailyTips() // api_key handled by RetrofitClient.defaultApiKey or pass as param in ApiService if you prefer
+            callWithRetries {
+                apiService.getDailyTips()
+            }
         }
 
         apiResult.fold(
@@ -86,7 +132,10 @@ class HomeRepository(
                 emit(Result.failure(err))
             }
         )
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getDailyTips flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
     // -------------------------
     // AI POSTS (paginated)
@@ -108,18 +157,23 @@ class HomeRepository(
             return@flow
         }
 
+        Log.d(TAG, "Fetching AI posts: page=$page limit=$limit category=$category search=$search tag=$tag popular=$popular featured=$featured status=$status")
+
+        // Use retries + concurrency limiting for the network call
         val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
-            apiService.getAiPosts(
-                apiKey = null, // RetrofitClient.defaultApiKey used by interceptor; pass non-null to override
-                limit = limit,
-                offset = (page - 1) * limit,
-                q = search,
-                category = category,
-                tag = tag,
-                popular = popular,
-                status = status,
-                featured = featured
-            )
+            callWithRetries {
+                apiService.getAiPosts(
+                    apiKey = null, // RetrofitClient.defaultApiKey used by interceptor; pass non-null to override
+                    limit = limit,
+                    offset = (page - 1) * limit,
+                    q = search,
+                    category = category,
+                    tag = tag,
+                    popular = popular,
+                    status = status,
+                    featured = featured
+                )
+            }
         }
 
         apiResult.fold(
@@ -162,14 +216,19 @@ class HomeRepository(
 
                     emit(Result.success(PaginatedResult(items = enriched, meta = meta)))
                 } catch (e: Exception) {
+                    Log.e(TAG, "Error processing AI posts: ${e.message}")
                     emit(Result.failure(e))
                 }
             },
             onFailure = { err ->
+                Log.w(TAG, "getAiPosts failed: ${err.message}")
                 emit(Result.failure(err))
             }
         )
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getAiPosts flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
     // Optionally expose a simpler list-based version (no meta)
     suspend fun getAiPostsSimple(
@@ -193,11 +252,14 @@ class HomeRepository(
             )
         }
         if (!emitted) emit(Result.success(emptyList()))
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getAiPostsSimple flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
 
     // Toggle favorite (returns Flow<Result<Boolean>>) — existing logic you had previously
-// Keeps using Room FavoritePromptDao and existing toFavorite mapping.
+    // Keeps using Room FavoritePromptDao and existing toFavorite mapping.
     fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt) : kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
         try {
             val currentlyFavorite = favoriteDao.isFavorite(prompt.id)
@@ -209,6 +271,7 @@ class HomeRepository(
                 emit(Result.success(true))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "toggleFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
     }
@@ -219,6 +282,7 @@ class HomeRepository(
             // Use Room DAO (preferred)
             favoriteDao.getFavoriteCount()
         } catch (e: Exception) {
+            Log.w(TAG, "getFavoriteCount failed: ${e.message}")
             // If something goes wrong, return a safe fallback (0).
             // If you want to use your mock provider, replace this block
             // with: if (useMocks) getMockAIPrompts().count { p -> p.isFavorite } else 0
@@ -247,9 +311,13 @@ class HomeRepository(
                 )
             }
         } catch (e: Exception) {
+            Log.e(TAG, "getAllAIPromptsTyped exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getAllAIPromptsTyped flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
     /**
      * Alias for paginated get - matches ViewModel expected name getAllAIPrompts.
@@ -327,12 +395,15 @@ class HomeRepository(
                 }
             }
 
-
             emit(Result.success(list))
         } catch (e: Exception) {
+            Log.e(TAG, "getFavoritePrompts failed: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getFavoritePrompts flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
     /**
      * Try to fetch a single prompt by id.
@@ -383,9 +454,12 @@ class HomeRepository(
             else emit(Result.failure(lastError ?: Exception("Prompt not found")))
 
         } catch (e: Exception) {
+            Log.e(TAG, "getPromptById exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e -> emit(Result.failure(e)) }
-
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getPromptById flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
 
 }

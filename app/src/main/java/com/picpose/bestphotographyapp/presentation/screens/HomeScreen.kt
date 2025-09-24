@@ -17,6 +17,8 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +33,12 @@ fun HomeScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var currentTipIndex by remember { mutableIntStateOf(0) }
-    var isRefreshing by remember { mutableStateOf(false) }
+
+    // Pull refresh state directly from uiState (no extra LaunchedEffect needed)
+    val isRefreshing = uiState.isRefreshing
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     // Fallback hardcoded tips (keeps UX stable if API not loaded yet)
     val fallbackTips = listOf(
@@ -44,24 +51,16 @@ fun HomeScreen(
 
     // Map server tips to displayable list. Assumes each DailyTip has a 'tip' field.
     val serverTips: List<String> = uiState.dailyTips
-        ?.mapNotNull { it.tip }
-        ?: emptyList()
+        .mapNotNull { it.tip }
 
     // Effective tips used by UI (server first, otherwise fallback)
     val dailyTips = remember(serverTips) {
         if (serverTips.isNotEmpty()) serverTips else fallbackTips
     }
 
-    // Fetch daily tips when the screen launches (idempotent)
-    LaunchedEffect(Unit) {
-        // Call your ViewModel function to fetch tips.
-        // If your function has a different name, update it accordingly.
+    // Fetch daily tips once when HomeScreen composes with same viewModel instance
+    LaunchedEffect(viewModel) {
         viewModel.fetchDailyTips()
-    }
-
-    // Keep refresh state in sync
-    LaunchedEffect(uiState.isRefreshing) {
-        isRefreshing = uiState.isRefreshing
     }
 
     // Reset currentTipIndex if tips list changes (prevents index OOB)
@@ -69,43 +68,44 @@ fun HomeScreen(
         if (currentTipIndex >= dailyTips.size) currentTipIndex = 0
     }
 
-    // Clear error after some time
+    // Show error messages via Snackbar (handles throttle message and other errors)
     LaunchedEffect(uiState.error) {
-        if (uiState.error != null) {
-            kotlinx.coroutines.delay(5000) // Auto-clear error after 5 seconds
-            viewModel.clearError()
+        uiState.error?.let { message ->
+            coroutineScope.launch {
+                // Show snackbar and then clear error in ViewModel
+                snackbarHostState.showSnackbar(message)
+                viewModel.clearError()
+            }
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    HomeTopBar(
-                        onSearchClick = {
-                            // implement search using viewModel.searchPrompts() if present
-                        },
-                        onProfileClick = { /* Handle profile */ }
-                    )
+            // Use HomeTopBar directly (it builds the TopAppBar itself)
+            HomeTopBar(
+                titleText = "PicPose",
+                initialSearch = "",
+                onQueryChanged = { query ->
+                    // called on every keystroke — ViewModel will debounce it
+                    viewModel.onSearchChanged(query)
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                onSearchClick = { query ->
+                    // called on search submit (keyboard/search icon)
+                    viewModel.onSearchChanged(query) // triggers immediate search via debounced flow
+                },
+                onProfileClick = {
+                    // navigate to profile or open menu
+                }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
-        // Show error snackbar if there's an error
-        uiState.error?.let { error ->
-            LaunchedEffect(error) {
-                // optionally show Snackbar here
-            }
-        }
-
         when {
-            uiState.isLoading && !uiState.isRefreshing -> {
+            uiState.isLoading && !isRefreshing -> {
                 LoadingScreen()
             }
-            uiState.error != null && !uiState.isRefreshing -> {
+            uiState.error != null && !isRefreshing -> {
+                // Keep ErrorScreen for persistent blocking errors (but most errors appear in Snackbar)
                 ErrorScreen(
                     message = uiState.error!!,
                     onRetry = {
@@ -136,7 +136,10 @@ fun HomeScreen(
                             AnimatedDailyTipCard(
                                 tip = tipToShow,
                                 onNextTip = {
-                                    currentTipIndex = (currentTipIndex + 1) % dailyTips.size
+                                    // protect against empty list
+                                    if (dailyTips.isNotEmpty()) {
+                                        currentTipIndex = (currentTipIndex + 1) % dailyTips.size
+                                    }
                                 }
                             )
                         }
@@ -254,7 +257,8 @@ fun HomeScreen(
                         if (uiState.aiPrompts.isEmpty() &&
                             uiState.featuredPosts.isEmpty() &&
                             uiState.categories.isEmpty() &&
-                            !uiState.isLoading) {
+                            !uiState.isLoading
+                        ) {
                             item {
                                 EmptyStateCard(
                                     onRefresh = { viewModel.refresh() }

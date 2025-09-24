@@ -1,18 +1,25 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.system.measureTimeMillis
+
+private const val TAG = "AIPromptVM"
 
 data class AIPromptUiState(
     val isLoading: Boolean = false,
@@ -41,7 +48,36 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             initialValue = emptyList()
         )
 
+    // Search debounce flow (UI should call onSearchChanged)
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    // concurrency guard for loadAllPrompts
+    @Volatile
+    private var isLoadingAll: Boolean = false
+
+    // refresh throttle
+    private var lastRefreshTimestamp = 0L
+    private val MIN_REFRESH_INTERVAL_MS = 3_000L // 3s
+
+    // keep reference to any running job if needed
+    private var loadAllJob: Job? = null
+    private var loadFavoritesJob: Job? = null
+
     init {
+        // debounce search queries
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(400)
+                .collectLatest { q ->
+                    Log.d(TAG, "Debounced search -> '$q'")
+                    // update state searchQuery and invoke load
+                    _uiState.value = _uiState.value.copy(searchQuery = q)
+                    // If blank, pass null so repository returns default list
+                    loadAllPrompts(page = 1, limit = 100, category = null, search = q.ifBlank { null })
+                }
+        }
+
         // initial loads
         loadAllPrompts()
         loadFavoritePrompts()
@@ -50,39 +86,53 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Loads prompts using a typed API flow (expects repository.getAllAIPromptsTyped)
+     * Guards against concurrent calls.
      */
     fun loadAllPrompts(page: Int = 1, limit: Int = 100, category: String? = null, search: String? = null) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                // explicit type so Kotlin can infer correctly
-                val flow = repository.getAllAIPromptsTyped(page = page, limit = limit, category = category, search = search)
-                flow.collect { result: Result<List<AIPrompt>> ->
-                    result.fold(
-                        onSuccess = { prompts: List<AIPrompt> ->
-                            // ensure non-null list
-                            val safePrompts = prompts.map { it.copy(isFavorite = it.isFavorite) }
-                            _uiState.value = _uiState.value.copy(
-                                allPrompts = safePrompts,
-                                isLoading = false,
-                                error = null
-                            )
-                            updateCategoriesFromPrompts(safePrompts)
-                        },
-                        onFailure = { ex: Throwable ->
-                            _uiState.value = _uiState.value.copy(
-                                error = ex.message ?: "Failed to load prompts",
-                                isLoading = false
-                            )
-                        }
+        // prevent concurrent loads
+        if (isLoadingAll) {
+            Log.w(TAG, "loadAllPrompts skipped - already loading")
+            return
+        }
+
+        loadAllJob?.cancel()
+        loadAllJob = viewModelScope.launch {
+            isLoadingAll = true
+            val elapsed = measureTimeMillis {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                try {
+                    Log.d(TAG, "loadAllPrompts: page=$page limit=$limit category=$category search=${search ?: "null"}")
+                    val flow = repository.getAllAIPromptsTyped(page = page, limit = limit, category = category, search = search)
+                    flow.collect { result: Result<List<AIPrompt>> ->
+                        result.fold(
+                            onSuccess = { prompts: List<AIPrompt> ->
+                                val safePrompts = prompts.map { it.copy(isFavorite = it.isFavorite) }
+                                _uiState.value = _uiState.value.copy(
+                                    allPrompts = safePrompts,
+                                    isLoading = false,
+                                    error = null
+                                )
+                                updateCategoriesFromPrompts(safePrompts)
+                            },
+                            onFailure = { ex: Throwable ->
+                                Log.w(TAG, "loadAllPrompts failed: ${ex.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    error = ex.message ?: "Failed to load prompts",
+                                    isLoading = false
+                                )
+                            }
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "loadAllPrompts exception: ${e.message}")
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message ?: "Exception while loading prompts",
+                        isLoading = false
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Exception while loading prompts",
-                    isLoading = false
-                )
             }
+            isLoadingAll = false
+            Log.d(TAG, "loadAllPrompts finished in ${elapsed}ms")
         }
     }
 
@@ -103,7 +153,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
                             // Update favorite list accordingly
                             val updatedFavorites = if (isNowFavorite) {
-                                ( _uiState.value.favoritePrompts + prompt.copy(isFavorite = true) )
+                                (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
                                     .distinctBy { it.id }
                             } else {
                                 _uiState.value.favoritePrompts.filter { it.id != prompt.id }
@@ -115,11 +165,13 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                             )
                         },
                         onFailure = { ex: Throwable ->
+                            Log.w(TAG, "toggleFavorite failed: ${ex.message}")
                             _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to toggle favorite")
                         }
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "toggleFavorite exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception toggling favorite")
             }
         }
@@ -129,7 +181,8 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
      * Load favorites from repository and mark them in allPrompts
      */
     fun loadFavoritePrompts() {
-        viewModelScope.launch {
+        loadFavoritesJob?.cancel()
+        loadFavoritesJob = viewModelScope.launch {
             try {
                 val flow = repository.getFavoritePrompts()
                 flow.collect { result: Result<List<AIPrompt>> ->
@@ -145,12 +198,13 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                             _uiState.value = _uiState.value.copy(allPrompts = updatedAll)
                         },
                         onFailure = { ex: Throwable ->
-                            // on failure, keep existing favorites and surface error
+                            Log.w(TAG, "loadFavoritePrompts failed: ${ex.message}")
                             _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to load favorites")
                         }
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "loadFavoritePrompts exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading favorites")
             }
         }
@@ -173,7 +227,35 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 val updated = _uiState.value.allPrompts.map { it.copy(isFavorite = favIds.contains(it.id)) }
                 _uiState.value = _uiState.value.copy(allPrompts = updated)
             } catch (e: Exception) {
+                Log.e(TAG, "refreshFavoriteState exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception refreshing favorites")
+            }
+        }
+    }
+
+    /**
+     * Refresh all prompt data (throttled).
+     */
+    fun refresh() {
+        val now = System.currentTimeMillis()
+        if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
+            Log.w(TAG, "refresh throttled: only ${now - lastRefreshTimestamp}ms since last refresh")
+            _uiState.value = _uiState.value.copy(error = "Please wait a moment before refreshing again.")
+            return
+        }
+        lastRefreshTimestamp = now
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            try {
+                // refresh favorites and all prompts
+                launch { loadFavoritePrompts() }.join()
+                launch { loadAllPrompts() }.join()
+            } catch (e: Exception) {
+                Log.e(TAG, "refresh exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception during refresh")
+            } finally {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
             }
         }
     }
@@ -186,6 +268,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             try {
                 updateCategoriesFromPrompts(_uiState.value.allPrompts)
             } catch (e: Exception) {
+                Log.e(TAG, "loadCategories exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading categories")
             }
         }
@@ -232,7 +315,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                     lastError = lastError ?: e.message
                 }
 
-                // Fallback: try loading list and searching
+                // Fallbacks: list searches
                 if (foundPrompt == null) {
                     try {
                         val flow = repository.getAllAIPrompts(page = 1, limit = 200)
@@ -250,7 +333,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                     }
                 }
 
-                // Another fallback: simple typed list
                 if (foundPrompt == null) {
                     try {
                         val flow = repository.getAllAIPromptsSimple(page = 1, limit = 200)
@@ -276,6 +358,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 }
 
             } catch (e: Exception) {
+                Log.e(TAG, "loadPromptById exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception", isLoading = false)
             }
         }
@@ -283,6 +366,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Simple search that filters currently loaded prompts.
+     * Note: prefer using onSearchChanged() + debounce which triggers loadAllPrompts via API.
      */
     fun searchPrompts(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
@@ -304,6 +388,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 }
                 _uiState.value = _uiState.value.copy(allPrompts = filtered)
             } catch (e: Exception) {
+                Log.e(TAG, "searchPrompts exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception")
             }
         }
@@ -320,6 +405,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 val filtered = _uiState.value.allPrompts.filter { it.category == category }
                 _uiState.value = _uiState.value.copy(allPrompts = filtered)
             } catch (e: Exception) {
+                Log.e(TAG, "filterByCategory exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Exception")
             }
         }

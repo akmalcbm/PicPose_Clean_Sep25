@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,10 +13,16 @@ import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.system.measureTimeMillis
+
+private const val TAG = "HomeViewModel"
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -57,8 +64,31 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     private var aiPromptsJob: Job? = null
     private var favoriteCountJob: Job? = null
 
+    // concurrency guards & throttles
+    @Volatile
+    private var isLoadingAIPrompts: Boolean = false
+
+    private var lastRefreshTimestamp = 0L
+    private val MIN_REFRESH_INTERVAL_MS = 3_000L // 3 seconds throttle for refresh
+
+    // search debounce flow
+    private val _searchQuery = MutableStateFlow("")
+    // expose if UI needs to read it; else internal only
+    val searchQuery = _searchQuery.asStateFlow()
+
     init {
-        // Fetch minimal home data on init (only daily tips + AI prompts + favorite count)
+        // Debounce search queries and trigger loadAIPrompts
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(400) // 400ms idle before search executes
+                .collectLatest { q ->
+                    Log.d(TAG, "Debounced search query: '$q'")
+                    // If blank, call without search param (loads default list)
+                    loadAIPrompts(page = 1, limit = 12, category = null, search = q.ifBlank { null })
+                }
+        }
+
+        // Initial minimal load
         fetchDailyTips()
         loadAIPrompts()
         loadFavoriteCount()
@@ -73,16 +103,20 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         dailyTipsJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
+                Log.d(TAG, "fetchDailyTips: starting")
                 repository.getDailyTips().collect { result ->
                     result.fold(
                         onSuccess = { tips ->
                             if (!tips.isNullOrEmpty()) {
+                                Log.d(TAG, "fetchDailyTips: received ${tips.size} tips")
                                 _uiState.value = _uiState.value.copy(dailyTips = tips)
                             } else {
+                                Log.w(TAG, "fetchDailyTips: empty tips from server, using fallback")
                                 _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
                             }
                         },
                         onFailure = { throwable ->
+                            Log.w(TAG, "fetchDailyTips failed: ${throwable.message}")
                             _uiState.value = _uiState.value.copy(
                                 dailyTips = fallbackDailyTips(),
                                 error = throwable.message
@@ -91,6 +125,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "fetchDailyTips exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips(), error = e.message)
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
@@ -100,32 +135,43 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Load AI prompts (simple list). Uses repository.getAiPostsSimple which returns Flow<Result<List<AIPrompt>>>
-     * If repository provides paginated API later, you can switch to getAiPosts(...) and map PaginatedResult -> list.
      */
     fun loadAIPrompts(page: Int = 1, limit: Int = 12, category: String? = null, search: String? = null) {
+        // prevent duplicate concurrent loads
+        if (isLoadingAIPrompts) {
+            Log.w(TAG, "loadAIPrompts skipped - already loading")
+            return
+        }
+
         aiPromptsJob?.cancel()
         aiPromptsJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                // Use simple list version for now
-                val flow = repository.getAiPostsSimple(page = page, limit = limit, category = category, search = search)
-                flow.collect { result ->
-                    result.fold(
-                        onSuccess = { prompts ->
-                            // Enrich favorites already done by repository; just update state
-                            _uiState.value = _uiState.value.copy(aiPrompts = prompts)
-                        },
-                        onFailure = { throwable ->
-                            // Fallback: if repository supports mocks it will provide; otherwise use an empty list
-                            _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = throwable.message)
-                        }
-                    )
+            isLoadingAIPrompts = true
+            val elapsed = measureTimeMillis {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                try {
+                    Log.d(TAG, "loadAIPrompts: page=$page limit=$limit category=$category search=$search")
+                    val flow = repository.getAiPostsSimple(page = page, limit = limit, category = category, search = search)
+                    flow.collect { result ->
+                        result.fold(
+                            onSuccess = { prompts ->
+                                Log.d(TAG, "loadAIPrompts: received ${prompts.size} prompts")
+                                _uiState.value = _uiState.value.copy(aiPrompts = prompts)
+                            },
+                            onFailure = { throwable ->
+                                Log.w(TAG, "loadAIPrompts failed: ${throwable.message}")
+                                _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = throwable.message)
+                            }
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "loadAIPrompts exception: ${e.message}")
+                    _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = e.message)
+                } finally {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = e.message)
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
             }
+            isLoadingAIPrompts = false
+            Log.d(TAG, "loadAIPrompts finished in ${elapsed}ms")
         }
     }
 
@@ -136,10 +182,12 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         favoriteCountJob?.cancel()
         favoriteCountJob = viewModelScope.launch {
             try {
+                Log.d(TAG, "loadFavoriteCount: querying room")
                 val count = repository.getFavoriteCount()
                 _uiState.value = _uiState.value.copy(favoritePromptsCount = count)
             } catch (e: Exception) {
-                // ignore or set to 0
+                Log.w(TAG, "loadFavoriteCount failed: ${e.message}")
+                // keep previous value if failure
             }
         }
     }
@@ -161,10 +209,11 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     fun copyPromptToClipboard(context: Context, prompt: String?) {
         try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("AI Prompt", prompt)
+            val clip = ClipData.newPlainText("AI Prompt", prompt ?: "")
             clipboard.setPrimaryClip(clip)
             // Optionally reflect a short UI hint via state (not implemented here)
         } catch (e: Exception) {
+            Log.w(TAG, "copyPromptToClipboard failed: ${e.message}")
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }
@@ -176,21 +225,23 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 repository.toggleFavorite(prompt).collect { result ->
                     result.fold(
                         onSuccess = { isNowFavorite ->
+                            Log.d(TAG, "togglePromptFavorite: ${prompt.id} -> $isNowFavorite")
                             // update prompt entry in uiState.aiPrompts
                             val updated = _uiState.value.aiPrompts.map {
                                 if (it.id == prompt.id) it.copy(isFavorite = isNowFavorite) else it
                             }
                             _uiState.value = _uiState.value.copy(aiPrompts = updated)
-
                             // reload favorites count
                             loadFavoriteCount()
                         },
                         onFailure = { throwable ->
+                            Log.w(TAG, "togglePromptFavorite failed: ${throwable.message}")
                             _uiState.value = _uiState.value.copy(error = throwable.message)
                         }
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "togglePromptFavorite exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
@@ -232,23 +283,46 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Refresh minimal home data (AI prompts, daily tips, favorites)
+     * This method is throttled to avoid rapid repeated calls.
      */
     fun refresh() {
+        val now = System.currentTimeMillis()
+        if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
+            val diff = now - lastRefreshTimestamp
+            Log.w(TAG, "refresh throttled: only ${diff}ms since last refresh")
+            // update UI with friendly message
+            _uiState.value = _uiState.value.copy(error = "Please wait a moment before refreshing again.")
+            return
+        }
+        lastRefreshTimestamp = now
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            try {
+                // Run refresh tasks concurrently but keep it simple
+                val jobs = listOf(
+                    launch { fetchDailyTips() },
+                    launch { loadAIPrompts() },
+                    launch { loadFavoriteCount() }
+                )
 
-            // Run refresh tasks concurrently but keep it simple
-            val jobs = listOf(
-                launch { fetchDailyTips() },
-                launch { loadAIPrompts() },
-                launch { loadFavoriteCount() }
-            )
-
-            // wait for children to finish
-            jobs.forEach { it.join() }
-
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+                // wait for children to finish
+                jobs.forEach { it.join() }
+            } catch (e: Exception) {
+                Log.e(TAG, "refresh exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            } finally {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
+            }
         }
+    }
+
+    /**
+     * Expose a helper for search input changes (UI should call this).
+     * Debounce is handled in init.
+     */
+    fun onSearchChanged(query: String) {
+        _searchQuery.value = query
     }
 
     fun clearError() {
@@ -257,7 +331,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        // cancel jobs if needed (coroutineScope will handle but keeping explicit)
+        // cancel jobs if needed
         dailyTipsJob?.cancel()
         aiPromptsJob?.cancel()
         favoriteCountJob?.cancel()
@@ -265,7 +339,6 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Called when a prompt is viewed. Currently a no-op placeholder.
-     * You can implement server-side view counting later by adding repository.incrementView(promptId).
      */
     fun logPromptView(promptId: String) {
         viewModelScope.launch {
@@ -273,7 +346,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 // Optional: if you implement in repository, call it here:
                 // repository.incrementView(promptId)
             } catch (e: Exception) {
-                // ignore for now; keep analytics non-blocking
+                // ignore for now
             }
         }
     }
@@ -316,6 +389,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 // repository.incrementLike(postId)
 
             } catch (e: Exception) {
+                Log.w(TAG, "togglePostLike failed: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
@@ -323,7 +397,6 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Share a post: copy text to clipboard and show a toast.
-     * Keep this in ViewModel for simplicity (it needs Context).
      */
     fun sharePost(context: Context, post: Post) {
         try {
@@ -346,6 +419,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 } catch (_: Exception) { /* ignore */ }
             }
         } catch (e: Exception) {
+            Log.w(TAG, "sharePost failed: ${e.message}")
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }
