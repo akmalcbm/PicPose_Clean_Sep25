@@ -50,14 +50,16 @@ fun PromptDetailScreen(
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
 
-    // Find the prompt by ID in the current list
+    // ✅ FIXED: Check cache first, only load if not found AND not already loading
     val prompt = remember(promptId, uiState.allPrompts) {
         uiState.allPrompts.find { it.id == promptId }
     }
 
-    // Ensure prompt details are loaded (network call)
+    // ✅ IMPROVED: Only call API if prompt not in cache and not loading
     LaunchedEffect(promptId) {
-        viewModel.loadPromptById(promptId)
+        if (prompt == null && !uiState.isLoading) {
+            viewModel.loadPromptByIdOptimized(promptId) // ✅ New optimized method
+        }
     }
 
     // Show error Snackbar when uiState.error changes

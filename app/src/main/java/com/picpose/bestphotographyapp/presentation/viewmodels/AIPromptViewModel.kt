@@ -437,4 +437,59 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             matchesSearch && matchesCategory
         }
     }
+
+    /**
+     * ✅ OPTIMIZED: Load single prompt without falling back to loading all posts
+     */
+    fun loadPromptByIdOptimized(promptId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                // Check cache first
+                val existing = _uiState.value.allPrompts.find { it.id == promptId }
+                if (existing != null) {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+
+                // ✅ Try repository single-item endpoint ONLY
+                try {
+                    val flow = repository.getPromptById(promptId)
+                    var foundPrompt: AIPrompt? = null
+
+                    flow.collect { result ->
+                        result.fold(
+                            onSuccess = { prompt ->
+                                foundPrompt = prompt
+                                // Add to cache without replacing entire list
+                                val updated = _uiState.value.allPrompts + prompt
+                                _uiState.value = _uiState.value.copy(
+                                    allPrompts = updated,
+                                    isLoading = false
+                                )
+                            },
+                            onFailure = { error ->
+                                Log.w(TAG, "Single prompt load failed: ${error.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    error = "Prompt not found: $promptId",
+                                    isLoading = false
+                                )
+                            }
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "loadPromptByIdOptimized exception: ${e.message}")
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to load prompt: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Unknown error",
+                    isLoading = false
+                )
+            }
+        }
+    }
 }

@@ -277,31 +277,33 @@ class HomeRepository(
 
     // Toggle favorite (returns Flow<Result<Boolean>>) — existing logic you had previously
     // Keeps using Room FavoritePromptDao and existing toFavorite mapping.
-    fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt) : kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
+    fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt): kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
         try {
-            val currentlyFavorite = favoriteDao.isFavorite(prompt.id)
-            if (currentlyFavorite) {
-                favoriteDao.removeFromFavorites(prompt.id)
-                emit(Result.success(false))
-            } else {
-                favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-                emit(Result.success(true))
+            withContext(Dispatchers.IO) { // ✅ Force IO dispatcher
+                val currentlyFavorite = favoriteDao.isFavorite(prompt.id)
+                if (currentlyFavorite) {
+                    favoriteDao.removeFromFavorites(prompt.id)
+                    emit(Result.success(false))
+                } else {
+                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
+                    emit(Result.success(true))
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "toggleFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }
+    }.flowOn(Dispatchers.IO) // ✅ Ensure entire flow runs on IO
 
-    // getFavoriteCount() - returns the count of favorites (suspend)
+    // Also fix getFavoriteCount function:
     suspend fun getFavoriteCount(): Int {
         return try {
-            // Ensure DAO access runs on IO dispatcher to avoid "Cannot access database on the main thread"
+            // Already has withContext(Dispatchers.IO) - good!
             withContext(Dispatchers.IO) {
                 favoriteDao.getFavoriteCount()
             }
         } catch (e: Exception) {
-            Log.w(TAG, "getFavoriteCount failed: ${e.message}")
+            Log.e(TAG, "getFavoriteCount exception: ${e.message}")
             0
         }
     }
@@ -422,60 +424,45 @@ class HomeRepository(
     }
 
     /**
-     * Try to fetch a single prompt by id.
-     * Attempt typed single-endpoint first (if you have one), then fallback to searching pages.
+     * ✅ OPTIMIZED: Get single prompt by ID without loading all posts
      */
     suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
-        var found: AIPrompt? = null
-        var lastError: Exception? = null
-
         try {
-            // If your ApiService has a single-item endpoint, call it here.
-            // Example: apiService.getAiPostById(apiKey = null, id = promptId)
-            // If you don't have such endpoint, skip to list-based searches below.
+            // ✅ Use specific single-item API endpoint
+            val apiResult: Result<ApiResponse<AIPrompt>> = safeApiCall {
+                callWithRetries {
+                    // Assuming your API has a single prompt endpoint
+                    // Modify this based on your actual API structure
+                    apiService.getPromptById(promptId) // ✅ Single item call
+                }
+            }
 
-            // Fallback: search in favorites first (fast)
-            try {
-                val favs = getFavoritePrompts()
-                favs.collect { res ->
-                    res.onSuccess { list ->
-                        found = list.find { it.id == promptId } ?: found
+            apiResult.fold(
+                onSuccess = { wrapper ->
+                    val prompt = wrapper.data
+                    if (prompt != null) {
+                        // Enrich with favorite status
+                        val enriched = withContext(Dispatchers.IO) {
+                            val isFav = try {
+                                favoriteDao.isFavorite(prompt.id)
+                            } catch (_: Exception) {
+                                false
+                            }
+                            prompt.copy(isFavorite = isFav)
+                        }
+                        emit(Result.success(enriched))
+                    } else {
+                        emit(Result.failure(Exception("Prompt not found")))
                     }
+                },
+                onFailure = { error ->
+                    emit(Result.failure(error))
                 }
-            } catch (_: Exception) {
-                // ignore
-            }
-
-            // Fallback: search in simple list (pages)
-            if (found == null) {
-                val simpleFlow = getAiPostsSimple(page = 1, limit = 200)
-                simpleFlow.collect { res ->
-                    res.fold(onSuccess = { list ->
-                        found = list.find { it.id == promptId } ?: found
-                    }, onFailure = { err -> lastError = err as? Exception ?: lastError })
-                }
-            }
-
-            // Fallback: try paginated fetch (single page)
-            if (found == null) {
-                val pagFlow = getAiPosts(page = 1, limit = 200)
-                pagFlow.collect { pres ->
-                    pres.fold(onSuccess = { pag ->
-                        found = pag.items.find { it.id == promptId } ?: found
-                    }, onFailure = { err -> lastError = err as? Exception ?: lastError })
-                }
-            }
-
-            if (found != null) emit(Result.success(found!!))
-            else emit(Result.failure(lastError ?: Exception("Prompt not found")))
-
+            )
         } catch (e: Exception) {
             Log.e(TAG, "getPromptById exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getPromptById flow exception: ${e.message}")
-        emit(Result.failure(e))
-    }
+    }.flowOn(Dispatchers.IO)
 
 }

@@ -102,65 +102,58 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
      * Uses fallback tips if server call fails or returns empty.
      * Includes proper cancellation handling and concurrency guards.
      */
+    private var lastFetchTime = 0L
+    private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes cache
+    private var cachedDailyTips: List<DailyTip>? = null
+    private var cachedAIPrompts: List<AIPrompt>? = null
     fun fetchDailyTips() {
-        // prevent duplicate concurrent loads
-        if (isLoadingDailyTips) {
-            Log.w(TAG, "fetchDailyTips skipped - already loading")
+        // Check cache first
+        val now = System.currentTimeMillis()
+        if (cachedDailyTips != null && (now - lastFetchTime) < CACHE_DURATION) {
+            _uiState.value = _uiState.value.copy(dailyTips = cachedDailyTips!!)
             return
         }
 
-        // Only cancel if job is running and not completing
-        dailyTipsJob?.let { job ->
-            if (job.isActive && !job.isCompleted) {
-                Log.d(TAG, "fetchDailyTips: cancelling previous job")
-                job.cancel()
-            }
-        }
-
+        dailyTipsJob?.cancel()
         dailyTipsJob = viewModelScope.launch {
-            isLoadingDailyTips = true
-            val elapsed = measureTimeMillis {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-                try {
-                    Log.d(TAG, "fetchDailyTips: starting")
-                    repository.getDailyTips().collect { result ->
-                        result.fold(
-                            onSuccess = { tips ->
-                                if (!tips.isNullOrEmpty()) {
-                                    Log.d(TAG, "fetchDailyTips: received ${tips.size} tips")
-                                    _uiState.value = _uiState.value.copy(dailyTips = tips)
-                                } else {
-                                    Log.w(TAG, "fetchDailyTips: empty tips from server, using fallback")
-                                    _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
-                                }
-                            },
-                            onFailure = { throwable ->
-                                // Don't treat cancellation as an error
-                                if (throwable is CancellationException) {
-                                    Log.d(TAG, "fetchDailyTips cancelled: ${throwable.message}")
-                                    return@fold // Exit early, don't update UI with error
-                                }
-                                Log.w(TAG, "fetchDailyTips failed: ${throwable.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    dailyTips = fallbackDailyTips(),
-                                    error = throwable.message
-                                )
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                Log.d(TAG, "fetchDailyTips: starting")
+                repository.getDailyTips().collect { result ->
+                    result.fold(
+                        onSuccess = { tips ->
+                            if (!tips.isNullOrEmpty()) {
+                                Log.d(TAG, "fetchDailyTips: received ${tips.size} tips")
+                                cachedDailyTips = tips // ✅ Cache the data
+                                lastFetchTime = now // ✅ Update cache time
+                                _uiState.value = _uiState.value.copy(dailyTips = tips)
+                            } else {
+                                Log.w(TAG, "fetchDailyTips: empty tips from server, using fallback")
+                                _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
                             }
-                        )
-                    }
-                } catch (e: CancellationException) {
-                    // Proper cancellation handling - don't treat as error
-                    Log.d(TAG, "fetchDailyTips cancelled: ${e.message}")
-                    throw e // Re-throw to let coroutine handle it properly
-                } catch (e: Exception) {
-                    Log.e(TAG, "fetchDailyTips exception: ${e.message}")
-                    _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips(), error = e.message)
-                } finally {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                        },
+                        onFailure = { throwable ->
+                            Log.w(TAG, "fetchDailyTips failed: ${throwable.message}")
+                            _uiState.value = _uiState.value.copy(
+                                dailyTips = cachedDailyTips ?: fallbackDailyTips(), // ✅ Use cache if available
+                                error = throwable.message
+                            )
+                        }
+                    )
                 }
+            } catch (e: Exception) {
+                if (e is CancellationException) {
+                    Log.d(TAG, "fetchDailyTips cancelled") // ✅ Don't treat cancellation as error
+                    return@launch
+                }
+                Log.e(TAG, "fetchDailyTips exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    dailyTips = cachedDailyTips ?: fallbackDailyTips(), // ✅ Use cache if available
+                    error = e.message
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
-            isLoadingDailyTips = false
-            Log.d(TAG, "fetchDailyTips finished in ${elapsed}ms")
         }
     }
 

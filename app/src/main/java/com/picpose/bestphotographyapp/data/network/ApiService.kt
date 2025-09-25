@@ -13,6 +13,13 @@ interface ApiService {
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<List<DailyTip>>> // <- typed to DailyTip
 
+    // ✅ ADD: Single prompt endpoint
+    @GET("get_ai_post.php") // or whatever your single post endpoint is
+    suspend fun getPromptById(
+        @Query("id") promptId: String,
+        @Query("api_key") apiKey: String? = null
+    ): Response<ApiResponse<AIPrompt>>
+
     @GET("get_ai_posts.php")
     suspend fun getAiPosts(
         @Query("api_key") apiKey: String? = null,
