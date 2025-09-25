@@ -126,6 +126,11 @@ dependencies {
 
     implementation(libs.accompanist.swiperefresh)
 
+    // ✅ Google AdMob
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    // ✅ Meta Audience Network (for mediation)
+    implementation("com.facebook.android:audience-network-sdk:6.+")
+
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
