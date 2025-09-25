@@ -22,10 +22,12 @@ import com.picpose.bestphotographyapp.presentation.components.home.AnimatedDaily
 import com.picpose.bestphotographyapp.presentation.components.home.AnimatedWelcomeHeader
 import com.picpose.bestphotographyapp.presentation.components.home.CategoriesRow
 import com.picpose.bestphotographyapp.presentation.components.home.ErrorScreen
+import com.picpose.bestphotographyapp.presentation.components.home.FeaturedPostsRow
 import com.picpose.bestphotographyapp.presentation.components.home.HomeTopBar
 import com.picpose.bestphotographyapp.presentation.components.home.LoadingScreen
 import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
+import com.picpose.bestphotographyapp.presentation.components.home.RecentPostsColumn
 import com.picpose.bestphotographyapp.presentation.components.home.SectionHeader
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
