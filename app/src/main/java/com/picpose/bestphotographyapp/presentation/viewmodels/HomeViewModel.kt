@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.system.measureTimeMillis
 
 private const val TAG = "HomeViewModel"
@@ -67,6 +68,8 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     // concurrency guards & throttles
     @Volatile
     private var isLoadingAIPrompts: Boolean = false
+    @Volatile
+    private var isLoadingDailyTips: Boolean = false
 
     private var lastRefreshTimestamp = 0L
     private val MIN_REFRESH_INTERVAL_MS = 3_000L // 3 seconds throttle for refresh
@@ -97,44 +100,73 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     /**
      * Fetch daily tips from server via repository.
      * Uses fallback tips if server call fails or returns empty.
+     * Includes proper cancellation handling and concurrency guards.
      */
     fun fetchDailyTips() {
-        dailyTipsJob?.cancel()
-        dailyTipsJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                Log.d(TAG, "fetchDailyTips: starting")
-                repository.getDailyTips().collect { result ->
-                    result.fold(
-                        onSuccess = { tips ->
-                            if (!tips.isNullOrEmpty()) {
-                                Log.d(TAG, "fetchDailyTips: received ${tips.size} tips")
-                                _uiState.value = _uiState.value.copy(dailyTips = tips)
-                            } else {
-                                Log.w(TAG, "fetchDailyTips: empty tips from server, using fallback")
-                                _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
-                            }
-                        },
-                        onFailure = { throwable ->
-                            Log.w(TAG, "fetchDailyTips failed: ${throwable.message}")
-                            _uiState.value = _uiState.value.copy(
-                                dailyTips = fallbackDailyTips(),
-                                error = throwable.message
-                            )
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "fetchDailyTips exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips(), error = e.message)
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+        // prevent duplicate concurrent loads
+        if (isLoadingDailyTips) {
+            Log.w(TAG, "fetchDailyTips skipped - already loading")
+            return
+        }
+
+        // Only cancel if job is running and not completing
+        dailyTipsJob?.let { job ->
+            if (job.isActive && !job.isCompleted) {
+                Log.d(TAG, "fetchDailyTips: cancelling previous job")
+                job.cancel()
             }
+        }
+
+        dailyTipsJob = viewModelScope.launch {
+            isLoadingDailyTips = true
+            val elapsed = measureTimeMillis {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                try {
+                    Log.d(TAG, "fetchDailyTips: starting")
+                    repository.getDailyTips().collect { result ->
+                        result.fold(
+                            onSuccess = { tips ->
+                                if (!tips.isNullOrEmpty()) {
+                                    Log.d(TAG, "fetchDailyTips: received ${tips.size} tips")
+                                    _uiState.value = _uiState.value.copy(dailyTips = tips)
+                                } else {
+                                    Log.w(TAG, "fetchDailyTips: empty tips from server, using fallback")
+                                    _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips())
+                                }
+                            },
+                            onFailure = { throwable ->
+                                // Don't treat cancellation as an error
+                                if (throwable is CancellationException) {
+                                    Log.d(TAG, "fetchDailyTips cancelled: ${throwable.message}")
+                                    return@fold // Exit early, don't update UI with error
+                                }
+                                Log.w(TAG, "fetchDailyTips failed: ${throwable.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    dailyTips = fallbackDailyTips(),
+                                    error = throwable.message
+                                )
+                            }
+                        )
+                    }
+                } catch (e: CancellationException) {
+                    // Proper cancellation handling - don't treat as error
+                    Log.d(TAG, "fetchDailyTips cancelled: ${e.message}")
+                    throw e // Re-throw to let coroutine handle it properly
+                } catch (e: Exception) {
+                    Log.e(TAG, "fetchDailyTips exception: ${e.message}")
+                    _uiState.value = _uiState.value.copy(dailyTips = fallbackDailyTips(), error = e.message)
+                } finally {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            }
+            isLoadingDailyTips = false
+            Log.d(TAG, "fetchDailyTips finished in ${elapsed}ms")
         }
     }
 
     /**
      * Load AI prompts (simple list). Uses repository.getAiPostsSimple which returns Flow<Result<List<AIPrompt>>>
+     * Includes proper cancellation handling and concurrency guards.
      */
     fun loadAIPrompts(page: Int = 1, limit: Int = 12, category: String? = null, search: String? = null) {
         // prevent duplicate concurrent loads
@@ -143,7 +175,14 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
             return
         }
 
-        aiPromptsJob?.cancel()
+        // Only cancel if job is running and not completing
+        aiPromptsJob?.let { job ->
+            if (job.isActive && !job.isCompleted) {
+                Log.d(TAG, "loadAIPrompts: cancelling previous job")
+                job.cancel()
+            }
+        }
+
         aiPromptsJob = viewModelScope.launch {
             isLoadingAIPrompts = true
             val elapsed = measureTimeMillis {
@@ -158,11 +197,20 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                                 _uiState.value = _uiState.value.copy(aiPrompts = prompts)
                             },
                             onFailure = { throwable ->
+                                // Don't treat cancellation as an error
+                                if (throwable is CancellationException) {
+                                    Log.d(TAG, "loadAIPrompts cancelled: ${throwable.message}")
+                                    return@fold // Exit early, don't update UI with error
+                                }
                                 Log.w(TAG, "loadAIPrompts failed: ${throwable.message}")
                                 _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = throwable.message)
                             }
                         )
                     }
+                } catch (e: CancellationException) {
+                    // Proper cancellation handling - don't treat as error
+                    Log.d(TAG, "loadAIPrompts cancelled: ${e.message}")
+                    throw e // Re-throw to let coroutine handle it properly
                 } catch (e: Exception) {
                     Log.e(TAG, "loadAIPrompts exception: ${e.message}")
                     _uiState.value = _uiState.value.copy(aiPrompts = emptyList(), error = e.message)
@@ -177,14 +225,26 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * Load favorite count from repository (Room).
+     * Includes proper cancellation handling.
      */
     fun loadFavoriteCount() {
-        favoriteCountJob?.cancel()
+        // Only cancel if job is running and not completing
+        favoriteCountJob?.let { job ->
+            if (job.isActive && !job.isCompleted) {
+                Log.d(TAG, "loadFavoriteCount: cancelling previous job")
+                job.cancel()
+            }
+        }
+
         favoriteCountJob = viewModelScope.launch {
             try {
                 Log.d(TAG, "loadFavoriteCount: querying room")
                 val count = repository.getFavoriteCount()
                 _uiState.value = _uiState.value.copy(favoritePromptsCount = count)
+            } catch (e: CancellationException) {
+                // Proper cancellation handling - don't treat as error
+                Log.d(TAG, "loadFavoriteCount cancelled: ${e.message}")
+                throw e // Re-throw to let coroutine handle it properly
             } catch (e: Exception) {
                 Log.w(TAG, "loadFavoriteCount failed: ${e.message}")
                 // keep previous value if failure
@@ -235,11 +295,20 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                             loadFavoriteCount()
                         },
                         onFailure = { throwable ->
+                            // Don't treat cancellation as an error
+                            if (throwable is CancellationException) {
+                                Log.d(TAG, "togglePromptFavorite cancelled: ${throwable.message}")
+                                return@fold
+                            }
                             Log.w(TAG, "togglePromptFavorite failed: ${throwable.message}")
                             _uiState.value = _uiState.value.copy(error = throwable.message)
                         }
                     )
                 }
+            } catch (e: CancellationException) {
+                // Proper cancellation handling - don't treat as error
+                Log.d(TAG, "togglePromptFavorite cancelled: ${e.message}")
+                throw e // Re-throw to let coroutine handle it properly
             } catch (e: Exception) {
                 Log.e(TAG, "togglePromptFavorite exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
@@ -284,6 +353,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     /**
      * Refresh minimal home data (AI prompts, daily tips, favorites)
      * This method is throttled to avoid rapid repeated calls.
+     * Includes proper cancellation handling.
      */
     fun refresh() {
         val now = System.currentTimeMillis()
@@ -308,6 +378,10 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
                 // wait for children to finish
                 jobs.forEach { it.join() }
+            } catch (e: CancellationException) {
+                // Proper cancellation handling - don't treat as error
+                Log.d(TAG, "refresh cancelled: ${e.message}")
+                throw e // Re-throw to let coroutine handle it properly
             } catch (e: Exception) {
                 Log.e(TAG, "refresh exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
