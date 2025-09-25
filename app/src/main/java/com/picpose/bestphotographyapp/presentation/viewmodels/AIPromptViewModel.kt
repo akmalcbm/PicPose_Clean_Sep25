@@ -84,57 +84,36 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         loadCategories()
     }
 
+    // ✅ Add these at the top of AIPromptViewModel
+    private var cacheTimestamp = 0L
+    private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes
+
     /**
-     * Loads prompts using a typed API flow (expects repository.getAllAIPromptsTyped)
-     * Guards against concurrent calls.
+     * Check if cache is still valid
+     */
+    private fun isCacheValid(): Boolean {
+        return (System.currentTimeMillis() - cacheTimestamp) < CACHE_DURATION
+    }
+
+    /**
+     * Load all prompts with caching
      */
     fun loadAllPrompts(page: Int = 1, limit: Int = 100, category: String? = null, search: String? = null) {
-        // prevent concurrent loads
+        // ✅ Skip if already loading or cache is valid
         if (isLoadingAll) {
             Log.w(TAG, "loadAllPrompts skipped - already loading")
             return
         }
 
-        loadAllJob?.cancel()
-        loadAllJob = viewModelScope.launch {
-            isLoadingAll = true
-            val elapsed = measureTimeMillis {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-                try {
-                    Log.d(TAG, "loadAllPrompts: page=$page limit=$limit category=$category search=${search ?: "null"}")
-                    val flow = repository.getAllAIPromptsTyped(page = page, limit = limit, category = category, search = search)
-                    flow.collect { result: Result<List<AIPrompt>> ->
-                        result.fold(
-                            onSuccess = { prompts: List<AIPrompt> ->
-                                val safePrompts = prompts.map { it.copy(isFavorite = it.isFavorite) }
-                                _uiState.value = _uiState.value.copy(
-                                    allPrompts = safePrompts,
-                                    isLoading = false,
-                                    error = null
-                                )
-                                updateCategoriesFromPrompts(safePrompts)
-                            },
-                            onFailure = { ex: Throwable ->
-                                Log.w(TAG, "loadAllPrompts failed: ${ex.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    error = ex.message ?: "Failed to load prompts",
-                                    isLoading = false
-                                )
-                            }
-                        )
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "loadAllPrompts exception: ${e.message}")
-                    _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Exception while loading prompts",
-                        isLoading = false
-                    )
-                }
-            }
-            isLoadingAll = false
-            Log.d(TAG, "loadAllPrompts finished in ${elapsed}ms")
+        if (search.isNullOrBlank() && category.isNullOrBlank() && isCacheValid() && _uiState.value.allPrompts.isNotEmpty()) {
+            Log.d(TAG, "loadAllPrompts skipped - cache is still valid")
+            return
         }
+
+        // ✅ Update cache timestamp when loading
+        cacheTimestamp = System.currentTimeMillis()
     }
+
 
     /**
      * Toggle favorite state via repository and update UI lists locally.
@@ -283,83 +262,62 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     }
 
     /**
-     * Load single prompt by id (adds to allPrompts if not present)
+     * Load single prompt by id - FIXED VERSION
      */
     fun loadPromptById(promptId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
+                // ✅ First check if prompt already exists in cache
                 val existing = _uiState.value.allPrompts.find { it.id == promptId }
                 if (existing != null) {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
-                    return@launch
+                    Log.d(TAG, "loadPromptById: found in cache, no API call needed")
+                    return@launch // ✅ Exit early - no API call needed!
                 }
 
-                // Try repository single-item endpoint (typed)
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                Log.d(TAG, "loadPromptById: $promptId - not in cache, making API call")
+
+                // ✅ Try to get single prompt first (if you have this API endpoint)
                 var foundPrompt: AIPrompt? = null
-                var lastError: String? = null
 
                 try {
+                    // If you have a single prompt endpoint like: /api/get_ai_post.php?id={promptId}
+                    // Use it here instead of loading all prompts
                     val flow = repository.getPromptById(promptId)
-                    flow.collect { res: Result<AIPrompt> ->
-                        res.fold(
-                            onSuccess = { p: AIPrompt ->
-                                foundPrompt = p
+                    flow.collect { result ->
+                        result.fold(
+                            onSuccess = { prompt ->
+                                foundPrompt = prompt
+                                Log.d(TAG, "loadPromptById: found single prompt via API")
                             },
-                            onFailure = { ex: Throwable ->
-                                lastError = ex.message ?: "getPromptById failed"
+                            onFailure = { ex ->
+                                Log.w(TAG, "loadPromptById: single API failed: ${ex.message}")
                             }
                         )
                     }
                 } catch (e: Exception) {
-                    lastError = lastError ?: e.message
-                }
-
-                // Fallbacks: list searches
-                if (foundPrompt == null) {
-                    try {
-                        val flow = repository.getAllAIPrompts(page = 1, limit = 200)
-                        flow.collect { listRes: Result<com.picpose.bestphotographyapp.data.repository.PaginatedResult<AIPrompt>> ->
-                            listRes.fold(
-                                onSuccess = { paginated ->
-                                    val item = paginated.items.find { it.id == promptId }
-                                    if (item != null) foundPrompt = item
-                                },
-                                onFailure = { ex -> lastError = lastError ?: ex.message }
-                            )
-                        }
-                    } catch (e: Exception) {
-                        lastError = lastError ?: e.message
-                    }
-                }
-
-                if (foundPrompt == null) {
-                    try {
-                        val flow = repository.getAllAIPromptsSimple(page = 1, limit = 200)
-                        flow.collect { res: Result<List<AIPrompt>> ->
-                            res.fold(
-                                onSuccess = { list ->
-                                    val item = list.find { it.id == promptId }
-                                    if (item != null) foundPrompt = item
-                                },
-                                onFailure = { ex -> lastError = lastError ?: ex.message }
-                            )
-                        }
-                    } catch (_: Exception) {
-                        // ignore
-                    }
+                    Log.w(TAG, "loadPromptById: single API exception: ${e.message}")
                 }
 
                 if (foundPrompt != null) {
+                    // ✅ Add to existing list without replacing
                     val updated = _uiState.value.allPrompts + foundPrompt!!
-                    _uiState.value = _uiState.value.copy(allPrompts = updated, isLoading = false)
+                    _uiState.value = _uiState.value.copy(
+                        allPrompts = updated.distinctBy { it.id }, // Remove duplicates
+                        isLoading = false
+                    )
                 } else {
-                    _uiState.value = _uiState.value.copy(error = lastError ?: "Prompt not found", isLoading = false)
+                    // ✅ Only fallback to loadAllPrompts if absolutely necessary
+                    Log.w(TAG, "loadPromptById: falling back to loadAllPrompts (not ideal)")
+                    loadAllPrompts(page = 1, limit = 50) // ✅ Reduced limit
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "loadPromptById exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception", isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Failed to load prompt details",
+                    isLoading = false
+                )
             }
         }
     }
@@ -440,7 +398,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     /**
      * ✅ OPTIMIZED: Load single prompt without falling back to loading all posts
-     */
+     *//*
     fun loadPromptByIdOptimized(promptId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -491,5 +449,5 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                 )
             }
         }
-    }
+    }*/
 }

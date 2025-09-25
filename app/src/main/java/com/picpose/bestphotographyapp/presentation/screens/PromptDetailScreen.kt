@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -50,15 +51,18 @@ fun PromptDetailScreen(
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
 
-    // ✅ FIXED: Check cache first, only load if not found AND not already loading
+    // ✅ Find prompt in current cache first
     val prompt = remember(promptId, uiState.allPrompts) {
         uiState.allPrompts.find { it.id == promptId }
     }
 
-    // ✅ IMPROVED: Only call API if prompt not in cache and not loading
+    // ✅ Only load if not found in cache AND not currently loading
     LaunchedEffect(promptId) {
         if (prompt == null && !uiState.isLoading) {
-            viewModel.loadPromptByIdOptimized(promptId) // ✅ New optimized method
+            Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
+            viewModel.loadPromptById(promptId)
+        } else if (prompt != null) {
+            Log.d("PromptDetail", "Prompt $promptId found in cache, no API call needed")
         }
     }
 
