@@ -12,6 +12,7 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -271,40 +272,51 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-    // Toggle favorite and update UI list + count
+    // Replace your togglePromptFavorite method with this FIXED version:
+
     fun togglePromptFavorite(prompt: AIPrompt) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Main) { // ✅ FIXED: Explicit dispatcher
             try {
+                Log.d(TAG, "togglePromptFavorite: starting for ${prompt.id}")
+
+                // ✅ FIXED: Collect on Main dispatcher, but flow operations happen on IO
                 repository.toggleFavorite(prompt).collect { result ->
                     result.fold(
                         onSuccess = { isNowFavorite ->
                             Log.d(TAG, "togglePromptFavorite: ${prompt.id} -> $isNowFavorite")
-                            // update prompt entry in uiState.aiPrompts
-                            val updated = _uiState.value.aiPrompts.map {
-                                if (it.id == prompt.id) it.copy(isFavorite = isNowFavorite) else it
+
+                            // ✅ Update UI state on Main thread
+                            val updatedPrompts = _uiState.value.aiPrompts.map { p ->
+                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
                             }
-                            _uiState.value = _uiState.value.copy(aiPrompts = updated)
-                            // reload favorites count
-                            loadFavoriteCount()
+
+                            // Update favorite count
+                            val newCount = if (isNowFavorite) {
+                                _uiState.value.favoritePromptsCount + 1
+                            } else {
+                                (_uiState.value.favoritePromptsCount - 1).coerceAtLeast(0)
+                            }
+
+                            _uiState.value = _uiState.value.copy(
+                                aiPrompts = updatedPrompts,
+                                favoritePromptsCount = newCount
+                            )
+
+                            Log.d(TAG, "togglePromptFavorite: UI updated successfully")
                         },
                         onFailure = { throwable ->
-                            // Don't treat cancellation as an error
-                            if (throwable is CancellationException) {
-                                Log.d(TAG, "togglePromptFavorite cancelled: ${throwable.message}")
-                                return@fold
-                            }
                             Log.w(TAG, "togglePromptFavorite failed: ${throwable.message}")
-                            _uiState.value = _uiState.value.copy(error = throwable.message)
+                            _uiState.value = _uiState.value.copy(
+                                error = "Failed to update favorite: ${throwable.message}"
+                            )
                         }
                     )
                 }
-            } catch (e: CancellationException) {
-                // Proper cancellation handling - don't treat as error
-                Log.d(TAG, "togglePromptFavorite cancelled: ${e.message}")
-                throw e // Re-throw to let coroutine handle it properly
             } catch (e: Exception) {
                 Log.e(TAG, "togglePromptFavorite exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    error = "Error updating favorite: ${e.message}"
+                )
             }
         }
     }

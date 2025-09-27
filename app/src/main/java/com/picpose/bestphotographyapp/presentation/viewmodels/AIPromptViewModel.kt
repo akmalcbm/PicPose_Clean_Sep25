@@ -12,12 +12,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.system.measureTimeMillis
+// Add these imports to your Repository and ViewModel files:
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.collect
 
 private const val TAG = "AIPromptVM"
 
@@ -231,47 +235,54 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-    // ✅ Rest of your existing methods stay the same but with better caching...
+    // Replace your toggleFavorite method with this FIXED version:
 
     fun toggleFavorite(prompt: AIPrompt) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Main) { // ✅ FIXED: Explicit Main dispatcher
             try {
-                val flow = repository.toggleFavorite(prompt)
-                flow.collect { result: Result<Boolean> ->
-                    result.fold(
-                        onSuccess = { isNowFavorite: Boolean ->
-                            // Update cached prompts too
-                            cachedPrompts = cachedPrompts?.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
-                            }
+                Log.d(TAG, "toggleFavorite: starting for ${prompt.id}")
 
-                            // Update allPrompts list
-                            val updatedAll = _uiState.value.allPrompts.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
-                            }
+                // ✅ FIXED: Proper flow collection with context handling
+                repository.toggleFavorite(prompt)
+                    .flowOn(Dispatchers.IO) // ✅ Ensure flow operations on IO
+                    .collect { result: Result<Boolean> ->
+                        result.fold(
+                            onSuccess = { isNowFavorite: Boolean ->
+                                Log.d(TAG, "toggleFavorite success: ${prompt.id} -> $isNowFavorite")
 
-                            // Update favorite list accordingly
-                            val updatedFavorites = if (isNowFavorite) {
-                                (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
-                                    .distinctBy { it.id }
-                            } else {
-                                _uiState.value.favoritePrompts.filter { it.id != prompt.id }
-                            }
+                                // ✅ Update allPrompts list on Main thread
+                                val updatedAll = _uiState.value.allPrompts.map { p ->
+                                    if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
+                                }
 
-                            _uiState.value = _uiState.value.copy(
-                                allPrompts = updatedAll,
-                                favoritePrompts = updatedFavorites
-                            )
-                        },
-                        onFailure = { ex: Throwable ->
-                            Log.w(TAG, "toggleFavorite failed: ${ex.message}")
-                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to toggle favorite")
-                        }
-                    )
-                }
+                                // ✅ Update favorite list accordingly
+                                val updatedFavorites = if (isNowFavorite) {
+                                    (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
+                                        .distinctBy { it.id }
+                                } else {
+                                    _uiState.value.favoritePrompts.filter { it.id != prompt.id }
+                                }
+
+                                _uiState.value = _uiState.value.copy(
+                                    allPrompts = updatedAll,
+                                    favoritePrompts = updatedFavorites
+                                )
+
+                                Log.d(TAG, "toggleFavorite: UI state updated successfully")
+                            },
+                            onFailure = { ex: Throwable ->
+                                Log.w(TAG, "toggleFavorite failed: ${ex.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    error = ex.message ?: "Failed to toggle favorite"
+                                )
+                            }
+                        )
+                    }
             } catch (e: Exception) {
                 Log.e(TAG, "toggleFavorite exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception toggling favorite")
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Exception toggling favorite"
+                )
             }
         }
     }

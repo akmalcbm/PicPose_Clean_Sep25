@@ -275,25 +275,31 @@ class HomeRepository(
     }
 
 
-    // Toggle favorite (returns Flow<Result<Boolean>>) — existing logic you had previously
-    // Keeps using Room FavoritePromptDao and existing toFavorite mapping.
+    // Replace your current toggleFavorite function with this FIXED version:
+
     fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt): kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
         try {
-            withContext(Dispatchers.IO) { // ✅ Force IO dispatcher
-                val currentlyFavorite = favoriteDao.isFavorite(prompt.id)
-                if (currentlyFavorite) {
+            // ✅ FIXED: Ensure all database operations happen on IO dispatcher
+            val currentlyFavorite = withContext(Dispatchers.IO) {
+                favoriteDao.isFavorite(prompt.id)
+            }
+
+            if (currentlyFavorite) {
+                withContext(Dispatchers.IO) {
                     favoriteDao.removeFromFavorites(prompt.id)
-                    emit(Result.success(false))
-                } else {
-                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-                    emit(Result.success(true))
                 }
+                emit(Result.success(false))
+            } else {
+                withContext(Dispatchers.IO) {
+                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
+                }
+                emit(Result.success(true))
             }
         } catch (e: Exception) {
             Log.e(TAG, "toggleFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO) // ✅ Ensure entire flow runs on IO
+    }.flowOn(Dispatchers.IO) // ✅ CRITICAL: Ensure entire flow runs on IO dispatcher
 
     // Also fix getFavoriteCount function:
     suspend fun getFavoriteCount(): Int {
