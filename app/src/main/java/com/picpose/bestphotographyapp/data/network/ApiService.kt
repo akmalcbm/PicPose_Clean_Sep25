@@ -8,19 +8,19 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("get_daily_tips.php")
+    @GET("ai_posts/get_daily_tips.php")
     suspend fun getDailyTips(
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<List<DailyTip>>> // <- typed to DailyTip
 
     // ✅ ADD: Single prompt endpoint
-    @GET("get_ai_post.php") // or whatever your single post endpoint is
+    @GET("ai_posts/get_ai_post.php") // or whatever your single post endpoint is
     suspend fun getPromptById(
         @Query("id") promptId: String,
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<AIPrompt>>
 
-    @GET("get_ai_posts.php")
+    @GET("ai_posts/get_ai_posts.php")
     suspend fun getAiPosts(
         @Query("api_key") apiKey: String? = null,
         @Query("limit") limit: Int? = null,
