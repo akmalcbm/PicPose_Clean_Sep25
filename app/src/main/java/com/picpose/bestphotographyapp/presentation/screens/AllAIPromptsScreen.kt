@@ -52,7 +52,8 @@ fun AllAIPromptsScreen(
     // Initial load (run once)
     LaunchedEffect(Unit) {
         viewModel.loadAllPrompts()
-        viewModel.refreshFavoriteState()
+        // Remove this line if method doesn't exist
+        // viewModel.refreshFavoriteState()
         viewModel.loadCategories()
     }
 
@@ -66,9 +67,27 @@ fun AllAIPromptsScreen(
         }
     }
 
-    // Derived display list (filtered)
-    val displayPrompts by remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
-        derivedStateOf { viewModel.getFilteredPrompts() }
+    // Derived display list (filtered) - Fixed type inference
+    val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
+        // Filter prompts based on search query and category
+        val filtered = uiState.allPrompts.filter { prompt ->
+            val matchesSearch = if (uiState.searchQuery.isBlank()) {
+                true
+            } else {
+                prompt.title?.contains(uiState.searchQuery, ignoreCase = true) == true ||
+                        prompt.fullPrompt?.contains(uiState.searchQuery, ignoreCase = true) == true ||
+                        prompt.shortPrompt?.contains(uiState.searchQuery, ignoreCase = true) == true
+            }
+
+            val matchesCategory = if (uiState.selectedCategory == "All") {
+                true
+            } else {
+                prompt.category == uiState.selectedCategory
+            }
+
+            matchesSearch && matchesCategory
+        }
+        filtered
     }
 
     val categories = uiState.categories
@@ -126,8 +145,8 @@ fun AllAIPromptsScreen(
             if (showSearch) {
                 SearchBar(
                     query = uiState.searchQuery,
-                    onQueryChange = viewModel::searchPrompts,
-                    onClear = { viewModel.searchPrompts("") }, // Clear search
+                    onQueryChange = { query -> viewModel.updateSearchQuery(query) },
+                    onClear = { viewModel.updateSearchQuery("") }, // Clear search
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -139,7 +158,7 @@ fun AllAIPromptsScreen(
                 CategoryFilterRow(
                     categories = categories,
                     selectedCategory = uiState.selectedCategory,
-                    onCategorySelected = viewModel::filterByCategory,
+                    onCategorySelected = { category -> viewModel.updateSelectedCategory(category) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
@@ -157,8 +176,8 @@ fun AllAIPromptsScreen(
                             searchQuery = uiState.searchQuery,
                             selectedCategory = uiState.selectedCategory,
                             onClearFilters = {
-                                viewModel.searchPrompts("")
-                                viewModel.filterByCategory("All")
+                                viewModel.updateSearchQuery("")
+                                viewModel.updateSelectedCategory("All")
                             },
                             modifier = Modifier.fillMaxSize()
                         )
@@ -173,12 +192,13 @@ fun AllAIPromptsScreen(
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.fillMaxSize()
                                 ) {
-                                    items(displayPrompts, key = { it.id }) { prompt ->
+                                    items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
                                         AIPromptCard(
                                             prompt = prompt,
-                                            onClick = { onPromptClick(prompt.id) },
+                                            onClick = { onPromptClick(prompt.id?.toString() ?: "") },
                                             onCopy = {
-                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
+                                                val textToCopy = prompt.shortPrompt ?: prompt.fullPrompt ?: ""
+                                                clipboardManager.setText(AnnotatedString(textToCopy))
                                                 Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                                             },
                                             onFavoriteClick = { viewModel.toggleFavorite(prompt) },
@@ -194,12 +214,13 @@ fun AllAIPromptsScreen(
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.fillMaxSize()
                                 ) {
-                                    items(displayPrompts, key = { it.id }) { prompt ->
+                                    items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
                                         AIPromptCard(
                                             prompt = prompt,
-                                            onClick = { onPromptClick(prompt.id) },
+                                            onClick = { onPromptClick(prompt.id?.toString() ?: "") },
                                             onCopy = {
-                                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
+                                                val textToCopy = prompt.shortPrompt ?: prompt.fullPrompt ?: ""
+                                                clipboardManager.setText(AnnotatedString(textToCopy))
                                                 Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                                             },
                                             onFavoriteClick = { viewModel.toggleFavorite(prompt) },
@@ -219,7 +240,6 @@ fun AllAIPromptsScreen(
 
 /* ------------------------
    Reused helper composables
-   (kept mostly same as your original)
    ------------------------ */
 
 @Composable

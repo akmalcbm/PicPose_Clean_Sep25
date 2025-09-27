@@ -354,6 +354,16 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(categories = cats)
     }
 
+    // Add these methods to AIPromptViewModel class
+
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+    }
+
+    fun updateSelectedCategory(category: String) {
+        _uiState.value = _uiState.value.copy(selectedCategory = category)
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
