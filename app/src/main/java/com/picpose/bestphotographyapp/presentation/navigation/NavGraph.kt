@@ -53,6 +53,12 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToGuidePostDetail = { guidePost ->
+                    val safeId = android.net.Uri.encode(guidePost.id)
+                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -131,6 +137,32 @@ fun NavGraph(navController: NavHostController) {
             } else {
                 PromptDetailScreen(promptId = promptId, viewModel = vm, onBack = { navController.popBackStack() })
             }
+        }
+
+        // Guide Post Detail with argument (placeholder for now)
+        composable(
+            route = Screen.GuidePostDetail.route,
+            arguments = listOf(navArgument(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val guidePostId = backStackEntry.arguments?.getString(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) ?: ""
+            
+            // For now, just show a placeholder screen or navigate back
+            // TODO: Implement GuidePostDetailScreen
+            if (guidePostId.isBlank()) {
+                navController.popBackStack()
+            } else {
+                // Placeholder implementation - you can create GuidePostDetailScreen later
+                CreateScreen() // Using existing screen as placeholder
+            }
+        }
+
+        // All Guide Posts screen (placeholder for now)
+        composable(route = Screen.AllGuidePosts.route) {
+            // TODO: Implement AllGuidePostsScreen
+            // For now, use existing screen as placeholder
+            ExploreScreen()
         }
     }
 }

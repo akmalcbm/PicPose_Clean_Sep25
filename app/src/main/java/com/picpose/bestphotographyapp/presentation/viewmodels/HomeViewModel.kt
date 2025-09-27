@@ -381,6 +381,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 val jobs = listOf(
                     launch { fetchDailyTips() },
                     launch { loadAIPrompts() },
+                    launch { loadGuidePosts() },
                     launch { loadFavoriteCount() }
                 )
 
