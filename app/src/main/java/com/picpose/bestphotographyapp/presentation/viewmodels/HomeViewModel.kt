@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
+import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +35,7 @@ data class HomeUiState(
     val aiPrompts: List<AIPrompt> = emptyList(),
     val favoritePromptsCount: Int = 0,
     val dailyTips: List<DailyTip> = emptyList(),
+    val guidePosts: List<GuidePost> = emptyList(),
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
@@ -95,6 +97,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         // Initial minimal load
         fetchDailyTips()
         loadAIPrompts()
+        loadGuidePosts()
         loadFavoriteCount()
     }
 
@@ -499,6 +502,129 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
             }
         } catch (e: Exception) {
             Log.w(TAG, "sharePost failed: ${e.message}")
+            _uiState.value = _uiState.value.copy(error = e.message)
+        }
+    }
+
+    // -------------------------
+    // GUIDE POSTS
+    // -------------------------
+    
+    private var guidePostsJob: Job? = null
+    private var cachedGuidePosts: List<GuidePost>? = null
+    
+    /**
+     * Load guide posts from repository
+     */
+    fun loadGuidePosts(
+        page: Int = 1,
+        limit: Int = 10,
+        category: String? = null,
+        featured: Boolean? = true
+    ) {
+        guidePostsJob?.cancel()
+        guidePostsJob = viewModelScope.launch {
+            try {
+                Log.d(TAG, "loadGuidePosts: starting page=$page, limit=$limit")
+                repository.getGuidePosts(
+                    page = page,
+                    limit = limit,
+                    category = category,
+                    featured = featured
+                ).collect { result ->
+                    result.fold(
+                        onSuccess = { paginatedResult ->
+                            val guidePosts = paginatedResult.items
+                            Log.d(TAG, "loadGuidePosts: received ${guidePosts.size} guide posts")
+                            cachedGuidePosts = guidePosts
+                            _uiState.value = _uiState.value.copy(
+                                guidePosts = guidePosts,
+                                error = null
+                            )
+                        },
+                        onFailure = { throwable ->
+                            Log.w(TAG, "loadGuidePosts failed: ${throwable.message}")
+                            _uiState.value = _uiState.value.copy(
+                                guidePosts = cachedGuidePosts ?: emptyList(),
+                                error = throwable.message
+                            )
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) {
+                    Log.d(TAG, "loadGuidePosts cancelled")
+                    return@launch
+                }
+                Log.e(TAG, "loadGuidePosts exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    guidePosts = cachedGuidePosts ?: emptyList(),
+                    error = e.message
+                )
+            }
+        }
+    }
+
+    /**
+     * Toggle like for a guide post (local UI update)
+     */
+    fun toggleGuidePostLike(guidePostId: String) {
+        viewModelScope.launch {
+            try {
+                val updatedGuidePosts = _uiState.value.guidePosts.map { guidePost ->
+                    if (guidePost.id == guidePostId) {
+                        guidePost.copy(
+                            likes = guidePost.likes + 1,
+                            isLiked = !guidePost.isLiked
+                        )
+                    } else {
+                        guidePost
+                    }
+                }
+
+                _uiState.value = _uiState.value.copy(guidePosts = updatedGuidePosts)
+
+                // Optional: send to server
+                // repository.toggleGuidePostLike(guidePostId)
+
+            } catch (e: Exception) {
+                Log.w(TAG, "toggleGuidePostLike failed: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    /**
+     * Share a guide post: copy text to clipboard and show a toast
+     */
+    fun shareGuidePost(context: Context, guidePost: GuidePost) {
+        try {
+            val shareText = buildString {
+                append("Check out this photography guide: ${guidePost.title}\n\n")
+                append(guidePost.excerpt.ifEmpty { guidePost.content.take(150) })
+                if (guidePost.difficultyLevel.isNotEmpty()) {
+                    append("\n\nDifficulty: ${guidePost.difficultyLevel}")
+                }
+                if (guidePost.estimatedReadTime > 0) {
+                    append("\nRead time: ${guidePost.estimatedReadTime} min")
+                }
+                append("\n\n#PicPose #PhotographyGuide")
+            }
+
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Shared Guide Post", shareText)
+            clipboard.setPrimaryClip(clip)
+
+            Toast.makeText(context, "Guide post details copied to clipboard!", Toast.LENGTH_SHORT).show()
+
+            // Optional: analytics or server call to record share
+            viewModelScope.launch {
+                try {
+                    // repository.recordGuidePostShare(guidePost.id)
+                } catch (_: Exception) { /* ignore */ }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "shareGuidePost failed: ${e.message}")
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }

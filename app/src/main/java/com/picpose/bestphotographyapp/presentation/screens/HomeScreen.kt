@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
+import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.ads.AdmobBannerAd
 import com.picpose.bestphotographyapp.presentation.components.ads.AdmobInterstitialTrigger
@@ -23,6 +24,7 @@ import com.picpose.bestphotographyapp.presentation.components.home.AnimatedWelco
 import com.picpose.bestphotographyapp.presentation.components.home.CategoriesRow
 import com.picpose.bestphotographyapp.presentation.components.home.ErrorScreen
 import com.picpose.bestphotographyapp.presentation.components.home.FeaturedPostsRow
+import com.picpose.bestphotographyapp.presentation.components.home.GuidePostsRow
 import com.picpose.bestphotographyapp.presentation.components.home.HomeTopBar
 import com.picpose.bestphotographyapp.presentation.components.home.LoadingScreen
 import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
@@ -41,6 +43,7 @@ fun HomeScreen(
     onNavigateToCategory: (Category) -> Unit,
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
+    onNavigateToGuidePostDetail: (GuidePost) -> Unit,
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -180,6 +183,30 @@ fun HomeScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
                             )
+                        }
+
+                        // Guide Posts Section
+                        if (uiState.guidePosts.isNotEmpty()) {
+                            item {
+                                SectionHeader(
+                                    title = "Photography Guides",
+                                    subtitle = "Learn with expert tutorials",
+                                    icon = Icons.Default.Book
+                                )
+                            }
+
+                            item {
+                                GuidePostsRow(
+                                    guidePosts = uiState.guidePosts,
+                                    onGuidePostClick = onNavigateToGuidePostDetail,
+                                    onLikeClick = { guidePost ->
+                                        viewModel.toggleGuidePostLike(guidePost.id)
+                                    },
+                                    onShareClick = { guidePost ->
+                                        viewModel.shareGuidePost(context, guidePost)
+                                    }
+                                )
+                            }
                         }
 
                         // Categories Section

@@ -17,4 +17,12 @@ sealed class Screen(val route: String) {
         private const val BASE = "prompt_detail"
         fun createRoute(promptId: String) = "$BASE/$promptId"
     }
+
+    // Guide Posts screens
+    object AllGuidePosts : Screen("all_guide_posts")
+    object GuidePostDetail : Screen("guide_post_detail/{guidePostId}") {
+        const val ARG_GUIDE_POST_ID = "guidePostId"
+        private const val BASE = "guide_post_detail"
+        fun createRoute(guidePostId: String) = "$BASE/$guidePostId"
+    }
 }
