@@ -7,7 +7,10 @@ import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.DailyTip
+import com.picpose.bestphotographyapp.data.models.GuidePost
+import com.picpose.bestphotographyapp.data.models.GuidePostDto
 import com.picpose.bestphotographyapp.data.models.MetaDto
+import com.picpose.bestphotographyapp.data.models.toGuidePost
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.remote.ApiResponse
@@ -464,6 +467,96 @@ class HomeRepository(
 
         } catch (e: Exception) {
             Log.e(TAG, "getPromptById exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // GUIDE POSTS (paginated)
+    // -------------------------
+    
+    /**
+     * Get guide posts with pagination and filtering
+     */
+    suspend fun getGuidePosts(
+        page: Int = 1,
+        limit: Int = 20,
+        search: String? = null,
+        category: String? = null,
+        featured: Boolean? = null,
+        difficultyLevel: String? = null,
+        status: String? = "published"
+    ): Flow<Result<PaginatedResult<GuidePost>>> = flow {
+        try {
+            val response = apiSemaphore.withPermit {
+                apiService.getGuidePosts(
+                    apiKey = null, // Uses default from interceptor
+                    page = page,
+                    limit = limit,
+                    search = search,
+                    category = category,
+                    featured = featured,
+                    difficultyLevel = difficultyLevel,
+                    status = status
+                )
+            }
+
+            val result = safeApiCall { response }
+            result.fold(
+                onSuccess = { wrapper ->
+                    try {
+                        val guidePosts = wrapper.data?.map { it.toGuidePost() } ?: emptyList()
+                        val paginatedResult = PaginatedResult(
+                            items = guidePosts,
+                            meta = wrapper.meta
+                        )
+                        emit(Result.success(paginatedResult))
+                    } catch (e: Exception) {
+                        emit(Result.failure(e))
+                    }
+                },
+                onFailure = { err ->
+                    emit(Result.failure(err))
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "getGuidePosts exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO).catch { e ->
+        Log.e(TAG, "getGuidePosts flow exception: ${e.message}")
+        emit(Result.failure(e))
+    }
+
+    /**
+     * Get single guide post by ID
+     */
+    suspend fun getGuidePostById(guidePostId: String): Flow<Result<GuidePost>> = flow {
+        try {
+            val response = apiSemaphore.withPermit {
+                apiService.getGuidePostById(
+                    guidePostId = guidePostId,
+                    apiKey = null // Uses default from interceptor
+                )
+            }
+
+            val result = safeApiCall { response }
+            result.fold(
+                onSuccess = { wrapper ->
+                    val guidePostDto = wrapper.data
+                    if (guidePostDto != null) {
+                        emit(Result.success(guidePostDto.toGuidePost()))
+                    } else {
+                        emit(Result.failure(Exception("Guide post not found")))
+                    }
+                },
+                onFailure = { error ->
+                    emit(Result.failure(error))
+                }
+            )
+
+        } catch (e: Exception) {
+            Log.e(TAG, "getGuidePostById exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
