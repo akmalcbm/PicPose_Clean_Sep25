@@ -40,8 +40,10 @@ interface ApiService {
         @Query("api_key") apiKey: String? = null,
         @Query("page") page: Int? = null,
         @Query("limit") limit: Int? = null,
-        @Query("search") search: String? = null,
         @Query("category") category: String? = null,
+        @Query("offset") offset: Int? = null,
+        @Query("q") q: String? = null,
+        @Query("search") search: String? = null,
         @Query("featured") featured: Boolean? = null,
         @Query("difficulty_level") difficultyLevel: String? = null,
         @Query("status") status: String? = "published"

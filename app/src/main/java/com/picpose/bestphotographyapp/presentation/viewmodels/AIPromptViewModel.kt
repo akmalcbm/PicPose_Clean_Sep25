@@ -12,16 +12,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.system.measureTimeMillis
-// Add these imports to your Repository and ViewModel files:
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.collect
 
 private const val TAG = "AIPromptVM"
 
@@ -72,6 +66,30 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     // keep reference to any running job if needed
     private var loadAllJob: Job? = null
     private var loadFavoritesJob: Job? = null
+
+    /**
+     * Update the search query in state and trigger a new search.
+     */
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        onSearchChanged(query)
+    }
+
+    /**
+     * Update the selected category in state and reload prompts for that category.
+     */
+    fun updateSelectedCategory(category: String) {
+        _uiState.value = _uiState.value.copy(selectedCategory = category)
+        // If "All", don't filter by category; otherwise set filter
+        val categoryFilter = if (category == "All") null else category
+        loadAllPrompts(
+            page = 1,
+            limit = 100,
+            category = categoryFilter,
+            search = _uiState.value.searchQuery,
+            forceRefresh = true
+        )
+    }
 
     init {
         // ✅ FIXED: Remove automatic search debouncing to prevent duplicate calls
@@ -157,6 +175,7 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
+
     /**
      * ✅ FIXED: Get prompt by ID from cache first, then API if needed
      */
@@ -235,54 +254,47 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-    // Replace your toggleFavorite method with this FIXED version:
+    // ✅ Rest of your existing methods stay the same but with better caching...
 
     fun toggleFavorite(prompt: AIPrompt) {
-        viewModelScope.launch(Dispatchers.Main) { // ✅ FIXED: Explicit Main dispatcher
+        viewModelScope.launch {
             try {
-                Log.d(TAG, "toggleFavorite: starting for ${prompt.id}")
-
-                // ✅ FIXED: Proper flow collection with context handling
-                repository.toggleFavorite(prompt)
-                    .flowOn(Dispatchers.IO) // ✅ Ensure flow operations on IO
-                    .collect { result: Result<Boolean> ->
-                        result.fold(
-                            onSuccess = { isNowFavorite: Boolean ->
-                                Log.d(TAG, "toggleFavorite success: ${prompt.id} -> $isNowFavorite")
-
-                                // ✅ Update allPrompts list on Main thread
-                                val updatedAll = _uiState.value.allPrompts.map { p ->
-                                    if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
-                                }
-
-                                // ✅ Update favorite list accordingly
-                                val updatedFavorites = if (isNowFavorite) {
-                                    (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
-                                        .distinctBy { it.id }
-                                } else {
-                                    _uiState.value.favoritePrompts.filter { it.id != prompt.id }
-                                }
-
-                                _uiState.value = _uiState.value.copy(
-                                    allPrompts = updatedAll,
-                                    favoritePrompts = updatedFavorites
-                                )
-
-                                Log.d(TAG, "toggleFavorite: UI state updated successfully")
-                            },
-                            onFailure = { ex: Throwable ->
-                                Log.w(TAG, "toggleFavorite failed: ${ex.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    error = ex.message ?: "Failed to toggle favorite"
-                                )
+                val flow = repository.toggleFavorite(prompt)
+                flow.collect { result: Result<Boolean> ->
+                    result.fold(
+                        onSuccess = { isNowFavorite: Boolean ->
+                            // Update cached prompts too
+                            cachedPrompts = cachedPrompts?.map { p ->
+                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
                             }
-                        )
-                    }
+
+                            // Update allPrompts list
+                            val updatedAll = _uiState.value.allPrompts.map { p ->
+                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
+                            }
+
+                            // Update favorite list accordingly
+                            val updatedFavorites = if (isNowFavorite) {
+                                (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
+                                    .distinctBy { it.id }
+                            } else {
+                                _uiState.value.favoritePrompts.filter { it.id != prompt.id }
+                            }
+
+                            _uiState.value = _uiState.value.copy(
+                                allPrompts = updatedAll,
+                                favoritePrompts = updatedFavorites
+                            )
+                        },
+                        onFailure = { ex: Throwable ->
+                            Log.w(TAG, "toggleFavorite failed: ${ex.message}")
+                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to toggle favorite")
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "toggleFavorite exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Exception toggling favorite"
-                )
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception toggling favorite")
             }
         }
     }
@@ -363,16 +375,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             .distinct()
             .sorted()
         _uiState.value = _uiState.value.copy(categories = cats)
-    }
-
-    // Add these methods to AIPromptViewModel class
-
-    fun updateSearchQuery(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
-    }
-
-    fun updateSelectedCategory(category: String) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
     }
 
     fun clearError() {

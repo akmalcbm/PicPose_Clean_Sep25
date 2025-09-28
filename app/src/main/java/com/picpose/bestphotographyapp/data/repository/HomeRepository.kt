@@ -15,7 +15,6 @@ import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.remote.ApiResponse
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -25,7 +24,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import retrofit2.Response
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.random.Random
 
 private const val TAG = "HomeRepository"
 
@@ -482,34 +480,60 @@ class HomeRepository(
         page: Int = 1,
         limit: Int = 20,
         search: String? = null,
-        category: String? = null,
         featured: Boolean? = null,
-        difficultyLevel: String? = null,
-        status: String? = "published"
-    ): Flow<Result<PaginatedResult<GuidePost>>> = flow {
+        status: String? = "published",
+        category: String?
+    ): kotlinx.coroutines.flow.Flow<Result<PaginatedResult<GuidePost>>> = flow {
+        if (useMocks) {
+            emit(Result.success(PaginatedResult(items = emptyList(), meta = MetaDto(total = 0, page = page, limit = limit, hasMore = false))))
+            return@flow
+        }
+
         try {
-            val response = apiSemaphore.withPermit {
-                apiService.getGuidePosts(
-                    apiKey = null, // Uses default from interceptor
-                    page = page,
-                    limit = limit,
-                    search = search,
-                    category = category,
-                    featured = featured,
-                    difficultyLevel = difficultyLevel,
-                    status = status
-                )
+            val apiResult: Result<ApiResponse<List<GuidePostDto>>> = safeApiCall {
+                callWithRetries {
+                    // Ensure you have added getGuidePosts to ApiService with the correct signature.
+                    apiService.getGuidePosts(
+                        apiKey = null,
+                        limit = limit,
+                        offset = (page - 1) * limit,
+                        q = search,
+                        featured = featured,
+                        status = status
+                    )
+                }
             }
 
-            val result = safeApiCall { response }
-            result.fold(
+            apiResult.fold(
                 onSuccess = { wrapper ->
                     try {
-                        val guidePosts = wrapper.data?.map { it.toGuidePost() } ?: emptyList()
-                        val paginatedResult = PaginatedResult(
-                            items = guidePosts,
-                            meta = wrapper.meta
-                        )
+                        val guidePosts: List<GuidePost> = wrapper.data?.mapNotNull { dto ->
+                            try { dto.toGuidePost() } catch (_: Exception) { null }
+                        } ?: emptyList()
+
+                        // Try to extract MetaDto in several safe ways
+                        val meta: MetaDto = try {
+                            // 1) Direct meta field (if wrapper type actually contains meta)
+                            val metaField = wrapper::class.java.getDeclaredField("meta").apply { isAccessible = true }
+                            (metaField.get(wrapper) as? MetaDto)
+                        } catch (_: Throwable) {
+                            null
+                        } ?: run {
+                            // 2) Try page/limit/total fields on wrapper (common shape)
+                            val wrapperClass = wrapper::class.java
+                            val pageVal = try { wrapperClass.getDeclaredField("page").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                            val limitVal = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                            val totalVal = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+
+                            val resolvedPage = pageVal ?: page
+                            val resolvedLimit = limitVal ?: limit
+                            val resolvedTotal = totalVal ?: (guidePosts.size + (resolvedPage - 1) * resolvedLimit)
+                            val hasMore = (resolvedPage * resolvedLimit) < resolvedTotal
+
+                            MetaDto(total = resolvedTotal, page = resolvedPage, limit = resolvedLimit, hasMore = hasMore)
+                        }
+
+                        val paginatedResult = PaginatedResult(items = guidePosts, meta = meta)
                         emit(Result.success(paginatedResult))
                     } catch (e: Exception) {
                         emit(Result.failure(e))
@@ -520,13 +544,9 @@ class HomeRepository(
                 }
             )
         } catch (e: Exception) {
-            Log.e(TAG, "getGuidePosts exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getGuidePosts flow exception: ${e.message}")
-        emit(Result.failure(e))
-    }
+    }.flowOn(Dispatchers.IO)
 
     /**
      * Get single guide post by ID
