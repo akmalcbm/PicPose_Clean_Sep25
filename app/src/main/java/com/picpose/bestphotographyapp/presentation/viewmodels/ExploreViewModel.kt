@@ -332,7 +332,7 @@ class ExploreViewModel @Inject constructor(
             }
             SortOption.FAVORITES -> content.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> it.prompt.isFavorited ?: false
+                    is ExploreContent.AIPromptContent -> it.prompt.isFavorite ?: false
                     is ExploreContent.GuidePostContent -> it.guidePost.isFavorited ?: false
                 }
             }

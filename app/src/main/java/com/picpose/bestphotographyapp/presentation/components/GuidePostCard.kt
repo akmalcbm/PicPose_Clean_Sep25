@@ -2,21 +2,46 @@ package com.picpose.bestphotographyapp.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,7 +49,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
 import com.picpose.bestphotographyapp.data.models.GuidePost
 
 @Composable
@@ -43,16 +67,11 @@ fun GuidePostCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isPressed) 12.dp else 6.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 12.dp else 6.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+
             // Image Section
             Box(
                 modifier = Modifier
@@ -78,13 +97,11 @@ fun GuidePostCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            brush = Brush.verticalGradient(
+                            Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
                                     Color.Black.copy(alpha = 0.3f)
-                                ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
+                                )
                             )
                         )
                 )
@@ -121,15 +138,11 @@ fun GuidePostCard(
                             color = Color.Black.copy(alpha = 0.5f)
                         ) {
                             IconButton(
-                                onClick = { onFavoriteClick?.invoke(guidePost) },
+                                onClick = { onFavoriteClick.invoke(guidePost) },
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (guidePost.isFavorited) {
-                                        Icons.Default.Favorite
-                                    } else {
-                                        Icons.Default.FavoriteBorder
-                                    },
+                                    imageVector = if (guidePost.isFavorited) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                     contentDescription = if (guidePost.isFavorited) "Remove from favorites" else "Add to favorites",
                                     tint = if (guidePost.isFavorited) Color.Red else Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -143,7 +156,7 @@ fun GuidePostCard(
                 if (guidePost.viewCount > 0) {
                     Surface(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
+                            .align(Alignment.BottomEnd) // valid in BoxScope
                             .padding(12.dp),
                         color = Color.Black.copy(alpha = 0.7f),
                         shape = RoundedCornerShape(12.dp)
@@ -161,23 +174,22 @@ fun GuidePostCard(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = when {
-                                    guidePost.viewCount >= 1000000 -> "${guidePost.viewCount.div(1000000)}M"
-                                    guidePost.viewCount >= 1000 -> "${guidePost.viewCount.div(1000)}K"
+                                    guidePost.viewCount >= 1_000_000 -> "${guidePost.viewCount / 1_000_000}M"
+                                    guidePost.viewCount >= 1_000 -> "${guidePost.viewCount / 1_000}K"
                                     else -> guidePost.viewCount.toString()
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontSize = 10.sp
                             )
-                            }
                         }
                     }
                 }
 
-                // Guide Badge
+                // Guide Badge (bottom left)
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.BottomStart) // valid in BoxScope
                         .padding(12.dp),
                     color = Color(0xFF059669).copy(alpha = 0.9f),
                     shape = RoundedCornerShape(8.dp)
@@ -195,12 +207,11 @@ fun GuidePostCard(
                         )
                     }
                 }
-            }
+            } // end Box
 
             // Content Section
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+
                 // Title
                 Text(
                     text = guidePost.title.ifBlank { "Untitled" },
@@ -231,9 +242,7 @@ fun GuidePostCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Author and date
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         if (guidePost.authorName.isNotBlank()) {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -295,9 +304,7 @@ fun GuidePostCard(
                 // Tags (if compact mode)
                 if (isCompact && guidePost.tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         items(guidePost.tags.take(3)) { tag ->
                             Surface(
                                 color = Color(0xFFEEF2FF),
@@ -313,7 +320,7 @@ fun GuidePostCard(
                         }
                     }
                 }
-            }
-        }
-    }
+            } // end Column (content)
+        } // end Column (root)
+    } // end Card
 }

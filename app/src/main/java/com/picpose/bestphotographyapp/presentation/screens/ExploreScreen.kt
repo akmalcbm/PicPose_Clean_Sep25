@@ -37,8 +37,9 @@ import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExploreScreen(
     onNavigateToPromptDetail: (AIPrompt) -> Unit = {},
