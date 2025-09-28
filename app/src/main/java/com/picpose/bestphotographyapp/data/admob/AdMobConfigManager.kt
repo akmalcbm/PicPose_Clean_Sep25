@@ -119,6 +119,49 @@ class AdMobConfigManager private constructor(private val context: Context) {
     fun getRewarded1Id(): String = getCurrentSettings().rewarded1Id.ifEmpty { TEST_REWARDED_ID }
     fun getAppId(): String = getCurrentSettings().appId.ifEmpty { TEST_APP_ID }
     
+    /**
+     * Force refresh settings from server (ignores cache)
+     */
+    suspend fun forceRefreshSettings(): Flow<Result<AppSettings>> = flow {
+        try {
+            Log.d(TAG, "Force refreshing AdMob settings from server")
+            val response = RetrofitClient.apiService.getAppSettings()
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val appSettings = response.body()?.data
+                if (appSettings != null) {
+                    // Cache the settings
+                    cacheSettings(appSettings)
+                    Log.d(TAG, "AdMob settings force refreshed and cached successfully")
+                    emit(Result.success(appSettings))
+                } else {
+                    Log.w(TAG, "Server returned empty data during force refresh")
+                    emit(Result.success(getFallbackSettings()))
+                }
+            } else {
+                Log.w(TAG, "Failed to force refresh AdMob settings: ${response.message()}")
+                emit(Result.success(getFallbackSettings()))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during force refresh: ${e.message}")
+            // Return cached data if available, otherwise fallback
+            val cachedSettings = getCachedSettings()
+            if (cachedSettings != null) {
+                emit(Result.success(cachedSettings))
+            } else {
+                emit(Result.success(getFallbackSettings()))
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+    
+    /**
+     * Clear cached settings (forces next fetch from server)
+     */
+    fun clearCache() {
+        prefs.edit().clear().apply()
+        Log.d(TAG, "AdMob settings cache cleared")
+    }
+    
     private fun cacheSettings(settings: AppSettings) {
         prefs.edit().apply {
             putString(KEY_APP_ID, settings.appId)
