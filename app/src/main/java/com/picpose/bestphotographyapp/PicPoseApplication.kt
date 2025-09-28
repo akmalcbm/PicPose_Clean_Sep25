@@ -1,12 +1,16 @@
 package com.picpose.bestphotographyapp
 
 import android.app.Application
+import androidx.lifecycle.lifecycleScope
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
+import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class PicPoseApplication : Application(), ImageLoaderFactory {
 
@@ -24,6 +28,26 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
             .setTestDeviceIds(testDeviceIds)
             .build()
         MobileAds.setRequestConfiguration(configuration)
+        
+        // ✅ Initialize AdMob config manager and fetch settings
+        initializeAdMobConfig()
+    }
+    
+    private fun initializeAdMobConfig() {
+        try {
+            val adMobConfig = AdMobConfigManager.getInstance(this)
+            // Fetch settings in background - this will cache them for immediate use
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
+                    adMobConfig.fetchAppSettings().first()
+                } catch (e: Exception) {
+                    // Settings will fallback to test IDs if server fetch fails
+                    android.util.Log.w("PicPoseApp", "AdMob config fetch failed, using fallback: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PicPoseApp", "Failed to initialize AdMob config: ${e.message}")
+        }
     }
 
     override fun newImageLoader(): ImageLoader {
