@@ -236,7 +236,6 @@ class ExploreViewModel @Inject constructor(
         }
 
         return try {
-            val category = if (state.selectedCategory == "All") null else state.selectedCategory
             val search = state.searchQuery.ifBlank { null }
             
             var result: List<GuidePost> = emptyList()
@@ -244,14 +243,13 @@ class ExploreViewModel @Inject constructor(
             repository.getGuidePosts(
                 page = state.currentPage,
                 limit = 20,
-                category = category,
                 search = search
             ).collect { apiResult ->
                 apiResult.fold(
-                    onSuccess = { posts ->
-                        cachedGuidePosts = posts.data
+                    onSuccess = { paginatedResult ->
+                        cachedGuidePosts = paginatedResult.items
                         lastCacheTime = now
-                        result = posts.data
+                        result = paginatedResult.items
                     },
                     onFailure = { 
                         Log.w(TAG, "Failed to load guide posts: ${it.message}")
@@ -320,20 +318,20 @@ class ExploreViewModel @Inject constructor(
         return when (state.selectedSortOption) {
             SortOption.NEWEST -> content.sortedByDescending { 
                 when (it) {
-                    is ExploreContent.AIPromptContent -> it.prompt.createdAt ?: ""
-                    is ExploreContent.GuidePostContent -> it.guidePost.createdAt ?: ""
+                    is ExploreContent.AIPromptContent -> (it.prompt.createdAt ?: "") as Comparable<Any>
+                    is ExploreContent.GuidePostContent -> (it.guidePost.createdAt ?: "") as Comparable<Any>
                 }
             }
             SortOption.POPULAR -> content.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> it.prompt.isPopular ?: false
-                    is ExploreContent.GuidePostContent -> it.guidePost.viewCount ?: 0
+                    is ExploreContent.AIPromptContent -> (it.prompt.isPopular ?: false) as Comparable<Any>
+                    is ExploreContent.GuidePostContent -> (it.guidePost.viewCount ?: 0) as Comparable<Any>
                 }
             }
             SortOption.FAVORITES -> content.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> it.prompt.isFavorite ?: false
-                    is ExploreContent.GuidePostContent -> it.guidePost.isFavorited ?: false
+                    is ExploreContent.AIPromptContent -> (it.prompt.isFavorite ?: false) as Comparable<Any>
+                    is ExploreContent.GuidePostContent -> (it.guidePost.isFavorited ?: false) as Comparable<Any>
                 }
             }
         }
