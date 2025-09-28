@@ -9,9 +9,11 @@ import coil.memory.MemoryCache
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@HiltAndroidApp
 class PicPoseApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
