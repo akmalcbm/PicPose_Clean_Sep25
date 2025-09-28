@@ -199,25 +199,28 @@ class ExploreViewModel @Inject constructor(
             val category = if (state.selectedCategory == "All") null else state.selectedCategory
             val search = state.searchQuery.ifBlank { null }
             
+            var result: List<AIPrompt> = emptyList()
+            
             repository.getAiPostsSimple(
                 page = state.currentPage,
                 limit = 20,
                 category = category,
                 search = search
-            ).collect { result ->
-                result.fold(
+            ).collect { apiResult ->
+                apiResult.fold(
                     onSuccess = { prompts ->
                         cachedAIPrompts = prompts
                         lastCacheTime = now
-                        return@collect prompts
+                        result = prompts
                     },
                     onFailure = { 
                         Log.w(TAG, "Failed to load AI prompts: ${it.message}")
-                        return@collect emptyList<AIPrompt>()
+                        result = emptyList()
                     }
                 )
             }
-            emptyList()
+            
+            filterAIPrompts(result, state)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading AI prompts: ${e.message}")
             emptyList()
@@ -236,25 +239,28 @@ class ExploreViewModel @Inject constructor(
             val category = if (state.selectedCategory == "All") null else state.selectedCategory
             val search = state.searchQuery.ifBlank { null }
             
+            var result: List<GuidePost> = emptyList()
+            
             repository.getGuidePosts(
                 page = state.currentPage,
                 limit = 20,
                 category = category,
                 search = search
-            ).collect { result ->
-                result.fold(
+            ).collect { apiResult ->
+                apiResult.fold(
                     onSuccess = { posts ->
                         cachedGuidePosts = posts.data
                         lastCacheTime = now
-                        return@collect posts.data
+                        result = posts.data
                     },
                     onFailure = { 
                         Log.w(TAG, "Failed to load guide posts: ${it.message}")
-                        return@collect emptyList<GuidePost>()
+                        result = emptyList()
                     }
                 )
             }
-            emptyList()
+            
+            filterGuidePosts(result, state)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading guide posts: ${e.message}")
             emptyList()
@@ -344,11 +350,17 @@ class ExploreViewModel @Inject constructor(
                         },
                         onFailure = { error ->
                             Log.w(TAG, "Failed to load categories: ${error.message}")
+                            // Fallback to default categories
+                            val fallbackCategories = listOf("All", "Portrait", "Landscape", "Architecture", "Nature", "Street", "Abstract")
+                            _uiState.value = _uiState.value.copy(categories = fallbackCategories)
                         }
                     )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading categories: ${e.message}")
+                // Fallback to default categories
+                val fallbackCategories = listOf("All", "Portrait", "Landscape", "Architecture", "Nature", "Street", "Abstract")
+                _uiState.value = _uiState.value.copy(categories = fallbackCategories)
             }
         }
     }
