@@ -11,40 +11,57 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-
-// ✅ TEST AD UNIT IDs - Replace with your real ones in production
-private const val BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111" // Test ID
-private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712" // Test ID
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 
 @Composable
 fun AdmobBannerAd(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    adType: AdType = AdType.BANNER1
 ) {
     val context = LocalContext.current
+    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
 
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
             AdView(ctx).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = BANNER_AD_UNIT_ID
+                adUnitId = when (adType) {
+                    AdType.BANNER1 -> adMobConfig.getBanner1Id()
+                    AdType.BANNER2 -> adMobConfig.getBanner2Id()
+                }
                 loadAd(AdRequest.Builder().build())
             }
         }
     )
 }
 
+enum class AdType {
+    BANNER1, BANNER2, INTERSTITIAL1, INTERSTITIAL2, 
+    NATIVE1, NATIVE2, NATIVE3, REWARDED1
+}
+
 @Composable
-fun AdmobInterstitialTrigger() {
+fun AdmobInterstitialTrigger(
+    adType: AdType = AdType.INTERSTITIAL1
+) {
     val context = LocalContext.current
+    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
     LaunchedEffect(Unit) {
         val adRequest = AdRequest.Builder().build()
+        val adUnitId = when (adType) {
+            AdType.INTERSTITIAL1 -> adMobConfig.getInterstitial1Id()
+            AdType.INTERSTITIAL2 -> adMobConfig.getInterstitial2Id()
+            else -> adMobConfig.getInterstitial1Id()
+        }
 
         InterstitialAd.load(
             context,
-            INTERSTITIAL_AD_UNIT_ID,
+            adUnitId,
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
@@ -72,8 +89,12 @@ fun AdmobInterstitialTrigger() {
 
 @Composable
 fun AdmobNativeAd(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    adType: AdType = AdType.NATIVE1
 ) {
+    val context = LocalContext.current
+    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -90,6 +111,62 @@ fun AdmobNativeAd(
 
             // Native ad content would go here
             // This requires more complex setup with NativeAd
+            // Ad unit ID is available from: 
+            // when (adType) {
+            //     AdType.NATIVE1 -> adMobConfig.getNative1Id()
+            //     AdType.NATIVE2 -> adMobConfig.getNative2Id()
+            //     AdType.NATIVE3 -> adMobConfig.getNative3Id()
+            //     else -> adMobConfig.getNative1Id()
+            // }
+        }
+    }
+}
+
+@Composable
+fun AdmobRewardedAd(
+    onRewardEarned: (Int) -> Unit = {},
+    onAdDismissed: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
+    var rewardedAd by remember { mutableStateOf<RewardedAd?>(null) }
+    var isAdLoaded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val adRequest = AdRequest.Builder().build()
+
+        RewardedAd.load(
+            context,
+            adMobConfig.getRewarded1Id(),
+            adRequest,
+            object : RewardedAdLoadCallback() {
+                override fun onAdLoaded(ad: RewardedAd) {
+                    rewardedAd = ad
+                    isAdLoaded = true
+                }
+
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    rewardedAd = null
+                    isAdLoaded = false
+                }
+            }
+        )
+    }
+
+    // You can expose this as a Button or trigger it programmatically
+    if (isAdLoaded) {
+        Button(
+            onClick = {
+                if (context is androidx.activity.ComponentActivity) {
+                    rewardedAd?.show(context) { rewardItem ->
+                        onRewardEarned(rewardItem.amount)
+                    }
+                }
+                onAdDismissed()
+                isAdLoaded = false
+            }
+        ) {
+            Text("Watch Ad for Reward")
         }
     }
 }

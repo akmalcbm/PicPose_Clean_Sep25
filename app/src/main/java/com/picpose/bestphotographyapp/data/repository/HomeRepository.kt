@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.GuidePostDto
@@ -583,6 +584,45 @@ class HomeRepository(
 
         } catch (e: Exception) {
             Log.e(TAG, "getGuidePostById exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // APP SETTINGS (AdMob)
+    // -------------------------
+    
+    /**
+     * Fetch app settings from server for AdMob configuration
+     */
+    suspend fun getAppSettings(): Flow<Result<AppSettings>> = flow {
+        try {
+            Log.d(TAG, "Fetching app settings from server")
+            
+            val apiResult = safeApiCall {
+                callWithRetries {
+                    apiService.getAppSettings()
+                }
+            }
+            
+            apiResult.fold(
+                onSuccess = { response ->
+                    if (response.success && response.data != null) {
+                        Log.d(TAG, "App settings fetched successfully")
+                        emit(Result.success(response.data))
+                    } else {
+                        Log.w(TAG, "Server returned empty app settings: ${response.message}")
+                        emit(Result.failure(Exception("Empty app settings response")))
+                    }
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to fetch app settings: ${error.message}")
+                    emit(Result.failure(error))
+                }
+            )
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "getAppSettings exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
