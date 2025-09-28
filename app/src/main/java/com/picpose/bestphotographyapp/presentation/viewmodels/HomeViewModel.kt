@@ -93,11 +93,18 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 }
         }
 
-        // Initial minimal load
+        // Initial minimal load - Fixed: Only load data that doesn't conflict with search debouncing
         fetchDailyTips()
-        loadAIPrompts()
         loadGuidePosts()
         loadFavoriteCount()
+        
+        // Load AI prompts only after a brief delay to avoid conflict with search debouncing
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(100) // Brief delay to let search flow initialize
+            if (_searchQuery.value.isBlank()) {
+                loadAIPrompts()
+            }
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
+import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.GuidePostDto
@@ -623,6 +624,81 @@ class HomeRepository(
             
         } catch (e: Exception) {
             Log.e(TAG, "getAppSettings exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // CATEGORIES
+    // -------------------------
+    
+    /**
+     * Get all categories for filtering
+     */
+    suspend fun getCategories(): Flow<Result<List<Category>>> = flow {
+        try {
+            // Return mock categories for now - in a real app, this would call the API
+            val mockCategories = listOf(
+                Category(id = "1", name = "Portrait", description = "Portrait photography", image = "", post_count = 15),
+                Category(id = "2", name = "Landscape", description = "Landscape photography", image = "", post_count = 20),
+                Category(id = "3", name = "Architecture", description = "Architecture photography", image = "", post_count = 12),
+                Category(id = "4", name = "Nature", description = "Nature photography", image = "", post_count = 18),
+                Category(id = "5", name = "Street", description = "Street photography", image = "", post_count = 10),
+                Category(id = "6", name = "Abstract", description = "Abstract art", image = "", post_count = 8)
+            )
+            emit(Result.success(mockCategories))
+        } catch (e: Exception) {
+            Log.e(TAG, "getCategories exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // FAVORITES - AI PROMPTS
+    // -------------------------
+    
+    /**
+     * Toggle AI prompt favorite status
+     */
+    suspend fun toggleAIPromptFavorite(promptId: String): Flow<Result<AIPrompt>> = flow {
+        try {
+            val localPrompt = dao.getAIPromptById(promptId)
+            if (localPrompt != null) {
+                val newFavoriteStatus = !(localPrompt.isFavorited ?: false)
+                val updatedPrompt = localPrompt.copy(isFavorited = newFavoriteStatus)
+                dao.insertAIPrompt(updatedPrompt)
+                Log.d(TAG, "Toggled AI prompt favorite: $promptId to $newFavoriteStatus")
+                emit(Result.success(updatedPrompt))
+            } else {
+                emit(Result.failure(Exception("AI Prompt not found: $promptId")))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "toggleAIPromptFavorite exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // FAVORITES - GUIDE POSTS
+    // -------------------------
+    
+    /**
+     * Toggle guide post favorite status
+     */
+    suspend fun toggleGuidePostFavorite(postId: String): Flow<Result<GuidePost>> = flow {
+        try {
+            val localPost = dao.getGuidePostById(postId)
+            if (localPost != null) {
+                val newFavoriteStatus = !(localPost.isFavorited ?: false)
+                val updatedPost = localPost.copy(isFavorited = newFavoriteStatus)
+                dao.insertGuidePost(updatedPost)
+                Log.d(TAG, "Toggled guide post favorite: $postId to $newFavoriteStatus")
+                emit(Result.success(updatedPost))
+            } else {
+                emit(Result.failure(Exception("Guide Post not found: $postId")))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "toggleGuidePostFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
