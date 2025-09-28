@@ -4,9 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.picpose.bestphotographyapp.data.database.AppDatabase
+import com.picpose.bestphotographyapp.data.database.FavoritePrompt
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
+import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.GuidePostDto
@@ -623,6 +625,100 @@ class HomeRepository(
             
         } catch (e: Exception) {
             Log.e(TAG, "getAppSettings exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // CATEGORIES
+    // -------------------------
+    
+    /**
+     * Get all categories for filtering
+     */
+    suspend fun getCategories(): Flow<Result<List<Category>>> = flow {
+        try {
+            // Return mock categories for now - in a real app, this would call the API
+            val mockCategories = listOf(
+                Category(id = "1", name = "Portrait", description = "Portrait photography", image = "", post_count = 15),
+                Category(id = "2", name = "Landscape", description = "Landscape photography", image = "", post_count = 20),
+                Category(id = "3", name = "Architecture", description = "Architecture photography", image = "", post_count = 12),
+                Category(id = "4", name = "Nature", description = "Nature photography", image = "", post_count = 18),
+                Category(id = "5", name = "Street", description = "Street photography", image = "", post_count = 10),
+                Category(id = "6", name = "Abstract", description = "Abstract art", image = "", post_count = 8)
+            )
+            emit(Result.success(mockCategories))
+        } catch (e: Exception) {
+            Log.e(TAG, "getCategories exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // FAVORITES - AI PROMPTS
+    // -------------------------
+    
+    /**
+     * Toggle AI prompt favorite status
+     */
+    suspend fun toggleAIPromptFavorite(promptId: String): Flow<Result<AIPrompt>> = flow {
+        try {
+            val isFavorite = favoriteDao.isFavorite(promptId)
+            
+            if (isFavorite) {
+                // Remove from favorites
+                favoriteDao.removeFromFavorites(promptId)
+                Log.d(TAG, "Removed AI prompt from favorites: $promptId")
+            } else {
+                // Add to favorites
+                favoriteDao.addToFavorites(
+                    FavoritePrompt(
+                        promptId = promptId,
+                        favoritedAt = System.currentTimeMillis()
+                    )
+                )
+                Log.d(TAG, "Added AI prompt to favorites: $promptId")
+            }
+            
+            // Return a mock updated prompt - in a real app, you'd fetch from local cache or API
+            val updatedPrompt = AIPrompt(
+                id = promptId,
+                title = "Sample Prompt",
+                fullPrompt = "Sample prompt content",
+                isFavorited = !isFavorite
+            )
+            
+            emit(Result.success(updatedPrompt))
+        } catch (e: Exception) {
+            Log.e(TAG, "toggleAIPromptFavorite exception: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // -------------------------
+    // FAVORITES - GUIDE POSTS
+    // -------------------------
+    
+    /**
+     * Toggle guide post favorite status
+     */
+    suspend fun toggleGuidePostFavorite(postId: String): Flow<Result<GuidePost>> = flow {
+        try {
+            // For guide posts, we'll use a simple in-memory approach since we don't have a dedicated DAO
+            // In a real app, you'd have a GuidePostDao similar to FavoritePromptDao
+            
+            // For now, just return a mock updated guide post
+            val updatedPost = GuidePost(
+                id = postId,
+                title = "Sample Guide Post",
+                content = "Sample guide content",
+                isFavorited = true // Always set to true for demo
+            )
+            
+            Log.d(TAG, "Toggled guide post favorite: $postId")
+            emit(Result.success(updatedPost))
+        } catch (e: Exception) {
+            Log.e(TAG, "toggleGuidePostFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
