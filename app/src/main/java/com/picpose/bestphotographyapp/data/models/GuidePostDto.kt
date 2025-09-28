@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 // Guide Post DTO returned by API (robust fields to handle different API shapes)
 data class GuidePostDto(
-    @SerializedName("id") val id: String = "",
+    @SerializedName("id") val id: Any = "", // Accept both Int and String from API
     @SerializedName("title") val title: String = "",
     // various possible body/summary fields used by different endpoints/admin panels
     @SerializedName("content") val content: String? = null,
@@ -59,7 +59,14 @@ data class GuidePost(
 )
 
 // Mapper DTO -> domain
-fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
+fun GuidePostDto.toGuidePost(baseUrl: String? = "https://picpose.iamakmal.in/"): GuidePost {
+    // Convert ID to String (handle both Int and String from API)
+    val idString = when (id) {
+        is Number -> id.toString()
+        is String -> id
+        else -> id.toString()
+    }
+    
     // Compose content/excerpt/short_description in a sensible way
     val contentText = content ?: excerpt ?: short_description ?: ""
     val excerptText = excerpt ?: short_description ?: content?.take(150) ?: ""
@@ -97,7 +104,7 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
     val createdTime = createdAt ?: created_at ?: ""
 
     return GuidePost(
-        id = id,
+        id = idString,
         title = title,
         content = contentText,
         excerpt = excerptText,

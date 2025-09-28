@@ -517,34 +517,33 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
      * Load guide posts from repository
      */
     fun loadGuidePosts(page: Int = 1, limit: Int = 10, featured: Boolean? = true, status: String? = "published") {
+        Log.d(TAG, "loadGuidePosts: starting with page=$page, limit=$limit, featured=$featured, status=$status")
         viewModelScope.launch {
             try {
                 val flow = repository.getGuidePosts(page = page, limit = limit, featured = featured, status = status)
                 flow.collect { result ->
                     result.fold(
                         onSuccess = { pag ->
+                            Log.d(TAG, "loadGuidePosts: received ${pag.items.size} guide posts")
+                            Log.d(TAG, "loadGuidePosts: guide posts titles: ${pag.items.map { it.title }}")
                             // update ui state
                             _uiState.value = _uiState.value.copy(guidePosts = pag.items)
+                            Log.d(TAG, "loadGuidePosts: UI state updated with ${_uiState.value.guidePosts.size} guide posts")
                         },
                         onFailure = { err ->
+                            Log.e(TAG, "loadGuidePosts: failed with error: ${err.message}")
                             _uiState.value = _uiState.value.copy(error = err.message)
                         }
                     )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "loadGuidePosts: exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
-    // Call loadGuidePosts somewhere in init or loadHomeData()
-    init {
-        // existing init logic...
-        fetchDailyTips()
-        loadAIPrompts()
-        loadFavoriteCount()
-        loadGuidePosts() // call it here (or inside loadHomeData)
-    }
+
 
     // small helper to toggle like for guide posts (optimistic)
     fun toggleGuidePostLike(guidePostId: String) {
