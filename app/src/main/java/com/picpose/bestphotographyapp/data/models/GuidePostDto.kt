@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 // Guide Post DTO returned by API (robust fields to handle different API shapes)
 data class GuidePostDto(
-    @SerializedName("id") val id: Any = "", // Accept both Int and String from API
+    @SerializedName("id") val id: String = "",
     @SerializedName("title") val title: String = "",
     // various possible body/summary fields used by different endpoints/admin panels
     @SerializedName("content") val content: String? = null,
@@ -19,18 +19,25 @@ data class GuidePostDto(
     // tags may be returned as JSON string or as an array; keep as Any? and parse in mapper
     @SerializedName("tags") val tags: Any? = null,
     @SerializedName("difficulty_level") val difficulty_level: String? = null,
-    @SerializedName("estimated_read_time") val estimated_read_time: Int = 0,
+
+    // These can arrive as number/string; use Any? and normalize in mapper
+    @SerializedName("estimated_read_time") val estimated_read_time: Any? = 0,
+
+    // numeric counters are usually numbers; keep as Int with safe defaults
     @SerializedName("likes") val likes: Int = 0,
     @SerializedName("favorites") val favorites: Int = 0,
     @SerializedName("views") val views: Int = 0,
-    @SerializedName("is_featured") val is_featured: Boolean = false,
-    @SerializedName("is_popular") val is_popular: Boolean = false,
+
+    // Booleans can arrive as 0/1/"0"/"1"/true/false — accept Any? and coerce in mapper
+    @SerializedName("is_featured") val is_featured: Any? = null,
+    @SerializedName("is_popular") val is_popular: Any? = null,
+    @SerializedName("is_published") val is_published: Any? = null,
+
     @SerializedName("author") val author: String? = null,
     @SerializedName("author_id") val author_id: String? = null,
     @SerializedName("created_at") val created_at: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("updated_at") val updated_at: String? = null,
-    @SerializedName("is_published") val is_published: Boolean = true,
     @SerializedName("status") val status: String? = "published"
 )
 
@@ -58,15 +65,23 @@ data class GuidePost(
     val isLiked: Boolean = false
 )
 
+// ---- Helpers to normalize flexible JSON fields ----
+private fun anyToBoolean(value: Any?): Boolean = when (value) {
+    is Boolean -> value
+    is Number -> value.toInt() != 0
+    is String -> value.equals("true", ignoreCase = true) || value == "1"
+    else -> false
+}
+
+private fun anyToInt(value: Any?, default: Int = 0): Int = when (value) {
+    is Number -> value.toInt()
+    is String -> value.toIntOrNull() ?: default
+    is Boolean -> if (value) 1 else 0
+    else -> default
+}
+
 // Mapper DTO -> domain
-fun GuidePostDto.toGuidePost(baseUrl: String? = "https://picpose.iamakmal.in/"): GuidePost {
-    // Convert ID to String (handle both Int and String from API)
-    val idString = when (id) {
-        is Number -> id.toString()
-        is String -> id
-        else -> id.toString()
-    }
-    
+fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
     // Compose content/excerpt/short_description in a sensible way
     val contentText = content ?: excerpt ?: short_description ?: ""
     val excerptText = excerpt ?: short_description ?: content?.take(150) ?: ""
@@ -87,7 +102,6 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = "https://picpose.iamakmal.in/"):
             is List<*> -> tags.filterIsInstance<String>()
             is String -> {
                 val s = tags as String
-                // try JSON array first
                 try {
                     val arr = Gson().fromJson(s, Array<String>::class.java)
                     arr?.toList() ?: s.split(',').map { it.trim() }.filter { it.isNotEmpty() }
@@ -104,7 +118,7 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = "https://picpose.iamakmal.in/"):
     val createdTime = createdAt ?: created_at ?: ""
 
     return GuidePost(
-        id = idString,
+        id = id,
         title = title,
         content = contentText,
         excerpt = excerptText,
@@ -113,12 +127,12 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = "https://picpose.iamakmal.in/"):
         category = category ?: "",
         tags = parsedTags,
         difficultyLevel = difficulty_level ?: "",
-        estimatedReadTime = estimated_read_time,
+        estimatedReadTime = anyToInt(estimated_read_time, default = 0),
         likes = likes,
         favorites = favorites,
         views = views,
-        isFeatured = is_featured,
-        isPopular = is_popular,
+        isFeatured = anyToBoolean(is_featured),
+        isPopular = anyToBoolean(is_popular),
         author = author ?: "",
         authorId = author_id ?: "",
         createdAt = createdTime,

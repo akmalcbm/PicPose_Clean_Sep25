@@ -31,6 +31,12 @@ fun AdmobBannerAd(
                 adUnitId = when (adType) {
                     AdType.BANNER1 -> adMobConfig.getBanner1Id()
                     AdType.BANNER2 -> adMobConfig.getBanner2Id()
+                    AdType.INTERSTITIAL1 -> TODO()
+                    AdType.INTERSTITIAL2 -> TODO()
+                    AdType.NATIVE1 -> TODO()
+                    AdType.NATIVE2 -> TODO()
+                    AdType.NATIVE3 -> TODO()
+                    AdType.REWARDED1 -> TODO()
                 }
                 loadAd(AdRequest.Builder().build())
             }
