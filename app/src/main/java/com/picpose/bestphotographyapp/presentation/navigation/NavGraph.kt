@@ -65,7 +65,22 @@ fun NavGraph(navController: NavHostController) {
 
 
         // Explore / Create / Rewards / Profile
-        composable(route = Screen.Explore.route) { ExploreScreen() }
+        composable(route = Screen.Explore.route) { 
+            ExploreScreen(
+                onNavigateToPromptDetail = { aiPrompt ->
+                    val safeId = android.net.Uri.encode(aiPrompt.id)
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToGuidePostDetail = { guidePost ->
+                    val safeId = android.net.Uri.encode(guidePost.id)
+                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) { RewardsScreen() }
         composable(route = Screen.Profile.route) { ProfileScreen() }
