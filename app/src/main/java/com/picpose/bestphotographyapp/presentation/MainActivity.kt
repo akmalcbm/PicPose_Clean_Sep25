@@ -17,7 +17,9 @@ import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import com.picpose.bestphotographyapp.presentation.components.BottomNavigationBar
 import com.picpose.bestphotographyapp.presentation.navigation.NavGraph
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
