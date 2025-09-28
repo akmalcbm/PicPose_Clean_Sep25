@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.util.Log
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.GuidePost
@@ -187,6 +188,7 @@ fun HomeScreen(
 
                         // Guide Posts Section
                         if (uiState.guidePosts.isNotEmpty()) {
+                            Log.d("HomeScreen", "Rendering guide posts section with ${uiState.guidePosts.size} items")
                             item {
                                 SectionHeader(
                                     title = "Photography Guides",
@@ -207,6 +209,8 @@ fun HomeScreen(
                                     }
                                 )
                             }
+                        } else {
+                            Log.d("HomeScreen", "Guide posts section NOT rendered - empty list: ${uiState.guidePosts.size} items")
                         }
 
                         // Categories Section

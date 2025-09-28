@@ -509,9 +509,21 @@ class HomeRepository(
             onSuccess = { wrapper ->
                 try {
                     val dtos = wrapper.data ?: emptyList()
+                    Log.d(TAG, "getGuidePosts: received ${dtos.size} DTOs from API")
+                    Log.d(TAG, "getGuidePosts: first DTO sample: ${dtos.firstOrNull()}")
+                    
                     val guidePosts = dtos.mapNotNull { dto ->
-                        try { dto.toGuidePost() } catch (_: Exception) { null }
+                        try { 
+                            val guidePost = dto.toGuidePost("https://picpose.iamakmal.in/")
+                            Log.d(TAG, "getGuidePosts: mapped DTO id=${dto.id} to GuidePost id=${guidePost.id}")
+                            guidePost
+                        } catch (e: Exception) { 
+                            Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
+                            null 
+                        }
                     }
+                    Log.d(TAG, "getGuidePosts: successfully mapped ${guidePosts.size} guide posts")
+                    
                     // Try to extract meta if present (wrapper may have page/limit/total) - build best-effort MetaDto
                     val meta = try {
                         // try wrapper.page/wrapper.limit/wrapper.total if present
@@ -531,10 +543,12 @@ class HomeRepository(
 
                     emit(Result.success(PaginatedResult(items = guidePosts, meta = meta)))
                 } catch (e: Exception) {
+                    Log.e(TAG, "getGuidePosts: exception during mapping: ${e.message}")
                     emit(Result.failure(e))
                 }
             },
             onFailure = { err ->
+                Log.e(TAG, "getGuidePosts: API call failed: ${err.message}")
                 emit(Result.failure(err))
             }
         )
