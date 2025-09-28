@@ -674,6 +674,11 @@ class HomeRepository(
                 favoriteDao.addToFavorites(
                     FavoritePrompt(
                         promptId = promptId,
+                        title = "Sample Prompt",          // provide required parameter
+                        shortPrompt = "Sample short prompt", // provide required parameter
+                        fullPrompt = "Sample full prompt", // provide required parameter
+                        imageUrl = "",                     // provide required parameter
+                        category = "",                     // provide required parameter
                         favoritedAt = System.currentTimeMillis()
                     )
                 )
@@ -684,8 +689,11 @@ class HomeRepository(
             val updatedPrompt = AIPrompt(
                 id = promptId,
                 title = "Sample Prompt",
+                shortPrompt = "Sample short prompt",     // provide required parameter
                 fullPrompt = "Sample prompt content",
-                isFavorited = !isFavorite
+                imageUrl = "",                           // provide required parameter  
+                category = "",                           // provide required parameter
+                isFavorite = !isFavorite                 // fix: use isFavorite instead of isFavorited
             )
             
             emit(Result.success(updatedPrompt))
@@ -712,7 +720,7 @@ class HomeRepository(
                 id = postId,
                 title = "Sample Guide Post",
                 content = "Sample guide content",
-                isFavorited = true // Always set to true for demo
+                isFavorited = true // fix: use isFavorited instead of isFavorited (it's correct now)
             )
             
             Log.d(TAG, "Toggled guide post favorite: $postId")

@@ -3,6 +3,8 @@ package com.picpose.bestphotographyapp.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -138,36 +140,35 @@ fun GuidePostCard(
                 }
 
                 // View count badge (bottom right)
-                guidePost.viewCount?.let { count ->
-                    if (count > 0) {
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(12.dp),
-                            color = Color.Black.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(12.dp)
+                if (guidePost.viewCount > 0) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp),
+                        color = Color.Black.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = when {
-                                        count >= 1000000 -> "${count / 1000000}M"
-                                        count >= 1000 -> "${count / 1000}K"
-                                        else -> count.toString()
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
+                            Icon(
+                                imageVector = Icons.Default.Visibility,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = when {
+                                    guidePost.viewCount >= 1000000 -> "${guidePost.viewCount / 1000000}M"
+                                    guidePost.viewCount >= 1000 -> "${guidePost.viewCount / 1000}K"
+                                    else -> guidePost.viewCount.toString()
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
                             }
                         }
                     }
@@ -233,7 +234,7 @@ fun GuidePostCard(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        guidePost.authorName?.let { author ->
+                        if (guidePost.authorName.isNotBlank()) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
@@ -242,7 +243,7 @@ fun GuidePostCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = author,
+                                text = guidePost.authorName,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color(0xFF64748B),
                                 maxLines = 1,
@@ -250,10 +251,10 @@ fun GuidePostCard(
                             )
                         }
 
-                        guidePost.createdAt?.let { date ->
-                            if (guidePost.authorName != null) {
+                        if (guidePost.createdAt.isNotBlank()) {
+                            if (guidePost.authorName.isNotBlank()) {
                                 Text(
-                                    text = " • $date",
+                                    text = " • ${guidePost.createdAt}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color(0xFF64748B)
                                 )
@@ -266,7 +267,7 @@ fun GuidePostCard(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = date,
+                                    text = guidePost.createdAt,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color(0xFF64748B)
                                 )
@@ -275,13 +276,13 @@ fun GuidePostCard(
                     }
 
                     // Reading time or difficulty
-                    guidePost.readingTime?.let { time ->
+                    if (guidePost.readingTime > 0) {
                         Surface(
                             color = Color(0xFFF1F5F9),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "${time} min read",
+                                text = "${guidePost.readingTime} min read",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF475569),
                                 fontWeight = FontWeight.Medium,
@@ -292,12 +293,12 @@ fun GuidePostCard(
                 }
 
                 // Tags (if compact mode)
-                if (isCompact && !guidePost.tags.isNullOrEmpty()) {
+                if (isCompact && guidePost.tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(guidePost.tags!!.take(3)) { tag ->
+                        items(guidePost.tags.take(3)) { tag ->
                             Surface(
                                 color = Color(0xFFEEF2FF),
                                 shape = RoundedCornerShape(8.dp)
