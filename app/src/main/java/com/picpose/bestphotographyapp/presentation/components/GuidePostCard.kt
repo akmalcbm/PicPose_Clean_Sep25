@@ -121,17 +121,17 @@ fun GuidePostCard(
                             color = Color.Black.copy(alpha = 0.5f)
                         ) {
                             IconButton(
-                                onClick = { onFavoriteClick(guidePost) },
+                                onClick = { onFavoriteClick?.invoke(guidePost) },
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (guidePost.isFavorited == true) {
+                                    imageVector = if (guidePost.isFavorited) {
                                         Icons.Default.Favorite
                                     } else {
                                         Icons.Default.FavoriteBorder
                                     },
-                                    contentDescription = if (guidePost.isFavorited == true) "Remove from favorites" else "Add to favorites",
-                                    tint = if (guidePost.isFavorited == true) Color.Red else Color.White,
+                                    contentDescription = if (guidePost.isFavorited) "Remove from favorites" else "Add to favorites",
+                                    tint = if (guidePost.isFavorited) Color.Red else Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -316,16 +316,4 @@ fun GuidePostCard(
             }
         }
     }
-}
-
-// Extension for LazyRow with tags
-@Composable
-private fun LazyRow(
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
-) {
-    androidx.compose.foundation.lazy.LazyRow(
-        horizontalArrangement = horizontalArrangement,
-        content = content
-    )
 }
