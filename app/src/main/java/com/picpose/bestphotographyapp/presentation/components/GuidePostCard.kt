@@ -98,13 +98,13 @@ fun GuidePostCard(
                     verticalAlignment = Alignment.Top
                 ) {
                     // Category badge
-                    guidePost.category?.let { category ->
+                    if (guidePost.category.isNotBlank()) {
                         Surface(
                             color = Color(0xFF8B5CF6).copy(alpha = 0.9f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = category,
+                                text = guidePost.category,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Medium,
@@ -161,8 +161,8 @@ fun GuidePostCard(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = when {
-                                    guidePost.viewCount >= 1000000 -> "${guidePost.viewCount / 1000000}M"
-                                    guidePost.viewCount >= 1000 -> "${guidePost.viewCount / 1000}K"
+                                    guidePost.viewCount >= 1000000 -> "${guidePost.viewCount.div(1000000)}M"
+                                    guidePost.viewCount >= 1000 -> "${guidePost.viewCount.div(1000)}K"
                                     else -> guidePost.viewCount.toString()
                                 },
                                 style = MaterialTheme.typography.labelSmall,
@@ -203,7 +203,7 @@ fun GuidePostCard(
             ) {
                 // Title
                 Text(
-                    text = guidePost.title ?: "Untitled",
+                    text = guidePost.title.ifBlank { "Untitled" },
                     style = if (isCompact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = if (isCompact) 1 else 2,
@@ -212,10 +212,10 @@ fun GuidePostCard(
                 )
 
                 // Description/Content preview
-                if (!isCompact && !guidePost.description.isNullOrBlank()) {
+                if (!isCompact && guidePost.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = guidePost.description!!,
+                        text = guidePost.description,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF64748B),
                         maxLines = 2,
