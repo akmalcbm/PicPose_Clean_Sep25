@@ -23,9 +23,29 @@ import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.utils.formatNumber
 import com.picpose.bestphotographyapp.utils.formatTimestamp
+import kotlin.math.max
+
+// Helper: server base used to build absolute image URLs when API returns relative paths.
+// Adjust if your server domain changes.
+private const val SERVER_BASE_URL = "https://picpose.iamakmal.in/"
+
+/**
+ * Ensure image url is absolute so Coil can load it.
+ * If the passed value is already an absolute URL (starts with http) it's returned as-is.
+ * If empty or null, returns null (Coil will show placeholder if configured).
+ */
+private fun fullImageUrl(path: String?): String? {
+    if (path == null) return null
+    val trimmed = path.trim()
+    if (trimmed.isEmpty()) return null
+    if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+        return trimmed
+    }
+    return SERVER_BASE_URL.trimEnd('/') + "/" + trimmed.trimStart('/')
+}
 
 @Composable
-fun FeaturedGuidePostCard(
+fun GuidePostCards(
     guidePost: GuidePost,
     onGuidePostClick: () -> Unit,
     onLikeClick: () -> Unit,
@@ -42,67 +62,72 @@ fun FeaturedGuidePostCard(
         )
     ) {
         Column {
-            // Image
-            Card(
+            // Image area
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                    .height(160.dp)
             ) {
-                Box {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(guidePost.image)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = guidePost.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    
-                    // Featured badge
-                    if (guidePost.isFeatured) {
-                        Card(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .align(Alignment.TopEnd),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
-                            shape = RoundedCornerShape(8.dp)
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(fullImageUrl(guidePost.image))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = guidePost.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Featured badge
+                if (guidePost.isFeatured) {
+                    Card(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Featured",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    
-                    // Difficulty level badge
-                    if (guidePost.difficultyLevel.isNotEmpty()) {
-                        Card(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .align(Alignment.TopStart),
-                            colors = CardDefaults.cardColors(
-                                containerColor = when (guidePost.difficultyLevel.lowercase()) {
-                                    "beginner" -> Color(0xFF4CAF50)
-                                    "intermediate" -> Color(0xFFFF9800)
-                                    "advanced" -> Color(0xFFF44336)
-                                    else -> MaterialTheme.colorScheme.secondary
-                                }
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = guidePost.difficultyLevel,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White
-                            )
-                        }
+                }
+
+                // Tag / difficulty substitute badge: show first tag if available
+                val tagLabel = guidePost.tags.firstOrNull() ?: ""
+                if (tagLabel.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = tagLabel,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
                     }
                 }
             }
@@ -123,10 +148,11 @@ fun FeaturedGuidePostCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Excerpt
-                if (guidePost.excerpt.isNotEmpty()) {
+                // Excerpt (use description/content fallback)
+                val excerpt = guidePost.description.ifBlank { guidePost.content.take(200) }
+                if (excerpt.isNotBlank()) {
                     Text(
-                        text = guidePost.excerpt,
+                        text = excerpt,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 2,
@@ -135,14 +161,15 @@ fun FeaturedGuidePostCard(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Meta info row
+                // Meta row: estimated read time (computed) + favorites count
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Read time
-                    if (guidePost.estimatedReadTime > 0) {
+                    val estimatedMinutes = max(0, (guidePost.content.length / 800))
+                    // show minutes if > 0
+                    if (estimatedMinutes > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -154,7 +181,7 @@ fun FeaturedGuidePostCard(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "${guidePost.estimatedReadTime} min",
+                                text = "${estimatedMinutes} min",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
@@ -166,13 +193,13 @@ fun FeaturedGuidePostCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Visibility,
+                            imageVector = Icons.Default.BookmarkBorder,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         Text(
-                            text = formatNumber(guidePost.views),
+                            text = formatNumber(guidePost.favorites),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -181,7 +208,7 @@ fun FeaturedGuidePostCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Category badge
+                // Category badge if present
                 if (guidePost.category.isNotEmpty()) {
                     Card(
                         colors = CardDefaults.cardColors(
@@ -196,9 +223,9 @@ fun FeaturedGuidePostCard(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 // Action buttons
                 Row(
@@ -206,15 +233,15 @@ fun FeaturedGuidePostCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Like button
+                    // Like button and count
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onLikeClick) {
                             Icon(
-                                imageVector = if (guidePost.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                imageVector = Icons.Default.FavoriteBorder,
                                 contentDescription = "Like",
-                                tint = if (guidePost.isLiked) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
                         Text(
@@ -229,7 +256,7 @@ fun FeaturedGuidePostCard(
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -266,7 +293,7 @@ fun CompactGuidePostCard(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(guidePost.image)
+                        .data(fullImageUrl(guidePost.image))
                         .crossfade(true)
                         .build(),
                     contentDescription = guidePost.title,
@@ -292,9 +319,10 @@ fun CompactGuidePostCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                if (guidePost.excerpt.isNotEmpty()) {
+                val excerpt = guidePost.description.ifBlank { guidePost.content.take(120) }
+                if (excerpt.isNotEmpty()) {
                     Text(
-                        text = guidePost.excerpt,
+                        text = excerpt,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 2,
@@ -303,12 +331,13 @@ fun CompactGuidePostCard(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Meta info
+                // Meta info: estimated minutes + favorites
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (guidePost.estimatedReadTime > 0) {
+                    val estimatedMinutes = max(0, (guidePost.content.length / 800))
+                    if (estimatedMinutes > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -320,7 +349,7 @@ fun CompactGuidePostCard(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "${guidePost.estimatedReadTime}min",
+                                text = "${estimatedMinutes}min",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
@@ -332,13 +361,13 @@ fun CompactGuidePostCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Visibility,
+                            imageVector = Icons.Default.BookmarkBorder,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         Text(
-                            text = formatNumber(guidePost.views),
+                            text = formatNumber(guidePost.favorites),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -356,9 +385,9 @@ fun CompactGuidePostCard(
                 ) {
                     IconButton(onClick = onLikeClick) {
                         Icon(
-                            imageVector = if (guidePost.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            imageVector = Icons.Default.FavoriteBorder,
                             contentDescription = "Like",
-                            tint = if (guidePost.isLiked) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -373,7 +402,7 @@ fun CompactGuidePostCard(
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp)
                     )
                 }

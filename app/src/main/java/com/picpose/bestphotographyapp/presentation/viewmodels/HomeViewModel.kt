@@ -32,9 +32,9 @@ data class HomeUiState(
     val recentPosts: List<Post> = emptyList(),
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
+    val guidePosts: List<com.picpose.bestphotographyapp.data.models.GuidePost> = emptyList(), // <- new
     val favoritePromptsCount: Int = 0,
     val dailyTips: List<DailyTip> = emptyList(),
-    val guidePosts: List<GuidePost> = emptyList(),
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
@@ -516,79 +516,46 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     /**
      * Load guide posts from repository
      */
-    fun loadGuidePosts(
-        page: Int = 1,
-        limit: Int = 10,
-        category: String? = null,
-        featured: Boolean? = true
-    ) {
-        guidePostsJob?.cancel()
-        guidePostsJob = viewModelScope.launch {
+    fun loadGuidePosts(page: Int = 1, limit: Int = 10, featured: Boolean? = true, status: String? = "published") {
+        viewModelScope.launch {
             try {
-                Log.d(TAG, "loadGuidePosts: starting page=$page, limit=$limit")
-                repository.getGuidePosts(
-                    page = page,
-                    limit = limit,
-                    category = category,
-                    featured = featured
-                ).collect { result ->
+                val flow = repository.getGuidePosts(page = page, limit = limit, featured = featured, status = status)
+                flow.collect { result ->
                     result.fold(
-                        onSuccess = { paginatedResult ->
-                            val guidePosts = paginatedResult.items
-                            Log.d(TAG, "loadGuidePosts: received ${guidePosts.size} guide posts")
-                            cachedGuidePosts = guidePosts
-                            _uiState.value = _uiState.value.copy(
-                                guidePosts = guidePosts,
-                                error = null
-                            )
+                        onSuccess = { pag ->
+                            // update ui state
+                            _uiState.value = _uiState.value.copy(guidePosts = pag.items)
                         },
-                        onFailure = { throwable ->
-                            Log.w(TAG, "loadGuidePosts failed: ${throwable.message}")
-                            _uiState.value = _uiState.value.copy(
-                                guidePosts = cachedGuidePosts ?: emptyList(),
-                                error = throwable.message
-                            )
+                        onFailure = { err ->
+                            _uiState.value = _uiState.value.copy(error = err.message)
                         }
                     )
                 }
             } catch (e: Exception) {
-                if (e is CancellationException) {
-                    Log.d(TAG, "loadGuidePosts cancelled")
-                    return@launch
-                }
-                Log.e(TAG, "loadGuidePosts exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    guidePosts = cachedGuidePosts ?: emptyList(),
-                    error = e.message
-                )
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
-    /**
-     * Toggle like for a guide post (local UI update)
-     */
+    // Call loadGuidePosts somewhere in init or loadHomeData()
+    init {
+        // existing init logic...
+        fetchDailyTips()
+        loadAIPrompts()
+        loadFavoriteCount()
+        loadGuidePosts() // call it here (or inside loadHomeData)
+    }
+
+    // small helper to toggle like for guide posts (optimistic)
     fun toggleGuidePostLike(guidePostId: String) {
         viewModelScope.launch {
             try {
-                val updatedGuidePosts = _uiState.value.guidePosts.map { guidePost ->
-                    if (guidePost.id == guidePostId) {
-                        guidePost.copy(
-                            likes = guidePost.likes + 1,
-                            isLiked = !guidePost.isLiked
-                        )
-                    } else {
-                        guidePost
-                    }
+                val updated = _uiState.value.guidePosts.map { gp ->
+                    if (gp.id == guidePostId) gp.copy(likes = gp.likes + 1) else gp
                 }
-
-                _uiState.value = _uiState.value.copy(guidePosts = updatedGuidePosts)
-
-                // Optional: send to server
-                // repository.toggleGuidePostLike(guidePostId)
-
+                _uiState.value = _uiState.value.copy(guidePosts = updated)
+                // Optional: call repository to persist server-side
             } catch (e: Exception) {
-                Log.w(TAG, "toggleGuidePostLike failed: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }

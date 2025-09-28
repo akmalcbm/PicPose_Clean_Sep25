@@ -478,75 +478,67 @@ class HomeRepository(
      */
     suspend fun getGuidePosts(
         page: Int = 1,
-        limit: Int = 20,
+        limit: Int = 10,
         search: String? = null,
         featured: Boolean? = null,
-        status: String? = "published",
-        category: String?
-    ): kotlinx.coroutines.flow.Flow<Result<PaginatedResult<GuidePost>>> = flow {
+        popular: Boolean? = null,
+        status: String? = "published"
+    ): kotlinx.coroutines.flow.Flow<Result<PaginatedResult<com.picpose.bestphotographyapp.data.models.GuidePost>>> = kotlinx.coroutines.flow.flow {
         if (useMocks) {
-            emit(Result.success(PaginatedResult(items = emptyList(), meta = MetaDto(total = 0, page = page, limit = limit, hasMore = false))))
+            emit(Result.success(PaginatedResult(items = emptyList(), meta = null)))
             return@flow
         }
 
-        try {
-            val apiResult: Result<ApiResponse<List<GuidePostDto>>> = safeApiCall {
-                callWithRetries {
-                    // Ensure you have added getGuidePosts to ApiService with the correct signature.
-                    apiService.getGuidePosts(
-                        apiKey = null,
-                        limit = limit,
-                        offset = (page - 1) * limit,
-                        q = search,
-                        featured = featured,
-                        status = status
-                    )
-                }
+        // safeApiCall and callWithRetries helpers exist in this repo
+        val apiResult: Result<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>> = safeApiCall {
+            callWithRetries {
+                apiService.getGuidePosts(
+                    apiKey = null,
+                    limit = limit,
+                    offset = (page - 1) * limit,
+                    page = page,
+                    q = search,
+                    featured = featured,
+                    popular = popular,
+                    status = status
+                )
             }
-
-            apiResult.fold(
-                onSuccess = { wrapper ->
-                    try {
-                        val guidePosts: List<GuidePost> = wrapper.data?.mapNotNull { dto ->
-                            try { dto.toGuidePost() } catch (_: Exception) { null }
-                        } ?: emptyList()
-
-                        // Try to extract MetaDto in several safe ways
-                        val meta: MetaDto = try {
-                            // 1) Direct meta field (if wrapper type actually contains meta)
-                            val metaField = wrapper::class.java.getDeclaredField("meta").apply { isAccessible = true }
-                            (metaField.get(wrapper) as? MetaDto)
-                        } catch (_: Throwable) {
-                            null
-                        } ?: run {
-                            // 2) Try page/limit/total fields on wrapper (common shape)
-                            val wrapperClass = wrapper::class.java
-                            val pageVal = try { wrapperClass.getDeclaredField("page").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-                            val limitVal = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-                            val totalVal = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-
-                            val resolvedPage = pageVal ?: page
-                            val resolvedLimit = limitVal ?: limit
-                            val resolvedTotal = totalVal ?: (guidePosts.size + (resolvedPage - 1) * resolvedLimit)
-                            val hasMore = (resolvedPage * resolvedLimit) < resolvedTotal
-
-                            MetaDto(total = resolvedTotal, page = resolvedPage, limit = resolvedLimit, hasMore = hasMore)
-                        }
-
-                        val paginatedResult = PaginatedResult(items = guidePosts, meta = meta)
-                        emit(Result.success(paginatedResult))
-                    } catch (e: Exception) {
-                        emit(Result.failure(e))
-                    }
-                },
-                onFailure = { err ->
-                    emit(Result.failure(err))
-                }
-            )
-        } catch (e: Exception) {
-            emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO)
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                try {
+                    val dtos = wrapper.data ?: emptyList()
+                    val guidePosts = dtos.mapNotNull { dto ->
+                        try { dto.toGuidePost() } catch (_: Exception) { null }
+                    }
+                    // Try to extract meta if present (wrapper may have page/limit/total) - build best-effort MetaDto
+                    val meta = try {
+                        // try wrapper.page/wrapper.limit/wrapper.total if present
+                        val wrapperClass = wrapper::class.java
+                        val p = try { wrapperClass.getDeclaredField("page").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                        val l = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                        val t = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                        if (p != null || l != null || t != null) {
+                            com.picpose.bestphotographyapp.data.models.MetaDto(
+                                total = t ?: guidePosts.size,
+                                page = p ?: page,
+                                limit = l ?: limit,
+                                hasMore = ((p ?: page) * (l ?: limit)) < (t ?: guidePosts.size)
+                            )
+                        } else null
+                    } catch (_: Throwable) { null }
+
+                    emit(Result.success(PaginatedResult(items = guidePosts, meta = meta)))
+                } catch (e: Exception) {
+                    emit(Result.failure(e))
+                }
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(kotlinx.coroutines.Dispatchers.IO)
 
     /**
      * Get single guide post by ID

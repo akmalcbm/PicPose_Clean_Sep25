@@ -38,16 +38,15 @@ interface ApiService {
     @GET("guide_posts/get_guide_posts.php")
     suspend fun getGuidePosts(
         @Query("api_key") apiKey: String? = null,
-        @Query("page") page: Int? = null,
         @Query("limit") limit: Int? = null,
-        @Query("category") category: String? = null,
         @Query("offset") offset: Int? = null,
+        @Query("page") page: Int? = null,
         @Query("q") q: String? = null,
-        @Query("search") search: String? = null,
+        @Query("category") category: String? = null,
         @Query("featured") featured: Boolean? = null,
-        @Query("difficulty_level") difficultyLevel: String? = null,
-        @Query("status") status: String? = "published"
-    ): Response<ApiResponse<List<GuidePostDto>>>
+        @Query("popular") popular: Boolean? = null,
+        @Query("status") status: String? = null
+    ): Response<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>>
 
     @GET("guide_posts/get_guide_post.php")
     suspend fun getGuidePostById(
