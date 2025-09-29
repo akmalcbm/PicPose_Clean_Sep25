@@ -37,6 +37,7 @@ fun AIPromptCard(
     showFavoriteIcon: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    // Use Compose's ClipboardManager
     val clipboardManager = LocalClipboardManager.current
     var isPressed by remember { mutableStateOf(false) }
 

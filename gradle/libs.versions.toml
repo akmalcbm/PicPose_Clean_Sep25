@@ -1,41 +1,40 @@
 [versions]
-agp = "8.4.0" # Using a stable AGP version, ensure it is compatible with your project
-kotlin = "2.0.0" # Aligned with the Compose compiler plugin
+agp = "8.13.0" # Using a stable AGP version, ensure it is compatible with your project
+kotlin = "2.2.20" # Aligned with the Compose compiler plugin
 
-coil = "2.5.0"
-lottie = "6.1.0"
+coil = "2.7.0"
+lottie = "6.6.9"
 
-retrofit = "2.11.0" # latest stable Retrofit
-gson-converter = "2.11.0"
-okhttp = "4.12.0"
+retrofit = "3.0.0" # latest stable Retrofit
+gson-converter = "3.0.0"
+okhttp = "5.1.0"
 
 # AndroidX
-coreKtx = "1.13.1"
-appcompat = "1.7.0"
-material = "1.12.0"
-activity = "1.9.1"
-lifecycle = "2.8.3"
+coreKtx = "1.17.0"
+appcompat = "1.7.1"
+material = "1.13.0"
+activity = "1.11.0"
+lifecycle = "2.9.4"
 splashscreen = "1.0.1"
-room = "2.6.1"
-accompanist = "0.32.0"
+room = "2.8.1"
+accompanist = "0.36.0"
 
 # Navigation & DI
-navigation-compose = "2.8.0"
+navigation-compose = "2.9.5"
 
-hilt = "2.48"
-hilt-navigation-compose = "1.1.0"
+hilt = "2.57.1"
+hilt-navigation-compose = "1.3.0"
 
-kotlinx-serialization = "1.6.3" # Update version
-ksp = "2.0.0-1.0.21" # Align with Kotlin version
+kotlinx-serialization = "1.9.0" # Update version
+ksp = "2.2.20-2.0.2" # Align with Kotlin version
 
 # Compose
-composeBom = "2024.06.00" # Use a stable BOM version
+composeBom = "2025.09.01"
 
 # Tests
 junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
-constraintlayout = "2.2.0" # This may not be needed for Compose projects
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
 
 [libraries]
 # Core

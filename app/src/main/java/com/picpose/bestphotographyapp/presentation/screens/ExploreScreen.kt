@@ -1,16 +1,14 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.widget.Toast
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,17 +16,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
@@ -36,7 +31,6 @@ import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import kotlinx.coroutines.launch
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -67,9 +61,9 @@ fun ExploreScreen(
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null && 
-                    lastVisibleIndex >= uiState.content.size - 3 && 
-                    uiState.hasMore && 
+                if (lastVisibleIndex != null &&
+                    lastVisibleIndex >= uiState.content.size - 3 &&
+                    uiState.hasMore &&
                     !uiState.isLoading) {
                     viewModel.loadMore()
                 }
@@ -137,11 +131,11 @@ fun ExploreScreen(
                                     is ExploreContent.AIPromptContent -> {
                                         AIPromptCard(
                                             prompt = content.prompt,
-                                            onClick = { 
+                                            onClick = {
                                                 onNavigateToPromptDetail(content.prompt)
                                             },
                                             onCopy = {
-                                                val textToCopy = content.prompt.shortPrompt 
+                                                val textToCopy = content.prompt.shortPrompt
                                                     ?: content.prompt.fullPrompt ?: ""
                                                 clipboardManager.setText(AnnotatedString(textToCopy))
                                                 Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
@@ -149,19 +143,21 @@ fun ExploreScreen(
                                             onFavoriteClick = { prompt ->
                                                 viewModel.togglePromptFavorite(prompt)
                                             },
-                                            modifier = Modifier.animateItemPlacement()
+                                            // <-- replaced deprecated animateItemPlacement with animateItem()
+                                            modifier = Modifier.animateItem()
                                         )
                                     }
                                     is ExploreContent.GuidePostContent -> {
                                         GuidePostCard(
                                             guidePost = content.guidePost,
-                                            onClick = { 
+                                            onClick = {
                                                 onNavigateToGuidePostDetail(content.guidePost)
                                             },
                                             onFavoriteClick = { post ->
                                                 viewModel.toggleGuidePostFavorite(post)
                                             },
-                                            modifier = Modifier.animateItemPlacement()
+                                            // <-- replaced deprecated animateItemPlacement with animateItem()
+                                            modifier = Modifier.animateItem()
                                         )
                                     }
                                 }

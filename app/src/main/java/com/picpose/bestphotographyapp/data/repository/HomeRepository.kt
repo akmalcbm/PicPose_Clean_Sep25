@@ -206,7 +206,7 @@ class HomeRepository(
                         rawList == null -> emptyList()
                         rawList.isEmpty() -> emptyList()
                         // If already parsed as AIPrompt (common case)
-                        rawList.first() is AIPrompt -> rawList.filterIsInstance<AIPrompt>()
+                        true -> rawList.filterIsInstance<AIPrompt>()
                         else -> {
                             // fallback: convert each element via Gson (handles LinkedTreeMap etc)
                             rawList.mapNotNull { elem ->

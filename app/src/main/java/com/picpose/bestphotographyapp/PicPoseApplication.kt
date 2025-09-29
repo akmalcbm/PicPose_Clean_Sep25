@@ -1,7 +1,6 @@
 package com.picpose.bestphotographyapp
 
 import android.app.Application
-import androidx.lifecycle.lifecycleScope
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -10,6 +9,7 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -35,6 +35,7 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
         initializeAdMobConfig()
     }
     
+    @OptIn(DelicateCoroutinesApi::class)
     private fun initializeAdMobConfig() {
         try {
             val adMobConfig = AdMobConfigManager.getInstance(this)
