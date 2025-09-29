@@ -1,41 +1,41 @@
 [versions]
-agp = "8.0.2"
-kotlin = "2.1.0"
-ksp = "2.1.0-1.0.29"
+agp = "8.4.0" # Using a stable AGP version, ensure it is compatible with your project
+kotlin = "2.0.0" # Aligned with the Compose compiler plugin
 
-hilt = "2.51"
-hilt-navigation-compose = "1.2.0"
+coil = "2.5.0"
+lottie = "6.1.0"
 
-coil = "2.7.0"
-lottie = "6.6.2"
-
-retrofit = "2.11.0"
+retrofit = "2.11.0" # latest stable Retrofit
 gson-converter = "2.11.0"
 okhttp = "4.12.0"
 
 # AndroidX
-coreKtx = "1.15.0"
+coreKtx = "1.13.1"
 appcompat = "1.7.0"
 material = "1.12.0"
-activity = "1.9.3"
-lifecycle = "2.8.7"
+activity = "1.9.1"
+lifecycle = "2.8.3"
 splashscreen = "1.0.1"
 room = "2.6.1"
-accompanist = "0.34.0"
+accompanist = "0.32.0"
 
 # Navigation & DI
-navigation-compose = "2.8.4"
+navigation-compose = "2.8.0"
 
-kotlinx-serialization = "1.7.3"
-javapoet = "1.13.0"
+hilt = "2.48"
+hilt-navigation-compose = "1.1.0"
+
+kotlinx-serialization = "1.6.3" # Update version
+ksp = "2.0.0-1.0.21" # Align with Kotlin version
 
 # Compose
-composeBom = "2024.11.00"
+composeBom = "2024.06.00" # Use a stable BOM version
 
 # Tests
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+constraintlayout = "2.2.0" # This may not be needed for Compose projects
 
 [libraries]
 # Core
@@ -77,9 +77,6 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
-
-# JavaPoet (explicit version for Hilt compatibility)
-javapoet = { group = "com.squareup", name = "javapoet", version.ref = "javapoet" }
 
 # Compose BOM (platform)
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

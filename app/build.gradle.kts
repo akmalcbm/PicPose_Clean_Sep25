@@ -1,3 +1,7 @@
+import com.android.build.gradle.internal.generators.BuildConfigData
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.JavaVersion
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,14 +11,18 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+hilt {
+    enableAggregatingTask = false
+}
+
 android {
     namespace = "com.picpose.bestphotographyapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.picpose.bestphotographyapp"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -26,7 +34,9 @@ android {
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables.useSupportLibrary = true
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
@@ -36,9 +46,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Ensure BuildConfig is generated for release builds too
+            buildConfigField(
+                "String",
+                "API_KEY",
+                "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+            )
         }
         debug {
             isMinifyEnabled = false
+            // BuildConfig field is inherited from defaultConfig, but you can override if needed
         }
     }
 
@@ -47,31 +64,24 @@ android {
         buildConfig = true
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
-        )
-    }
-
-    // KSP Configuration
-    ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-        arg("room.incremental", "true")
-        arg("room.expandProjection", "true")
-    }
-
     packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
+}
+
+composeCompiler {
+    enableStrongSkippingMode = true
 }
 
 dependencies {
@@ -84,12 +94,11 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.material3.window.size)
-
-    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Activity & Lifecycle
     implementation(libs.androidx.activity.compose)
@@ -104,14 +113,14 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
-    // UI Libraries
     implementation(libs.coil.compose)
     implementation(libs.lottie.compose)
-    implementation(libs.accompanist.swiperefresh)
 
-    // Networking
+    // Retrofit + Gson
     implementation(libs.retrofit2)
     implementation(libs.converter.gson)
+
+    //OKHttp
     implementation(libs.okhttp.logging.interceptor)
 
     // Room Database
@@ -119,17 +128,20 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    implementation(libs.accompanist.swiperefresh)
+
+    // ✅ Google AdMob
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    // ✅ Meta Audience Network (for mediation)
+    implementation("com.facebook.android:audience-network-sdk:6.+")
+
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
-    // JavaPoet (explicit version to prevent Hilt conflicts)
-    implementation(libs.javapoet)
-
-    // Ads
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
-    implementation("com.facebook.android:audience-network-sdk:6.17.0")
+    // Window Size
+    implementation(libs.androidx.compose.material3.window.size)
 
     // Tests
     testImplementation(libs.junit)
