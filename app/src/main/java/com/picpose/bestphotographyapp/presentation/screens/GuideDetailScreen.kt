@@ -1,6 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -8,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -420,7 +420,7 @@ fun GuideDetailScreen(
                                 Column(modifier = Modifier.padding(20.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            Icons.Default.Article,
+                                            Icons.AutoMirrored.Filled.Article,
                                             contentDescription = null,
                                             modifier = Modifier.size(24.dp),
                                             tint = MaterialTheme.colorScheme.primary
