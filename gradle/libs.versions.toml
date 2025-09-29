@@ -1,5 +1,5 @@
 [versions]
-agp = "7.4.2" # Using a stable AGP version, ensure it is compatible with your project
+agp = "8.1.4" # Using a stable AGP version, ensure it is compatible with your project
 kotlin = "2.0.0" # Aligned with the Compose compiler plugin
 
 coil = "2.5.0"

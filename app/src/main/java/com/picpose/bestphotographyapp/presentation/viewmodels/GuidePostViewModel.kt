@@ -5,12 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 private const val TAG = "GuidePostViewModel"
 
@@ -21,8 +19,7 @@ data class GuidePostUiState(
     val isRefreshing: Boolean = false
 )
 
-@HiltViewModel
-class GuidePostViewModel @Inject constructor(
+class GuidePostViewModel(
     private val repository: HomeRepository
 ) : ViewModel() {
 

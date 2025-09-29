@@ -30,23 +30,33 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.presentation.viewmodels.GuidePostViewModel
+import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import kotlinx.coroutines.launch
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideDetailScreen(
     guidePostId: String,
-    viewModel: GuidePostViewModel = hiltViewModel(),
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // Manual ViewModel creation to avoid Hilt dependency issues
+    val repository = remember { HomeRepository(context) }
+    val viewModel: GuidePostViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+            @Suppress("UNCHECKED_CAST")
+            return GuidePostViewModel(repository) as T
+        }
+    })
+    
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
