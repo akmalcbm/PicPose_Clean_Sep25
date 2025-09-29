@@ -31,11 +31,15 @@ ksp = "2.0.0-1.0.21" # Align with Kotlin version
 # Compose
 composeBom = "2024.06.00" # Use a stable BOM version
 
+# Ad networks
+play-services-ads = "23.0.0"
+audience-network = "6.+"
+
 # Tests
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-constraintlayout = "2.2.0" # This may not be needed for Compose projects
+#constraintlayout = "2.2.0" # This may not be needed for Compose projects
 
 [libraries]
 # Core
@@ -91,6 +95,10 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-compose-material3-window-size = { group = "androidx.compose.material3", name = "material3-window-size-class" }
+
+# Ad networks (catalog entries)
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
+facebook-audience-network = { group = "com.facebook.android", name = "audience-network-sdk", version.ref = "audience-network" }
 
 # Tests
 junit = { group = "junit", name = "junit", version.ref = "junit" }
