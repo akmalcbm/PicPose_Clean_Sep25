@@ -77,6 +77,7 @@ fun GuidePostCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (isCompact) 140.dp else 200.dp)
+                    .height(if (isCompact) 160.dp else 240.dp) // Increased sizes for better visibility
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)

@@ -3,6 +3,9 @@ package com.picpose.bestphotographyapp.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewQuilt
@@ -16,17 +19,64 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen() {
-    val createOptions = listOf(
-        CreateOption("Take Photo", "Capture a new photo", Icons.Filled.CameraAlt),
-        CreateOption("Upload Photo", "Choose from gallery", Icons.Filled.PhotoLibrary),
-        CreateOption("AI Enhancement", "Enhance with AI", Icons.Filled.AutoAwesome),
-        CreateOption("Photo Collage", "Create a collage", Icons.Filled.Collections),
-        CreateOption("Photo Editor", "Edit your photos", Icons.Filled.Edit),
-        CreateOption("Templates", "Use photo templates", Icons.AutoMirrored.Filled.ViewQuilt)
+    val context = LocalContext.current
+
+    // Enhanced create options with more detailed descriptions and categories
+    val creationCategories = listOf(
+        CreationCategory(
+            title = "Photography",
+            items = listOf(
+                CreateOption("Take Photo", "Capture a new photo with camera", Icons.Filled.CameraAlt) {
+                    Toast.makeText(context, "Camera feature coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Upload Photo", "Choose from gallery", Icons.Filled.PhotoLibrary) {
+                    Toast.makeText(context, "Gallery picker coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Photo Editor", "Edit your photos", Icons.Filled.Edit) {
+                    Toast.makeText(context, "Photo editor coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("AI Enhancement", "Enhance with AI", Icons.Filled.AutoAwesome) {
+                    Toast.makeText(context, "AI enhancement coming soon!", Toast.LENGTH_SHORT).show()
+                }
+            )
+        ),
+        CreationCategory(
+            title = "Content Creation",
+            items = listOf(
+                CreateOption("Photo Collage", "Create a collage", Icons.Filled.Collections) {
+                    Toast.makeText(context, "Collage maker coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Templates", "Use photo templates", Icons.AutoMirrored.Filled.ViewQuilt) {
+                    Toast.makeText(context, "Templates coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Add Text", "Add text to photos", Icons.Filled.TextFields) {
+                    Toast.makeText(context, "Text editor coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Add Filters", "Apply artistic filters", Icons.Filled.FilterVintage) {
+                    Toast.makeText(context, "Filters coming soon!", Toast.LENGTH_SHORT).show()
+                }
+            )
+        ),
+        CreationCategory(
+            title = "Guides & Tips",
+            items = listOf(
+                CreateOption("Create Guide", "Write a photography guide", Icons.Filled.Article) {
+                    Toast.makeText(context, "Guide creation coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("Share Tip", "Share a photography tip", Icons.Filled.Lightbulb) {
+                    Toast.makeText(context, "Tip sharing coming soon!", Toast.LENGTH_SHORT).show()
+                },
+                CreateOption("AI Prompt", "Create AI prompts", Icons.Filled.Psychology) {
+                    Toast.makeText(context, "AI prompt creation coming soon!", Toast.LENGTH_SHORT).show()
+                }
+            )
+        )
     )
 
     Column(
@@ -34,40 +84,76 @@ fun CreateScreen() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Header
-        Text(
-            text = "Create",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = "Choose how you want to create",
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        // Create Options Grid
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        // Enhanced Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(createOptions.chunked(2)) { rowItems ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+            Icon(
+                imageVector = Icons.Default.Create,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Create",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Choose what you want to create",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Categories in LazyColumn
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            items(creationCategories) { category ->
+                CategorySection(category = category)
+            }
+
+            // Footer with some inspiration
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    rowItems.forEach { option ->
-                        CreateOptionCard(
-                            option = option,
-                            modifier = Modifier.weight(1f)
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.StarBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                    }
-                    // If odd number of items, add spacer
-                    if (rowItems.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "More features coming soon!",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "We're working on bringing you amazing creation tools",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -75,19 +161,45 @@ fun CreateScreen() {
     }
 }
 
+@Composable
+private fun CategorySection(category: CreationCategory) {
+    Column {
+        // Category Title
+        Text(
+            text = category.title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        // Options Grid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height((category.items.size / 2 * 120 + (category.items.size % 2) * 120).dp)
+        ) {
+            items(category.items) { option ->
+                CreateOptionCard(option = option)
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateOptionCard(
-    option: CreateOption,
-    modifier: Modifier = Modifier
-) {
+private fun CreateOptionCard(option: CreateOption) {
     Card(
-        onClick = { /* Handle click */ },
-        modifier = modifier.height(120.dp),
+        onClick = option.onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -109,12 +221,13 @@ fun CreateOptionCard(
                 text = option.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = option.description,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 maxLines = 2
@@ -123,8 +236,14 @@ fun CreateOptionCard(
     }
 }
 
+data class CreationCategory(
+    val title: String,
+    val items: List<CreateOption>
+)
+
 data class CreateOption(
     val title: String,
     val description: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val onClick: () -> Unit = {}
 )

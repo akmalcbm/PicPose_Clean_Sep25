@@ -150,11 +150,11 @@ fun NavGraph(navController: NavHostController) {
                 // fallback: popBackStack or show empty state — choose what fits app behavior
                 navController.popBackStack()
             } else {
-                PromptDetailScreen(promptId = promptId, viewModel = vm, onBack = { navController.popBackStack() })
+                AIPromptDetailScreen(promptId = promptId, viewModel = vm, onBack = { navController.popBackStack() })
             }
         }
 
-        // Guide Post Detail with argument (placeholder for now)
+        // Guide Post Detail with argument
         composable(
             route = Screen.GuidePostDetail.route,
             arguments = listOf(navArgument(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) {
@@ -163,13 +163,14 @@ fun NavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val guidePostId = backStackEntry.arguments?.getString(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) ?: ""
             
-            // For now, just show a placeholder screen or navigate back
-            // TODO: Implement GuidePostDetailScreen
+
             if (guidePostId.isBlank()) {
                 navController.popBackStack()
             } else {
-                // Placeholder implementation - you can create GuidePostDetailScreen later
-                CreateScreen() // Using existing screen as placeholder
+                GuideDetailScreen(
+                    guidePostId = guidePostId,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
 

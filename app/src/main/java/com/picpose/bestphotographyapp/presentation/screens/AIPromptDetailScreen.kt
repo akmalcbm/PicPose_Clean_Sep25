@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PromptDetailScreen(
+fun AIPromptDetailScreen(
     promptId: String,
     viewModel: AIPromptViewModel = viewModel(),
     onBack: () -> Unit

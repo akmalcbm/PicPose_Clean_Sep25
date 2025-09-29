@@ -119,8 +119,8 @@ fun ExploreScreen(
                     ) {
                         LazyColumn(
                             state = listState,
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), // Adjusted padding
+                            verticalArrangement = Arrangement.spacedBy(16.dp), // Increased spacing between items
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(
@@ -202,7 +202,7 @@ private fun ExploreTopBar(
                 targetState = isSearchExpanded,
                 transitionSpec = {
                     slideInHorizontally() + fadeIn() togetherWith
-                    slideOutHorizontally() + fadeOut()
+                            slideOutHorizontally() + fadeOut()
                 },
                 label = "search_animation"
             ) { expanded ->
@@ -215,7 +215,7 @@ private fun ExploreTopBar(
                             Icon(Icons.Default.Search, contentDescription = null)
                         },
                         trailingIcon = {
-                            IconButton(onClick = { 
+                            IconButton(onClick = {
                                 isSearchExpanded = false
                                 onSearchQueryChange("")
                             }) {
@@ -265,85 +265,82 @@ private fun FilterChipsSection(
     onContentFilterSelected: (ContentFilter) -> Unit,
     onSortOptionSelected: (SortOption) -> Unit
 ) {
+    // More compact filter section
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp) // Reduced vertical padding
     ) {
-        // Content Type Filters
-        Text(
-            text = "Content Type",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
+        // Combined Content Type and Categories in single row when possible
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 6.dp) // Reduced bottom padding
         ) {
+            // Content Type Filters - more compact
             items(ContentFilter.entries) { filter ->
                 FilterChip(
                     onClick = { onContentFilterSelected(filter) },
-                    label = { Text(filter.displayName) },
+                    label = {
+                        Text(
+                            text = filter.displayName,
+                            style = MaterialTheme.typography.labelSmall // Smaller text
+                        )
+                    },
                     selected = selectedContentFilter == filter,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    ),
+                    modifier = Modifier.height(32.dp) // Smaller height
+                )
+            }
+
+            // Add spacing between content types and categories
+            item { Spacer(modifier = Modifier.width(8.dp)) }
+
+            // Categories - only show a few most important ones
+            items(categories.take(4)) { category -> // Limit to 4 categories
+                FilterChip(
+                    onClick = { onCategorySelected(category) },
+                    label = {
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.labelSmall // Smaller text
+                        )
+                    },
+                    selected = selectedCategory == category,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary
+                    ),
+                    modifier = Modifier.height(32.dp) // Smaller height
                 )
             }
         }
 
-        // Categories
-        if (categories.isNotEmpty()) {
-            Text(
-                text = "Categories",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
+        // Sort Options - only show when needed, in a more compact way
+        if (selectedContentFilter != ContentFilter.ALL || selectedCategory != "All") {
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                items(categories) { category ->
+                items(SortOption.entries.take(3)) { option -> // Limit sort options
                     FilterChip(
-                        onClick = { onCategorySelected(category) },
-                        label = { Text(category) },
-                        selected = selectedCategory == category,
+                        onClick = { onSortOptionSelected(option) },
+                        label = {
+                            Text(
+                                text = option.displayName,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        selected = selectedSortOption == option,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondary
-                        )
+                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                        ),
+                        modifier = Modifier.height(28.dp) // Even smaller for sort options
                     )
                 }
-            }
-        }
-
-        // Sort Options
-        Text(
-            text = "Sort By",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(SortOption.entries) { option ->
-                FilterChip(
-                    onClick = { onSortOptionSelected(option) },
-                    label = { Text(option.displayName) },
-                    selected = selectedSortOption == option,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                    )
-                )
             }
         }
     }
