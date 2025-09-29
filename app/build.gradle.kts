@@ -60,6 +60,13 @@ android {
         )
     }
 
+    // KSP Configuration
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+        arg("room.incremental", "true")
+        arg("room.expandProjection", "true")
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -116,6 +123,9 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
+
+    // JavaPoet (explicit version to prevent Hilt conflicts)
+    implementation(libs.javapoet)
 
     // Ads
     implementation("com.google.android.gms:play-services-ads:23.5.0")
