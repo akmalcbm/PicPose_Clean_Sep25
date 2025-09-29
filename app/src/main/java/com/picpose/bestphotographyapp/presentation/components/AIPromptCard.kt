@@ -69,7 +69,7 @@ fun AIPromptCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isCompact) 100.dp else 180.dp)
+                    .height(if (isCompact) 120.dp else 200.dp) // Increased sizes for better visibility
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
