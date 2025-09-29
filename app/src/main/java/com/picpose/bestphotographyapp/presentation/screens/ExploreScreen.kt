@@ -31,6 +31,7 @@ import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -123,45 +124,40 @@ fun ExploreScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp), // Increased spacing between items
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(
-                                items = uiState.content,
-                                key = { it.id }
-                            ) { content ->
-                                when (content) {
-                                    is ExploreContent.AIPromptContent -> {
-                                        AIPromptCard(
-                                            prompt = content.prompt,
-                                            onClick = {
-                                                onNavigateToPromptDetail(content.prompt)
-                                            },
-                                            onCopy = {
-                                                val textToCopy = content.prompt.shortPrompt
-                                                    ?: content.prompt.fullPrompt ?: ""
-                                                clipboardManager.setText(AnnotatedString(textToCopy))
-                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                            },
-                                            onFavoriteClick = { prompt ->
-                                                viewModel.togglePromptFavorite(prompt)
-                                            },
-                                            // <-- replaced deprecated animateItemPlacement with animateItem()
-                                            modifier = Modifier.animateItem()
-                                        )
+                                    itemsIndexed(
+                                        items = uiState.content,
+                                        key = { index, content ->
+                                            when (content) {
+                                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                                else -> "CONTENT_${content.hashCode()}_$index"
+                                            }
+                                        }
+                                    ) { index, content ->
+                                        when (content) {
+                                            is ExploreContent.AIPromptContent -> {
+                                                AIPromptCard(
+                                                    prompt = content.prompt,
+                                                    onClick = { onNavigateToPromptDetail(content.prompt) },
+                                                    onCopy = {
+                                                        val textToCopy = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
+                                                        clipboardManager.setText(AnnotatedString(textToCopy))
+                                                        Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
+                                                    modifier = Modifier.animateItem()
+                                                )
+                                            }
+                                            is ExploreContent.GuidePostContent -> {
+                                                GuidePostCard(
+                                                    guidePost = content.guidePost,
+                                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                                    onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
+                                                    modifier = Modifier.animateItem()
+                                                )
+                                            }
+                                        }
                                     }
-                                    is ExploreContent.GuidePostContent -> {
-                                        GuidePostCard(
-                                            guidePost = content.guidePost,
-                                            onClick = {
-                                                onNavigateToGuidePostDetail(content.guidePost)
-                                            },
-                                            onFavoriteClick = { post ->
-                                                viewModel.toggleGuidePostFavorite(post)
-                                            },
-                                            // <-- replaced deprecated animateItemPlacement with animateItem()
-                                            modifier = Modifier.animateItem()
-                                        )
-                                    }
-                                }
-                            }
 
                             // Loading indicator for pagination
                             if (uiState.isLoading && uiState.content.isNotEmpty()) {
