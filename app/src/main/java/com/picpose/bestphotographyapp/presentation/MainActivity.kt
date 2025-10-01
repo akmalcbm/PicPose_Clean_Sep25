@@ -25,7 +25,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            PicPoseTheme {
+            val settingsViewModel: com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
+            
+            PicPoseTheme(darkTheme = isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -34,8 +37,8 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
-                    // Show bottom navigation for all screens except splash
-                    val showBottomNav = currentRoute != Screen.Splash.route
+                    // Show bottom navigation for all screens except splash and login
+                    val showBottomNav = currentRoute != Screen.Splash.route && currentRoute != Screen.Login.route
 
                     if (showBottomNav) {
                         Scaffold(
@@ -48,7 +51,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        // Show only the NavGraph for splash screen
+                        // Show only the NavGraph for splash and login screens
                         NavGraph(navController = navController)
                     }
                 }
