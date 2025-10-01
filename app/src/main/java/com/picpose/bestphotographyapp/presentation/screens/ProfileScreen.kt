@@ -26,11 +26,16 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ProfileScreen(
     onNavigateToSettings: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    authViewModel: com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val profileTabs = listOf("Photos", "Collections", "Liked")
     var selectedTab by remember { mutableStateOf("Photos") }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
     val profileOptions = listOf(
         ProfileOption("Edit Profile", "Update your profile information", Icons.Filled.Edit),
@@ -85,14 +90,14 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "John Photographer",
+                        text = currentUser?.name ?: "Guest User",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
-                        text = "@johnphoto",
+                        text = currentUser?.email ?: "Not logged in",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -169,26 +174,41 @@ fun ProfileScreen(
             )
         }
 
-        // Logout Button
+        // Login/Logout Button
         item {
-            OutlinedButton(
-                onClick = { showLogoutDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = "Logout",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Logout")
+            if (isLoggedIn) {
+                OutlinedButton(
+                    onClick = { showLogoutDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Logout",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Logout")
+                }
+            } else {
+                Button(
+                    onClick = { onNavigateToLogin() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Filled.Login,
+                        contentDescription = "Login",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Login")
+                }
             }
         }
     }

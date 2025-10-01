@@ -90,6 +90,11 @@ fun NavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

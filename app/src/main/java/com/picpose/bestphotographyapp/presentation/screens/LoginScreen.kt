@@ -46,6 +46,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     
     val authState by authViewModel.authState.collectAsState()
+    val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
     val context = LocalContext.current
     
     // Google Sign-In launcher
@@ -63,9 +64,9 @@ fun LoginScreen(
         }
     }
     
-    // Handle auth state changes
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+    // Handle auth state changes and skip
+    LaunchedEffect(authState, hasSkippedAuth) {
+        if (authState is AuthState.Success || hasSkippedAuth) {
             onNavigateToHome()
             authViewModel.resetAuthState()
         }
@@ -74,7 +75,19 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (isLoginMode) R.string.login else R.string.register)) }
+                title = { Text(stringResource(if (isLoginMode) R.string.login else R.string.register)) },
+                actions = {
+                    TextButton(
+                        onClick = {
+                            authViewModel.skipAuth()
+                        }
+                    ) {
+                        Text(
+                            text = "Skip",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->

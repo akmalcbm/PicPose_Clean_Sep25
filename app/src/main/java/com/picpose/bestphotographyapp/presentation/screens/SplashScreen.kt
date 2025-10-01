@@ -27,6 +27,7 @@ fun SplashScreen(
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
     
     Box(
         modifier = Modifier
@@ -42,7 +43,7 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         delay(2000) // 2 seconds splash screen
-        val destination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
+        val destination = if (isLoggedIn || hasSkippedAuth) Screen.Home.route else Screen.Login.route
         navController.navigate(destination) {
             popUpTo(Screen.Splash.route) {
                 inclusive = true

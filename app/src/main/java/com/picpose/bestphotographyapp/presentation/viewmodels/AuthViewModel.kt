@@ -38,6 +38,9 @@ class AuthViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val hasSkippedAuth: StateFlow<Boolean> = userSessionManager.hasSkippedAuth
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     val currentUser: StateFlow<User?> = combine(
         userSessionManager.userId,
         userSessionManager.userEmail,
@@ -123,6 +126,15 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.logout()
             _authState.value = AuthState.Idle
+        }
+    }
+
+    /**
+     * Skip authentication
+     */
+    fun skipAuth() {
+        viewModelScope.launch {
+            userSessionManager.setSkipAuth(true)
         }
     }
 
