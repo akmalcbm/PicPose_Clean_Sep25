@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# API error logs
+/api/error.log
+/api/*.log
