@@ -2,11 +2,13 @@ package com.picpose.bestphotographyapp.presentation.navigation
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Login : Screen("login")
     object Home : Screen("home")
     object Explore : Screen("explore")
     object Create : Screen("create")
     object Rewards : Screen("rewards")
     object Profile : Screen("profile")
+    object Settings : Screen("settings")
 
     // AI Prompts screens
     object AllAIPrompts : Screen("all_ai_prompts")

@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">पिकपोज़</string>
+    
+    <!-- Authentication -->
+    <string name="login">लॉगिन</string>
+    <string name="register">पंजीकरण</string>
+    <string name="email">ईमेल</string>
+    <string name="password">पासवर्ड</string>
+    <string name="name">नाम</string>
+    <string name="sign_in_with_google">Google के साथ साइन इन करें</string>
+    <string name="sign_in_with_facebook">Facebook के साथ साइन इन करें</string>
+    <string name="sign_in_with_twitter">Twitter के साथ साइन इन करें</string>
+    <string name="or_login_with">या लॉगिन करें</string>
+    <string name="dont_have_account">खाता नहीं है?</string>
+    <string name="already_have_account">पहले से खाता है?</string>
+    <string name="sign_up">साइन अप करें</string>
+    <string name="forgot_password">पासवर्ड भूल गए?</string>
+    <string name="logout">लॉगआउट</string>
+    
+    <!-- Settings -->
+    <string name="settings">सेटिंग्स</string>
+    <string name="dark_mode">डार्क मोड</string>
+    <string name="language">भाषा</string>
+    <string name="notifications">सूचनाएं</string>
+    <string name="account_settings">खाता सेटिंग्स</string>
+    <string name="enable_dark_mode">डार्क मोड सक्षम करें</string>
+    <string name="enable_notifications">सूचनाएं सक्षम करें</string>
+    <string name="select_language">भाषा चुनें</string>
+    <string name="english">English</string>
+    <string name="hindi">हिन्दी</string>
+    
+    <!-- Profile -->
+    <string name="profile">प्रोफ़ाइल</string>
+    <string name="edit_profile">प्रोफ़ाइल संपादित करें</string>
+    <string name="followers">अनुयायी</string>
+    <string name="following">फॉलो किए जा रहे</string>
+    <string name="posts">पोस्ट</string>
+    
+    <!-- Errors -->
+    <string name="error_email_required">ईमेल आवश्यक है</string>
+    <string name="error_password_required">पासवर्ड आवश्यक है</string>
+    <string name="error_name_required">नाम आवश्यक है</string>
+    <string name="error_invalid_email">अमान्य ईमेल पता</string>
+    <string name="error_password_too_short">पासवर्ड कम से कम 6 अक्षर का होना चाहिए</string>
+    
+    <!-- General -->
+    <string name="loading">लोड हो रहा है…</string>
+    <string name="save">सहेजें</string>
+    <string name="cancel">रद्द करें</string>
+</resources>
