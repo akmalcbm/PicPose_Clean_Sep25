@@ -42,9 +42,10 @@ class AuthRepository @Inject constructor(
                 request = LoginRequest(email, password)
             )
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val user = response.body()?.user
-                val token = response.body()?.token
+            val responseBody = response.body()
+            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
+                val user = responseBody.user
+                val token = responseBody.token
                 if (user != null) {
                     // Save session
                     userSessionManager.saveUserSession(
@@ -57,10 +58,12 @@ class AuthRepository @Inject constructor(
                     Log.d(TAG, "Login successful for user: ${user.email}")
                     Result.success(user)
                 } else {
-                    Result.failure(Exception("User data is null"))
+                    val errorMsg = responseBody.message ?: "User data is null"
+                    Log.e(TAG, "Login failed: $errorMsg")
+                    Result.failure(Exception(errorMsg))
                 }
             } else {
-                val errorMsg = response.body()?.message ?: "Login failed"
+                val errorMsg = responseBody?.message ?: "Login failed"
                 Log.e(TAG, "Login failed: $errorMsg")
                 Result.failure(Exception(errorMsg))
             }
@@ -80,9 +83,10 @@ class AuthRepository @Inject constructor(
                 request = RegisterRequest(email, password, name)
             )
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val user = response.body()?.user
-                val token = response.body()?.token
+            val responseBody = response.body()
+            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
+                val user = responseBody.user
+                val token = responseBody.token
                 if (user != null) {
                     // Save session
                     userSessionManager.saveUserSession(
@@ -95,10 +99,12 @@ class AuthRepository @Inject constructor(
                     Log.d(TAG, "Registration successful for user: ${user.email}")
                     Result.success(user)
                 } else {
-                    Result.failure(Exception("User data is null"))
+                    val errorMsg = responseBody.message ?: "User data is null"
+                    Log.e(TAG, "Registration failed: $errorMsg")
+                    Result.failure(Exception(errorMsg))
                 }
             } else {
-                val errorMsg = response.body()?.message ?: "Registration failed"
+                val errorMsg = responseBody?.message ?: "Registration failed"
                 Log.e(TAG, "Registration failed: $errorMsg")
                 Result.failure(Exception(errorMsg))
             }
@@ -207,15 +213,17 @@ class AuthRepository @Inject constructor(
         return try {
             val response = userApiService.getUserProfile(userId)
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val user = response.body()?.user
+            val responseBody = response.body()
+            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
+                val user = responseBody.user
                 if (user != null) {
                     Result.success(user)
                 } else {
-                    Result.failure(Exception("User data is null"))
+                    val errorMsg = responseBody.message ?: "User data is null"
+                    Result.failure(Exception(errorMsg))
                 }
             } else {
-                val errorMsg = response.body()?.message ?: "Failed to fetch user profile"
+                val errorMsg = responseBody?.message ?: "Failed to fetch user profile"
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {

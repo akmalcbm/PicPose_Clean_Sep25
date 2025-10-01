@@ -36,13 +36,29 @@ data class RegisterRequest(
 
 /**
  * Auth response model
+ * Supports both old format (success: boolean) and new format (status: string)
  */
 data class AuthResponse(
-    @SerializedName("success") val success: Boolean,
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("status") val status: String? = null,
     @SerializedName("message") val message: String?,
     @SerializedName("user") val user: User?,
     @SerializedName("token") val token: String?
-)
+) {
+    /**
+     * Check if response is successful
+     * Supports both formats:
+     * - Old: {"success": true}
+     * - New: {"status": "success"}
+     */
+    fun isSuccessful(): Boolean {
+        return when {
+            status != null -> status == "success"
+            success != null -> success
+            else -> false
+        }
+    }
+}
 
 /**
  * Social auth data model

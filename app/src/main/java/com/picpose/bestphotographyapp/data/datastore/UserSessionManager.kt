@@ -22,6 +22,7 @@ class UserSessionManager(private val context: Context) {
         private val USER_PROFILE_PICTURE_KEY = stringPreferencesKey("user_profile_picture")
         private val USER_TOKEN_KEY = stringPreferencesKey("user_token")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
+        private val HAS_SKIPPED_AUTH_KEY = booleanPreferencesKey("has_skipped_auth")
     }
 
     val isLoggedIn: Flow<Boolean> = context.userDataStore.data
@@ -34,6 +35,18 @@ class UserSessionManager(private val context: Context) {
         }
         .map { preferences ->
             preferences[IS_LOGGED_IN_KEY] ?: false
+        }
+
+    val hasSkippedAuth: Flow<Boolean> = context.userDataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[HAS_SKIPPED_AUTH_KEY] ?: false
         }
 
     val userId: Flow<String?> = context.userDataStore.data
@@ -104,6 +117,12 @@ class UserSessionManager(private val context: Context) {
     suspend fun clearUserSession() {
         context.userDataStore.edit { preferences ->
             preferences.clear()
+        }
+    }
+
+    suspend fun setSkipAuth(skipped: Boolean) {
+        context.userDataStore.edit { preferences ->
+            preferences[HAS_SKIPPED_AUTH_KEY] = skipped
         }
     }
 
