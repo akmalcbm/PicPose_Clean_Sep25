@@ -47,4 +47,15 @@
     <string name="loading">Loading…</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+
+    <!-- AI Prompt Favorites Screen -->
+    <string name="favorite_prompts_title">Favorite Prompts (%d)</string>
+    <string name="back_button_content_description">Back</string>
+    <string name="all_favorites_exported_toast">All favorites exported to clipboard!</string>
+    <string name="export_all_button_content_description">Export All</string>
+    <string name="prompt_copied_toast">Prompt copied!</string>
+    <string name="empty_favorites_icon">💔</string>
+    <string name="no_favorite_prompts_title">No Favorite Prompts</string>
+    <string name="no_favorite_prompts_description">Start exploring AI prompts and add your favorites here!</string>
+    <string name="browse_prompts_button">Browse Prompts</string>
 </resources>

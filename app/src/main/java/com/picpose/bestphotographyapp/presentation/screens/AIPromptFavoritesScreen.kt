@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 
@@ -45,11 +47,11 @@ fun AIPromptFavoritesScreen(
         // Top App Bar
         TopAppBar(
             title = {
-                Text("Favorite Prompts (${favoritePrompts.size})")
+                Text(stringResource(id = R.string.favorite_prompts_title, favoritePrompts.size))
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.back_button_content_description))
                 }
             },
             actions = {
@@ -61,10 +63,10 @@ fun AIPromptFavoritesScreen(
                                 "${prompt.title}\n${prompt.fullPrompt ?: ""}"
                             }
                             clipboardManager.setText(AnnotatedString(allPrompts))
-                            Toast.makeText(context, "All favorites exported to clipboard!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.all_favorites_exported_toast), Toast.LENGTH_SHORT).show()
                         }
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Export All")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(id = R.string.export_all_button_content_description))
                     }
                 }
             }
@@ -99,7 +101,7 @@ fun AIPromptFavoritesScreen(
                         onCopy = {
                             val textToCopy = prompt.fullPrompt ?: ""
                             clipboardManager.setText(AnnotatedString(textToCopy))
-                            Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.prompt_copied_toast), Toast.LENGTH_SHORT).show()
                         },
                         onFavoriteClick = { viewModel.toggleFavorite(prompt) },
                         showFavoriteIcon = true,
@@ -130,14 +132,14 @@ private fun EmptyFavoritesState(
     ) {
         // Empty state icon
         Text(
-            text = "💔",
+            text = stringResource(id = R.string.empty_favorites_icon),
             style = MaterialTheme.typography.displayLarge
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "No Favorite Prompts",
+            text = stringResource(id = R.string.no_favorite_prompts_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1E293B)
@@ -146,7 +148,7 @@ private fun EmptyFavoritesState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Start exploring AI prompts and add your favorites here!",
+            text = stringResource(id = R.string.no_favorite_prompts_description),
             style = MaterialTheme.typography.bodyLarge,
             color = Color(0xFF64748B),
             textAlign = TextAlign.Center,
@@ -167,7 +169,7 @@ private fun EmptyFavoritesState(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Browse Prompts")
+            Text(stringResource(id = R.string.browse_prompts_button))
         }
     }
 }

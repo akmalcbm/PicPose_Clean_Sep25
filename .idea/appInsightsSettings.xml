@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.picpose.bestphotographyapp" />
+                  <option name="mobileSdkAppId" value="1:123456789000:android:abcdef123456" />
+                  <option name="projectId" value="picpose-app" />
+                  <option name="projectNumber" value="123456789000" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
