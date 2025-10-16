@@ -1,10 +1,13 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.app.Activity
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,6 +34,13 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
 
@@ -39,7 +49,8 @@ import kotlinx.coroutines.launch
 fun AIPromptDetailScreen(
     promptId: String,
     viewModel: AIPromptViewModel = viewModel(),
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPromptClick: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -47,6 +58,26 @@ fun AIPromptDetailScreen(
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
+    val adClickCount by viewModel.similarPromptsClickCount.collectAsState()
+
+    // Load ad when the screen is created
+    LaunchedEffect(Unit) {
+        val adRequest = AdRequest.Builder().build()
+        InterstitialAd.load(
+            context, "ca-app-pub-3940256099942544/1033173712", adRequest,
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(ad: InterstitialAd) {
+                    interstitialAd = ad
+                }
+
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    interstitialAd = null
+                }
+            }
+        )
+    }
 
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
@@ -63,6 +94,10 @@ fun AIPromptDetailScreen(
             viewModel.loadPromptById(promptId)
         } else if (prompt != null) {
             Log.d("PromptDetail", "Prompt $promptId found in cache, no API call needed")
+            // When a prompt is loaded, load similar prompts
+            prompt.category?.let { category ->
+                viewModel.loadSimilarPrompts(category, promptId)
+            }
         }
     }
 
@@ -480,6 +515,53 @@ fun AIPromptDetailScreen(
                                 }
                             }
                         }
+
+                        // Similar Prompts Section
+                        if (uiState.similarPrompts.isNotEmpty()) {
+                            item {
+                                Column(modifier = Modifier.padding(top = 16.dp)) {
+                                    Text(
+                                        text = "Similar Prompts",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        items(uiState.similarPrompts) { similarPrompt ->
+                                            SimilarPromptCard(
+                                                prompt = similarPrompt,
+                                                onClick = {
+                                                    viewModel.onSimilarPromptClicked()
+                                                    if (adClickCount >= 1) { // Show ad every 2 clicks
+                                                        interstitialAd?.let {
+                                                            it.fullScreenContentCallback = object : FullScreenContentCallback() {
+                                                                override fun onAdDismissedFullScreenContent() {
+                                                                    super.onAdDismissedFullScreenContent()
+                                                                    onPromptClick(similarPrompt.id!!)
+                                                                    viewModel.resetSimilarPromptClickCount()
+                                                                }
+
+                                                                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                                                                    super.onAdFailedToShowFullScreenContent(adError)
+                                                                    onPromptClick(similarPrompt.id!!)
+                                                                }
+                                                            }
+                                                            it.show(context as Activity)
+                                                        }
+                                                    } else {
+                                                        onPromptClick(similarPrompt.id!!)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -527,5 +609,49 @@ private fun FlowRow(
 ) {
     Column(verticalArrangement = verticalArrangement) {
         content()
+    }
+}
+
+@Composable
+private fun SimilarPromptCard(
+    prompt: AIPrompt,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(220.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column {
+            SubcomposeAsyncImage(
+                model = prompt.imageUrl,
+                contentDescription = prompt.title,
+                modifier = Modifier
+                    .height(120.dp)
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Crop
+            ) {
+                if (painter.state is AsyncImagePainter.State.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else {
+                    SubcomposeAsyncImageContent()
+                }
+            }
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = prompt.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = prompt.shortPrompt ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 3
+                )
+            }
+        }
     }
 }

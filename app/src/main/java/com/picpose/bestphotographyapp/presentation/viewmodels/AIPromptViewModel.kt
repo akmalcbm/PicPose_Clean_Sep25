@@ -28,7 +28,8 @@ data class AIPromptUiState(
     val selectedCategory: String = "All",
     val searchQuery: String = "",
     val error: String? = null,
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val similarPrompts: List<AIPrompt> = emptyList(),
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -41,6 +42,9 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     private var cachedPrompts: List<AIPrompt>? = null
     private var lastCacheTime = 0L
     private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes
+
+    private val _similarPromptsClickCount = MutableStateFlow(0)
+    val similarPromptsClickCount: StateFlow<Int> = _similarPromptsClickCount.asStateFlow()
 
     // derived state: favorites (eagerly kept)
     val favoritePrompts: StateFlow<List<AIPrompt>> = uiState
@@ -185,6 +189,10 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             val existing = _uiState.value.allPrompts.find { it.id == promptId }
             if (existing != null) {
                 Log.d(TAG, "Found prompt $promptId in cache, no API call needed")
+                // When a prompt is loaded, load similar prompts
+                existing.category?.let { category ->
+                    loadSimilarPrompts(category, promptId)
+                }
                 return@launch
             }
 
@@ -195,6 +203,10 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                     Log.d(TAG, "Found prompt $promptId in cached data")
                     val updated = _uiState.value.allPrompts + cachedPrompt
                     _uiState.value = _uiState.value.copy(allPrompts = updated)
+                    // When a prompt is loaded, load similar prompts
+                    cachedPrompt.category?.let { category ->
+                        loadSimilarPrompts(category, promptId)
+                    }
                     return@launch
                 }
             }
@@ -212,6 +224,10 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                                 allPrompts = updated,
                                 isLoading = false
                             )
+                            // When a prompt is loaded, load similar prompts
+                            prompt.category?.let { category ->
+                                loadSimilarPrompts(category, promptId)
+                            }
                         },
                         onFailure = { ex ->
                             Log.w(TAG, "loadPromptById failed: ${ex.message}")
@@ -379,5 +395,22 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun loadSimilarPrompts(category: String, currentPromptId: String) {
+        viewModelScope.launch {
+            val similar = (_uiState.value.allPrompts ?: emptyList())
+                .filter { it.category == category && it.id != currentPromptId }
+                .take(10) // Limit to 10 similar prompts
+            _uiState.value = _uiState.value.copy(similarPrompts = similar)
+        }
+    }
+
+    fun onSimilarPromptClicked() {
+        _similarPromptsClickCount.value++
+    }
+
+    fun resetSimilarPromptClickCount() {
+        _similarPromptsClickCount.value = 0
     }
 }

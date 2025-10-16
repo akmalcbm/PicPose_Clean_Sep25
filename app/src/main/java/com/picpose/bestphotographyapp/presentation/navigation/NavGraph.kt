@@ -196,7 +196,16 @@ fun NavGraph(navController: NavHostController) {
                 // fallback: popBackStack or show empty state — choose what fits app behavior
                 navController.popBackStack()
             } else {
-                AIPromptDetailScreen(promptId = promptId, viewModel = vm, onBack = { navController.popBackStack() })
+                AIPromptDetailScreen(
+                    promptId = promptId, 
+                    viewModel = vm, 
+                    onBack = { navController.popBackStack() },
+                    onPromptClick = { newPromptId ->
+                        navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
         }
 

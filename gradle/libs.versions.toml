@@ -1,5 +1,5 @@
 [versions]
-agp = "8.4.0"
+agp = "8.5.0"
 kotlin = "2.0.0" # Aligned with the Compose compiler plugin
 
 coil = "2.5.0"
@@ -29,7 +29,7 @@ kotlinx-serialization = "1.6.3" # Update version
 ksp = "2.0.0-1.0.21" # Align with Kotlin version
 
 # Compose
-composeBom = "2024.06.00" # Use a stable BOM version
+composeBom = "2024.09.00" # Use a stable BOM version
 
 # Ad networks
 play-services-ads = "23.0.0"
