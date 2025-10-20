@@ -248,4 +248,23 @@ class PromptRepository {
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+    
+    /**
+     * Toggle favorite status for a prompt (mock implementation)
+     * In a real app, this would interact with Room database
+     */
+    suspend fun toggleFavorite(prompt: AIPrompt): Flow<Result<Boolean>> = flow {
+        try {
+            Log.d(TAG, "Toggle favorite for prompt: ${prompt.id}")
+            // Simulate delay
+            delay(200)
+            
+            // For mock purposes, just return the opposite of current state
+            val newState = !prompt.isFavorite
+            emit(Result.success(newState))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling favorite: ${e.message}")
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
 }

@@ -137,7 +137,19 @@ fun AiPromptDetailsScreen(
                             Icon(Icons.Default.Share, contentDescription = "Share")
                         }
                         
-                        IconButton(onClick = { /* Toggle favorite */ }) {
+                        IconButton(
+                            onClick = {
+                                uiState.currentPrompt?.let { prompt ->
+                                    viewModel.toggleFavorite(prompt)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (prompt.isFavorite) "Removed from favorites" 
+                                            else "Added to favorites"
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
                             Icon(
                                 if (prompt.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorite",
