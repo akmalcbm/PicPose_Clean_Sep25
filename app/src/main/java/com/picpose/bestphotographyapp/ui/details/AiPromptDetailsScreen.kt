@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.ui.details
 import android.app.Activity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -158,7 +159,7 @@ fun AiPromptDetailsScreen(
             AnimatedContent(
                 targetState = currentPromptId,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(500)) with fadeOut(animationSpec = tween(300))
+                    fadeIn(animationSpec = tween(500)).togetherWith(fadeOut(animationSpec = tween(300)))
                 },
                 label = "prompt_content"
             ) { targetPromptId ->

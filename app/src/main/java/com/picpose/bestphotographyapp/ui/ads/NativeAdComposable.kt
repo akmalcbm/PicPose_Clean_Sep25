@@ -109,7 +109,7 @@ private fun createNativeAdView(context: android.content.Context, ad: NativeAd): 
     }
     
     // Media view for ad image/video
-    val mediaView = MediaView(context).apply {
+    var mediaView = MediaView(context).apply {
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             (180 * context.resources.displayMetrics.density).toInt()
@@ -117,14 +117,14 @@ private fun createNativeAdView(context: android.content.Context, ad: NativeAd): 
     }
     
     // Headline text
-    val headlineView = TextView(context).apply {
+    var headlineView = TextView(context).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         setTypeface(typeface, Typeface.BOLD)
         setPadding(0, 16, 0, 8)
     }
     
     // Body text
-    val bodyView = TextView(context).apply {
+    var bodyView = TextView(context).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         setPadding(0, 0, 0, 16)
     }
