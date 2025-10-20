@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -65,27 +67,61 @@ fun AIPromptCard(
                     )
                 )
         ) {
-            // Image Section with AsyncImage
+            // Image Section with AsyncImage and loading states
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isCompact) 100.dp else 180.dp)
                     .height(if (isCompact) 120.dp else 200.dp) // Increased sizes for better visibility
             ) {
-                AsyncImage(
+                val painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(prompt.imageUrl)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
                         .crossfade(true)
-                        .build(),
-                    // ensure non-null contentDescription
+                        .build()
+                )
+                
+                // Show the image
+                androidx.compose.foundation.Image(
+                    painter = painter,
                     contentDescription = prompt.title ?: "AI Generated Image",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    placeholder = ColorPainter(Color.Gray.copy(alpha = 0.3f)),
-                    error = ColorPainter(Color.Red.copy(alpha = 0.2f))
+                    contentScale = ContentScale.Crop
                 )
+                
+                // Show loading indicator while loading
+                when (painter.state) {
+                    is AsyncImagePainter.State.Loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Gray.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                color = Color(0xFF6366F1)
+                            )
+                        }
+                    }
+                    is AsyncImagePainter.State.Error -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Red.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.BrokenImage,
+                                contentDescription = "Error loading image",
+                                modifier = Modifier.size(48.dp),
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                    else -> { /* Image loaded successfully */ }
+                }
 
                 // Gradient overlay
                 Box(

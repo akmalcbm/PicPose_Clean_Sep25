@@ -387,40 +387,19 @@ class HomeRepository(
 
     /**
      * Returns favorite prompts stored in Room as AIPrompt objects.
-     * IMPORTANT: this assumes your FavoritePromptDao exposes a method like `getAllFavorites(): List<FavoritePrompt>`
-     * and that FavoritePrompt contains at least the fields needed to map back to AIPrompt.
-     *
-     * If your DAO method name or favorite entity structure differs, adjust mapping accordingly.
+     * Uses the toAIPrompt() extension function for proper mapping.
      */
     suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
         try {
-            // Try DAO method - adjust name if your DAO uses different function
-            val favEntities = try {
-                // Example DAO method - change if different
+            // Fetch favorites from Room database
+            val favEntities = withContext(Dispatchers.IO) {
                 favoriteDao.getAllFavorites()
-            } catch (e: NoSuchMethodError) {
-                // Fallback: if DAO doesn't provide batch fetch, try returning empty list
-                emptyList()
             }
 
-            // Map favorite entity to AIPrompt (best-effort). Adjust fields if your FavoritePrompt entity field names differ.
-            val list = favEntities.mapNotNull { fav ->
-                try {
-                    AIPrompt(
-                        id = fav.id.toString(),              // convert Long → String
-                        title = fav.title ?: "",             // handle nullable
-                        shortPrompt = fav.shortPrompt ?: "", // handle nullable
-                        fullPrompt = fav.fullPrompt ?: "",   // handle nullable
-                        category = fav.category,             // already String? matches AIPrompt
-                        tags = fav.tags ?: emptyList(),      // handle nullable List<String>?
-                        isFavorite = true,
-                        createdAt = null,                    // not available in FavoritePrompt
-                        updatedAt = null                     // not available in FavoritePrompt
-                        // add/adjust any other AIPrompt fields if your model has more
-                    )
-                } catch (_: Exception) {
-                    null
-                }
+            // Map favorite entity to AIPrompt using extension function
+            // This ensures proper field mapping including imageUrl and promptId
+            val list = favEntities.map { fav ->
+                fav.toAIPrompt()
             }
 
             emit(Result.success(list))

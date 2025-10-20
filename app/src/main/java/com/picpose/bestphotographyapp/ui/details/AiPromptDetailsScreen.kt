@@ -81,6 +81,8 @@ fun AiPromptDetailsScreen(
     // Load prompt on init or when promptId changes
     LaunchedEffect(promptId) {
         if (promptId != currentPromptId) {
+            // Reset scroll to top immediately when prompt changes
+            listState.scrollToItem(0)
             // Reset for new prompt
             viewModel.resetForNewPrompt()
             currentPromptId = promptId
@@ -190,6 +192,9 @@ fun AiPromptDetailsScreen(
                             onTagClick = onTagClick,
                             onSimilarPromptClick = { clickedPrompt ->
                                 coroutineScope.launch {
+                                    // Reset scroll to top immediately
+                                    listState.scrollToItem(0)
+                                    
                                     // Increment click counter
                                     viewModel.onSimilarPromptClicked()
                                     
@@ -205,13 +210,9 @@ fun AiPromptDetailsScreen(
                                         viewModel.setShowAdLoader(false)
                                         
                                         // Navigate after ad (or immediately if ad failed)
-                                        // Reset scroll to top
-                                        listState.animateScrollToItem(0)
                                         onPromptClick(clickedPrompt.id)
                                     } else {
                                         // No ad needed, navigate immediately
-                                        // Reset scroll to top
-                                        listState.animateScrollToItem(0)
                                         onPromptClick(clickedPrompt.id)
                                     }
                                 }
