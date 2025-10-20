@@ -417,30 +417,33 @@ class HomeRepository(
      */
     suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
         try {
-            // ✅ If you have a single prompt API endpoint, use it:
-            // GET /api/get_ai_post.php?id={promptId}&api_key={key}
-
-            val response = apiSemaphore.withPermit {
-                // Replace with your actual single prompt API call
-                apiService.getAiPosts(
-                    apiKey = null, // Uses default from interceptor
-                    limit = 1,
-                    offset = 0,
-                    q = promptId // or however your API filters by ID
-                )
+            // Use the existing getAiPosts API with a search filter
+            val result = safeApiCall {
+                callWithRetries {
+                    apiService.getAiPosts(
+                        apiKey = null, // Uses default from interceptor
+                        limit = 1,
+                        offset = 0,
+                        q = promptId // Search by ID
+                    )
+                }
             }
-
-            val result = safeApiCall { response }
+            
             result.fold(
                 onSuccess = { wrapper ->
                     val prompts = wrapper.data?.firstOrNull()
                     if (prompts != null) {
-                        emit(Result.success(prompts))
+                        // Enrich with favorite status
+                        val isFav = withContext(Dispatchers.IO) {
+                            try { favoriteDao.isFavorite(prompts.id) } catch (_: Exception) { false }
+                        }
+                        emit(Result.success(prompts.copy(isFavorite = isFav)))
                     } else {
                         emit(Result.failure(Exception("Prompt not found")))
                     }
                 },
                 onFailure = { error ->
+                    Log.w(TAG, "getPromptById failed: ${error.message}")
                     emit(Result.failure(error))
                 }
             )

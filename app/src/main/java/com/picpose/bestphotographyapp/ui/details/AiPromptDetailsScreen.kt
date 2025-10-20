@@ -178,7 +178,7 @@ fun AiPromptDetailsScreen(
                 label = "prompt_content"
             ) { targetPromptId ->
                 when {
-                    uiState.isLoading && uiState.currentPrompt == null -> {
+                    uiState.isLoading -> {
                         LoadingState()
                     }
                     
