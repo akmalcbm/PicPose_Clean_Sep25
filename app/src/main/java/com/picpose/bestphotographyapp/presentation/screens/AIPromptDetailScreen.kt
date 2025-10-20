@@ -10,12 +10,19 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,8 +33,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -40,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -116,15 +126,17 @@ fun AIPromptDetailScreen(
         }
     }
 
-    // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
-
-    // Find prompt in current cache first
     val prompt = remember(promptId, uiState.allPrompts) {
         uiState.allPrompts.find { it.id == promptId }
     }
 
-    // Load prompt (if not found)
+    if (showImageDialog) {
+        prompt?.imageUrl?.let {
+            FullScreenImageDialog(imageUrl = it, onDismiss = { showImageDialog = false })
+        }
+    }
+
     LaunchedEffect(promptId) {
         if (prompt == null && !uiState.isLoading) {
             Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
@@ -132,7 +144,6 @@ fun AIPromptDetailScreen(
         }
     }
 
-    // Load similar prompts once prompt is available (fixes "related posts not showing")
     LaunchedEffect(prompt?.id, prompt?.category) {
         val category = prompt?.category
         val id = prompt?.id
@@ -141,7 +152,6 @@ fun AIPromptDetailScreen(
         }
     }
 
-    // Show error Snackbar when uiState.error changes
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
             coroutineScope.launch {
@@ -189,73 +199,7 @@ fun AIPromptDetailScreen(
             else -> {
                 val promptData = prompt
 
-                // Full-image dialog
-                if (showImageDialog) {
-                    Dialog(onDismissRequest = { showImageDialog = false }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black)
-                                .clickable { },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            SubcomposeAsyncImage(
-                                model = promptData.imageUrl,
-                                contentDescription = promptData.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp)
-                                    .verticalScroll(rememberScrollState()),
-                                contentScale = ContentScale.Fit
-                            ) {
-                                when (painter.state) {
-                                    is AsyncImagePainter.State.Loading -> {
-                                        Box(
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .height(240.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
-                                        }
-                                    }
-
-                                    is AsyncImagePainter.State.Error -> {
-                                        Icon(
-                                            Icons.Default.BrokenImage,
-                                            contentDescription = "Image load error",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(96.dp)
-                                        )
-                                    }
-
-                                    else -> SubcomposeAsyncImageContent()
-                                }
-                            }
-
-                            IconButton(
-                                onClick = { showImageDialog = false },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(12.dp)
-                                    .size(44.dp)
-                                    .background(
-                                        color = Color.Black.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Color.White
-                                )
-                            }
-                        }
-                    }
-                }
-
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Top App Bar
                     TopAppBar(
                         title = { Text("AI Prompt Details") },
                         navigationIcon = {
@@ -267,7 +211,6 @@ fun AIPromptDetailScreen(
                             }
                         },
                         actions = {
-                            // Share button
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(promptData.fullPrompt ?: ""))
@@ -281,7 +224,6 @@ fun AIPromptDetailScreen(
                                 Icon(Icons.Default.Share, contentDescription = "Share")
                             }
 
-                            // Favorite button
                             IconButton(
                                 onClick = { viewModel.toggleFavorite(promptData) }
                             ) {
@@ -297,14 +239,12 @@ fun AIPromptDetailScreen(
                         }
                     )
 
-                    // Scrollable content
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        // Hero Image
                         item {
                             Box(
                                 modifier = Modifier
@@ -365,7 +305,6 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Title + Stats Card
                         item {
                             Card(
                                 modifier = Modifier
@@ -417,7 +356,6 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Full Prompt Section
                         item {
                             Card(
                                 modifier = Modifier
@@ -496,7 +434,6 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Native Ad below Full AI Prompt, above Tags
                         if (nativeAd != null) {
                             item {
                                 Card(
@@ -511,7 +448,6 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Tags Section with clickable chips
                         promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
                                 Card(
@@ -565,7 +501,6 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Similar Prompts section stays as-is
                         if (uiState.similarPrompts.isNotEmpty()) {
                             item {
                                 Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -693,10 +628,6 @@ private fun SimilarPromptCard(
     }
 }
 
-/**
- * Minimal NativeAd view wrapped in Compose.
- * For production, you may want to enhance the layout and map more assets (icon, price, rating, etc.).
- */
 @Composable
 private fun NativeAdCard(nativeAd: NativeAd) {
     AndroidView(
@@ -755,4 +686,77 @@ private fun NativeAdCard(nativeAd: NativeAd) {
             adView.setNativeAd(nativeAd)
         }
     )
+}
+
+@Composable
+fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        var scale by remember { mutableStateOf(1f) }
+        var offset by remember { mutableStateOf(Offset.Zero) }
+
+        val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+            scale *= zoomChange
+            offset += offsetChange
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.85f))
+                .clickable { onDismiss() }
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                SubcomposeAsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Full-screen image",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .graphicsLayer(
+                            scaleX = maxOf(1f, scale),
+                            scaleY = maxOf(1f, scale),
+                            translationX = offset.x,
+                            translationY = offset.y
+                        )
+                        .transformable(state = state),
+                    loading = {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color.White)
+                        }
+                    },
+                    error = {
+                        Icon(
+                            Icons.Default.BrokenImage,
+                            contentDescription = "Image load error",
+                            tint = Color.White,
+                            modifier = Modifier.size(96.dp)
+                        )
+                    }
+                )
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White
+                )
+            }
+        }
+    }
 }
