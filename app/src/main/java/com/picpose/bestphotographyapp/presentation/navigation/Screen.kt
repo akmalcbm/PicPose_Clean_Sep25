@@ -1,5 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.navigation
 
+import android.net.Uri
+
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Login : Screen("login")
@@ -18,6 +20,13 @@ sealed class Screen(val route: String) {
         const val ARG_PROMPT_ID = "promptId"            // constant
         private const val BASE = "prompt_detail"
         fun createRoute(promptId: String) = "$BASE/$promptId"
+    }
+
+    // New: Tag Prompts screen
+    object TagPrompts : Screen("tag_prompts/{tag}") {
+        const val ARG_TAG = "tag"
+        private const val BASE = "tag_prompts"
+        fun createRoute(tag: String): String = "$BASE/${Uri.encode(tag)}"
     }
 
     // Guide Posts screens

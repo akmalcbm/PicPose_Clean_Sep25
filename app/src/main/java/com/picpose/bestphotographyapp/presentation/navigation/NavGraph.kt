@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -65,7 +66,7 @@ fun NavGraph(navController: NavHostController) {
 
 
         // Explore / Create / Rewards / Profile
-        composable(route = Screen.Explore.route) { 
+        composable(route = Screen.Explore.route) {
             ExploreScreen(
                 onNavigateToPromptDetail = { aiPrompt ->
                     val safeId = android.net.Uri.encode(aiPrompt.id)
@@ -197,17 +198,53 @@ fun NavGraph(navController: NavHostController) {
                 navController.popBackStack()
             } else {
                 AIPromptDetailScreen(
-                    promptId = promptId, 
-                    viewModel = vm, 
+                    promptId = promptId,
+                    viewModel = vm,
                     onBack = { navController.popBackStack() },
                     onPromptClick = { newPromptId ->
                         navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onTagClick = { tag ->
+                        navController.navigate(Screen.TagPrompts.createRoute(tag)) {
                             launchSingleTop = true
                         }
                     }
                 )
             }
         }
+
+
+        // New: Tag Prompts screen
+        composable(
+            route = Screen.TagPrompts.route,
+            arguments = listOf(navArgument(Screen.TagPrompts.ARG_TAG) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedTag = backStackEntry.arguments?.getString(Screen.TagPrompts.ARG_TAG).orEmpty()
+            val tag = Uri.decode(encodedTag)
+
+            val context = LocalContext.current
+            val repo = remember { HomeRepository(context) }
+            val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return AIPromptViewModel(repo) as T
+                }
+            })
+
+            TagPromptsScreen(
+                tag = tag,
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onPromptClick = { promptId ->
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
 
         // Guide Post Detail with argument
         composable(
@@ -217,7 +254,7 @@ fun NavGraph(navController: NavHostController) {
             })
         ) { backStackEntry ->
             val guidePostId = backStackEntry.arguments?.getString(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) ?: ""
-            
+
 
             if (guidePostId.isBlank()) {
                 navController.popBackStack()

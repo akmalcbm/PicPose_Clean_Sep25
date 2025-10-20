@@ -1,10 +1,18 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
+import android.graphics.Typeface
 import android.util.Log
+import android.util.TypedValue
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -29,28 +37,35 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.google.android.gms.ads.nativead.MediaView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.google.android.gms.ads.nativead.NativeAdView
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AIPromptDetailScreen(
     promptId: String,
     viewModel: AIPromptViewModel = viewModel(),
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit,
+    onTagClick: (String) -> Unit, // NEW: navigate to Tag screen
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -62,7 +77,7 @@ fun AIPromptDetailScreen(
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
     val adClickCount by viewModel.similarPromptsClickCount.collectAsState()
 
-    // Load ad when the screen is created
+    // Load interstitial ad on screen create (kept as-is)
     LaunchedEffect(Unit) {
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
@@ -79,25 +94,50 @@ fun AIPromptDetailScreen(
         )
     }
 
+    // Native Ad state and loader (Native Advanced)
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    DisposableEffect(Unit) {
+        val adLoader = AdLoader.Builder(
+            context,
+            // Test Native Advanced unit id
+            "ca-app-pub-3940256099942544/2247696110"
+        ).forNativeAd { ad ->
+            nativeAd?.destroy()
+            nativeAd = ad
+        }.withNativeAdOptions(
+            NativeAdOptions.Builder().build()
+        ).build()
+
+        adLoader.loadAd(AdRequest.Builder().build())
+
+        onDispose {
+            nativeAd?.destroy()
+            nativeAd = null
+        }
+    }
+
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
 
-    // ✅ Find prompt in current cache first
+    // Find prompt in current cache first
     val prompt = remember(promptId, uiState.allPrompts) {
         uiState.allPrompts.find { it.id == promptId }
     }
 
-    // ✅ Only load if not found in cache AND not currently loading
+    // Load prompt (if not found)
     LaunchedEffect(promptId) {
         if (prompt == null && !uiState.isLoading) {
             Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
             viewModel.loadPromptById(promptId)
-        } else if (prompt != null) {
-            Log.d("PromptDetail", "Prompt $promptId found in cache, no API call needed")
-            // When a prompt is loaded, load similar prompts
-            prompt.category?.let { category ->
-                viewModel.loadSimilarPrompts(category, promptId)
-            }
+        }
+    }
+
+    // Load similar prompts once prompt is available (fixes "related posts not showing")
+    LaunchedEffect(prompt?.id, prompt?.category) {
+        val category = prompt?.category
+        val id = prompt?.id
+        if (!category.isNullOrBlank() && !id.isNullOrBlank()) {
+            viewModel.loadSimilarPrompts(category, id)
         }
     }
 
@@ -114,9 +154,7 @@ fun AIPromptDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
 
-        // Show loading indicator first, then check prompt missing state.
         when {
-            // 1) Loading state -> show centered loader
             uiState.isLoading -> {
                 Box(
                     modifier = Modifier
@@ -128,7 +166,6 @@ fun AIPromptDetailScreen(
                 }
             }
 
-            // 2) If not loading and still no prompt -> show "not found" view
             prompt == null -> {
                 Box(
                     modifier = Modifier
@@ -149,22 +186,19 @@ fun AIPromptDetailScreen(
                 }
             }
 
-            // 3) Prompt present -> show detail UI
             else -> {
                 val promptData = prompt
 
-                // Full-image dialog (shows entire image without crop)
+                // Full-image dialog
                 if (showImageDialog) {
                     Dialog(onDismissRequest = { showImageDialog = false }) {
-                        // Fullscreen-like container
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(Color.Black)
-                                .clickable { /* consume clicks outside controls */ },
+                                .clickable { },
                             contentAlignment = Alignment.Center
                         ) {
-                            // Image with fit scale so it is not cropped
                             SubcomposeAsyncImage(
                                 model = promptData.imageUrl,
                                 contentDescription = promptData.title,
@@ -199,7 +233,6 @@ fun AIPromptDetailScreen(
                                 }
                             }
 
-                            // Close button top-right
                             IconButton(
                                 onClick = { showImageDialog = false },
                                 modifier = Modifier
@@ -271,13 +304,13 @@ fun AIPromptDetailScreen(
                             .padding(innerPadding),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        // Hero Image (clickable -> open dialog)
+                        // Hero Image
                         item {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(300.dp)
-                                    .clickable { showImageDialog = true } // open full image dialog
+                                    .clickable { showImageDialog = true }
                             ) {
                                 SubcomposeAsyncImage(
                                     model = promptData.imageUrl,
@@ -315,7 +348,6 @@ fun AIPromptDetailScreen(
                                     }
                                 }
 
-                                // Gradient overlay (remembered)
                                 val gradient = remember {
                                     Brush.verticalGradient(
                                         colors = listOf(
@@ -464,7 +496,22 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Tags Section
+                        // Native Ad below Full AI Prompt, above Tags
+                        if (nativeAd != null) {
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    NativeAdCard(nativeAd = nativeAd!!)
+                                }
+                            }
+                        }
+
+                        // Tags Section with clickable chips
                         promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
                                 Card(
@@ -487,6 +534,7 @@ fun AIPromptDetailScreen(
                                         Spacer(modifier = Modifier.height(12.dp))
 
                                         FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
@@ -497,7 +545,8 @@ fun AIPromptDetailScreen(
                                                     border = BorderStroke(
                                                         1.dp,
                                                         MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                                                    )
+                                                    ),
+                                                    modifier = Modifier.clickable { onTagClick(tag) }
                                                 ) {
                                                     Text(
                                                         text = "#$tag",
@@ -516,7 +565,7 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // Similar Prompts Section
+                        // Similar Prompts section stays as-is
                         if (uiState.similarPrompts.isNotEmpty()) {
                             item {
                                 Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -536,7 +585,7 @@ fun AIPromptDetailScreen(
                                                 prompt = similarPrompt,
                                                 onClick = {
                                                     viewModel.onSimilarPromptClicked()
-                                                    if (adClickCount >= 1) { // Show ad every 2 clicks
+                                                    if (adClickCount >= 1) {
                                                         interstitialAd?.let {
                                                             it.fullScreenContentCallback = object : FullScreenContentCallback() {
                                                                 override fun onAdDismissedFullScreenContent() {
@@ -551,7 +600,7 @@ fun AIPromptDetailScreen(
                                                                 }
                                                             }
                                                             it.show(context as Activity)
-                                                        }
+                                                        } ?: onPromptClick(similarPrompt.id)
                                                     } else {
                                                         onPromptClick(similarPrompt.id)
                                                     }
@@ -600,18 +649,6 @@ private fun StatChip(
     }
 }
 
-// Simple FlowRow fallback (replace with Accompanist FlowRow if available)
-@Composable
-private fun FlowRow(
-    horizontalArrangement: Arrangement.Horizontal,
-    verticalArrangement: Arrangement.Vertical,
-    content: @Composable () -> Unit
-) {
-    Column(verticalArrangement = verticalArrangement) {
-        content()
-    }
-}
-
 @Composable
 private fun SimilarPromptCard(
     prompt: AIPrompt,
@@ -654,4 +691,68 @@ private fun SimilarPromptCard(
             }
         }
     }
+}
+
+/**
+ * Minimal NativeAd view wrapped in Compose.
+ * For production, you may want to enhance the layout and map more assets (icon, price, rating, etc.).
+ */
+@Composable
+private fun NativeAdCard(nativeAd: NativeAd) {
+    AndroidView(
+        factory = { context ->
+            val adView = NativeAdView(context)
+
+            val root = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(32, 32, 32, 32)
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val media = MediaView(context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (180.dp.value * context.resources.displayMetrics.density).toInt()
+                )
+            }
+            val headline = TextView(context).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                setTypeface(typeface, Typeface.BOLD)
+            }
+            val body = TextView(context).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            }
+            val cta = Button(context)
+
+            root.addView(media)
+            root.addView(headline)
+            root.addView(body)
+            root.addView(cta)
+
+            adView.apply {
+                addView(root)
+                mediaView = media
+                headlineView = headline
+                bodyView = body
+                callToActionView = cta
+            }
+        },
+        update = { adView ->
+            (adView.headlineView as? TextView)?.text = nativeAd.headline
+            (adView.bodyView as? TextView)?.apply {
+                text = nativeAd.body ?: ""
+                visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+            (adView.callToActionView as? Button)?.apply {
+                text = nativeAd.callToAction ?: "Install"
+                visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+            adView.mediaView?.mediaContent = nativeAd.mediaContent
+
+            adView.setNativeAd(nativeAd)
+        }
+    )
 }
