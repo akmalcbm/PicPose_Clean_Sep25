@@ -50,13 +50,11 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     var currentTipIndex by remember { mutableIntStateOf(0) }
 
-    // Pull refresh state directly from uiState
     val isRefreshing = uiState.isRefreshing
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // Show error messages via Snackbar
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
             coroutineScope.launch {
@@ -91,13 +89,10 @@ fun HomeScreen(
             uiState.error != null && !isRefreshing -> {
                 ErrorScreen(
                     message = uiState.error!!,
-                    onRetry = {
-                        viewModel.refresh()
-                    }
+                    onRetry = { viewModel.refresh() }
                 )
             }
             else -> {
-                // Fixed PullToRefreshBox implementation
                 PullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = { viewModel.refresh() }
@@ -106,20 +101,15 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues),
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 16.dp,
-                            bottom = 100.dp
-                        )
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp) // Simplified Padding
                     ) {
                         // Welcome Header
                         item {
                             AnimatedWelcomeHeader()
                         }
 
-                        // Daily Tip (cached)
+                        // Daily Tip
                         item {
                             val dailyTips = uiState.dailyTips.mapNotNull { it.tip }
                             if (dailyTips.isNotEmpty()) {
@@ -130,7 +120,8 @@ fun HomeScreen(
                                         if (dailyTips.isNotEmpty()) {
                                             currentTipIndex = (currentTipIndex + 1) % dailyTips.size
                                         }
-                                    }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
@@ -139,23 +130,25 @@ fun HomeScreen(
                         item {
                             QuickActionsCard(
                                 onNavigateToAllPrompts = onNavigateToAllPrompts,
-                                onNavigateToFavorites = onNavigateToFavorites
+                                onNavigateToFavorites = onNavigateToFavorites,
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
 
                         // Quick Stats
                         item {
-                            QuickStatsCard()
+                            QuickStatsCard(modifier = Modifier.padding(horizontal = 16.dp))
                         }
 
-                        // AI Prompts Section (cached)
+                        // AI Prompts Section
                         if (uiState.aiPrompts.isNotEmpty()) {
                             item {
                                 AIPromptSectionHeader(
                                     promptCount = uiState.aiPrompts.size,
                                     favoriteCount = uiState.favoritePromptsCount,
                                     onNavigateToAllPrompts = onNavigateToAllPrompts,
-                                    onNavigateToFavorites = onNavigateToFavorites
+                                    onNavigateToFavorites = onNavigateToFavorites,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
@@ -177,23 +170,23 @@ fun HomeScreen(
                             }
                         }
 
-                        // ADMOB AD PLACEMENT
+                        // Admob Banner Ad
                         item {
                             AdmobBannerAd(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
+                                    .padding(vertical = 8.dp, horizontal = 16.dp)
                             )
                         }
 
                         // Guide Posts Section
                         if (uiState.guidePosts.isNotEmpty()) {
-                            Log.d("HomeScreen", "Rendering guide posts section with ${uiState.guidePosts.size} items")
                             item {
                                 SectionHeader(
                                     title = "Photography Guides",
                                     subtitle = "Learn with expert tutorials",
-                                    icon = Icons.Default.Book
+                                    icon = Icons.Default.Book,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
@@ -206,11 +199,10 @@ fun HomeScreen(
                                     },
                                     onShareClick = { guidePost ->
                                         viewModel.shareGuidePost(context, guidePost)
-                                    }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
-                        } else {
-                            Log.d("HomeScreen", "Guide posts section NOT rendered - empty list: ${uiState.guidePosts.size} items")
                         }
 
                         // Categories Section
@@ -219,14 +211,16 @@ fun HomeScreen(
                                 SectionHeader(
                                     title = "Categories",
                                     subtitle = "Explore different styles",
-                                    icon = Icons.Default.Category
+                                    icon = Icons.Default.Category,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
                             item {
                                 CategoriesRow(
                                     categories = uiState.categories,
-                                    onCategoryClick = onNavigateToCategory
+                                    onCategoryClick = onNavigateToCategory,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
@@ -237,7 +231,8 @@ fun HomeScreen(
                                 SectionHeader(
                                     title = "Featured Posts",
                                     subtitle = "Community highlights",
-                                    icon = Icons.Default.Star
+                                    icon = Icons.Default.Star,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
@@ -250,12 +245,13 @@ fun HomeScreen(
                                     },
                                     onShareClick = { post ->
                                         viewModel.sharePost(context, post)
-                                    }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
 
-                        // ADMOB INTERSTITIAL AD PLACEMENT
+                        // Admob Interstitial Ad
                         item {
                             AdmobInterstitialTrigger()
                         }
@@ -266,7 +262,8 @@ fun HomeScreen(
                                 SectionHeader(
                                     title = "Recent Posts",
                                     subtitle = "Latest from community",
-                                    icon = Icons.Default.Schedule
+                                    icon = Icons.Default.Schedule,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
@@ -279,7 +276,8 @@ fun HomeScreen(
                                     },
                                     onShareClick = { post ->
                                         viewModel.sharePost(context, post)
-                                    }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
@@ -290,27 +288,14 @@ fun HomeScreen(
     }
 }
 
-// Fixed PullToRefreshBox composable
 @Composable
 fun PullToRefreshBox(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Box {
+    Box(modifier = Modifier.fillMaxSize()) { // Ensure the box fills the screen
         content()
-        if (isRefreshing) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            }
-        }
+        // No need for a separate refreshing indicator here as PullToRefresh handles it
     }
 }

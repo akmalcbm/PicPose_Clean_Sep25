@@ -19,14 +19,14 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AnimatedDailyTipCard(
     tip: String,
-    onNextTip: () -> Unit
+    onNextTip: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(

@@ -23,9 +23,11 @@ import com.picpose.bestphotographyapp.data.models.Category
 @Composable
 fun CategoriesRow(
     categories: List<Category>,
-    onCategoryClick: (Category) -> Unit
+    onCategoryClick: (Category) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyRow(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
