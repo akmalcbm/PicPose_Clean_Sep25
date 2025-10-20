@@ -541,19 +541,19 @@ fun AIPromptDetailScreen(
                                                             it.fullScreenContentCallback = object : FullScreenContentCallback() {
                                                                 override fun onAdDismissedFullScreenContent() {
                                                                     super.onAdDismissedFullScreenContent()
-                                                                    onPromptClick(similarPrompt.id!!)
+                                                                    onPromptClick(similarPrompt.id)
                                                                     viewModel.resetSimilarPromptClickCount()
                                                                 }
 
                                                                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                                                                     super.onAdFailedToShowFullScreenContent(adError)
-                                                                    onPromptClick(similarPrompt.id!!)
+                                                                    onPromptClick(similarPrompt.id)
                                                                 }
                                                             }
                                                             it.show(context as Activity)
                                                         }
                                                     } else {
-                                                        onPromptClick(similarPrompt.id!!)
+                                                        onPromptClick(similarPrompt.id)
                                                     }
                                                 }
                                             )
