@@ -387,40 +387,19 @@ class HomeRepository(
 
     /**
      * Returns favorite prompts stored in Room as AIPrompt objects.
-     * IMPORTANT: this assumes your FavoritePromptDao exposes a method like `getAllFavorites(): List<FavoritePrompt>`
-     * and that FavoritePrompt contains at least the fields needed to map back to AIPrompt.
-     *
-     * If your DAO method name or favorite entity structure differs, adjust mapping accordingly.
+     * Uses the toAIPrompt() extension function for proper mapping.
      */
     suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
         try {
-            // Try DAO method - adjust name if your DAO uses different function
-            val favEntities = try {
-                // Example DAO method - change if different
+            // Fetch favorites from Room database
+            val favEntities = withContext(Dispatchers.IO) {
                 favoriteDao.getAllFavorites()
-            } catch (e: NoSuchMethodError) {
-                // Fallback: if DAO doesn't provide batch fetch, try returning empty list
-                emptyList()
             }
 
-            // Map favorite entity to AIPrompt (best-effort). Adjust fields if your FavoritePrompt entity field names differ.
-            val list = favEntities.mapNotNull { fav ->
-                try {
-                    AIPrompt(
-                        id = fav.id.toString(),              // convert Long → String
-                        title = fav.title ?: "",             // handle nullable
-                        shortPrompt = fav.shortPrompt ?: "", // handle nullable
-                        fullPrompt = fav.fullPrompt ?: "",   // handle nullable
-                        category = fav.category,             // already String? matches AIPrompt
-                        tags = fav.tags ?: emptyList(),      // handle nullable List<String>?
-                        isFavorite = true,
-                        createdAt = null,                    // not available in FavoritePrompt
-                        updatedAt = null                     // not available in FavoritePrompt
-                        // add/adjust any other AIPrompt fields if your model has more
-                    )
-                } catch (_: Exception) {
-                    null
-                }
+            // Map favorite entity to AIPrompt using extension function
+            // This ensures proper field mapping including imageUrl and promptId
+            val list = favEntities.map { fav ->
+                fav.toAIPrompt()
             }
 
             emit(Result.success(list))
@@ -438,30 +417,33 @@ class HomeRepository(
      */
     suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
         try {
-            // ✅ If you have a single prompt API endpoint, use it:
-            // GET /api/get_ai_post.php?id={promptId}&api_key={key}
-
-            val response = apiSemaphore.withPermit {
-                // Replace with your actual single prompt API call
-                apiService.getAiPosts(
-                    apiKey = null, // Uses default from interceptor
-                    limit = 1,
-                    offset = 0,
-                    q = promptId // or however your API filters by ID
-                )
+            // Use the existing getAiPosts API with a search filter
+            val result = safeApiCall {
+                callWithRetries {
+                    apiService.getAiPosts(
+                        apiKey = null, // Uses default from interceptor
+                        limit = 1,
+                        offset = 0,
+                        q = promptId // Search by ID
+                    )
+                }
             }
-
-            val result = safeApiCall { response }
+            
             result.fold(
                 onSuccess = { wrapper ->
                     val prompts = wrapper.data?.firstOrNull()
                     if (prompts != null) {
-                        emit(Result.success(prompts))
+                        // Enrich with favorite status
+                        val isFav = withContext(Dispatchers.IO) {
+                            try { favoriteDao.isFavorite(prompts.id) } catch (_: Exception) { false }
+                        }
+                        emit(Result.success(prompts.copy(isFavorite = isFav)))
                     } else {
                         emit(Result.failure(Exception("Prompt not found")))
                     }
                 },
                 onFailure = { error ->
+                    Log.w(TAG, "getPromptById failed: ${error.message}")
                     emit(Result.failure(error))
                 }
             )

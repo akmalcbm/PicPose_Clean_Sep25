@@ -222,6 +222,38 @@ class AiPromptDetailsViewModel(
         )
     }
     
+    /**
+     * Toggle favorite status of current prompt
+     */
+    fun toggleFavorite(prompt: AIPrompt) {
+        viewModelScope.launch {
+            try {
+                repository.toggleFavorite(prompt).collect { result ->
+                    result.fold(
+                        onSuccess = { isNowFavorite ->
+                            Log.d(TAG, "Favorite toggled: $isNowFavorite")
+                            // Update current prompt's favorite status
+                            _uiState.value = _uiState.value.copy(
+                                currentPrompt = prompt.copy(isFavorite = isNowFavorite)
+                            )
+                        },
+                        onFailure = { error ->
+                            Log.e(TAG, "Failed to toggle favorite: ${error.message}")
+                            _uiState.value = _uiState.value.copy(
+                                error = error.message ?: "Failed to toggle favorite"
+                            )
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception toggling favorite: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "An error occurred"
+                )
+            }
+        }
+    }
+    
     override fun onCleared() {
         super.onCleared()
         Log.d(TAG, "ViewModel cleared")
