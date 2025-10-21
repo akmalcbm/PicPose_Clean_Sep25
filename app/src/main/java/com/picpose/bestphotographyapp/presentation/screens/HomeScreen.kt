@@ -2,7 +2,6 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
