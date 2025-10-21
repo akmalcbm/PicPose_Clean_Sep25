@@ -7,7 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +17,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -87,6 +90,7 @@ fun AIPromptSectionHeader(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // Each stat gets equal weight so labels have enough room and won't wrap awkwardly.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -94,19 +98,22 @@ fun AIPromptSectionHeader(
                     StatItem(
                         icon = Icons.Default.AutoAwesome,
                         count = promptCount,
-                        label = "Available"
+                        label = "Available",
+                        modifier = Modifier.weight(1f)
                     )
 
                     StatItem(
                         icon = Icons.Default.Favorite,
                         count = favoriteCount,
-                        label = "Favorites"
+                        label = "Favorites",
+                        modifier = Modifier.weight(1f)
                     )
 
                     StatItem(
                         icon = Icons.AutoMirrored.Filled.TrendingUp,
                         count = 42,
-                        label = "Trending"
+                        label = "Trending",
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
@@ -174,29 +181,51 @@ fun AIPromptSectionHeader(
 private fun StatItem(
     icon: ImageVector,
     count: Int,
-    label: String
+    label: String,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
+    // Use a centered Row so icon + stacked texts are centered within the weighted space
+    Column(
+        modifier = modifier
+            .wrapContentWidth()
+            .wrapContentHeight()
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        // Icon - First Line
         Icon(
             icon,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = Color.White.copy(alpha = 0.9f)
+            modifier = Modifier.size(18.dp),
+            tint = Color.White.copy(alpha = 0.95f)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Count - Second Line
         Text(
             text = "$count",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.width(2.dp))
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Label - Third Line
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
+            color = Color.White.copy(alpha = 0.8f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
     }
+
 }

@@ -24,23 +24,25 @@ fun QuickActionsCard(
     onNavigateToFavorites: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Use themed container color so it reacts to light/dark mode
     Card(
         modifier = modifier
             .fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Use a subtle gradient between two theme colors so dark mode is respected
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFFFAFAFA),
-                            Color.White
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.surface
                         )
                     )
                 )
@@ -58,7 +60,8 @@ fun QuickActionsCard(
                     text = "Quick Actions",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    // Use theme onSurface color instead of hardcoded dark color
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -74,8 +77,9 @@ fun QuickActionsCard(
                     subtitle = "Explore AI prompts",
                     onClick = onNavigateToAllPrompts,
                     modifier = Modifier.weight(1f),
-                    backgroundColor = Color(0xFFF0F4FF),
-                    iconColor = Color(0xFF6366F1)
+                    // Use primaryContainer / primary so colors adapt to theme
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconColor = MaterialTheme.colorScheme.primary
                 )
 
                 ActionButton(
@@ -84,8 +88,9 @@ fun QuickActionsCard(
                     subtitle = "Saved prompts",
                     onClick = onNavigateToFavorites,
                     modifier = Modifier.weight(1f),
-                    backgroundColor = Color(0xFFFDF2F8),
-                    iconColor = Color(0xFFEC4899)
+                    // Use secondaryContainer / secondary for second button
+                    backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconColor = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -125,7 +130,8 @@ private fun ActionButton(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,

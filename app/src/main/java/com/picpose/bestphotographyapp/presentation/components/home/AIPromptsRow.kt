@@ -53,7 +53,7 @@ fun AIPromptCard(
 ) {
     Card(
         modifier = Modifier
-            .width(280.dp) // Fixed width for consistent sizing
+            .width(280.dp)
             .clickable { onPromptClick(prompt) },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -108,7 +108,7 @@ fun AIPromptCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Trending", // Corrected Text
+                        text = "Trending",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
