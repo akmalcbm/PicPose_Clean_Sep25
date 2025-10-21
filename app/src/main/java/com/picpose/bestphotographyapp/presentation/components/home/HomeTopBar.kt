@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -43,6 +44,7 @@ fun HomeTopBar(
     val focusManager = LocalFocusManager.current
 
     TopAppBar(
+        modifier = Modifier.statusBarsPadding(),
         title = {
             if (isSearching) {
                 TextField(
