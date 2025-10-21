@@ -1,13 +1,12 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.app.Activity
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,6 +22,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
@@ -30,9 +31,6 @@ import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -47,6 +45,16 @@ fun ExploreScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+
+    // ✅ Enable edge-to-edge mode for consistent behavior across devices
+    val activity = context as? Activity
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity?.window?.let {
+                WindowCompat.setDecorFitsSystemWindows(it, false)
+            }
+        }
+    }
 
     // Handle error messages
     LaunchedEffect(uiState.error) {
@@ -65,13 +73,17 @@ fun ExploreScreen(
                 if (lastVisibleIndex != null &&
                     lastVisibleIndex >= uiState.content.size - 3 &&
                     uiState.hasMore &&
-                    !uiState.isLoading) {
+                    !uiState.isLoading
+                ) {
                     viewModel.loadMore()
                 }
             }
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(), // Prevent keyboard overlap
         topBar = {
             ExploreTopBar(
                 searchQuery = uiState.searchQuery,
@@ -79,14 +91,16 @@ fun ExploreScreen(
                 onRefresh = viewModel::refresh
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // ✅ Prevent double padding
+        contentWindowInsets = WindowInsets(0)
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Filter Chips Section
+            // Filters section
             FilterChipsSection(
                 categories = uiState.categories,
                 selectedCategory = uiState.selectedCategory,
@@ -97,11 +111,12 @@ fun ExploreScreen(
                 onSortOptionSelected = viewModel::updateSortOption
             )
 
-            // Content Section
+            // Main content
             when {
                 uiState.isLoading && uiState.content.isEmpty() -> {
                     LoadingSection()
                 }
+
                 uiState.content.isEmpty() && !uiState.isLoading -> {
                     EmptyStateSection(
                         searchQuery = uiState.searchQuery,
@@ -113,6 +128,7 @@ fun ExploreScreen(
                         }
                     )
                 }
+
                 else -> {
                     PullToRefreshBox(
                         isRefreshing = uiState.isRefreshing,
@@ -120,46 +136,58 @@ fun ExploreScreen(
                     ) {
                         LazyColumn(
                             state = listState,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), // Adjusted padding
-                            verticalArrangement = Arrangement.spacedBy(16.dp), // Increased spacing between items
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = 90.dp // ✅ Prevent overlap with bottom nav
+                            ),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                                    itemsIndexed(
-                                        items = uiState.content,
-                                        key = { index, content ->
-                                            when (content) {
-                                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                                else -> "CONTENT_${content.hashCode()}_$index"
-                                            }
-                                        }
-                                    ) { index, content ->
-                                        when (content) {
-                                            is ExploreContent.AIPromptContent -> {
-                                                AIPromptCard(
-                                                    prompt = content.prompt,
-                                                    onClick = { onNavigateToPromptDetail(content.prompt) },
-                                                    onCopy = {
-                                                        val textToCopy = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
-                                                        clipboardManager.setText(AnnotatedString(textToCopy))
-                                                        Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                                    },
-                                                    onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
-                                                    modifier = Modifier.animateItem()
-                                                )
-                                            }
-                                            is ExploreContent.GuidePostContent -> {
-                                                GuidePostCard(
-                                                    guidePost = content.guidePost,
-                                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                                    onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
-                                                    modifier = Modifier.animateItem()
-                                                )
-                                            }
-                                        }
+                            itemsIndexed(
+                                items = uiState.content,
+                                key = { index, content ->
+                                    when (content) {
+                                        is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                        is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                        else -> "CONTENT_${content.hashCode()}_$index"
+                                    }
+                                }
+                            ) { _, content ->
+                                when (content) {
+                                    is ExploreContent.AIPromptContent -> {
+                                        AIPromptCard(
+                                            prompt = content.prompt,
+                                            onClick = { onNavigateToPromptDetail(content.prompt) },
+                                            onCopy = {
+                                                val textToCopy = content.prompt.shortPrompt
+                                                    ?: content.prompt.fullPrompt
+                                                    ?: ""
+                                                clipboardManager.setText(AnnotatedString(textToCopy))
+                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            onFavoriteClick = { prompt ->
+                                                viewModel.togglePromptFavorite(prompt)
+                                            },
+                                            modifier = Modifier.animateItem()
+                                        )
                                     }
 
-                            // Loading indicator for pagination
+                                    is ExploreContent.GuidePostContent -> {
+                                        GuidePostCard(
+                                            guidePost = content.guidePost,
+                                            onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                            onFavoriteClick = { post ->
+                                                viewModel.toggleGuidePostFavorite(post)
+                                            },
+                                            modifier = Modifier.animateItem()
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Pagination loading indicator
                             if (uiState.isLoading && uiState.content.isNotEmpty()) {
                                 item {
                                     Box(
@@ -193,6 +221,7 @@ private fun ExploreTopBar(
     var isSearchExpanded by remember { mutableStateOf(false) }
 
     TopAppBar(
+        modifier = Modifier.statusBarsPadding(), // ✅ Prevent overlap with status bar safely
         title = {
             AnimatedContent(
                 targetState = isSearchExpanded,
@@ -207,9 +236,7 @@ private fun ExploreTopBar(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
                         placeholder = { Text("Search content...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             IconButton(onClick = {
                                 isSearchExpanded = false
@@ -250,6 +277,7 @@ private fun ExploreTopBar(
         )
     )
 }
+
 
 @Composable
 private fun FilterChipsSection(

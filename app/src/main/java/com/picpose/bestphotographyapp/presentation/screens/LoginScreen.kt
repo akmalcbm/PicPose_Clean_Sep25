@@ -67,9 +67,11 @@ fun LoginScreen(
         if (authState is AuthState.Success || hasSkippedAuth) {
             onNavigateToHome()
             authViewModel.resetAuthState()
+            authViewModel.resetSkip() // Add this line
         }
     }
-    
+
+
     Scaffold(
         topBar = {
             TopAppBar(

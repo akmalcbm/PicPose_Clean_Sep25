@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +31,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
     titleText: String = "PicPose",
@@ -44,38 +45,34 @@ fun HomeTopBar(
     val focusManager = LocalFocusManager.current
 
     TopAppBar(
-        modifier = Modifier.statusBarsPadding(),
+        modifier = Modifier.statusBarsPadding(), // Safe single padding
         title = {
             if (isSearching) {
                 TextField(
                     value = query,
-                    onValueChange = { value ->
-                        query = value
-                        onQueryChanged(value)
+                    onValueChange = {
+                        query = it
+                        onQueryChanged(it)
                     },
                     modifier = Modifier.height(48.dp),
-                    singleLine = true,
                     placeholder = { Text("Search prompts, categories...") },
+                    singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            focusManager.clearFocus()
-                            onSearchClick(query)
-                        }
-                    ),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        focusManager.clearFocus()
+                        onSearchClick(query)
+                    }),
                     leadingIcon = {
                         IconButton(onClick = {
-                            // exit search mode
                             isSearching = false
                             query = ""
-                            onQueryChanged("") // clear search
+                            onQueryChanged("")
                             focusManager.clearFocus()
                         }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                     trailingIcon = {
-                        // use the plain composable (no RowScope receiver)
                         TrailingIcons(
                             query = query,
                             onClear = {
@@ -89,14 +86,8 @@ fun HomeTopBar(
                         )
                     },
                     colors = TextFieldDefaults.colors(
-                        // set same container color for focused/unfocused states
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        // indicator colors
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                        // cursor color (optional)
-                        cursorColor = MaterialTheme.colorScheme.primary
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
                     )
                 )
             } else {
@@ -113,11 +104,10 @@ fun HomeTopBar(
                 Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
     )
 }
+
 
 /** Plain composable (not a RowScope extension) used inside TextField.trailingIcon */
 @Composable

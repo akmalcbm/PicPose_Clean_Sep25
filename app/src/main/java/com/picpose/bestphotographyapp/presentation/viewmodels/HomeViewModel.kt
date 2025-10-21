@@ -32,7 +32,7 @@ data class HomeUiState(
     val recentPosts: List<Post> = emptyList(),
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
-    val guidePosts: List<com.picpose.bestphotographyapp.data.models.GuidePost> = emptyList(), // <- new
+    val guidePosts: List<GuidePost> = emptyList(),
     val favoritePromptsCount: Int = 0,
     val dailyTips: List<DailyTip> = emptyList(),
     val error: String? = null,

@@ -1,5 +1,8 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.app.Activity
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,19 +18,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen() {
     val context = LocalContext.current
+    val activity = context as? Activity
 
-    // Enhanced create options with more detailed descriptions and categories
+    // ✅ Enable edge-to-edge layout (prevents extra system padding)
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity?.window?.let {
+                WindowCompat.setDecorFitsSystemWindows(it, false)
+            }
+        }
+    }
+
     val creationCategories = listOf(
         CreationCategory(
             title = "Photography",
@@ -79,81 +91,93 @@ fun CreateScreen() {
         )
     )
 
-    Column(
+    // ✅ Scaffold ensures correct system insets and keyboard handling
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Enhanced Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            .imePadding(),
+        contentWindowInsets = WindowInsets(0) // Removes automatic padding from system bars
+    ) { innerPadding ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Create,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "Create",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Create,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "Choose what you want to create",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Categories in LazyColumn
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            items(creationCategories) { category ->
-                CategorySection(category = category)
-            }
-
-            // Footer with some inspiration
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Create",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Text(
+                        text = "Choose what you want to create",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ✅ Added bottom padding to prevent overlapping or extra space
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(bottom = 90.dp) // ⬅️ fixes bottom spacing
+            ) {
+                items(creationCategories) { category ->
+                    CategorySection(category = category)
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.StarBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "More features coming soon!",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "We're working on bringing you amazing creation tools",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.StarBorder,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "More features coming soon!",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "We're working on bringing you amazing creation tools",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -164,7 +188,6 @@ fun CreateScreen() {
 @Composable
 private fun CategorySection(category: CreationCategory) {
     Column {
-        // Category Title
         Text(
             text = category.title,
             style = MaterialTheme.typography.titleLarge,
@@ -173,12 +196,14 @@ private fun CategorySection(category: CreationCategory) {
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        // Options Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.height((category.items.size / 2 * 120 + (category.items.size % 2) * 120).dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height((category.items.size / 2 * 120 + (category.items.size % 2) * 120).dp)
+                .padding(bottom = 4.dp) // minor grid-bottom alignment fix
         ) {
             items(category.items) { option ->
                 CreateOptionCard(option = option)
@@ -204,7 +229,7 @@ private fun CreateOptionCard(option: CreateOption) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

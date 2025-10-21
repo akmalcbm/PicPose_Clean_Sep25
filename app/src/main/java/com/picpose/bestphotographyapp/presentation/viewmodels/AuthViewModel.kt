@@ -38,8 +38,11 @@ class AuthViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val hasSkippedAuth: StateFlow<Boolean> = userSessionManager.hasSkippedAuth
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    //val hasSkippedAuth: StateFlow<Boolean> = userSessionManager.hasSkippedAuth
+    //    .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val _hasSkippedAuth = MutableStateFlow(false)
+    val hasSkippedAuth: StateFlow<Boolean> = _hasSkippedAuth
 
     val currentUser: StateFlow<User?> = combine(
         userSessionManager.userId,
@@ -133,9 +136,11 @@ class AuthViewModel @Inject constructor(
      * Skip authentication
      */
     fun skipAuth() {
-        viewModelScope.launch {
-            userSessionManager.setSkipAuth(true)
-        }
+        _hasSkippedAuth.value = true
+    }
+
+    fun resetSkip() {
+        _hasSkippedAuth.value = false
     }
 
     /**
