@@ -97,6 +97,10 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         fetchDailyTips()
         loadGuidePosts()
         loadFavoriteCount()
+
+        // ✅ NEW
+        loadCategories()
+        loadRecentPosts()
         
         // Load AI prompts only after a brief delay to avoid conflict with search debouncing
         viewModelScope.launch {
@@ -374,8 +378,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
             val diff = now - lastRefreshTimestamp
             Log.w(TAG, "refresh throttled: only ${diff}ms since last refresh")
-            // update UI with friendly message
-            _uiState.value = _uiState.value.copy(error = "Please wait a moment before refreshing again.")
+            _uiState.value = _uiState.value.copy(error = "Please wait before refreshing again.")
             return
         }
         lastRefreshTimestamp = now
@@ -383,20 +386,15 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             try {
-                // Run refresh tasks concurrently but keep it simple
                 val jobs = listOf(
                     launch { fetchDailyTips() },
                     launch { loadAIPrompts() },
                     launch { loadGuidePosts() },
-                    launch { loadFavoriteCount() }
+                    launch { loadFavoriteCount() },
+                    launch { loadCategories() },  // ✅ NEW
+                    launch { loadRecentPosts() }  // ✅ NEW
                 )
-
-                // wait for children to finish
                 jobs.forEach { it.join() }
-            } catch (e: CancellationException) {
-                // Proper cancellation handling - don't treat as error
-                Log.d(TAG, "refresh cancelled: ${e.message}")
-                throw e // Re-throw to let coroutine handle it properly
             } catch (e: Exception) {
                 Log.e(TAG, "refresh exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
@@ -601,5 +599,73 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }
+
+    // --------------------------------------------
+// 🔥 NEW CODE for Categories & Recent Posts
+// --------------------------------------------
+    fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "loadCategories: fetching categories...")
+                repository.getCategories().collect { result ->
+                    result.fold(
+                        onSuccess = { categories ->
+                            Log.d(TAG, "loadCategories: received ${categories.size} categories")
+                            _uiState.value = _uiState.value.copy(categories = categories)
+                        },
+                        onFailure = { err ->
+                            Log.e(TAG, "loadCategories failed: ${err.message}")
+                            _uiState.value = _uiState.value.copy(error = err.message)
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "loadCategories exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    fun loadRecentPosts(limit: Int = 5) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "loadRecentPosts: fetching top $limit posts via getAiPosts...")
+                // Using your repository's getAiPosts() function
+                repository.getAiPosts(page = 1, limit = limit, status = "published")
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { paginatedResult ->
+                                val posts = paginatedResult.items.map { aiPrompt ->
+                                    // Convert AIPrompt → Post to reuse your Post UI
+                                    Post(
+                                        id = aiPrompt.id,
+                                        title = aiPrompt.title,
+                                        description = aiPrompt.shortPrompt
+                                            ?: aiPrompt.fullPrompt
+                                            ?: "",
+                                        image = aiPrompt.imageUrl ?: "",
+                                        category = aiPrompt.category ?: "",
+                                        //author = aiPrompt.author ?: "",
+                                        created_at = aiPrompt.createdAt ?: "",
+                                        likes = aiPrompt.likes ?: 0,
+                                        //views = aiPrompt.views ?: 0
+                                    )
+                                }
+                                Log.d(TAG, "loadRecentPosts: received ${posts.size} posts")
+                                _uiState.value = _uiState.value.copy(recentPosts = posts)
+                            },
+                            onFailure = { err ->
+                                Log.e(TAG, "loadRecentPosts failed: ${err.message}")
+                                _uiState.value = _uiState.value.copy(error = err.message)
+                            }
+                        )
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "loadRecentPosts exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
 
 }

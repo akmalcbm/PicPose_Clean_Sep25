@@ -35,12 +35,10 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     var currentTipIndex by remember { mutableIntStateOf(0) }
 
-    // Handle system window fitting for full edge-to-edge layout
+    // System edge-to-edge setup
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.window?.let {
-                WindowCompat.setDecorFitsSystemWindows(it, false)
-            }
+            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         }
     }
 
@@ -59,22 +57,20 @@ fun HomeScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding(), // handles keyboard overlap
+            .imePadding(),
         topBar = {
             HomeTopBar(
                 titleText = "PicPose",
                 initialSearch = "",
                 onQueryChanged = { query -> viewModel.onSearchChanged(query) },
                 onSearchClick = { query -> viewModel.onSearchChanged(query) },
-                onProfileClick = { /* handle profile */ }
+                onProfileClick = { /* handle profile click */ }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        // ✅ Remove default insets to avoid double padding
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
-        // ✅ Proper content layout without extra paddings
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,30 +94,27 @@ fun HomeScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(
-                                top = 16.dp,
-                                bottom = 90.dp // avoid overlapping bottom bar
-                            )
+                            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
                         ) {
                             item { AnimatedWelcomeHeader() }
 
+                            // 🔹 Daily Tip
                             item {
                                 val dailyTips = uiState.dailyTips.mapNotNull { it.tip }
                                 if (dailyTips.isNotEmpty()) {
                                     val tipToShow = dailyTips.getOrNull(currentTipIndex)
-                                        ?: dailyTips.firstOrNull().orEmpty()
+                                        ?: dailyTips.first()
                                     AnimatedDailyTipCard(
                                         tip = tipToShow,
                                         onNextTip = {
-                                            if (dailyTips.isNotEmpty()) {
-                                                currentTipIndex = (currentTipIndex + 1) % dailyTips.size
-                                            }
+                                            currentTipIndex = (currentTipIndex + 1) % dailyTips.size
                                         },
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
                             }
 
+                            // 🔹 Quick actions
                             item {
                                 QuickActionsCard(
                                     onNavigateToAllPrompts = onNavigateToAllPrompts,
@@ -130,10 +123,12 @@ fun HomeScreen(
                                 )
                             }
 
+                            // 🔹 Quick stats
                             item {
                                 QuickStatsCard(modifier = Modifier.padding(horizontal = 16.dp))
                             }
 
+                            // 🔹 AI Prompts
                             if (uiState.aiPrompts.isNotEmpty()) {
                                 item {
                                     AIPromptSectionHeader(
@@ -160,15 +155,16 @@ fun HomeScreen(
                                 }
                             }
 
+                            // 🔹 Ad
                             item {
                                 AdmobBannerAd(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 8.dp, horizontal = 16.dp)
+                                        .padding(horizontal = 16.dp)
                                 )
                             }
 
-                            // ToDo
+                            // ✅ FIXED: Categories Section (Now properly visible)
                             if (uiState.categories.isNotEmpty()) {
                                 item {
                                     SectionHeader(
@@ -181,38 +177,62 @@ fun HomeScreen(
                                 item {
                                     CategoriesRow(
                                         categories = uiState.categories,
-                                        onCategoryClick = onNavigateToCategory,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                        onCategoryClick = { category -> onNavigateToCategory(category) },
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
 
-                            // ToDo
+                            // ✅ FIXED: Recent Posts Section
                             if (uiState.recentPosts.isNotEmpty()) {
                                 item {
                                     SectionHeader(
                                         title = "Recent Posts",
-                                        subtitle = "Latest creations",
+                                        subtitle = "Latest from community",
                                         icon = Icons.Default.Schedule,
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
+                                // ⚠️ Wrap inside Box + Column instead of LazyColumn
                                 item {
-                                    RecentPostsColumn(
-                                        posts = uiState.recentPosts.take(3),
-                                        onPostClick = onNavigateToPostDetail,
-                                        onLikeClick = { viewModel.togglePostLike(it.id) },
-                                        onShareClick = { viewModel.sharePost(context, it) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .padding(horizontal = 16.dp)
+                                            .fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        uiState.recentPosts.take(5).forEach { post ->
+                                            RecentPostItem(
+                                                post = post,
+                                                onClick = {
+                                                    // ✅ Match AI Prompt by exact post ID (reliable)
+                                                    val matchingPrompt = uiState.aiPrompts.find { prompt ->
+                                                        prompt.id?.trim() == post.id.trim()
+                                                    }
+
+                                                    if (matchingPrompt != null) {
+                                                        // ✅ Open the corresponding AI Prompt Detail
+                                                        onNavigateToPromptDetail(matchingPrompt)
+                                                    } else {
+                                                        // ⚠️ Fallback: open post detail if prompt not in memory
+                                                        onNavigateToPostDetail(post)
+                                                    }
+                                                },
+                                                onLikeClick = { viewModel.togglePostLike(post.id) },
+                                                onShareClick = { viewModel.sharePost(context, post) }
+                                            )
+                                        }
+
+                                    }
                                 }
                             }
 
+                            // 🔹 Guides Section
                             if (uiState.guidePosts.isNotEmpty()) {
                                 item {
                                     SectionHeader(
                                         title = "Photography Guides",
-                                        subtitle = "Learn with expert tutorials",
+                                        subtitle = "Learn from experts",
                                         icon = Icons.Default.Book,
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
@@ -228,24 +248,7 @@ fun HomeScreen(
                                 }
                             }
 
-                            if (uiState.categories.isNotEmpty()) {
-                                item {
-                                    SectionHeader(
-                                        title = "Categories",
-                                        subtitle = "Explore different styles",
-                                        icon = Icons.Default.Category,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                                item {
-                                    CategoriesRow(
-                                        categories = uiState.categories,
-                                        onCategoryClick = onNavigateToCategory,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                            }
-
+                            // 🔹 Featured posts
                             if (uiState.featuredPosts.isNotEmpty()) {
                                 item {
                                     SectionHeader(
@@ -267,26 +270,6 @@ fun HomeScreen(
                             }
 
                             item { AdmobInterstitialTrigger() }
-
-                            if (uiState.recentPosts.isNotEmpty()) {
-                                item {
-                                    SectionHeader(
-                                        title = "Recent Posts",
-                                        subtitle = "Latest from community",
-                                        icon = Icons.Default.Schedule,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                                item {
-                                    RecentPostsColumn(
-                                        posts = uiState.recentPosts.take(3),
-                                        onPostClick = onNavigateToPostDetail,
-                                        onLikeClick = { viewModel.togglePostLike(it.id) },
-                                        onShareClick = { viewModel.sharePost(context, it) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -294,6 +277,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 
 @Composable

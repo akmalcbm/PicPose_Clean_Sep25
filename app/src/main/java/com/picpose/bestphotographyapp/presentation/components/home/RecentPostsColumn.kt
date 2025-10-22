@@ -17,11 +17,11 @@ fun RecentPostsColumn(
     onShareClick: (Post) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier,
+    Column(
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(posts, key = { it.id }) { post ->
+        posts.forEach { post ->
             RecentPostItem(
                 post = post,
                 onClick = { onPostClick(post) },
@@ -31,6 +31,7 @@ fun RecentPostsColumn(
         }
     }
 }
+
 
 @Composable
 fun RecentPostItem(

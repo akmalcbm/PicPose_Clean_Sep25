@@ -28,17 +28,14 @@ fun CategoriesRow(
 ) {
     LazyRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(categories) { category ->
-            CategoryCard(
-                category = category,
-                onClick = { onCategoryClick(category) }
-            )
+            CategoryCard(category = category) { onCategoryClick(category) }
         }
     }
 }
+
 
 @Composable
 private fun CategoryCard(

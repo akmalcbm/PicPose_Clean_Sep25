@@ -1,6 +1,11 @@
 package com.picpose.bestphotographyapp.presentation.navigation
 
 import android.net.Uri
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -19,9 +24,12 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModelFacto
 
 @Composable
 fun NavGraph(navController: NavHostController) {
+    @OptIn(ExperimentalAnimationApi::class)
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route
+        startDestination = Screen.Splash.route,
+        enterTransition = { fadeIn() + slideInVertically() },
+        exitTransition = { fadeOut() + slideOutVertically() }
     ) {
         // Splash
         composable(route = Screen.Splash.route) {
@@ -47,16 +55,28 @@ fun NavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
-                onNavigateToCategory = { /* TODO */ },
-                onNavigateToPostDetail = { /* TODO */ },
+                // ✅ NEW: Category click → AllAIPromptsScreen filtered by that category
+                onNavigateToCategory = { category ->
+                    val safeCategory = Uri.encode(category.name)
+                    navController.navigate("${Screen.AllAIPrompts.route}?category=$safeCategory") {
+                        launchSingleTop = true
+                    }
+                },
+                // ✅ NEW: Post click → try to open as AIPrompt detail if possible
+                onNavigateToPostDetail = { post ->
+                    val safeId = Uri.encode(post.id)
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToPromptDetail = { aiPrompt ->
-                    val safeId = android.net.Uri.encode(aiPrompt.id)
+                    val safeId = Uri.encode(aiPrompt.id)
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
                         launchSingleTop = true
                     }
                 },
                 onNavigateToGuidePostDetail = { guidePost ->
-                    val safeId = android.net.Uri.encode(guidePost.id)
+                    val safeId = Uri.encode(guidePost.id)
                     navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) {
                         launchSingleTop = true
                     }
@@ -133,7 +153,17 @@ fun NavGraph(navController: NavHostController) {
         }
 
         // All AI Prompts
-        composable(route = Screen.AllAIPrompts.route) {
+        composable(
+            route = Screen.AllAIPrompts.route + "?category={category}",
+            arguments = listOf(
+                navArgument("category") {
+                    type = NavType.StringType
+                    defaultValue = "All"
+                }
+            )
+        ) { backStackEntry ->
+            val initialCategory = backStackEntry.arguments?.getString("category") ?: "All"
+
             val context = LocalContext.current
             val repo = remember { HomeRepository(context) }
             val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -147,13 +177,14 @@ fun NavGraph(navController: NavHostController) {
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    // safe navigate with launchSingleTop
                     navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
                         launchSingleTop = true
                     }
-                }
+                },
+                initialCategory = initialCategory // ✅ now valid for AllAIPromptsScreen
             )
         }
+
 
         // Favorites
         composable(route = Screen.AIPromptFavorites.route) {

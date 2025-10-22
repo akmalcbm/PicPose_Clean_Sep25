@@ -9,10 +9,12 @@ import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.models.Category
+import com.picpose.bestphotographyapp.data.models.CategoryDto
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.GuidePostDto
 import com.picpose.bestphotographyapp.data.models.MetaDto
+import com.picpose.bestphotographyapp.data.models.toCategory
 import com.picpose.bestphotographyapp.data.models.toGuidePost
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
@@ -620,16 +622,44 @@ class HomeRepository(
      */
     suspend fun getCategories(): Flow<Result<List<Category>>> = flow {
         try {
-            // Return mock categories for now - in a real app, this would call the API
-            val mockCategories = listOf(
-                Category(id = "1", name = "Portrait", description = "Portrait photography", image = "", post_count = 15),
-                Category(id = "2", name = "Landscape", description = "Landscape photography", image = "", post_count = 20),
-                Category(id = "3", name = "Architecture", description = "Architecture photography", image = "", post_count = 12),
-                Category(id = "4", name = "Nature", description = "Nature photography", image = "", post_count = 18),
-                Category(id = "5", name = "Street", description = "Street photography", image = "", post_count = 10),
-                Category(id = "6", name = "Abstract", description = "Abstract art", image = "", post_count = 8)
+            Log.d(TAG, "getCategories: fetching from API...")
+
+            val apiKey = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
+
+            val apiResult: Result<ApiResponse<List<CategoryDto>>> = safeApiCall {
+                callWithRetries {
+                    apiService.getCategories(apiKey)
+                }
+            }
+
+            apiResult.fold(
+                onSuccess = { wrapper ->
+                    if (wrapper.success && wrapper.data != null) {
+                        val flatList = mutableListOf<CategoryDto>()
+
+                        // Flatten nested children recursively
+                        fun flattenCategories(list: List<CategoryDto>) {
+                            list.forEach { cat ->
+                                flatList.add(cat)
+                                cat.children?.let { flattenCategories(it) }
+                            }
+                        }
+
+                        flattenCategories(wrapper.data)
+
+                        val categories = flatList.map { it.toCategory() }
+                        Log.d(TAG, "getCategories: loaded ${categories.size} categories from server")
+                        emit(Result.success(categories))
+                    } else {
+                        Log.w(TAG, "getCategories: empty or invalid response")
+                        emit(Result.failure(Exception("No categories available")))
+                    }
+                },
+                onFailure = { err ->
+                    Log.e(TAG, "getCategories failed: ${err.message}")
+                    emit(Result.failure(err))
+                }
             )
-            emit(Result.success(mockCategories))
         } catch (e: Exception) {
             Log.e(TAG, "getCategories exception: ${e.message}")
             emit(Result.failure(e))

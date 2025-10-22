@@ -1,16 +1,22 @@
 package com.picpose.bestphotographyapp.presentation.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -37,9 +43,11 @@ fun AIPromptCard(
     showFavoriteIcon: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    // Use Compose's ClipboardManager
     val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
     var isPressed by remember { mutableStateOf(false) }
+
+    val colors = MaterialTheme.colorScheme
 
     Card(
         modifier = modifier
@@ -47,29 +55,21 @@ fun AIPromptCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = colors.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isPressed) 12.dp else 6.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 10.dp else 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFFAFAFA),
-                            Color.White
-                        )
-                    )
-                )
+                .background(colors.surface)
         ) {
-            // Image Section with AsyncImage and loading states
+            // 🔹 Image Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isCompact) 120.dp else 200.dp) // Increased sizes for better visibility
+                    .height(if (isCompact) 140.dp else 220.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             ) {
                 val painter = rememberAsyncImagePainter(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -79,222 +79,112 @@ fun AIPromptCard(
                         .crossfade(true)
                         .build()
                 )
-                
-                // Show the image
-                androidx.compose.foundation.Image(
+
+                Image(
                     painter = painter,
-                    contentDescription = prompt.title ?: "AI Generated Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentDescription = prompt.title ?: "AI Prompt Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
-                
-                // Show loading indicator while loading
+
                 when (painter.state) {
                     is AsyncImagePainter.State.Loading -> {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Gray.copy(alpha = 0.3f)),
+                                .background(colors.onSurface.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                color = Color(0xFF6366F1)
-                            )
+                            CircularProgressIndicator(color = colors.primary, strokeWidth = 2.dp)
                         }
                     }
+
                     is AsyncImagePainter.State.Error -> {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Red.copy(alpha = 0.2f)),
+                                .background(colors.errorContainer.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.BrokenImage,
                                 contentDescription = "Error loading image",
-                                modifier = Modifier.size(48.dp),
-                                tint = Color.Gray
-                            )
-                        }
-                    }
-                    else -> { /* Image loaded successfully */ }
-                }
-
-                // Gradient overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.3f)
-                                ),
-                                startY = 0f,
-                                endY = 400f
-                            )
-                        )
-                )
-
-                // Top badges
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Category badge
-                    Surface(
-                        color = Color(0xFF6366F1).copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Text(
-                            text = prompt.category ?: "",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Favorite icon - SHOW ONLY IF showFavoriteIcon = true
-                    if (showFavoriteIcon && onFavoriteClick != null) {
-                        IconButton(
-                            onClick = { onFavoriteClick(prompt) },
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(
-                                    Color.White.copy(alpha = 0.9f),
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(
-                                if (prompt.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite",
-                                modifier = Modifier.size(18.dp),
-                                tint = if (prompt.isFavorite) Color(0xFFE91E63) else Color(0xFF64748B)
+                                tint = colors.error,
+                                modifier = Modifier.size(40.dp)
                             )
                         }
                     }
 
-                    // Popular badge (if not showing favorite icon or both can coexist)
-                    if (prompt.isPopular && !showFavoriteIcon) {
-                        Surface(
-                            color = Color(0xFFEF4444).copy(alpha = 0.9f),
-                            shape = RoundedCornerShape(20.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Whatshot,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Popular",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // AI Badge
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.9f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "AI",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
-                    }
+                    else -> Unit
                 }
             }
 
-            // Content Section
+            // 🔹 Title & Description
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
-                // Title - ensure non-null string
                 Text(
                     text = prompt.title ?: "",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onSurface
+                    ),
                     maxLines = if (isCompact) 1 else 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Short prompt - ensure non-null string
                 Text(
                     text = prompt.shortPrompt ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF64748B),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = colors.onSurfaceVariant
+                    ),
                     maxLines = if (isCompact) 2 else 3,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 20.sp
                 )
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Action buttons row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Likes
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF64748B)
+            // 🔹 Bottom Row (Likes + Buttons)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // ❤️ Likes
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${prompt.likes}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = colors.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${prompt.likes}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
-                        )
-                    }
+                    )
+                }
 
-                    // Action buttons
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Copy button
+                // 🔘 Action Buttons
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    // ⚠️ Hidden Copy Button (kept for code reference)
+                    if (false) { // hide for now
                         FilledTonalButton(
                             onClick = {
-                                // Use safe fallback for clipboard text
                                 clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
                                 onCopy()
                             },
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFFF1F5F9),
-                                contentColor = Color(0xFF475569)
+                                containerColor = colors.surfaceVariant,
+                                contentColor = colors.onSurface
                             ),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
@@ -306,28 +196,71 @@ fun AIPromptCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Copy",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Text("Copy", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
+                    }
 
-                        // View button
-                        Button(
-                            onClick = onClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF6366F1),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
+                    // 👁️ View Button
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.onPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(
+                            text = "View",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // 🔹 Optional Footer Info
+            if (prompt.isPopular || prompt.category?.isNotEmpty() == true) {
+                Divider(color = colors.outlineVariant.copy(alpha = 0.3f))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    prompt.category?.let {
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = it,
+                                    color = colors.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = colors.surfaceVariant
+                            )
+                        )
+                    }
+
+                    if (prompt.isPopular) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Whatshot,
+                                contentDescription = null,
+                                tint = colors.error,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "View",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
+                                "Popular",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = colors.error
+                                )
                             )
                         }
                     }

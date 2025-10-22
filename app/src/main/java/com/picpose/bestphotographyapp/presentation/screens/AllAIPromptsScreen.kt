@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -23,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -38,7 +40,8 @@ enum class ViewMode {
 fun AllAIPromptsScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {}, // navigation callback
-    viewModel: AIPromptViewModel = viewModel()
+    viewModel: AIPromptViewModel = viewModel(),
+    initialCategory: String? = null // ✅ NEW PARAM
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
@@ -52,9 +55,14 @@ fun AllAIPromptsScreen(
     // Initial load (run once)
     LaunchedEffect(Unit) {
         viewModel.loadAllPrompts()
-        // Remove this line if method doesn't exist
-        // viewModel.refreshFavoriteState()
         viewModel.loadCategories()
+
+        // ✅ Auto-select category if passed from navigation
+        initialCategory?.let {
+            if (it.isNotBlank() && it != "All") {
+                viewModel.updateSelectedCategory(it)
+            }
+        }
     }
 
     // Show errors as Snackbars and clear after showing
