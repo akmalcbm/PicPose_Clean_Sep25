@@ -168,6 +168,44 @@ fun HomeScreen(
                                 )
                             }
 
+                            if (uiState.categories.isNotEmpty()) {
+                                item {
+                                    SectionHeader(
+                                        title = "Categories",
+                                        subtitle = "Explore different styles",
+                                        icon = Icons.Default.Category,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+                                item {
+                                    CategoriesRow(
+                                        categories = uiState.categories,
+                                        onCategoryClick = onNavigateToCategory,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+                            }
+
+                            if (uiState.recentPosts.isNotEmpty()) {
+                                item {
+                                    SectionHeader(
+                                        title = "Recent Posts",
+                                        subtitle = "Latest creations",
+                                        icon = Icons.Default.Schedule,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+                                item {
+                                    RecentPostsColumn(
+                                        posts = uiState.recentPosts.take(3),
+                                        onPostClick = onNavigateToPostDetail,
+                                        onLikeClick = { viewModel.togglePostLike(it.id) },
+                                        onShareClick = { viewModel.sharePost(context, it) },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+                            }
+
                             if (uiState.guidePosts.isNotEmpty()) {
                                 item {
                                     SectionHeader(
@@ -183,24 +221,6 @@ fun HomeScreen(
                                         onGuidePostClick = onNavigateToGuidePostDetail,
                                         onLikeClick = { viewModel.toggleGuidePostLike(it.id) },
                                         onShareClick = { viewModel.shareGuidePost(context, it) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                            }
-
-                            if (uiState.categories.isNotEmpty()) {
-                                item {
-                                    SectionHeader(
-                                        title = "Categories",
-                                        subtitle = "Explore different styles",
-                                        icon = Icons.Default.Category,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                                item {
-                                    CategoriesRow(
-                                        categories = uiState.categories,
-                                        onCategoryClick = onNavigateToCategory,
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
@@ -227,26 +247,6 @@ fun HomeScreen(
                             }
 
                             item { AdmobInterstitialTrigger() }
-
-                            if (uiState.recentPosts.isNotEmpty()) {
-                                item {
-                                    SectionHeader(
-                                        title = "Recent Posts",
-                                        subtitle = "Latest from community",
-                                        icon = Icons.Default.Schedule,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                                item {
-                                    RecentPostsColumn(
-                                        posts = uiState.recentPosts.take(3),
-                                        onPostClick = onNavigateToPostDetail,
-                                        onLikeClick = { viewModel.togglePostLike(it.id) },
-                                        onShareClick = { viewModel.sharePost(context, it) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
