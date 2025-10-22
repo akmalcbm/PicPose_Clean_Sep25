@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.system.measureTimeMillis
 
 private const val TAG = "AIPromptVM"
@@ -316,34 +317,56 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     }
 
     fun loadFavoritePrompts() {
+        // Cancel any previous ongoing job safely
         loadFavoritesJob?.cancel()
+
         loadFavoritesJob = viewModelScope.launch {
             try {
-                val flow = repository.getFavoritePrompts()
-                flow.collect { result: Result<List<AIPrompt>> ->
+                repository.getFavoritePrompts().collect { result: Result<List<AIPrompt>> ->
                     result.fold(
-                        onSuccess = { favs: List<AIPrompt> ->
+                        onSuccess = { favs ->
                             val safeFavs = favs.map { it.copy(isFavorite = true) }
+
+                            // ✅ Update favorites in state
                             _uiState.value = _uiState.value.copy(favoritePrompts = safeFavs)
-                            // Update isFavorite flags in allPrompts
-                            val favIds = safeFavs.map { it.id }.toSet()
-                            val updatedAll = _uiState.value.allPrompts.map { p ->
-                                p.copy(isFavorite = favIds.contains(p.id))
+
+                            // ✅ Update allPrompts with favorite flags
+                            val favIds = safeFavs.mapNotNull { it.id }.toSet()
+                            val updatedAll = _uiState.value.allPrompts.map { prompt ->
+                                prompt.copy(isFavorite = favIds.contains(prompt.id))
                             }
-                            _uiState.value = _uiState.value.copy(allPrompts = updatedAll)
+
+                            _uiState.value = _uiState.value.copy(
+                                allPrompts = updatedAll,
+                                error = null
+                            )
                         },
-                        onFailure = { ex: Throwable ->
-                            Log.w(TAG, "loadFavoritePrompts failed: ${ex.message}")
-                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to load favorites")
+                        onFailure = { ex ->
+                            if (ex !is CancellationException) {
+                                Log.w(TAG, "loadFavoritePrompts failed: ${ex.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    error = ex.message ?: "Failed to load favorites"
+                                )
+                            } else {
+                                // 🔇 Ignore normal lifecycle cancellation
+                                Log.d(TAG, "loadFavoritePrompts cancelled (normal lifecycle event)")
+                            }
                         }
                     )
                 }
+            } catch (ce: CancellationException) {
+                // 🔇 Ignore — expected if user navigates away quickly
+                Log.d(TAG, "loadFavoritePrompts coroutine cancelled")
             } catch (e: Exception) {
-                Log.e(TAG, "loadFavoritePrompts exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading favorites")
+                Log.e(TAG, "loadFavoritePrompts exception: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Error loading favorites"
+                )
             }
         }
     }
+
+
 
     fun refresh() {
         val now = System.currentTimeMillis()

@@ -1,14 +1,15 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.app.Activity
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,44 +29,47 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import androidx.compose.foundation.layout.PaddingValues
+import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
+
 import kotlinx.coroutines.launch
 
-// Define ViewMode enum
-enum class ViewMode {
-    GRID, LIST
-}
+enum class ViewMode { GRID, LIST }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllAIPromptsScreen(
     onBack: () -> Unit,
-    onPromptClick: (String) -> Unit = {}, // navigation callback
+    onPromptClick: (String) -> Unit = {},
     viewModel: AIPromptViewModel = viewModel(),
-    initialCategory: String? = null // ✅ NEW PARAM
+    initialCategory: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val activity = context as? Activity
+    val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-
     var showSearch by remember { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
 
-    // Initial load (run once)
+    // ✅ Edge-to-edge setup for Samsung devices
     LaunchedEffect(Unit) {
-        viewModel.loadAllPrompts()
-        viewModel.loadCategories()
-
-        // ✅ Auto-select category if passed from navigation
-        initialCategory?.let {
-            if (it.isNotBlank() && it != "All") {
-                viewModel.updateSelectedCategory(it)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         }
     }
 
-    // Show errors as Snackbars and clear after showing
+    // ✅ Initial data load
+    LaunchedEffect(Unit) {
+        viewModel.loadAllPrompts()
+        viewModel.loadCategories()
+        initialCategory?.takeIf { it.isNotBlank() && it != "All" }?.let {
+            viewModel.updateSelectedCategory(it)
+        }
+    }
+
+    // ✅ Error handling
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
             coroutineScope.launch {
@@ -75,32 +79,22 @@ fun AllAIPromptsScreen(
         }
     }
 
-    // Derived display list (filtered) - Fixed type inference
     val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
-        // Filter prompts based on search query and category
-        val filtered = uiState.allPrompts.filter { prompt ->
-            val matchesSearch = if (uiState.searchQuery.isBlank()) {
-                true
-            } else {
-                prompt.title?.contains(uiState.searchQuery, ignoreCase = true) == true ||
-                        prompt.fullPrompt?.contains(uiState.searchQuery, ignoreCase = true) == true ||
-                        prompt.shortPrompt?.contains(uiState.searchQuery, ignoreCase = true) == true
-            }
-
-            val matchesCategory = if (uiState.selectedCategory == "All") {
-                true
-            } else {
-                prompt.category == uiState.selectedCategory
-            }
-
+        uiState.allPrompts.filter { prompt ->
+            val matchesSearch = uiState.searchQuery.isBlank() ||
+                    prompt.title?.contains(uiState.searchQuery, true) == true ||
+                    prompt.fullPrompt?.contains(uiState.searchQuery, true) == true ||
+                    prompt.shortPrompt?.contains(uiState.searchQuery, true) == true
+            val matchesCategory = uiState.selectedCategory == "All" ||
+                    prompt.category == uiState.selectedCategory
             matchesSearch && matchesCategory
         }
-        filtered
     }
 
     val categories = uiState.categories
 
-    Scaffold(
+    // ✅ Correct usage of EdgeToEdgeScaffold
+    EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -117,125 +111,168 @@ fun AllAIPromptsScreen(
                     }
                 },
                 actions = {
-                    // Refresh action
                     IconButton(onClick = { viewModel.loadAllPrompts() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-
-                    // Search Toggle
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(
                             if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
                             contentDescription = "Search"
                         )
                     }
-
-                    // View Mode Toggle
                     IconButton(onClick = {
                         viewMode = if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID
                     }) {
                         Icon(
-                            if (viewMode == ViewMode.GRID) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                            if (viewMode == ViewMode.GRID)
+                                Icons.AutoMirrored.Filled.ViewList
+                            else
+                                Icons.Default.GridView,
                             contentDescription = "Change View"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                )
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHostState = snackbarHostState
     ) { innerPadding ->
 
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding) // ✅ this is enough for safe area handling
         ) {
-            // Search Bar
+
             if (showSearch) {
-                SearchBar(
-                    query = uiState.searchQuery,
-                    onQueryChange = { query -> viewModel.updateSearchQuery(query) },
-                    onClear = { viewModel.updateSearchQuery("") }, // Clear search
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    placeholder = { Text("Search prompts...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            // Category Filter Chips
             if (categories.isNotEmpty()) {
-                CategoryFilterRow(
-                    categories = categories,
-                    selectedCategory = uiState.selectedCategory,
-                    onCategorySelected = { category -> viewModel.updateSelectedCategory(category) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                LazyRow(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { category ->
+                        FilterChip(
+                            onClick = { viewModel.updateSelectedCategory(category) },
+                            label = { Text(category) },
+                            selected = uiState.selectedCategory == category,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF6366F1),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Loading overlay (centered)
-                if (uiState.isLoading) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when {
+                uiState.isLoading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                } else {
-                    // Empty State
-                    if (displayPrompts.isEmpty()) {
-                        EmptyPromptsState(
-                            searchQuery = uiState.searchQuery,
-                            selectedCategory = uiState.selectedCategory,
-                            onClearFilters = {
-                                viewModel.updateSearchQuery("")
-                                viewModel.updateSelectedCategory("All")
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // Content
-                        when (viewMode) {
-                            ViewMode.GRID -> {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    contentPadding = PaddingValues(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                                        AIPromptCard(
-                                            prompt = prompt,
-                                            onClick = { onPromptClick(prompt.id?.toString() ?: "") },
-                                            onCopy = {
-                                                val textToCopy = prompt.shortPrompt ?: prompt.fullPrompt ?: ""
-                                                clipboardManager.setText(AnnotatedString(textToCopy))
-                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                            },
-                                            onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                                            showFavoriteIcon = true,
-                                            isCompact = true // Smaller version for grid
-                                        )
-                                    }
+                }
+
+                displayPrompts.isEmpty() -> {
+                    EmptyPromptsState(
+                        searchQuery = uiState.searchQuery,
+                        selectedCategory = uiState.selectedCategory,
+                        onClearFilters = {
+                            viewModel.updateSearchQuery("")
+                            viewModel.updateSelectedCategory("All")
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 40.dp)
+                    )
+                }
+
+                else -> {
+                    val manager = clipboardManager
+                    when (viewMode) {
+                        ViewMode.GRID -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 160.dp),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 48.dp // ✅ consistent spacing
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                                    AIPromptCard(
+                                        prompt = prompt,
+                                        onClick = { onPromptClick(prompt.id?.toString() ?: "") },
+                                        onCopy = {
+                                            val textToCopy =
+                                                prompt.shortPrompt ?: prompt.fullPrompt ?: ""
+                                            manager.setText(AnnotatedString(textToCopy))
+                                            Toast.makeText(
+                                                context,
+                                                "Prompt copied!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+                                        onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+                                        showFavoriteIcon = true,
+                                        isCompact = true
+                                    )
                                 }
                             }
-                            ViewMode.LIST -> {
-                                LazyColumn(
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                                        AIPromptCard(
-                                            prompt = prompt,
-                                            onClick = { onPromptClick(prompt.id?.toString() ?: "") },
-                                            onCopy = {
-                                                val textToCopy = prompt.shortPrompt ?: prompt.fullPrompt ?: ""
-                                                clipboardManager.setText(AnnotatedString(textToCopy))
-                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                            },
-                                            onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                                            showFavoriteIcon = true,
-                                            isCompact = false // Full version for list
-                                        )
-                                    }
+                        }
+
+                        ViewMode.LIST -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 48.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                                    AIPromptCard(
+                                        prompt = prompt,
+                                        onClick = { onPromptClick(prompt.id?.toString() ?: "") },
+                                        onCopy = {
+                                            val textToCopy =
+                                                prompt.shortPrompt ?: prompt.fullPrompt ?: ""
+                                            manager.setText(AnnotatedString(textToCopy))
+                                            Toast.makeText(
+                                                context,
+                                                "Prompt copied!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+                                        onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+                                        showFavoriteIcon = true,
+                                        isCompact = false
+                                    )
                                 }
                             }
                         }
