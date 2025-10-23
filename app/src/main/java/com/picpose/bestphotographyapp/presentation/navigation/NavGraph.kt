@@ -7,114 +7,90 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.screens.*
 import com.picpose.bestphotographyapp.presentation.splash.SplashViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
-import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModelFactory
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraph(navController: NavHostController) {
-    @OptIn(ExperimentalAnimationApi::class)
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
         enterTransition = { fadeIn() + slideInVertically() },
         exitTransition = { fadeOut() + slideOutVertically() }
     ) {
-        // Splash
+
+        // 🔹 Splash Screen
         composable(route = Screen.Splash.route) {
-            val splashVM: SplashViewModel = viewModel() // if you have factory, pass it
+            val splashVM: SplashViewModel = hiltViewModel()
             SplashScreen(navController = navController, viewModel = splashVM)
         }
 
-        // Home
+        // 🔹 Home Screen
         composable(route = Screen.Home.route) {
-            val context = LocalContext.current
-            val repo = remember { HomeRepository(context) }
-            val homeVM: HomeViewModel = viewModel(factory = HomeViewModelFactory(repo))
+            val homeVM: HomeViewModel = hiltViewModel()
 
             HomeScreen(
                 viewModel = homeVM,
                 onNavigateToAllPrompts = {
-                    navController.navigate(Screen.AllAIPrompts.route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
                 },
                 onNavigateToFavorites = {
-                    navController.navigate(Screen.AIPromptFavorites.route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true }
                 },
-                // ✅ NEW: Category click → AllAIPromptsScreen filtered by that category
                 onNavigateToCategory = { category ->
                     val safeCategory = Uri.encode(category.name)
                     navController.navigate("${Screen.AllAIPrompts.route}?category=$safeCategory") {
                         launchSingleTop = true
                     }
                 },
-                // ✅ NEW: Post click → try to open as AIPrompt detail if possible
                 onNavigateToPostDetail = { post ->
                     val safeId = Uri.encode(post.id)
-                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
                 onNavigateToPromptDetail = { aiPrompt ->
                     val safeId = Uri.encode(aiPrompt.id)
-                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
                 onNavigateToGuidePostDetail = { guidePost ->
                     val safeId = Uri.encode(guidePost.id)
-                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) { launchSingleTop = true }
                 }
             )
         }
 
-
-        // Explore / Create / Rewards / Profile
+        // 🔹 Explore / Create / Rewards / Profile
         composable(route = Screen.Explore.route) {
             ExploreScreen(
                 onNavigateToPromptDetail = { aiPrompt ->
-                    val safeId = android.net.Uri.encode(aiPrompt.id)
-                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) {
-                        launchSingleTop = true
-                    }
+                    val safeId = Uri.encode(aiPrompt.id)
+                    navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
                 onNavigateToGuidePostDetail = { guidePost ->
-                    val safeId = android.net.Uri.encode(guidePost.id)
-                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) {
-                        launchSingleTop = true
-                    }
+                    val safeId = Uri.encode(guidePost.id)
+                    navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) { launchSingleTop = true }
                 }
             )
         }
+
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) { RewardsScreen() }
+
         composable(route = Screen.Profile.route) {
             ProfileScreen(
                 onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.Settings.route) { launchSingleTop = true }
                 },
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
@@ -125,7 +101,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // Login Screen
+        // 🔹 Login Screen
         composable(route = Screen.Login.route) {
             LoginScreen(
                 onNavigateToHome = {
@@ -137,12 +113,10 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // Settings Screen
+        // 🔹 Settings Screen
         composable(route = Screen.Settings.route) {
             SettingsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
+                onNavigateBack = { navController.popBackStack() },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
@@ -152,7 +126,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // All AI Prompts
+        // 🔹 All AI Prompts
         composable(
             route = Screen.AllAIPrompts.route + "?category={category}",
             arguments = listOf(
@@ -163,130 +137,84 @@ fun NavGraph(navController: NavHostController) {
             )
         ) { backStackEntry ->
             val initialCategory = backStackEntry.arguments?.getString("category") ?: "All"
-
-            val context = LocalContext.current
-            val repo = remember { HomeRepository(context) }
-            val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return AIPromptViewModel(repo) as T
-                }
-            })
+            val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
             AllAIPromptsScreen(
-                viewModel = vm,
+                viewModel = aiPromptVM,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
                 },
-                initialCategory = initialCategory // ✅ now valid for AllAIPromptsScreen
+                initialCategory = initialCategory
             )
         }
 
-
-        // Favorites
+        // 🔹 Favorites
         composable(route = Screen.AIPromptFavorites.route) {
-            val context = LocalContext.current
-            val repo = remember { HomeRepository(context) }
-            val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return AIPromptViewModel(repo) as T
-                }
-            })
-
+            val aiPromptVM: AIPromptViewModel = hiltViewModel()
             AIPromptFavoritesScreen(
-                viewModel = vm,
+                viewModel = aiPromptVM,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
                 }
             )
         }
 
-        // Prompt Detail with argument
+        // 🔹 Prompt Detail
         composable(
             route = Screen.PromptDetail.route,
             arguments = listOf(navArgument("promptId") { type = NavType.StringType })
         ) { backStackEntry ->
             val promptId = backStackEntry.arguments?.getString("promptId").orEmpty()
-            val context = LocalContext.current
-            val repo = remember { HomeRepository(context) }
-            val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return AIPromptViewModel(repo) as T
-                }
-            })
+            val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
-            // If promptId is empty, consider showing error or pop back
             if (promptId.isBlank()) {
-                // fallback: popBackStack or show empty state — choose what fits app behavior
                 navController.popBackStack()
             } else {
                 AIPromptDetailScreen(
                     promptId = promptId,
-                    viewModel = vm,
+                    viewModel = aiPromptVM,
                     onBack = { navController.popBackStack() },
                     onPromptClick = { newPromptId ->
-                        navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) { launchSingleTop = true }
                     },
                     onTagClick = { tag ->
-                        navController.navigate(Screen.TagPrompts.createRoute(tag)) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Screen.TagPrompts.createRoute(tag)) { launchSingleTop = true }
                     }
                 )
             }
         }
 
-
-        // New: Tag Prompts screen
+        // 🔹 Tag Prompts
         composable(
             route = Screen.TagPrompts.route,
             arguments = listOf(navArgument(Screen.TagPrompts.ARG_TAG) { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedTag = backStackEntry.arguments?.getString(Screen.TagPrompts.ARG_TAG).orEmpty()
             val tag = Uri.decode(encodedTag)
-
-            val context = LocalContext.current
-            val repo = remember { HomeRepository(context) }
-            val vm: AIPromptViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return AIPromptViewModel(repo) as T
-                }
-            })
+            val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
             TagPromptsScreen(
                 tag = tag,
-                viewModel = vm,
+                viewModel = aiPromptVM,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
                 }
             )
         }
 
-
-        // Guide Post Detail with argument
+        // 🔹 Guide Post Detail
         composable(
             route = Screen.GuidePostDetail.route,
-            arguments = listOf(navArgument(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) {
-                type = NavType.StringType
-            })
+            arguments = listOf(
+                navArgument(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) {
+                    type = NavType.StringType
+                }
+            )
         ) { backStackEntry ->
             val guidePostId = backStackEntry.arguments?.getString(Screen.GuidePostDetail.ARG_GUIDE_POST_ID) ?: ""
-
-
             if (guidePostId.isBlank()) {
                 navController.popBackStack()
             } else {
@@ -297,10 +225,8 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        // All Guide Posts screen (placeholder for now)
+        // 🔹 All Guide Posts (placeholder)
         composable(route = Screen.AllGuidePosts.route) {
-            // TODO: Implement AllGuidePostsScreen
-            // For now, use existing screen as placeholder
             ExploreScreen()
         }
     }

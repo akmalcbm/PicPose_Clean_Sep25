@@ -47,6 +47,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +59,9 @@ fun AIPromptCardOnlyHome(
     onFavoriteClick: ((AIPrompt) -> Unit)? = null,
     isCompact: Boolean = false,
     showFavoriteIcon: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AIPromptViewModel? = null // ✅ add this
+
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -209,6 +212,12 @@ fun AIPromptCardOnlyHome(
                                         onClick = {
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onFavoriteClick(prompt)
+                                            // ✅ Increment favorite count in background (only if newly favorited)
+                                            if (!prompt.isFavorite) {
+                                                prompt.id.toIntOrNull()?.let { id ->
+                                                    viewModel?.incrementFavoriteCount(id)
+                                                }
+                                            }
                                         },
                                         modifier = Modifier.size(36.dp)
                                     ) {
@@ -240,6 +249,10 @@ fun AIPromptCardOnlyHome(
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         onCopy()
+                                        // ✅ Increment copy count in background
+                                        prompt.id.toIntOrNull()?.let { id ->
+                                            viewModel?.incrementCopyCount(id)
+                                        }
                                     },
                                     modifier = Modifier.size(36.dp)
                                 ) {

@@ -13,6 +13,7 @@ import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.system.measureTimeMillis
 
@@ -38,8 +40,8 @@ data class HomeUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
-
-class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
+@HiltViewModel
+class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()

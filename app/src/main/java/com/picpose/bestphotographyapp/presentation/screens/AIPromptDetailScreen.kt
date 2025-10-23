@@ -163,6 +163,11 @@ fun AIPromptDetailScreen(
             Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
             viewModel.loadPromptById(promptId)
         }
+        // ✅ Increment view count in background
+        runCatching {
+            viewModel.incrementViewCount(promptId.toInt())
+        }
+
     }
 
     LaunchedEffect(prompt?.id, prompt?.category) {

@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.components
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
@@ -28,6 +31,7 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 
 @Composable
 fun AIPromptCard(
@@ -37,7 +41,8 @@ fun AIPromptCard(
     onFavoriteClick: ((AIPrompt) -> Unit)? = null,
     isCompact: Boolean = false,
     showFavoriteIcon: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AIPromptViewModel? = null // ✅ Added for background updates
 ) {
     val colors = MaterialTheme.colorScheme
     val clipboardManager = LocalClipboardManager.current
@@ -46,7 +51,13 @@ fun AIPromptCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable {
+                onClick()
+                // ✅ Increment view count in background
+                prompt.id.toIntOrNull()?.let { id ->
+                    viewModel?.incrementViewCount(id)
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -193,12 +204,24 @@ fun AIPromptCard(
                                 }
                             }
 
-                            // Likes
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Likes (clickable to like)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable {
+                                    onFavoriteClick?.invoke(prompt)
+                                    // ✅ Increment like count only when liked
+                                    prompt.id.toIntOrNull()?.let { id ->
+                                        viewModel?.incrementLikeCount(id)
+                                    }
+                                }
+                            ) {
                                 Icon(
-                                    Icons.Default.FavoriteBorder,
+                                    if (prompt.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                     contentDescription = "Likes",
-                                    tint = colors.onSurfaceVariant,
+                                    tint = if (prompt.isFavorite)
+                                        colors.error
+                                    else
+                                        colors.onSurfaceVariant,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
@@ -211,22 +234,49 @@ fun AIPromptCard(
                             }
                         }
 
-                        // Right side: View button
-                        Button(
-                            onClick = onClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.primary,
-                                contentColor = colors.onPrimary
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Text(
-                                text = "View",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        // Right side: View button + Copy button inline
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
+                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                    onCopy()
+                                    // ✅ Increment copy count
+                                    prompt.id.toIntOrNull()?.let { id ->
+                                        viewModel?.incrementCopyCount(id)
+                                    }
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy",
+                                    tint = colors.primary
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    onClick()
+                                    // ✅ Increment view count again for explicit button
+                                    prompt.id.toIntOrNull()?.let { id ->
+                                        viewModel?.incrementViewCount(id)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colors.primary,
+                                    contentColor = colors.onPrimary
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Text(
+                                    text = "View",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }

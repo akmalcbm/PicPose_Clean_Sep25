@@ -6,15 +6,15 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.system.measureTimeMillis
 
@@ -34,10 +34,19 @@ data class AIPromptUiState(
 )
 
 @RequiresApi(Build.VERSION_CODES.O)
-class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
+@HiltViewModel
+class AIPromptViewModel @Inject constructor(
+    private val repository: HomeRepository,
+    private val api: ApiService // ✅ injected by Hilt
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIPromptUiState())
     val uiState: StateFlow<AIPromptUiState> = _uiState.asStateFlow()
+
+    // Error handler for safe coroutines
+    private val errorHandler = CoroutineExceptionHandler { _, e ->
+        Log.e(TAG, "Coroutine error: ${e.localizedMessage}")
+    }
 
     // ✅ CACHING MECHANISM
     private var cachedPrompts: List<AIPrompt>? = null
@@ -47,7 +56,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
     private val _similarPromptsClickCount = MutableStateFlow(0)
     val similarPromptsClickCount: StateFlow<Int> = _similarPromptsClickCount.asStateFlow()
 
-    // derived state: favorites (eagerly kept)
     val favoritePrompts: StateFlow<List<AIPrompt>> = uiState
         .map { it.favoritePrompts }
         .stateIn(
@@ -56,36 +64,32 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             initialValue = emptyList()
         )
 
-    // Search debounce flow (UI should call onSearchChanged)
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // concurrency guard for loadAllPrompts
     @Volatile
     private var isLoadingAll: Boolean = false
-
-    // refresh throttle
     private var lastRefreshTimestamp = 0L
     private val MIN_REFRESH_INTERVAL_MS = 3_000L // 3s
-
-    // keep reference to any running job if needed
     private var loadAllJob: Job? = null
     private var loadFavoritesJob: Job? = null
 
-    /**
-     * Update the search query in state and trigger a new search.
-     */
+    init {
+        loadAllPrompts()
+        loadFavoritePrompts()
+        loadCategories()
+    }
+
+    // =========================================================================
+    // 🔹 Update UI States
+    // =========================================================================
     fun updateSearchQuery(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
         onSearchChanged(query)
     }
 
-    /**
-     * Update the selected category in state and reload prompts for that category.
-     */
     fun updateSelectedCategory(category: String) {
         _uiState.value = _uiState.value.copy(selectedCategory = category)
-        // If "All", don't filter by category; otherwise set filter
         val categoryFilter = if (category == "All") null else category
         loadAllPrompts(
             page = 1,
@@ -96,19 +100,9 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         )
     }
 
-    init {
-        // ✅ FIXED: Remove automatic search debouncing to prevent duplicate calls
-        // Only load data when explicitly requested
-
-        // Initial loads - but not duplicate
-        loadAllPrompts()
-        loadFavoritePrompts()
-        loadCategories()
-    }
-
-    /**
-     * ✅ FIXED: Check cache first, prevent duplicate calls
-     */
+    // =========================================================================
+    // 🔹 Load All Prompts (with cache)
+    // =========================================================================
     fun loadAllPrompts(
         page: Int = 1,
         limit: Int = 100,
@@ -116,7 +110,6 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         search: String? = null,
         forceRefresh: Boolean = false
     ) {
-        // ✅ Check cache first
         val now = System.currentTimeMillis()
         if (!forceRefresh && cachedPrompts != null && (now - lastCacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached prompts, skipping API call")
@@ -127,50 +120,38 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
             return
         }
 
-        // prevent concurrent loads
-        if (isLoadingAll) {
-            Log.w(TAG, "loadAllPrompts skipped - already loading")
-            return
-        }
-
+        if (isLoadingAll) return
         loadAllJob?.cancel()
-        loadAllJob = viewModelScope.launch {
+
+        loadAllJob = viewModelScope.launch(errorHandler) {
             isLoadingAll = true
             val elapsed = measureTimeMillis {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 try {
-                    Log.d(TAG, "loadAllPrompts: page=$page limit=$limit category=$category search=${search ?: "null"}")
-
-                    val flow = repository.getAllAIPromptsTyped(page = page, limit = limit, category = category, search = search)
-                    flow.collect { result: Result<List<AIPrompt>> ->
+                    val flow = repository.getAllAIPromptsTyped(page, limit, category, search)
+                    flow.collect { result ->
                         result.fold(
-                            onSuccess = { prompts: List<AIPrompt> ->
-                                val safePrompts = prompts.map { it.copy(isFavorite = it.isFavorite) }
-
-                                // ✅ Cache the results
-                                cachedPrompts = safePrompts
+                            onSuccess = { prompts ->
+                                cachedPrompts = prompts
                                 lastCacheTime = now
-
                                 _uiState.value = _uiState.value.copy(
-                                    allPrompts = safePrompts,
+                                    allPrompts = prompts,
                                     isLoading = false,
                                     error = null
                                 )
-                                updateCategoriesFromPrompts(safePrompts)
+                                updateCategoriesFromPrompts(prompts)
                             },
-                            onFailure = { ex: Throwable ->
-                                Log.w(TAG, "loadAllPrompts failed: ${ex.message}")
+                            onFailure = { ex ->
                                 _uiState.value = _uiState.value.copy(
-                                    error = ex.message ?: "Failed to load prompts",
+                                    error = ex.message,
                                     isLoading = false
                                 )
                             }
                         )
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "loadAllPrompts exception: ${e.message}")
                     _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Exception while loading prompts",
+                        error = e.message,
                         isLoading = false
                     )
                 }
@@ -180,44 +161,20 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-
-    /**
-     * ✅ FIXED: Get prompt by ID from cache first, then API if needed
-     */
+    // =========================================================================
+    // 🔹 Load Prompt By ID (from cache or API)
+    // =========================================================================
     fun loadPromptById(promptId: String) {
         viewModelScope.launch {
-            // ✅ First check if prompt exists in current cache
             val existing = _uiState.value.allPrompts.find { it.id == promptId }
             if (existing != null) {
-                Log.d(TAG, "Found prompt $promptId in cache, no API call needed")
-                // When a prompt is loaded, load similar prompts
-                existing.category?.let { category ->
-                    loadSimilarPrompts(category, promptId)
-                }
+                existing.category?.let { loadSimilarPrompts(it, promptId) }
                 return@launch
             }
 
-            // ✅ If not in cache, try to find it in cached prompts
-            if (cachedPrompts != null) {
-                val cachedPrompt = cachedPrompts!!.find { it.id == promptId }
-                if (cachedPrompt != null) {
-                    Log.d(TAG, "Found prompt $promptId in cached data")
-                    val updated = _uiState.value.allPrompts + cachedPrompt
-                    _uiState.value = _uiState.value.copy(allPrompts = updated)
-                    // When a prompt is loaded, load similar prompts
-                    cachedPrompt.category?.let { category ->
-                        loadSimilarPrompts(category, promptId)
-                    }
-                    return@launch
-                }
-            }
-
-            // ✅ Only make API call if absolutely necessary
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                // Try single prompt API if available
-                val flow = repository.getPromptById(promptId)
-                flow.collect { result ->
+                repository.getPromptById(promptId).collect { result ->
                     result.fold(
                         onSuccess = { prompt ->
                             val updated = _uiState.value.allPrompts + prompt
@@ -225,72 +182,56 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                                 allPrompts = updated,
                                 isLoading = false
                             )
-                            // When a prompt is loaded, load similar prompts
-                            prompt.category?.let { category ->
-                                loadSimilarPrompts(category, promptId)
-                            }
+                            prompt.category?.let { loadSimilarPrompts(it, promptId) }
                         },
                         onFailure = { ex ->
-                            Log.w(TAG, "loadPromptById failed: ${ex.message}")
                             _uiState.value = _uiState.value.copy(
-                                error = ex.message ?: "Prompt not found",
+                                error = ex.message,
                                 isLoading = false
                             )
                         }
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "loadPromptById exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Exception",
-                    isLoading = false
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }
 
-    /**
-     * ✅ Search with proper debouncing
-     */
+    // =========================================================================
+    // 🔹 Search With Debounce
+    // =========================================================================
     fun onSearchChanged(query: String) {
         _searchQuery.value = query
-
-        // Cancel previous search job
         loadAllJob?.cancel()
-
-        // Debounce search
         loadAllJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(400) // 400ms debounce
-            Log.d(TAG, "Executing search: '$query'")
+            kotlinx.coroutines.delay(400)
             loadAllPrompts(
                 page = 1,
                 limit = 100,
                 search = query.ifBlank { null },
-                forceRefresh = true // Force refresh for search
+                forceRefresh = true
             )
         }
     }
 
-    // ✅ Rest of your existing methods stay the same but with better caching...
-
+    // =========================================================================
+    // 🔹 FAVORITE TOGGLE + Remote Analytics
+    // =========================================================================
     fun toggleFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
             try {
-                val flow = repository.toggleFavorite(prompt)
-                flow.collect { result: Result<Boolean> ->
+                repository.toggleFavorite(prompt).collect { result ->
                     result.fold(
-                        onSuccess = { isNowFavorite: Boolean ->
-                            // Update cached prompts too
+                        onSuccess = { isNowFavorite ->
                             cachedPrompts = cachedPrompts?.map { p ->
                                 if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
                             }
 
-                            // Update allPrompts list
                             val updatedAll = _uiState.value.allPrompts.map { p ->
                                 if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
                             }
 
-                            // Update favorite list accordingly
                             val updatedFavorites = if (isNowFavorite) {
                                 (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
                                     .distinctBy { it.id }
@@ -302,115 +243,92 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
                                 allPrompts = updatedAll,
                                 favoritePrompts = updatedFavorites
                             )
+
+                            // ✅ background API update (analytics)
+                            if (isNowFavorite) incrementFavoriteCount(prompt.id.toInt())
                         },
-                        onFailure = { ex: Throwable ->
-                            Log.w(TAG, "toggleFavorite failed: ${ex.message}")
-                            _uiState.value = _uiState.value.copy(error = ex.message ?: "Failed to toggle favorite")
+                        onFailure = { ex ->
+                            _uiState.value = _uiState.value.copy(error = ex.message)
                         }
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "toggleFavorite exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception toggling favorite")
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
+    // =========================================================================
+    // 🔹 Load Favorite Prompts
+    // =========================================================================
     fun loadFavoritePrompts() {
-        // Cancel any previous ongoing job safely
         loadFavoritesJob?.cancel()
-
         loadFavoritesJob = viewModelScope.launch {
             try {
-                repository.getFavoritePrompts().collect { result: Result<List<AIPrompt>> ->
+                repository.getFavoritePrompts().collect { result ->
                     result.fold(
                         onSuccess = { favs ->
                             val safeFavs = favs.map { it.copy(isFavorite = true) }
-
-                            // ✅ Update favorites in state
-                            _uiState.value = _uiState.value.copy(favoritePrompts = safeFavs)
-
-                            // ✅ Update allPrompts with favorite flags
                             val favIds = safeFavs.mapNotNull { it.id }.toSet()
-                            val updatedAll = _uiState.value.allPrompts.map { prompt ->
-                                prompt.copy(isFavorite = favIds.contains(prompt.id))
-                            }
-
                             _uiState.value = _uiState.value.copy(
-                                allPrompts = updatedAll,
-                                error = null
+                                favoritePrompts = safeFavs,
+                                allPrompts = _uiState.value.allPrompts.map {
+                                    it.copy(isFavorite = favIds.contains(it.id))
+                                }
                             )
                         },
                         onFailure = { ex ->
                             if (ex !is CancellationException) {
-                                Log.w(TAG, "loadFavoritePrompts failed: ${ex.message}")
-                                _uiState.value = _uiState.value.copy(
-                                    error = ex.message ?: "Failed to load favorites"
-                                )
-                            } else {
-                                // 🔇 Ignore normal lifecycle cancellation
-                                Log.d(TAG, "loadFavoritePrompts cancelled (normal lifecycle event)")
+                                _uiState.value = _uiState.value.copy(error = ex.message)
                             }
                         }
                     )
                 }
-            } catch (ce: CancellationException) {
-                // 🔇 Ignore — expected if user navigates away quickly
-                Log.d(TAG, "loadFavoritePrompts coroutine cancelled")
             } catch (e: Exception) {
-                Log.e(TAG, "loadFavoritePrompts exception: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Error loading favorites"
-                )
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
-
-
+    // =========================================================================
+    // 🔹 Refresh All
+    // =========================================================================
     fun refresh() {
         val now = System.currentTimeMillis()
-        if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
-            Log.w(TAG, "refresh throttled")
-            return
-        }
+        if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) return
         lastRefreshTimestamp = now
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
             try {
-                // Clear cache to force refresh
                 cachedPrompts = null
                 lastCacheTime = 0L
-
                 val jobs = listOf(
                     launch { loadAllPrompts(forceRefresh = true) },
                     launch { loadFavoritePrompts() }
                 )
                 jobs.forEach { it.join() }
-            } catch (e: Exception) {
-                Log.e(TAG, "refresh exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception during refresh")
             } finally {
                 _uiState.value = _uiState.value.copy(isRefreshing = false)
             }
         }
     }
 
+    // =========================================================================
+    // 🔹 Categories & Helpers
+    // =========================================================================
     fun loadCategories() {
         viewModelScope.launch {
             try {
                 updateCategoriesFromPrompts(_uiState.value.allPrompts)
             } catch (e: Exception) {
-                Log.e(TAG, "loadCategories exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Exception loading categories")
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
 
     private fun updateCategoriesFromPrompts(prompts: List<AIPrompt>) {
-        val cats = listOf("All") + prompts
-            .mapNotNull { it.category?.takeIf { c -> c.isNotBlank() } }
+        val cats = listOf("All") + prompts.mapNotNull { it.category?.takeIf { it.isNotBlank() } }
             .distinct()
             .sorted()
         _uiState.value = _uiState.value.copy(categories = cats)
@@ -420,11 +338,14 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(error = null)
     }
 
+    // =========================================================================
+    // 🔹 Similar Prompts
+    // =========================================================================
     fun loadSimilarPrompts(category: String, currentPromptId: String) {
         viewModelScope.launch {
-            val similar = (_uiState.value.allPrompts ?: emptyList())
+            val similar = (_uiState.value.allPrompts)
                 .filter { it.category == category && it.id != currentPromptId }
-                .take(10) // Limit to 10 similar prompts
+                .take(10)
             _uiState.value = _uiState.value.copy(similarPrompts = similar)
         }
     }
@@ -435,5 +356,52 @@ class AIPromptViewModel(private val repository: HomeRepository) : ViewModel() {
 
     fun resetSimilarPromptClickCount() {
         _similarPromptsClickCount.value = 0
+    }
+
+    // =========================================================================
+    // ✅ NEW: Background Analytics Methods
+    // =========================================================================
+    fun incrementViewCount(promptId: Int) {
+        viewModelScope.launch(Dispatchers.IO + errorHandler) {
+            try {
+                api.incrementView(promptId)
+                Log.d(TAG, "✅ View incremented for $promptId")
+            } catch (e: Exception) {
+                Log.w(TAG, "❌ View increment failed: ${e.message}")
+            }
+        }
+    }
+
+    fun incrementCopyCount(promptId: Int) {
+        viewModelScope.launch(Dispatchers.IO + errorHandler) {
+            try {
+                api.incrementCopy(promptId)
+                Log.d(TAG, "✅ Copy incremented for $promptId")
+            } catch (e: Exception) {
+                Log.w(TAG, "❌ Copy increment failed: ${e.message}")
+            }
+        }
+    }
+
+    fun incrementLikeCount(promptId: Int) {
+        viewModelScope.launch(Dispatchers.IO + errorHandler) {
+            try {
+                api.incrementLike(promptId)
+                Log.d(TAG, "✅ Like incremented for $promptId")
+            } catch (e: Exception) {
+                Log.w(TAG, "❌ Like increment failed: ${e.message}")
+            }
+        }
+    }
+
+    fun incrementFavoriteCount(promptId: Int) {
+        viewModelScope.launch(Dispatchers.IO + errorHandler) {
+            try {
+                api.incrementFavorite(promptId)
+                Log.d(TAG, "✅ Favorite incremented for $promptId")
+            } catch (e: Exception) {
+                Log.w(TAG, "❌ Favorite increment failed: ${e.message}")
+            }
+        }
     }
 }
