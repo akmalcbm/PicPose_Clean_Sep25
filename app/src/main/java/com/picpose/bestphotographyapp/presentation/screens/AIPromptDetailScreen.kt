@@ -1,7 +1,13 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.net.Uri
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
@@ -11,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -45,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +61,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
@@ -289,7 +298,7 @@ fun AIPromptDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(300.dp)
+                                    .height(380.dp)
                                     .clickable { showImageDialog = true }
                             ) {
                                 SubcomposeAsyncImage(
@@ -399,6 +408,14 @@ fun AIPromptDetailScreen(
 
                         // ✨ Full Prompt Section
                         item {
+                            val context = LocalContext.current
+                            val clipboardManager = LocalClipboardManager.current
+                            val haptic = LocalHapticFeedback.current
+                            val coroutineScope = rememberCoroutineScope()
+                            val snackbarHostState = remember { SnackbarHostState() }
+
+                            var showGeminiDialog by remember { mutableStateOf(false) }
+
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -445,38 +462,84 @@ fun AIPromptDetailScreen(
 
                                     Spacer(modifier = Modifier.height(16.dp))
 
-                                    Button(
-                                        onClick = {
-                                            clipboardManager.setText(
-                                                AnnotatedString(
-                                                    promptData.fullPrompt ?: ""
-                                                )
+                                    // 🔹 Buttons Row (Copy + Gemini)
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                                        // Copy Button
+                                        Button(
+                                            onClick = {
+                                                clipboardManager.setText(AnnotatedString(promptData.fullPrompt ?: ""))
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            contentPadding = PaddingValues(vertical = 14.dp)
+                                        ) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Copy Full Prompt",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold
                                             )
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
-                                            }
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        ),
-                                        shape = RoundedCornerShape(12.dp),
-                                        contentPadding = PaddingValues(vertical = 16.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.ContentCopy,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Copy Full Prompt",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                        }
+
+                                        // Gemini Button
+                                        OutlinedButton(
+                                            onClick = {
+                                                showGeminiDialog = true
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            contentPadding = PaddingValues(vertical = 14.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = android.R.drawable.ic_menu_search),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Open in Gemini",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 }
+                            }
+
+                            // 🔹 Gemini Confirmation Dialog
+                            if (showGeminiDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showGeminiDialog = false },
+                                    title = { Text("Open in Gemini?") },
+                                    text = {
+                                        Text("This will open the prompt in the Gemini app (if installed). " +
+                                                "If not, you’ll be redirected to its Play Store page.")
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            showGeminiDialog = false
+                                            openGeminiOrPlayStore(context, promptData.fullPrompt ?: "")
+                                        }) {
+                                            Text("Continue")
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showGeminiDialog = false }) {
+                                            Text("Cancel")
+                                        }
+                                    }
+                                )
                             }
                         }
 
@@ -495,9 +558,11 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // 🏷️ Tags
+                        // 🏷️ Expandable Tags
                         promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
+                                var expanded by remember { mutableStateOf(false) }
+
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -508,7 +573,7 @@ fun AIPromptDetailScreen(
                                     ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(20.dp)) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
                                         Text(
                                             text = "🏷️ Tags",
                                             style = MaterialTheme.typography.titleMedium,
@@ -517,37 +582,88 @@ fun AIPromptDetailScreen(
 
                                         Spacer(modifier = Modifier.height(12.dp))
 
-                                        FlowRow(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .animateContentSize()
                                         ) {
-                                            tags.forEach { tag ->
-                                                Surface(
-                                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                                    shape = RoundedCornerShape(20.dp),
-                                                    border = BorderStroke(
-                                                        1.dp,
-                                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                            // FlowRow container with height control
+                                            FlowRow(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(
+                                                        if (!expanded) Modifier.heightIn(max = 120.dp) // roughly 2-3 lines height
+                                                        else Modifier
                                                     ),
-                                                    modifier = Modifier.clickable { onTagClick(tag) }
-                                                ) {
-                                                    Text(
-                                                        text = "#$tag",
-                                                        modifier = Modifier.padding(
-                                                            horizontal = 12.dp,
-                                                            vertical = 6.dp
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                tags.forEach { tag ->
+                                                    Surface(
+                                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                                        shape = RoundedCornerShape(20.dp),
+                                                        border = BorderStroke(
+                                                            1.dp,
+                                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                                                         ),
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        fontWeight = FontWeight.Medium
-                                                    )
+                                                        modifier = Modifier.clickable { onTagClick(tag) }
+                                                    ) {
+                                                        Text(
+                                                            text = "#$tag",
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
                                                 }
+                                            }
+
+                                            // Gradient fade overlay when collapsed
+                                            if (!expanded && tags.size > 8) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .background(
+                                                            Brush.verticalGradient(
+                                                                colors = listOf(
+                                                                    Color.Transparent,
+                                                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                                                )
+                                                            )
+                                                        )
+                                                )
+                                            }
+                                        }
+
+                                        // Expand / Collapse button
+                                        if (tags.size > 8) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { expanded = !expanded },
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = if (expanded) "Collapse" else "Expand",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (expanded) "Show Less" else "Show More",
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Medium
+                                                )
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+
 
                         // 🤝 Similar Prompts
                         if (uiState.similarPrompts.isNotEmpty()) {
@@ -635,6 +751,62 @@ fun AIPromptDetailScreen(
     }
 }
 
+fun openGeminiOrPlayStore(context: Context, promptText: String) {
+    val geminiPackage = "com.google.android.apps.bard"
+    val pm = context.packageManager
+
+    // Always copy text to clipboard before any action
+    val clipboard = ContextCompat.getSystemService(context, ClipboardManager::class.java)
+    clipboard?.setPrimaryClip(ClipData.newPlainText("Prompt", promptText))
+    Toast.makeText(context, "✨ Prompt copied to clipboard", Toast.LENGTH_SHORT).show()
+
+    try {
+        // Check if Gemini app is installed
+        pm.getPackageInfo(geminiPackage, 0)
+
+        // Try to open Gemini directly using deep link
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://gemini.google.com/app")
+            setPackage(geminiPackage)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        // Verify there’s an activity to handle the intent
+        if (intent.resolveActivity(pm) != null) {
+            context.startActivity(intent)
+        } else {
+            // Fallback if deep link not handled, try to launch main activity
+            val launchIntent = pm.getLaunchIntentForPackage(geminiPackage)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
+            } else {
+                // If still fails, open Play Store
+                openGeminiPlayStore(context)
+            }
+        }
+
+    } catch (e: PackageManager.NameNotFoundException) {
+        // Not installed → Open Play Store
+        openGeminiPlayStore(context)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Unable to open Gemini", Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun openGeminiPlayStore(context: Context) {
+    val geminiPackage = "com.google.android.apps.bard"
+    val playStoreIntent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse("https://play.google.com/store/apps/details?id=$geminiPackage")
+    ).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(playStoreIntent)
+}
+
+
 @Composable
 private fun StatChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -682,7 +854,7 @@ private fun SimilarPromptCard(
                 model = prompt.imageUrl,
                 contentDescription = prompt.title,
                 modifier = Modifier
-                    .height(120.dp)
+                    .height(140.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Crop
             ) {

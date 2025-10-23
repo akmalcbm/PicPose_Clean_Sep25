@@ -94,7 +94,7 @@ fun HomeScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
+                            contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp)
                         ) {
                             item { AnimatedWelcomeHeader() }
 

@@ -3,6 +3,8 @@ package com.picpose.bestphotographyapp.presentation.screens
 import android.app.Activity
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,6 +32,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.SubcomposeAsyncImage
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 
 import kotlinx.coroutines.launch
@@ -102,7 +108,7 @@ fun AllAIPromptsScreen(
                         text = if (uiState.selectedCategory != "All")
                             "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
                         else
-                            "All AI Prompts (${displayPrompts.size})"
+                            "All Prompts (${displayPrompts.size})"
                     )
                 },
                 navigationIcon = {
@@ -212,37 +218,99 @@ fun AllAIPromptsScreen(
                         ViewMode.GRID -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(minSize = 160.dp),
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp),
                                 contentPadding = PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
                                     top = 8.dp,
-                                    bottom = 48.dp // ✅ consistent spacing
+                                    bottom = 80.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                                    AIPromptCard(
-                                        prompt = prompt,
-                                        onClick = { onPromptClick(prompt.id?.toString() ?: "") },
-                                        onCopy = {
-                                            val textToCopy =
-                                                prompt.shortPrompt ?: prompt.fullPrompt ?: ""
-                                            manager.setText(AnnotatedString(textToCopy))
-                                            Toast.makeText(
-                                                context,
-                                                "Prompt copied!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        },
-                                        onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                                        showFavoriteIcon = true,
-                                        isCompact = true
-                                    )
+                                    // 🌟 Compact card inspired by SimilarPromptCard
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onPromptClick(prompt.id?.toString() ?: "") },
+                                        shape = RoundedCornerShape(14.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            // 🖼️ Image section
+                                            SubcomposeAsyncImage(
+                                                model = prompt.imageUrl,
+                                                contentDescription = prompt.title,
+                                                modifier = Modifier
+                                                    .height(160.dp)
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+                                                contentScale = ContentScale.Crop,
+                                                loading = {
+                                                    Box(
+                                                        Modifier
+                                                            .fillMaxSize()
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            strokeWidth = 2.dp,
+                                                            modifier = Modifier.size(28.dp)
+                                                        )
+                                                    }
+                                                },
+                                                error = {
+                                                    Box(
+                                                        Modifier
+                                                            .fillMaxSize()
+                                                            .background(MaterialTheme.colorScheme.errorContainer),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.BrokenImage,
+                                                            contentDescription = "Image not found",
+                                                            tint = MaterialTheme.colorScheme.error
+                                                        )
+                                                    }
+                                                }
+                                            )
+
+                                            // 🧾 Text section
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(12.dp)
+                                                    .fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = prompt.title ?: "",
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    ),
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = prompt.shortPrompt ?: "",
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    ),
+                                                    maxLines = 3,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+
 
                         ViewMode.LIST -> {
                             LazyColumn(

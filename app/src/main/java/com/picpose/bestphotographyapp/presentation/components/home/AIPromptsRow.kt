@@ -1,5 +1,11 @@
 package com.picpose.bestphotographyapp.presentation.components.home
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -10,9 +16,11 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -53,35 +61,17 @@ fun AIPromptCard(
 ) {
     Card(
         modifier = Modifier
-            .width(280.dp)
+            .width(220.dp)
             .clickable { onPromptClick(prompt) },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(prompt.imageUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = prompt.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .height(160.dp)
-                    .fillMaxWidth(),
-                loading = {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-            )
+            // Animated image with slight pan (no crop loss)
+            AnimatedPanImage(prompt.imageUrl, prompt.title)
 
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = prompt.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -115,13 +105,64 @@ fun AIPromptCard(
 
                     IconButton(onClick = { onFavoriteClick(prompt) }) {
                         Icon(
-                            imageVector = if (prompt.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (prompt.isFavorite)
+                                Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (prompt.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (prompt.isFavorite)
+                                MaterialTheme.colorScheme.error else
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AnimatedPanImage(imageUrl: String?, title: String?) {
+    val infiniteTransition = rememberInfiniteTransition(label = "panAnim")
+
+    // Slight up-down motion to reveal full portrait area
+    val offsetY by infiniteTransition.animateFloat(
+        initialValue = -25f,
+        targetValue = 25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetAnim"
+    )
+
+    Box(
+        modifier = Modifier
+            .height(160.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        SubcomposeAsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = title,
+            contentScale = ContentScale.Crop, // keep beautiful fill
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    translationY = offsetY
+                    scaleX = 1.1f  // slight zoom for cinematic fill
+                    scaleY = 1.1f
+                },
+            loading = {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        )
     }
 }
