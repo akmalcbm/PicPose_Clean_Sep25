@@ -207,7 +207,7 @@ fun HomeScreen(
                                 }
                             }
 
-                            // ✅ FIXED: Recent Posts Section
+                            // Recent Posts Section
                             if (uiState.recentPosts.isNotEmpty()) {
                                 item {
                                     SectionHeader(

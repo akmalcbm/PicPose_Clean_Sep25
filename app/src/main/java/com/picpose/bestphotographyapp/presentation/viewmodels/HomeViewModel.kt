@@ -648,7 +648,7 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
                                         image = aiPrompt.imageUrl ?: "",
                                         category = aiPrompt.category ?: "",
                                         //author = aiPrompt.author ?: "",
-                                        created_at = aiPrompt.createdAt ?: "",
+                                        createdAt = aiPrompt.createdAt ?: "",
                                         likes = aiPrompt.likes ?: 0,
                                         //views = aiPrompt.views ?: 0
                                     )

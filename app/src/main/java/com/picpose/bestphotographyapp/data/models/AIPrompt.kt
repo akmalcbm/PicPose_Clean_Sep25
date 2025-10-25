@@ -1,17 +1,32 @@
 package com.picpose.bestphotographyapp.data.models
 
+import com.google.gson.annotations.SerializedName
+
 data class AIPrompt(
     val id: String,
     val title: String,
     val shortPrompt: String? = null,
     val fullPrompt: String? = null,
-    val imageUrl: String? = null,
+
+    // ✅ Multiple images supported
+    @SerializedName("imageUrl") val imageUrl: String? = null,
+    @SerializedName("imageUrl2") val imageUrl2: String? = null,
+
     val category: String? = null,
     val tags: List<String>? = emptyList(),
-    var likes: Int = 0,       // ✅ Changed to var for dynamic updates
-    var views: Int = 0,       // ✅ Changed to var for dynamic updates
+
+    // ✅ All stats included
+    var likes: Int = 0,
+    var favorites: Int = 0,
+    var copies: Int = 0,
+    var views: Int = 0,
+
     val isPopular: Boolean = false,
-    var isFavorite: Boolean = false,   // ✅ keep mutable for toggling in UI
+    val isFeatured: Boolean = false,
+
+    // ✅ Mutable favorites for UI toggling
+    var isFavorite: Boolean = false,
+
     val status: String? = "published",
     val priority: Int = 0,
     val createdAt: String? = null,

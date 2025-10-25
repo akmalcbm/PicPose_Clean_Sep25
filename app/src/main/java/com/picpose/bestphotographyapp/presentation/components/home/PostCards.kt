@@ -57,7 +57,7 @@ fun FeaturedPostCard(
                 )
 
                 // Featured badge
-                if (post.is_featured) {
+                if (post.isFeatured) {
                     Card(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -173,7 +173,7 @@ fun FeaturedPostCard(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = formatTimestamp(post.created_at),
+                            text = formatTimestamp(post.createdAt),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
