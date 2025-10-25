@@ -8,9 +8,10 @@ data class AIPrompt(
     val imageUrl: String? = null,
     val category: String? = null,
     val tags: List<String>? = emptyList(),
-    val likes: Int = 0,
+    var likes: Int = 0,       // ✅ Changed to var for dynamic updates
+    var views: Int = 0,       // ✅ Changed to var for dynamic updates
     val isPopular: Boolean = false,
-    val isFavorite: Boolean = false,   // <-- required
+    var isFavorite: Boolean = false,   // ✅ keep mutable for toggling in UI
     val status: String? = "published",
     val priority: Int = 0,
     val createdAt: String? = null,

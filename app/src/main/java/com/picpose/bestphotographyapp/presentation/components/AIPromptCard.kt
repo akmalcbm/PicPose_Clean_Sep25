@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -233,6 +234,26 @@ fun AIPromptCard(
                                 )
                             }
                         }
+
+                        // 👁️ Views counter (right of likes)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Visibility, // 👁️ Eye icon
+                                contentDescription = "Views",
+                                tint = colors.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "${prompt.views ?: 0}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = colors.onSurfaceVariant
+                                )
+                            )
+                        }
+
 
                         // Right side: View button + Copy button inline
                         Row(verticalAlignment = Alignment.CenterVertically) {

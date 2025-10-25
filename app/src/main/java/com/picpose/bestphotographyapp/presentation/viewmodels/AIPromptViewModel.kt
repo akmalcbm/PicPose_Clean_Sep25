@@ -366,6 +366,18 @@ class AIPromptViewModel @Inject constructor(
             try {
                 api.incrementView(promptId)
                 Log.d(TAG, "✅ View incremented for $promptId")
+
+                // ✅ Update locally (dynamic UI update)
+                _uiState.update { state ->
+                    val updatedList = state.allPrompts.map { prompt ->
+                        if (prompt.id == promptId.toString())
+                            prompt.copy(views = prompt.views + 1)
+                        else prompt
+                    }
+
+                    state.copy(allPrompts = updatedList)
+                }
+
             } catch (e: Exception) {
                 Log.w(TAG, "❌ View increment failed: ${e.message}")
             }
@@ -388,6 +400,18 @@ class AIPromptViewModel @Inject constructor(
             try {
                 api.incrementLike(promptId)
                 Log.d(TAG, "✅ Like incremented for $promptId")
+
+                // ✅ Update locally (dynamic UI update)
+                _uiState.update { state ->
+                    val updatedList = state.allPrompts.map { prompt ->
+                        if (prompt.id == promptId.toString())
+                            prompt.copy(likes = prompt.likes + 1)
+                        else prompt
+                    }
+
+                    state.copy(allPrompts = updatedList)
+                }
+
             } catch (e: Exception) {
                 Log.w(TAG, "❌ Like increment failed: ${e.message}")
             }

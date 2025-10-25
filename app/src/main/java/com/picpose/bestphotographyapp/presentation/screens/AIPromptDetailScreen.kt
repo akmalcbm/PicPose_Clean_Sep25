@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.R.attr.id
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -62,6 +63,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
@@ -78,8 +80,10 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -98,6 +102,9 @@ fun AIPromptDetailScreen(
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    val viewModel: AIPromptViewModel = hiltViewModel()
+
 
     // NEW: list state for scroll-to-top behavior
     val listState: LazyListState = rememberLazyListState()
@@ -419,6 +426,9 @@ fun AIPromptDetailScreen(
                             val coroutineScope = rememberCoroutineScope()
                             val snackbarHostState = remember { SnackbarHostState() }
 
+                            // ✅ Use your existing AIPromptViewModel (injected by Hilt)
+                            val viewModel: AIPromptViewModel = hiltViewModel()
+
                             var showGeminiDialog by remember { mutableStateOf(false) }
 
                             Card(
@@ -470,13 +480,24 @@ fun AIPromptDetailScreen(
                                     // 🔹 Buttons Row (Copy + Gemini)
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                                        // Copy Button
+                                        // ✅ Copy Button
                                         Button(
                                             onClick = {
-                                                clipboardManager.setText(AnnotatedString(promptData.fullPrompt ?: ""))
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
+                                                val textToCopy = promptData.fullPrompt ?: ""
+                                                if (textToCopy.isNotBlank()) {
+                                                    // ✅ Copy text to clipboard instantly
+                                                    clipboardManager.setText(AnnotatedString(textToCopy))
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                                                    // ✅ Show instant toast feedback instead of Snackbar
+                                                    Toast.makeText(context, "✨ Prompt copied to clipboard!", Toast.LENGTH_SHORT).show()
+
+                                                    // ✅ Increment copy count in backend via ViewModel
+                                                    promptData.id.toIntOrNull()?.let { id ->
+                                                        viewModel.incrementCopyCount(id)
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "⚠️ Nothing to copy!", Toast.LENGTH_SHORT).show()
                                                 }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
@@ -486,7 +507,11 @@ fun AIPromptDetailScreen(
                                             shape = RoundedCornerShape(12.dp),
                                             contentPadding = PaddingValues(vertical = 14.dp)
                                         ) {
-                                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
+                                            Icon(
+                                                Icons.Default.ContentCopy,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = "Copy Full Prompt",
@@ -495,7 +520,8 @@ fun AIPromptDetailScreen(
                                             )
                                         }
 
-                                        // Gemini Button
+
+                                        // ✅ Gemini Button
                                         OutlinedButton(
                                             onClick = {
                                                 showGeminiDialog = true
@@ -528,13 +554,22 @@ fun AIPromptDetailScreen(
                                     onDismissRequest = { showGeminiDialog = false },
                                     title = { Text("Open in Gemini?") },
                                     text = {
-                                        Text("This will open the prompt in the Gemini app (if installed). " +
-                                                "If not, you’ll be redirected to its Play Store page.")
+                                        Text(
+                                            "This will open the prompt in the Gemini app (if installed). " +
+                                                    "If not, you’ll be redirected to its Play Store page."
+                                        )
                                     },
                                     confirmButton = {
                                         TextButton(onClick = {
                                             showGeminiDialog = false
                                             openGeminiOrPlayStore(context, promptData.fullPrompt ?: "")
+
+                                            // ✅ Increment copy count when opening in Gemini too
+                                            promptData.id.toIntOrNull()?.let { id ->
+                                                coroutineScope.launch {
+                                                    viewModel.incrementCopyCount(id)
+                                                }
+                                            }
                                         }) {
                                             Text("Continue")
                                         }
