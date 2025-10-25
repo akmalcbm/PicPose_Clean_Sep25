@@ -152,14 +152,23 @@ fun NavGraph(navController: NavHostController) {
         // 🔹 Favorites
         composable(route = Screen.AIPromptFavorites.route) {
             val aiPromptVM: AIPromptViewModel = hiltViewModel()
+
             AIPromptFavoritesScreen(
                 viewModel = aiPromptVM,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToAllPrompts = { // ✅ Added this missing lambda
+                    navController.navigate(Screen.AllAIPrompts.route) { // replace with your real route
+                        launchSingleTop = true
+                    }
                 }
             )
         }
+
 
         // 🔹 Prompt Detail
         composable(

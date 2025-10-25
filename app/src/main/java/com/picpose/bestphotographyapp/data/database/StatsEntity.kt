@@ -9,5 +9,6 @@ data class StatsEntity(
     val total_prompts: Int,
     val total_favorites: Int,
     val total_copies: Int,
+    val total_views: Int,
     val last_updated: Long
 )

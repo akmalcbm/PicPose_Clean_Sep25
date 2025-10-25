@@ -28,6 +28,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 fun AIPromptFavoritesScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {},
+    onNavigateToAllPrompts: () -> Unit,
     viewModel: AIPromptViewModel = viewModel()
 ) {
     val favoritePrompts by viewModel.favoritePrompts.collectAsState()
@@ -103,10 +104,12 @@ fun AIPromptFavoritesScreen(
 
             favoritePrompts.isEmpty() -> {
                 EmptyFavoritesState(
+                    onNavigateToAllPrompts = onNavigateToAllPrompts, // ✅ Pass callback
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
                 )
+
             }
 
             else -> {
@@ -139,8 +142,10 @@ fun AIPromptFavoritesScreen(
 
 @Composable
 private fun EmptyFavoritesState(
+    onNavigateToAllPrompts: () -> Unit,
     modifier: Modifier = Modifier
-) {
+)
+ {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -169,8 +174,9 @@ private fun EmptyFavoritesState(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+
         Button(
-            onClick = { /* Navigate to browse */ },
+            onClick = { onNavigateToAllPrompts() }, // 👈 Navigate to All Prompts
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
         ) {
             Icon(Icons.Default.Explore, contentDescription = null)
@@ -178,4 +184,5 @@ private fun EmptyFavoritesState(
             Text("Browse Prompts")
         }
     }
+
 }

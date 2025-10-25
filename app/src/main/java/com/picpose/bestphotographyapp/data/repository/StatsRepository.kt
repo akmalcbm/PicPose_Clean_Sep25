@@ -38,12 +38,14 @@ class StatsRepository(
         total_prompts = total_prompts,
         total_favorites = total_favorites,
         total_copies = total_copies,
+        total_views = total_views, // ✅ Added mapping
         last_updated = System.currentTimeMillis()
     )
 
     private fun StatsEntity.toStatsResponse() = StatsResponse(
         total_prompts = total_prompts,
         total_favorites = total_favorites,
-        total_copies = total_copies
+        total_copies = total_copies,
+        total_views = total_views
     )
 }
