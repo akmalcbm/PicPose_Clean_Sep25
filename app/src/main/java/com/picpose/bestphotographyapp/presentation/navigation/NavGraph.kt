@@ -7,32 +7,38 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.screens.*
-import com.picpose.bestphotographyapp.presentation.splash.SplashViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraph(navController: NavHostController) {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
+    val hasSkippedAuth = authViewModel.hasSkippedAuth.collectAsState().value
+
+    // ✅ Directly choose start destination based on login state
+    val startDestination = if (isLoggedIn || hasSkippedAuth) {
+        Screen.Home.route
+    } else {
+        Screen.Login.route
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route,
+        startDestination = startDestination,
         enterTransition = { fadeIn() + slideInVertically() },
         exitTransition = { fadeOut() + slideOutVertically() }
     ) {
-
-        // 🔹 Splash Screen
-        composable(route = Screen.Splash.route) {
-            val splashVM: SplashViewModel = hiltViewModel()
-            SplashScreen(navController = navController, viewModel = splashVM)
-        }
 
         // 🔹 Home Screen
         composable(route = Screen.Home.route) {
@@ -161,14 +167,11 @@ fun NavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
-                onNavigateToAllPrompts = { // ✅ Added this missing lambda
-                    navController.navigate(Screen.AllAIPrompts.route) { // replace with your real route
-                        launchSingleTop = true
-                    }
+                onNavigateToAllPrompts = {
+                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
                 }
             )
         }
-
 
         // 🔹 Prompt Detail
         composable(
@@ -234,7 +237,7 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        // 🔹 All Guide Posts (placeholder)
+        // 🔹 All Guide Posts
         composable(route = Screen.AllGuidePosts.route) {
             ExploreScreen()
         }
