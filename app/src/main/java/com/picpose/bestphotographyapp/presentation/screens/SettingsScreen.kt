@@ -1,14 +1,44 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -17,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.data.models.UserRole
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 
@@ -32,10 +64,10 @@ fun SettingsScreen(
     val language by settingsViewModel.language.collectAsState()
     val notificationsEnabled by settingsViewModel.notificationsEnabled.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    
+
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -48,21 +80,25 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // User Profile Section
+
+            /*
+            // 👤 USER PROFILE CARD
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
@@ -70,40 +106,64 @@ fun SettingsScreen(
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile",
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        // Profile image or icon
+                        if (!currentUser?.profilePicture.isNullOrBlank()) {
+                            AsyncImage(
+                                model = currentUser?.profilePicture,
+                                contentDescription = "Profile Picture",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile Icon",
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
                         Spacer(modifier = Modifier.width(16.dp))
-                        Column {
+
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = currentUser?.name ?: "Guest User",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = currentUser?.email ?: "Not logged in",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // 🪙 Account Type Badge
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AccountBadge(currentUser?.accountType)
+                                RoleBadge(currentUser?.role)
+                            }
                         }
                     }
                 }
-            }
-            
-            // Appearance Section
+            }*/
+
+            // ⚙️ Appearance Section
             item {
-                Text(
-                    text = "Appearance",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionTitle("Appearance")
             }
-            
-            // Dark Mode Toggle
+
+            // 🌙 Dark Mode
             item {
                 SettingItem(
                     icon = Icons.Default.DarkMode,
@@ -117,34 +177,28 @@ fun SettingsScreen(
                     }
                 )
             }
-            
-            // Language Selector
+
+            // 🌐 Language
             item {
                 SettingItem(
                     icon = Icons.Default.Language,
                     title = stringResource(R.string.language),
-                    subtitle = if (language == "hi") stringResource(R.string.hindi) else stringResource(R.string.english),
+                    subtitle = if (language == "hi") stringResource(R.string.hindi) else stringResource(
+                        R.string.english
+                    ),
                     onClick = { showLanguageDialog = true },
                     trailing = {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Select"
-                        )
+                        Icon(Icons.Default.ChevronRight, contentDescription = null)
                     }
                 )
             }
-            
-            // Preferences Section
+
+            // 🔔 Preferences Section
             item {
-                Text(
-                    text = "Preferences",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionTitle("Preferences")
             }
-            
-            // Notifications Toggle
+
+            // Notifications
             item {
                 SettingItem(
                     icon = Icons.Default.Notifications,
@@ -158,49 +212,35 @@ fun SettingsScreen(
                     }
                 )
             }
-            
-            // Account Section
+
+            /*
+            // 👤 Account Section
             item {
-                Text(
-                    text = "Account",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionTitle("Account")
             }
-            
+
             // Edit Profile
             item {
                 SettingItem(
                     icon = Icons.Default.Edit,
                     title = stringResource(R.string.edit_profile),
                     subtitle = "Update your profile information",
-                    onClick = { /* TODO: Navigate to edit profile */ },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Edit"
-                        )
-                    }
+                    onClick = { *//* TODO: navigate to EditProfileScreen *//* },
+                    trailing = { Icon(Icons.Default.ChevronRight, contentDescription = null) }
                 )
             }
-            
+
             // Privacy Settings
             item {
                 SettingItem(
                     icon = Icons.Default.PrivacyTip,
                     title = "Privacy",
                     subtitle = "Manage your privacy settings",
-                    onClick = { /* TODO: Navigate to privacy settings */ },
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Privacy"
-                        )
-                    }
+                    onClick = { *//* TODO: navigate to PrivacyScreen *//* },
+                    trailing = { Icon(Icons.Default.ChevronRight, contentDescription = null) }
                 )
             }
-            
+
             // Logout Button
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -211,77 +251,132 @@ fun SettingsScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Logout",
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.logout))
                 }
-            }
+            }*/
         }
-    }
-    
-    // Language Selection Dialog
-    if (showLanguageDialog) {
-        AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
-            title = { Text(stringResource(R.string.select_language)) },
-            text = {
-                Column {
-                    RadioButtonItem(
-                        text = stringResource(R.string.english),
-                        selected = language == "en",
-                        onClick = {
-                            settingsViewModel.setLanguage("en")
-                            showLanguageDialog = false
-                        }
-                    )
-                    RadioButtonItem(
-                        text = stringResource(R.string.hindi),
-                        selected = language == "hi",
-                        onClick = {
-                            settingsViewModel.setLanguage("hi")
-                            showLanguageDialog = false
-                        }
-                    )
+
+        // 🌐 Language Selection Dialog
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text(stringResource(R.string.select_language)) },
+                text = {
+                    Column {
+                        RadioButtonItem(
+                            text = stringResource(R.string.english),
+                            selected = language == "en",
+                            onClick = {
+                                settingsViewModel.setLanguage("en")
+                                showLanguageDialog = false
+                            }
+                        )
+                        RadioButtonItem(
+                            text = stringResource(R.string.hindi),
+                            selected = language == "hi",
+                            onClick = {
+                                settingsViewModel.setLanguage("hi")
+                                showLanguageDialog = false
+                            }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-    
-    // Logout Confirmation Dialog
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text(stringResource(R.string.logout)) },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
+            )
+        }
+
+        /*
+        // 🚪 Logout Dialog
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text(stringResource(R.string.logout)) },
+                text = { Text("Are you sure you want to logout?") },
+                confirmButton = {
+                    TextButton(onClick = {
                         authViewModel.logout()
                         showLogoutDialog = false
                         onLogout()
+                    }) {
+                        Text(stringResource(R.string.logout))
                     }
-                ) {
-                    Text(stringResource(R.string.logout))
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
+            )
+        }*/
+    }
+}
+
+// 🪙 Account Type Badge
+@Composable
+fun AccountBadge(accountType: AccountType?) {
+    val bgColor = when (accountType) {
+        AccountType.PREMIUM -> MaterialTheme.colorScheme.tertiaryContainer
+        AccountType.AD_FREE -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val label = when (accountType) {
+        AccountType.PREMIUM -> "Premium"
+        AccountType.AD_FREE -> "Ad-Free"
+        else -> "Free"
+    }
+    BadgeBox(label, bgColor)
+}
+
+// 🧰 Role Badge
+@Composable
+fun RoleBadge(role: UserRole?) {
+    val bgColor = when (role) {
+        UserRole.PROFESSIONAL -> MaterialTheme.colorScheme.primaryContainer
+        UserRole.ADMIN -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val label = when (role) {
+        UserRole.PROFESSIONAL -> "Professional"
+        UserRole.ADMIN -> "Admin"
+        else -> "User"
+    }
+    BadgeBox(label, bgColor)
+}
+
+@Composable
+private fun BadgeBox(label: String, bgColor: androidx.compose.ui.graphics.Color) {
+    Box(
+        modifier = Modifier
+            .background(bgColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
+// Title for each section
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+// Reusable setting item
 @Composable
 fun SettingItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -294,62 +389,43 @@ fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = icon,
+                icon,
                 contentDescription = title,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(subtitle, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (trailing != null) {
+            trailing?.let {
                 Spacer(modifier = Modifier.width(8.dp))
-                trailing()
+                it()
             }
         }
     }
 }
 
 @Composable
-fun RadioButtonItem(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
+fun RadioButtonItem(text: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = text)
+        Text(text)
     }
 }

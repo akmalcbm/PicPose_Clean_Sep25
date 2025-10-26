@@ -1,11 +1,12 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.app.Activity
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.facebook.AccessToken
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
+import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.User
 import com.picpose.bestphotographyapp.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,15 +36,17 @@ class AuthViewModel @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    private val _currentUser = MutableStateFlow<User?>(null)
+
     val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
-    //val hasSkippedAuth: StateFlow<Boolean> = userSessionManager.hasSkippedAuth
-    //    .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _hasSkippedAuth = MutableStateFlow(false)
     val hasSkippedAuth: StateFlow<Boolean> = _hasSkippedAuth
 
+
+
+    // 🧩 Combines user info from DataStore
     val currentUser: StateFlow<User?> = combine(
         userSessionManager.userId,
         userSessionManager.userEmail,
@@ -57,73 +60,75 @@ class AuthViewModel @Inject constructor(
                 name = name,
                 profilePicture = profilePicture
             )
-        } else {
-            null
-        }
+        } else null
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /**
-     * Login with email and password
+     * ✅ Login with email and password
      */
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.login(email, password)
-            _authState.value = if (result.isSuccess) {
-                AuthState.Success(result.getOrNull()!!)
+            if (result.isSuccess) {
+                _authState.value = AuthState.Success(result.getOrNull()!!)
+                refreshUserFromSession() // 👈 ensures UI shows user immediately
             } else {
-                AuthState.Error(result.exceptionOrNull()?.message ?: "Login failed")
+                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Login failed")
             }
         }
     }
 
     /**
-     * Register new user
+     * ✅ Register new user
      */
     fun register(email: String, password: String, name: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.register(email, password, name)
-            _authState.value = if (result.isSuccess) {
-                AuthState.Success(result.getOrNull()!!)
+            if (result.isSuccess) {
+                _authState.value = AuthState.Success(result.getOrNull()!!)
+                refreshUserFromSession() // 👈 ensures instant profile update
             } else {
-                AuthState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
+                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
             }
         }
     }
 
     /**
-     * Sign in with Google
+     * ✅ Sign in with Google
      */
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.signInWithGoogle(account)
-            _authState.value = if (result.isSuccess) {
-                AuthState.Success(result.getOrNull()!!)
+            if (result.isSuccess) {
+                _authState.value = AuthState.Success(result.getOrNull()!!)
+                refreshUserFromSession() // 👈 for instant Google user display
             } else {
-                AuthState.Error(result.exceptionOrNull()?.message ?: "Google sign-in failed")
+                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Google sign-in failed")
             }
         }
     }
 
     /**
-     * Sign in with Facebook
+     * ✅ Sign in with Facebook
      */
     fun signInWithFacebook(token: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.signInWithFacebook(token)
-            _authState.value = if (result.isSuccess) {
-                AuthState.Success(result.getOrNull()!!)
+            if (result.isSuccess) {
+                _authState.value = AuthState.Success(result.getOrNull()!!)
+                refreshUserFromSession() // 👈 for instant Facebook user display
             } else {
-                AuthState.Error(result.exceptionOrNull()?.message ?: "Facebook sign-in failed")
+                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Facebook sign-in failed")
             }
         }
     }
 
     /**
-     * Logout
+     * ✅ Logout
      */
     fun logout() {
         viewModelScope.launch {
@@ -133,7 +138,7 @@ class AuthViewModel @Inject constructor(
     }
 
     /**
-     * Skip authentication
+     * ✅ Skip authentication (guest mode)
      */
     fun skipAuth() {
         _hasSkippedAuth.value = true
@@ -144,14 +149,60 @@ class AuthViewModel @Inject constructor(
     }
 
     /**
-     * Reset auth state
+     * ✅ Reset auth state
      */
     fun resetAuthState() {
         _authState.value = AuthState.Idle
     }
 
     /**
-     * Get Google Sign-In client
+     * ✅ Refresh user info from session storage (DataStore)
+     */
+    fun refreshUserFromSession() {
+        viewModelScope.launch {
+            userSessionManager.userId.firstOrNull()?.let { id ->
+                val email = userSessionManager.userEmail.firstOrNull()
+                val name = userSessionManager.userName.firstOrNull()
+                val pic = userSessionManager.userProfilePicture.firstOrNull()
+                if (email != null && name != null) {
+                    _authState.value = AuthState.Success(
+                        User(id = id, email = email, name = name, profilePicture = pic)
+                    )
+                }
+            }
+        }
+    }
+
+    fun refreshUserSession(updatedUser: User) {
+        viewModelScope.launch {
+            userSessionManager.saveUserSession(
+                userId = updatedUser.id,
+                email = updatedUser.email,
+                name = updatedUser.name,
+                profilePicture = updatedUser.profilePicture
+            )
+            _currentUser.value = updatedUser // ✅ Now this works perfectly
+        }
+    }
+
+
+    fun updateProfile(
+        name: String,
+        bio: String?,
+        profilePictureUri: Uri?,
+        accountType: AccountType,
+        onResult: (Result<User>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = authRepository.updateProfile(name, bio, profilePictureUri, accountType)
+            onResult(result)
+        }
+    }
+
+
+
+    /**
+     * ✅ Google Sign-In Client getter
      */
     fun getGoogleSignInClient(activity: Activity) = authRepository.getGoogleSignInClient()
 }

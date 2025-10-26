@@ -26,7 +26,7 @@ fun NavGraph(navController: NavHostController) {
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
     val hasSkippedAuth = authViewModel.hasSkippedAuth.collectAsState().value
 
-    // ✅ Directly choose start destination based on login state
+    // ✅ Choose start destination dynamically
     val startDestination = if (isLoggedIn || hasSkippedAuth) {
         Screen.Home.route
     } else {
@@ -40,7 +40,7 @@ fun NavGraph(navController: NavHostController) {
         exitTransition = { fadeOut() + slideOutVertically() }
     ) {
 
-        // 🔹 Home Screen
+        // 🏠 Home Screen
         composable(route = Screen.Home.route) {
             val homeVM: HomeViewModel = hiltViewModel()
 
@@ -73,7 +73,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 Explore / Create / Rewards / Profile
+        // 🔎 Explore / Create / Rewards
         composable(route = Screen.Explore.route) {
             ExploreScreen(
                 onNavigateToPromptDetail = { aiPrompt ->
@@ -90,8 +90,13 @@ fun NavGraph(navController: NavHostController) {
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) { RewardsScreen() }
 
+        // 👤 Profile Screen (FINAL)
         composable(route = Screen.Profile.route) {
             ProfileScreen(
+                navController = navController, // ✅ pass it here
+                onNavigateToEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route) { launchSingleTop = true }
                 },
@@ -107,19 +112,20 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 Login Screen
-        composable(route = Screen.Login.route) {
-            LoginScreen(
-                onNavigateToHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
+
+        // ✏️ Edit Profile Screen (✅ with animation)
+        composable(
+            route = Screen.EditProfile.route,
+            enterTransition = { slideInVertically(initialOffsetY = { it }) + fadeIn() },
+            exitTransition = { slideOutVertically(targetOffsetY = { it }) + fadeOut() }
+        ) {
+            EditProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onSaveSuccess = { navController.popBackStack() }
             )
         }
 
-        // 🔹 Settings Screen
+        // ⚙️ Settings Screen
         composable(route = Screen.Settings.route) {
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -132,15 +138,25 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 All AI Prompts
-        composable(
-            route = Screen.AllAIPrompts.route + "?category={category}",
-            arguments = listOf(
-                navArgument("category") {
-                    type = NavType.StringType
-                    defaultValue = "All"
+        // 🔐 Login Screen
+        composable(route = Screen.Login.route) {
+            LoginScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
+        }
+
+        // 📜 All AI Prompts
+        composable(
+            route = Screen.AllAIPrompts.route + "?category={category}",
+            arguments = listOf(navArgument("category") {
+                type = NavType.StringType
+                defaultValue = "All"
+            })
         ) { backStackEntry ->
             val initialCategory = backStackEntry.arguments?.getString("category") ?: "All"
             val aiPromptVM: AIPromptViewModel = hiltViewModel()
@@ -155,7 +171,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 Favorites
+        // ❤️ Favorites
         composable(route = Screen.AIPromptFavorites.route) {
             val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
@@ -163,9 +179,7 @@ fun NavGraph(navController: NavHostController) {
                 viewModel = aiPromptVM,
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
-                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
                 },
                 onNavigateToAllPrompts = {
                     navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
@@ -173,7 +187,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 Prompt Detail
+        // 🧠 Prompt Detail
         composable(
             route = Screen.PromptDetail.route,
             arguments = listOf(navArgument("promptId") { type = NavType.StringType })
@@ -198,7 +212,7 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        // 🔹 Tag Prompts
+        // 🏷 Tag Prompts
         composable(
             route = Screen.TagPrompts.route,
             arguments = listOf(navArgument(Screen.TagPrompts.ARG_TAG) { type = NavType.StringType })
@@ -217,7 +231,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔹 Guide Post Detail
+        // 📘 Guide Post Detail
         composable(
             route = Screen.GuidePostDetail.route,
             arguments = listOf(
@@ -237,9 +251,21 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        // 🔹 All Guide Posts
+        // 📰 All Guide Posts
         composable(route = Screen.AllGuidePosts.route) {
             ExploreScreen()
         }
+
+
+        /*
+        composable(route = Screen.Privacy.route) {
+            PrivacyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(route = Screen.About.route) {
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
+        */
+
     }
 }

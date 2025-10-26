@@ -3,7 +3,8 @@ package com.picpose.bestphotographyapp.data.models
 import com.google.gson.annotations.SerializedName
 
 /**
- * User data model
+ * Represents a user in the system.
+ * Supports multiple account types and roles.
  */
 data class User(
     @SerializedName("id") val id: String,
@@ -14,8 +15,60 @@ data class User(
     @SerializedName("following_count") val followingCount: Int = 0,
     @SerializedName("posts_count") val postsCount: Int = 0,
     @SerializedName("bio") val bio: String? = null,
-    @SerializedName("created_at") val createdAt: String? = null
+    @SerializedName("created_at") val createdAt: String? = null,
+
+    // 🔹 New Fields
+    @SerializedName("account_type") val accountType: AccountType = AccountType.NORMAL,
+    @SerializedName("role") val role: UserRole = UserRole.USER
 )
+
+/**
+ * Enum representing user account type (used for monetization)
+ */
+enum class AccountType(val value: String) {
+    @SerializedName("normal")
+    NORMAL("normal"),
+
+    @SerializedName("premium")
+    PREMIUM("premium"),
+
+    @SerializedName("ad_free")
+    AD_FREE("ad_free");
+
+    companion object {
+        fun from(value: String?): AccountType {
+            return when (value?.lowercase()) {
+                "premium" -> PREMIUM
+                "ad_free" -> AD_FREE
+                else -> NORMAL
+            }
+        }
+    }
+}
+
+/**
+ * Enum representing user role type (permissions/identity)
+ */
+enum class UserRole(val value: String) {
+    @SerializedName("user")
+    USER("user"),
+
+    @SerializedName("professional")
+    PROFESSIONAL("professional"),
+
+    @SerializedName("admin")
+    ADMIN("admin");
+
+    companion object {
+        fun from(value: String?): UserRole {
+            return when (value?.lowercase()) {
+                "professional" -> PROFESSIONAL
+                "admin" -> ADMIN
+                else -> USER
+            }
+        }
+    }
+}
 
 /**
  * Login request model
@@ -31,12 +84,13 @@ data class LoginRequest(
 data class RegisterRequest(
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String,
-    @SerializedName("name") val name: String
+    @SerializedName("name") val name: String,
+    @SerializedName("role") val role: String = "user",
+    @SerializedName("account_type") val accountType: String = "normal"
 )
 
 /**
  * Auth response model
- * Supports both old format (success: boolean) and new format (status: string)
  */
 data class AuthResponse(
     @SerializedName("success") val success: Boolean? = null,
@@ -45,15 +99,9 @@ data class AuthResponse(
     @SerializedName("user") val user: User?,
     @SerializedName("token") val token: String?
 ) {
-    /**
-     * Check if response is successful
-     * Supports both formats:
-     * - Old: {"success": true}
-     * - New: {"status": "success"}
-     */
     fun isSuccessful(): Boolean {
         return when {
-            status != null -> status == "success"
+            status != null -> status.equals("success", ignoreCase = true)
             success != null -> success
             else -> false
         }
@@ -68,5 +116,7 @@ data class SocialAuthData(
     val token: String,
     val email: String,
     val name: String,
-    val profilePicture: String?
+    val profilePicture: String?,
+    val role: String = "user",
+    val accountType: String = "normal"
 )

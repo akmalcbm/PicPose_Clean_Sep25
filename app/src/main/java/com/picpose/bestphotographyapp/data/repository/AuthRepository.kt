@@ -1,7 +1,9 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.core.net.toFile
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -10,18 +12,21 @@ import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
-import com.picpose.bestphotographyapp.data.models.LoginRequest
-import com.picpose.bestphotographyapp.data.models.RegisterRequest
-import com.picpose.bestphotographyapp.data.models.User
+import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.network.UserApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Repository for authentication operations
+ * Repository for authentication & user profile operations
  */
 @Singleton
 class AuthRepository @Inject constructor(
@@ -29,11 +34,15 @@ class AuthRepository @Inject constructor(
     private val userSessionManager: UserSessionManager
 ) {
     private val TAG = "AuthRepository"
-    private val userApiService: UserApiService = RetrofitClient.createService(UserApiService::class.java)
+    private val userApiService: UserApiService =
+        RetrofitClient.createService(UserApiService::class.java)
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
 
+    // 🔹 Common API Key constant
+    private val API_KEY = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
+
     /**
-     * Manual login with email and password via backend API
+     * Manual login
      */
     suspend fun login(email: String, password: String): Result<User> {
         return try {
@@ -41,31 +50,20 @@ class AuthRepository @Inject constructor(
                 action = "login",
                 request = LoginRequest(email, password)
             )
-
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
-                val user = responseBody.user
-                val token = responseBody.token
-                if (user != null) {
-                    // Save session
-                    userSessionManager.saveUserSession(
-                        userId = user.id,
-                        email = user.email,
-                        name = user.name,
-                        profilePicture = user.profilePicture,
-                        token = token
-                    )
-                    Log.d(TAG, "Login successful for user: ${user.email}")
-                    Result.success(user)
-                } else {
-                    val errorMsg = responseBody.message ?: "User data is null"
-                    Log.e(TAG, "Login failed: $errorMsg")
-                    Result.failure(Exception(errorMsg))
-                }
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
+                val user = body.user
+                val token = body.token
+                userSessionManager.saveUserSession(
+                    userId = user.id,
+                    email = user.email,
+                    name = user.name,
+                    profilePicture = user.profilePicture,
+                    token = token
+                )
+                Result.success(user)
             } else {
-                val errorMsg = responseBody?.message ?: "Login failed"
-                Log.e(TAG, "Login failed: $errorMsg")
-                Result.failure(Exception(errorMsg))
+                Result.failure(Exception(body?.message ?: "Login failed"))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Login exception: ${e.message}")
@@ -74,7 +72,7 @@ class AuthRepository @Inject constructor(
     }
 
     /**
-     * Register new user via backend API
+     * Register new user
      */
     suspend fun register(email: String, password: String, name: String): Result<User> {
         return try {
@@ -82,34 +80,23 @@ class AuthRepository @Inject constructor(
                 action = "register",
                 request = RegisterRequest(email, password, name)
             )
-
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
-                val user = responseBody.user
-                val token = responseBody.token
-                if (user != null) {
-                    // Save session
-                    userSessionManager.saveUserSession(
-                        userId = user.id,
-                        email = user.email,
-                        name = user.name,
-                        profilePicture = user.profilePicture,
-                        token = token
-                    )
-                    Log.d(TAG, "Registration successful for user: ${user.email}")
-                    Result.success(user)
-                } else {
-                    val errorMsg = responseBody.message ?: "User data is null"
-                    Log.e(TAG, "Registration failed: $errorMsg")
-                    Result.failure(Exception(errorMsg))
-                }
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
+                val user = body.user
+                val token = body.token
+                userSessionManager.saveUserSession(
+                    userId = user.id,
+                    email = user.email,
+                    name = user.name,
+                    profilePicture = user.profilePicture,
+                    token = token
+                )
+                Result.success(user)
             } else {
-                val errorMsg = responseBody?.message ?: "Registration failed"
-                Log.e(TAG, "Registration failed: $errorMsg")
-                Result.failure(Exception(errorMsg))
+                Result.failure(Exception(body?.message ?: "Registration failed"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Registration exception: ${e.message}")
+            Log.e(TAG, "Register exception: ${e.message}")
             Result.failure(e)
         }
     }
@@ -119,7 +106,7 @@ class AuthRepository @Inject constructor(
      */
     fun getGoogleSignInClient(): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("123456789000-abcdefghijklmnop.apps.googleusercontent.com") // Replace with your web client ID
+            .requestIdToken("123456789000-abcdefghijklmnop.apps.googleusercontent.com")
             .requestEmail()
             .build()
         return GoogleSignIn.getClient(context, gso)
@@ -138,19 +125,14 @@ class AuthRepository @Inject constructor(
                     name = firebaseUser.displayName ?: "",
                     profilePicture = firebaseUser.photoUrl?.toString()
                 )
-                
-                // Save session
                 userSessionManager.saveUserSession(
                     userId = user.id,
                     email = user.email,
                     name = user.name,
                     profilePicture = user.profilePicture
                 )
-                Log.d(TAG, "Google sign-in successful for user: ${user.email}")
                 Result.success(user)
-            } else {
-                Result.failure(Exception("Firebase user is null"))
-            }
+            } else Result.failure(Exception("Firebase user is null"))
         } catch (e: Exception) {
             Log.e(TAG, "Google sign-in exception: ${e.message}")
             Result.failure(e)
@@ -173,19 +155,14 @@ class AuthRepository @Inject constructor(
                     name = firebaseUser.displayName ?: "",
                     profilePicture = firebaseUser.photoUrl?.toString()
                 )
-                
-                // Save session
                 userSessionManager.saveUserSession(
                     userId = user.id,
                     email = user.email,
                     name = user.name,
                     profilePicture = user.profilePicture
                 )
-                Log.d(TAG, "Facebook sign-in successful for user: ${user.email}")
                 Result.success(user)
-            } else {
-                Result.failure(Exception("Firebase user is null"))
-            }
+            } else Result.failure(Exception("Firebase user is null"))
         } catch (e: Exception) {
             Log.e(TAG, "Facebook sign-in exception: ${e.message}")
             Result.failure(e)
@@ -207,27 +184,83 @@ class AuthRepository @Inject constructor(
     }
 
     /**
-     * Get user profile from API
+     * Get user profile
      */
     suspend fun getUserProfile(userId: String): Result<User> {
         return try {
             val response = userApiService.getUserProfile(userId)
-
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.isSuccessful() == true) {
-                val user = responseBody.user
-                if (user != null) {
-                    Result.success(user)
-                } else {
-                    val errorMsg = responseBody.message ?: "User data is null"
-                    Result.failure(Exception(errorMsg))
-                }
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
+                Result.success(body.user)
             } else {
-                val errorMsg = responseBody?.message ?: "Failed to fetch user profile"
-                Result.failure(Exception(errorMsg))
+                Result.failure(Exception(body?.message ?: "Profile fetch failed"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Get user profile exception: ${e.message}")
+            Log.e(TAG, "Get profile exception: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * ✅ Update user profile (name, bio, photo, account type)
+     */
+    suspend fun updateProfile(
+        name: String,
+        bio: String?,
+        profilePictureUri: Uri?,
+        accountType: AccountType
+    ): Result<User> {
+        return try {
+            val userId =
+                userSessionManager.userId.firstOrNull() ?: return Result.failure(Exception("User not logged in"))
+
+            // --- Multipart Body Parts ---
+            val userIdPart = userId.toRequestBody("text/plain".toMediaTypeOrNull())
+            val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+            val bioPart = (bio ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
+            val accountTypePart = accountType.name.lowercase().toRequestBody("text/plain".toMediaTypeOrNull())
+
+            // --- Optional image upload ---
+            val imagePart = profilePictureUri?.let { uri ->
+                val file = try {
+                    uri.toFile()
+                } catch (e: Exception) {
+                    val input = context.contentResolver.openInputStream(uri)
+                    val tempFile = kotlin.io.path.createTempFile("profile_", ".jpg").toFile()
+                    input?.use { it.copyTo(tempFile.outputStream()) }
+                    tempFile
+                }
+                val reqFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("profile_picture", file.name, reqFile)
+            }
+
+            // --- API call ---
+            val response = userApiService.updateProfile(
+                userId = userIdPart,
+                name = namePart,
+                bio = bioPart,
+                accountType = accountTypePart,
+                profile_picture = imagePart,
+                apiKey = API_KEY
+            )
+
+            val body = response.body()
+            if (response.isSuccessful && body?.status == "success" && body.user != null) {
+                val updatedUser = body.user
+                userSessionManager.saveUserSession(
+                    userId = updatedUser.id,
+                    email = updatedUser.email,
+                    name = updatedUser.name,
+                    profilePicture = updatedUser.profilePicture
+                )
+                Log.d(TAG, "✅ Profile updated successfully for user: ${updatedUser.email}")
+                Result.success(updatedUser)
+            } else {
+                Log.e(TAG, "❌ Profile update failed: ${body?.message}")
+                Result.failure(Exception(body?.message ?: "Profile update failed"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Profile update exception: ${e.message}")
             Result.failure(e)
         }
     }

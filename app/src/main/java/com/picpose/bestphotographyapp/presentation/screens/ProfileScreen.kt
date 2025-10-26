@@ -3,12 +3,12 @@ package com.picpose.bestphotographyapp.presentation.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,30 +21,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import com.picpose.bestphotographyapp.presentation.navigation.Screen
+import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    navController: NavHostController,
+    onNavigateToEditProfile: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onLogout: () -> Unit = {},
-    authViewModel: com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val profileTabs = listOf("Photos", "Collections", "Liked")
-    var selectedTab by remember { mutableStateOf("Photos") }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    
+
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
     val profileOptions = listOf(
         ProfileOption("Edit Profile", "Update your profile information", Icons.Filled.Edit),
         ProfileOption("Settings", "App settings and preferences", Icons.Filled.Settings),
-        ProfileOption("Privacy", "Manage your privacy settings", Icons.Filled.PrivacyTip),
-        ProfileOption("Help & Support", "Get help and contact support",
-            Icons.AutoMirrored.Filled.HelpOutline
-        ),
-        ProfileOption("About", "App version and information", Icons.Filled.Info)
+        ProfileOption("Privacy", "Read our privacy policy", Icons.Filled.PrivacyTip),
+        ProfileOption("Help & Support", "Get help and contact support", Icons.AutoMirrored.Filled.HelpOutline),
+        ProfileOption("About", "About the app and its creators", Icons.Filled.Info)
     )
 
     LazyColumn(
@@ -52,7 +54,7 @@ fun ProfileScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Profile Header
+        // 👤 Profile Header
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -65,7 +67,6 @@ fun ProfileScreen(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Profile Picture Placeholder
                     Card(
                         modifier = Modifier
                             .size(100.dp)
@@ -113,7 +114,7 @@ fun ProfileScreen(
             }
         }
 
-        // Stats Row
+        // 📊 Stats Row
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -126,33 +127,7 @@ fun ProfileScreen(
             }
         }
 
-        // Content Tabs
-        item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(profileTabs) { tab ->
-                    FilterChip(
-                        onClick = { selectedTab = tab },
-                        label = { Text(tab) },
-                        selected = selectedTab == tab,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
-            }
-        }
-
-        // Content Grid (Mock)
-        if (selectedTab == "Photos") {
-            items(6) { index ->
-                PhotoGridItem(index = index)
-            }
-        }
-
-        // Profile Options
+        // ⚙️ Profile Options Section
         item {
             Text(
                 text = "Profile Options",
@@ -162,19 +137,23 @@ fun ProfileScreen(
             )
         }
 
+        // ✅ Profile Options List
         items(profileOptions) { option ->
             ProfileOptionCard(
                 option = option,
                 onClick = {
                     when (option.title) {
+                        "Edit Profile" -> onNavigateToEditProfile()
                         "Settings" -> onNavigateToSettings()
-                        else -> { /* Handle other options */ }
+                        "Privacy" -> navController.navigate(Screen.Privacy.route)
+                        "About" -> navController.navigate(Screen.About.route)
+                        // "Help & Support" can open support page later
                     }
                 }
             )
         }
 
-        // Login/Logout Button
+        // 🔒 Login / Logout
         item {
             if (isLoggedIn) {
                 OutlinedButton(
@@ -183,16 +162,9 @@ fun ProfileScreen(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Logout",
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout", modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Logout")
                 }
@@ -201,19 +173,15 @@ fun ProfileScreen(
                     onClick = { onNavigateToLogin() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        Icons.Filled.Login,
-                        contentDescription = "Login",
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Login", modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Login")
                 }
             }
         }
     }
-    
-    // Logout Confirmation Dialog
+
+    // 🔔 Logout Confirmation Dialog
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -241,56 +209,22 @@ fun ProfileScreen(
 @Composable
 fun StatCard(label: String, value: String) {
     Card(
-        modifier = Modifier.width(80.dp),
+        modifier = Modifier.width(90.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = value,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-fun PhotoGridItem(index: Int) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Filled.Image,
-                contentDescription = "Photo $index",
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
+            Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileOptionCard(
-    option: ProfileOption,
-    onClick: () -> Unit
-) {
+fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -302,38 +236,15 @@ fun ProfileOptionCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                option.icon,
-                contentDescription = option.title,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-
+            Icon(option.icon, contentDescription = option.title, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = option.title,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = option.description,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
+                Text(option.title, fontWeight = FontWeight.Medium)
+                Text(option.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             }
-
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = "Navigate",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Icon(Icons.Filled.ChevronRight, contentDescription = "Navigate", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
-data class ProfileOption(
-    val title: String,
-    val description: String,
-    val icon: ImageVector
-)
+data class ProfileOption(val title: String, val description: String, val icon: ImageVector)
