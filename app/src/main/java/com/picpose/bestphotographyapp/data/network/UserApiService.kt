@@ -14,25 +14,25 @@ import retrofit2.http.*
  */
 interface UserApiService {
     
-    @POST("users.php")
+    @POST("api/users.php")
     suspend fun login(
         @Query("action") action: String = "login",
         @Body request: LoginRequest
     ): Response<AuthResponse>
     
-    @POST("users.php")
+    @POST("api/users.php")
     suspend fun register(
         @Query("action") action: String = "register",
         @Body request: RegisterRequest
     ): Response<AuthResponse>
     
-    @GET("users.php")
+    @GET("api/users.php")
     suspend fun getUserProfile(
         @Query("id") userId: String,
         @Query("api_key") apiKey: String? = null
     ): Response<AuthResponse>
     
-    @PUT("users.php")
+    @PUT("api/users.php")
     suspend fun updateUserProfile(
         @Query("id") userId: String,
         @Body user: User,
@@ -40,7 +40,7 @@ interface UserApiService {
     ): Response<AuthResponse>
 
     @Multipart
-    @POST("users/update_profile.php")
+    @POST("api/update_profile.php")
     suspend fun updateProfile(
         @Part("user_id") userId: RequestBody,
         @Part("name") name: RequestBody,
