@@ -15,6 +15,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object EditProfile : Screen("edit_profile")
     object Privacy : Screen("privacy_screen")
+    object Terms : Screen("terms_screen")
     object About : Screen("about_screen")
 
     // 🔹 AI Prompts Screens

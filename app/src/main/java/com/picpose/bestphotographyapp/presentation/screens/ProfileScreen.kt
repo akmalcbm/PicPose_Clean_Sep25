@@ -72,17 +72,29 @@ fun ProfileScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val appSettings = appSettingsViewModel.uiState.value
 
-    // Load app settings on first composition
+    // Load app settings and user data on first composition
     LaunchedEffect(Unit) {
         appSettingsViewModel.loadAppSettings()
+        // Load user data if logged in but user info is empty
+        if (isLoggedIn && currentUser == null) {
+            authViewModel.fetchCurrentUser()
+        }
     }
 
-    val profileOptions = listOf(
+    // Profile options organized in groups
+    val profileManagementOptions = listOf(
         ProfileOption("Edit Profile", "Update your profile information", Icons.Filled.Edit),
-        ProfileOption("Settings", "App settings and preferences", Icons.Filled.Settings),
+        ProfileOption("Settings", "App settings and preferences", Icons.Filled.Settings)
+    )
+    
+    val appInfoOptions = listOf(
         ProfileOption("Privacy Policy", "Read our privacy policy", Icons.Filled.PrivacyTip),
-        ProfileOption("Help & Support", "Get help and contact support", Icons.AutoMirrored.Filled.HelpOutline),
-        ProfileOption("About", "About the app and its creators", Icons.Filled.Info)
+        ProfileOption("Terms & Conditions", "Terms and conditions", Icons.Filled.Description),
+        ProfileOption("About", "About the app", Icons.Filled.Info)
+    )
+    
+    val supportOptions = listOf(
+        ProfileOption("Help & Support", "Get help and contact support", Icons.AutoMirrored.Filled.HelpOutline)
     )
 
     // 🌈 Beautiful gradient background for header
@@ -257,18 +269,18 @@ fun ProfileScreen(
 
 
 
-        // ⚙️ Profile Options Section
+        // 👤 Profile Management Section
         item {
             Text(
-                text = "Profile Options",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                text = "Profile Management",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
             )
         }
 
-        // ✅ Profile Options List
-        items(profileOptions) { option ->
+        items(profileManagementOptions) { option ->
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn() + slideInVertically(),
@@ -280,8 +292,63 @@ fun ProfileScreen(
                         when (option.title) {
                             "Edit Profile" -> onNavigateToEditProfile()
                             "Settings" -> onNavigateToSettings()
+                        }
+                    }
+                )
+            }
+        }
+
+        // 📄 App Info Section
+        item {
+            Text(
+                text = "App Info",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 16.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
+            )
+        }
+
+        items(appInfoOptions) { option ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                ProfileOptionCard(
+                    option = option,
+                    onClick = {
+                        when (option.title) {
                             "Privacy Policy" -> navController.navigate(Screen.Privacy.route)
+                            "Terms & Conditions" -> navController.navigate(Screen.Terms.route)
                             "About" -> navController.navigate(Screen.About.route)
+                        }
+                    }
+                )
+            }
+        }
+
+        // 🆘 Support Section
+        item {
+            Text(
+                text = "Support",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 16.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
+            )
+        }
+
+        items(supportOptions) { option ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                ProfileOptionCard(
+                    option = option,
+                    onClick = {
+                        when (option.title) {
                             "Help & Support" -> showHelpDialog = true
                         }
                     }
@@ -404,143 +471,236 @@ fun HelpSupportDialog(
 ) {
     var message by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
+    var showSuccessSnackbar by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        ) { paddingValues ->
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Text(
-                    text = "Help & Support",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                HorizontalDivider()
-
-                // Support Email
-                Column {
-                    Text(
-                        text = "Support Email",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = supportEmail,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Support Phone
-                Column {
-                    Text(
-                        text = "Support Phone",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = supportPhone,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                HorizontalDivider()
-
-                // Message Input
-                OutlinedTextField(
-                    value = message,
-                    onValueChange = { message = it },
-                    label = { Text("Your Message") },
-                    placeholder = { Text("Describe your issue or question...") },
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    maxLines = 6
-                )
-
-                // Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        enabled = !isSubmitting
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cancel")
+                        Text(
+                            text = "Help & Support",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    Button(
-                        onClick = {
-                            if (message.isNotBlank()) {
-                                isSubmitting = true
-                                scope.launch {
-                                    try {
-                                        val apiService = RetrofitClient.createService(ApiService::class.java)
-                                        val request = SupportQueryRequest(
-                                            userId = currentUser?.id,
-                                            email = currentUser?.email ?: supportEmail,
-                                            name = currentUser?.name ?: "Guest",
-                                            message = message
-                                        )
-                                        val response = apiService.submitSupportQuery(request)
-                                        
-                                        if (response.isSuccessful && response.body()?.success == true) {
-                                            Toast.makeText(
-                                                context,
-                                                "Your query has been submitted successfully!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            onDismiss()
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                response.body()?.message ?: "Failed to submit query",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            "Error: ${e.message}",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    } finally {
-                                        isSubmitting = false
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "Please enter a message", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isSubmitting && message.isNotBlank()
+                    HorizontalDivider()
+
+                    // Support Contact Info
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        if (isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text("Submit")
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Support Email
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = "Email",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Email",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = supportEmail,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider()
+
+                            // Support Phone
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Phone,
+                                    contentDescription = "Phone",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Phone",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = supportPhone,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Message Input Section
+                    Text(
+                        text = "Send us a message",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    OutlinedTextField(
+                        value = message,
+                        onValueChange = { message = it },
+                        label = { Text("Your Message") },
+                        placeholder = { 
+                            Text(
+                                "Describe your issue or question...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            ) 
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        maxLines = 6,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+
+                    // User info display if logged in
+                    if (currentUser != null) {
+                        Text(
+                            text = "Sending as: ${currentUser.name} (${currentUser.email})",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        )
+                    }
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            enabled = !isSubmitting,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (message.isNotBlank()) {
+                                    isSubmitting = true
+                                    scope.launch {
+                                        try {
+                                            val apiService = RetrofitClient.createService(ApiService::class.java)
+                                            val request = SupportQueryRequest(
+                                                userId = currentUser?.id,
+                                                email = currentUser?.email ?: supportEmail,
+                                                name = currentUser?.name ?: "Guest",
+                                                message = message
+                                            )
+                                            val response = apiService.submitSupportQuery(request)
+                                            
+                                            if (response.isSuccessful && response.body()?.success == true) {
+                                                snackbarHostState.showSnackbar(
+                                                    message = "Your message has been sent successfully!",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                kotlinx.coroutines.delay(1500)
+                                                onDismiss()
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    response.body()?.message ?: "Failed to submit query",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                "Error: ${e.message}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } finally {
+                                            isSubmitting = false
+                                        }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Please enter a message", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !isSubmitting && message.isNotBlank(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Text("Submit")
+                            }
                         }
                     }
                 }
