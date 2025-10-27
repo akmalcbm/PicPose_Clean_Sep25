@@ -103,6 +103,15 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 },
+
+                onNavigateToAllPrompts = {
+                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
+                },
+
+                onNavigateToFavorites = {
+                    navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true }
+                },
+
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

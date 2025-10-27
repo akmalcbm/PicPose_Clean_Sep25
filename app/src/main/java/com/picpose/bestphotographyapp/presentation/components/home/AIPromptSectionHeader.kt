@@ -8,9 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -21,15 +22,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 
 @Composable
 fun AIPromptSectionHeader(
-    promptCount: Int,
-    favoriteCount: Int,
+    viewModel: StatsViewModel,
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 🌐 Collect UI State
+    val uiState by viewModel.uiState.collectAsState()
+
+    // 🔄 Fetch stats when composable first loads
+    LaunchedEffect(Unit) {
+        viewModel.fetchStats()
+    }
+
+    val isLoading = uiState.isLoading
+    val stats = uiState.stats
+
     Card(
         modifier = modifier
             .fillMaxWidth(),
@@ -53,6 +65,7 @@ fun AIPromptSectionHeader(
                     .fillMaxWidth()
                     .padding(24.dp)
             ) {
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -79,7 +92,7 @@ fun AIPromptSectionHeader(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "✨ New",
+                            text = "✨ Live Stats",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -90,35 +103,67 @@ fun AIPromptSectionHeader(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Each stat gets equal weight so labels have enough room and won't wrap awkwardly.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    StatItem(
-                        icon = Icons.Default.AutoAwesome,
-                        count = promptCount,
-                        label = "Available",
-                        modifier = Modifier.weight(1f)
-                    )
+                // 🧮 Dynamic Stats Section
+                if (isLoading && stats == null) {
+                    // Loading state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    }
+                } else if (stats != null) {
+                    // Show dynamic stats
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        StatItem(
+                            icon = Icons.Default.AutoAwesome,
+                            count = stats.total_prompts,
+                            label = "Available",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            icon = Icons.Default.Favorite,
+                            count = stats.total_favorites,
+                            label = "Favorites",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            icon = Icons.Default.ContentCopy,
+                            count = stats.total_copies,
+                            label = "Copied",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-                    StatItem(
-                        icon = Icons.Default.Favorite,
-                        count = favoriteCount,
-                        label = "Favorites",
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    StatItem(
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        count = 42,
-                        label = "Trending",
-                        modifier = Modifier.weight(1f)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    /*Text(
+                        text = "Last updated just now",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.align(Alignment.End)
+                    )*/
+                } else {
+                    // Error or empty state
+                    Text(
+                        text = uiState.error ?: "No data available",
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Buttons Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -184,7 +229,6 @@ private fun StatItem(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    // Use a centered Row so icon + stacked texts are centered within the weighted space
     Column(
         modifier = modifier
             .wrapContentWidth()
@@ -193,7 +237,6 @@ private fun StatItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Icon - First Line
         Icon(
             icon,
             contentDescription = null,
@@ -203,7 +246,6 @@ private fun StatItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Count - Second Line
         Text(
             text = "$count",
             style = MaterialTheme.typography.titleMedium.copy(
@@ -217,7 +259,6 @@ private fun StatItem(
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Label - Third Line
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
@@ -227,5 +268,4 @@ private fun StatItem(
             textAlign = TextAlign.Center
         )
     }
-
 }

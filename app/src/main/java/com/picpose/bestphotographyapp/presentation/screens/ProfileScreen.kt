@@ -2,6 +2,9 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -30,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -40,15 +44,20 @@ import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.SupportQueryRequest
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
+import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
+import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
+    onNavigateToAllPrompts: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
@@ -217,26 +226,36 @@ fun ProfileScreen(
             }
         }
 
-        // 📊 Stats Row (Centered)
+        // 🔹 Quick stats (Hilt-injected ViewModel)
         item {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatCard("Photos", "156")
-                    StatCard("Followers", "2.3K")
-                    StatCard("Following", "890")
-                    StatCard("Points", "2.4K")
-                }
-            }
+            val statsViewModel: StatsViewModel = hiltViewModel()
+
+            QuickStatsCard(
+                viewModel = statsViewModel,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .animateItem(
+                        fadeInSpec = null,
+                        fadeOutSpec = null,
+                        placementSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                            visibilityThreshold = IntOffset.VisibilityThreshold
+                        )
+                    ) // ✅ smooth animated appearance
+            )
         }
+
+
+        // 🔹 Quick actions
+        item {
+            QuickActionsCard(
+                onNavigateToAllPrompts = onNavigateToAllPrompts,
+                onNavigateToFavorites = onNavigateToFavorites,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+        }
+
+
 
         // ⚙️ Profile Options Section
         item {

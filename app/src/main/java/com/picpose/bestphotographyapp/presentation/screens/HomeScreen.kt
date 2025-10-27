@@ -2,9 +2,6 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,7 +21,6 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -43,6 +38,7 @@ fun HomeScreen(
     val activity = context as? Activity
     val uiState by viewModel.uiState.collectAsState()
     var currentTipIndex by remember { mutableIntStateOf(0) }
+    val statsViewModel: StatsViewModel = hiltViewModel()
 
     // System edge-to-edge setup
     LaunchedEffect(Unit) {
@@ -123,46 +119,17 @@ fun HomeScreen(
                                 }
                             }
 
-                            // 🔹 Quick actions
-                            item {
-                                QuickActionsCard(
-                                    onNavigateToAllPrompts = onNavigateToAllPrompts,
-                                    onNavigateToFavorites = onNavigateToFavorites,
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-
-                            // 🔹 Quick stats (Hilt-injected ViewModel)
-                            item {
-                                val statsViewModel: StatsViewModel = hiltViewModel()
-
-                                QuickStatsCard(
-                                    viewModel = statsViewModel,
-                                    modifier = Modifier
-                                        .padding(horizontal = 16.dp)
-                                        .animateItem(
-                                            fadeInSpec = null,
-                                            fadeOutSpec = null,
-                                            placementSpec = spring(
-                                                stiffness = Spring.StiffnessMediumLow,
-                                                visibilityThreshold = IntOffset.VisibilityThreshold
-                                            )
-                                        ) // ✅ smooth animated appearance
-                                )
-                            }
-
-
                             // 🔹 AI Prompts
                             if (uiState.aiPrompts.isNotEmpty()) {
                                 item {
                                     AIPromptSectionHeader(
-                                        promptCount = uiState.aiPrompts.size,
-                                        favoriteCount = uiState.favoritePromptsCount,
+                                        viewModel = statsViewModel,
                                         onNavigateToAllPrompts = onNavigateToAllPrompts,
                                         onNavigateToFavorites = onNavigateToFavorites,
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
+
                                 item {
                                     AIPromptsRow(
                                         prompts = uiState.aiPrompts,
