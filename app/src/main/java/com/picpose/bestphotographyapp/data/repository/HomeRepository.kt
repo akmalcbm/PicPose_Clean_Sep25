@@ -52,8 +52,8 @@ class HomeRepository(
     private val gson = Gson()
     private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
     
-    // API key to use for all requests
-    private val requestApiKey: String = apiKey ?: RetrofitClient.defaultApiKey ?: ""
+    // API key to use for all requests - null is acceptable per API definition
+    private val requestApiKey: String? = apiKey ?: RetrofitClient.defaultApiKey
 
     init {
         // optionally set global API key for RetrofitClient
