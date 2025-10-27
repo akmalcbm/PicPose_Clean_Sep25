@@ -20,7 +20,7 @@ room = "2.6.1"
 accompanist = "0.32.0"
 
 # Navigation & DI
-navigation-compose = "2.8.0"
+navigation-compose = "2.8.3"
 
 hilt = "2.48"
 hilt-navigation-compose = "1.1.0"

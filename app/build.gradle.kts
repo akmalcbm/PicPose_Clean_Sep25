@@ -151,6 +151,7 @@ dependencies {
     // Window Size
     implementation(libs.androidx.compose.material3.window.size)
 
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

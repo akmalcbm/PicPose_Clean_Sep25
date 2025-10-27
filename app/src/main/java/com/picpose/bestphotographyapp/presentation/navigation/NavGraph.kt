@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.presentation.navigation
 
 import android.net.Uri
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -19,6 +20,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -26,18 +28,29 @@ fun NavGraph(navController: NavHostController) {
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
     val hasSkippedAuth = authViewModel.hasSkippedAuth.collectAsState().value
 
-    // ✅ Choose start destination dynamically
+    // ✅ Dynamic start destination
     val startDestination = if (isLoggedIn || hasSkippedAuth) {
         Screen.Home.route
     } else {
         Screen.Login.route
     }
 
+    // ✅ Using androidx.navigation.compose.AnimatedNavHost (not deprecated)
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        enterTransition = { fadeIn() + slideInVertically() },
-        exitTransition = { fadeOut() + slideOutVertically() }
+        enterTransition = {
+            fadeIn(animationSpec = tween(350)) + slideInVertically(initialOffsetY = { it / 3 })
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { -it / 3 })
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { -it / 4 })
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { it / 4 })
+        }
     ) {
 
         // 🏠 Home Screen
@@ -90,28 +103,15 @@ fun NavGraph(navController: NavHostController) {
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) { RewardsScreen() }
 
-        // 👤 Profile Screen (FINAL)
+        // 👤 Profile Screen
         composable(route = Screen.Profile.route) {
             ProfileScreen(
-                navController = navController, // ✅ pass it here
-                onNavigateToEditProfile = {
-                    navController.navigate(Screen.EditProfile.route)
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route) { launchSingleTop = true }
-                },
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
-                },
-
-                onNavigateToAllPrompts = {
-                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
-                },
-
-                onNavigateToFavorites = {
-                    navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true }
-                },
-
+                navController = navController,
+                onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) { launchSingleTop = true } },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) { launchSingleTop = true } },
+                onNavigateToAllPrompts = { navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true } },
+                onNavigateToFavorites = { navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true } },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
@@ -121,12 +121,13 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-
-        // ✏️ Edit Profile Screen (✅ with animation)
+        // ✏️ Edit Profile (smooth vertical animation)
         composable(
             route = Screen.EditProfile.route,
-            enterTransition = { slideInVertically(initialOffsetY = { it }) + fadeIn() },
-            exitTransition = { slideOutVertically(targetOffsetY = { it }) + fadeOut() }
+            enterTransition = { slideInVertically(initialOffsetY = { it / 2 }) + fadeIn() },
+            exitTransition = { slideOutVertically(targetOffsetY = { it / 3 }) + fadeOut() },
+            popEnterTransition = { fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { -it / 4 }) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { it / 4 }) }
         ) {
             EditProfileScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -135,7 +136,11 @@ fun NavGraph(navController: NavHostController) {
         }
 
         // ⚙️ Settings Screen
-        composable(route = Screen.Settings.route) {
+        composable(
+            route = Screen.Settings.route,
+            enterTransition = { fadeIn(animationSpec = tween(350)) + slideInVertically(initialOffsetY = { it / 3 }) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { -it / 3 }) }
+        ) {
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onLogout = {
@@ -270,15 +275,14 @@ fun NavGraph(navController: NavHostController) {
             PrivacyPolicyScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        // 📄 Terms & Conditions Screen
+        // 📄 Terms & Conditions
         composable(route = Screen.Terms.route) {
             TermsScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        // ℹ️ About App Screen
+        // ℹ️ About
         composable(route = Screen.About.route) {
             AboutScreen(onBack = { navController.popBackStack() })
         }
-
     }
 }
