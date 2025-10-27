@@ -18,6 +18,9 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        
+        // ✅ Initialize HTTP cache for Retrofit
+        com.picpose.bestphotographyapp.data.network.RetrofitClient.initCache(this)
 
         // ✅ Initialize Google AdMob
         MobileAds.initialize(this) { initializationStatus ->

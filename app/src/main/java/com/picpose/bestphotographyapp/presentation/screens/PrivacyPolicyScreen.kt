@@ -63,7 +63,7 @@ fun PrivacyPolicyScreen(
                 }
                 
                 is AppSettingsUiState.Success -> {
-                    val privacyPolicyHtml = (state as AppSettingsUiState.Success).settings.privacyPolicy
+                    val privacyPolicyHtml = (state as AppSettingsUiState.Success).settings.policies.privacyPolicyHtml
                     
                     if (privacyPolicyHtml.isNotBlank()) {
                         AndroidView(

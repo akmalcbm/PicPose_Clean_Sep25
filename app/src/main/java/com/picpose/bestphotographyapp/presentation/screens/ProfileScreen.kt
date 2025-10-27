@@ -72,7 +72,7 @@ fun ProfileScreen(
 
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val appSettings = appSettingsViewModel.uiState.value
+    val appSettingsState by appSettingsViewModel.uiState.collectAsState()
 
     // Load app settings and user data on first composition
     LaunchedEffect(Unit) {
@@ -81,6 +81,13 @@ fun ProfileScreen(
         if (isLoggedIn && currentUser == null) {
             authViewModel.fetchCurrentUser()
         }
+    }
+    
+    // Extract settings from state
+    val appSettings = when (appSettingsState) {
+        is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings
+        is AppSettingsUiState.Error -> (appSettingsState as AppSettingsUiState.Error).cachedSettings
+        else -> null
     }
 
     // Profile options organized in groups
@@ -451,8 +458,8 @@ fun ProfileScreen(
     // 🆘 Help & Support Dialog
     if (showHelpDialog) {
         HelpSupportDialog(
-            supportEmail = appSettings?.supportEmail ?: "support@picpose.com",
-            supportPhone = appSettings?.supportPhone ?: "+1-234-567-8900",
+            supportEmail = appSettings?.contact?.email ?: "support@picpose.com",
+            supportPhone = appSettings?.contact?.phone ?: "+1-234-567-8900",
             currentUser = currentUser,
             onDismiss = { showHelpDialog = false }
         )

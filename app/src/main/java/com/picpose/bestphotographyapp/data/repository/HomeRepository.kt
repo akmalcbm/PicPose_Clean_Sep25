@@ -593,12 +593,12 @@ class HomeRepository(
             
             apiResult.fold(
                 onSuccess = { response ->
-                    if (response.success && response.data != null) {
+                    if (response.success) {
                         Log.d(TAG, "App settings fetched successfully")
                         emit(Result.success(response.data))
                     } else {
                         Log.w(TAG, "Server returned empty app settings: ${response.message}")
-                        emit(Result.failure(Exception("Empty app settings response")))
+                        emit(Result.failure(Exception(response.message ?: "Empty app settings response")))
                     }
                 },
                 onFailure = { error ->

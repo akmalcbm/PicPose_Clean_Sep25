@@ -1,12 +1,13 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,7 +18,7 @@ sealed class AppSettingsUiState {
     object Idle : AppSettingsUiState()
     object Loading : AppSettingsUiState()
     data class Success(val settings: AppSettings) : AppSettingsUiState()
-    data class Error(val message: String) : AppSettingsUiState()
+    data class Error(val message: String, val cachedSettings: AppSettings? = null) : AppSettingsUiState()
 }
 
 @HiltViewModel
@@ -25,72 +26,84 @@ class AppSettingsViewModel @Inject constructor(
     private val homeRepository: HomeRepository
 ) : ViewModel() {
 
-    private val _uiState = mutableStateOf<AppSettings?>(null)
-    val uiState: State<AppSettings?> = _uiState
+    // StateFlow for better state management
+    private val _uiState = MutableStateFlow<AppSettingsUiState>(AppSettingsUiState.Idle)
+    val uiState: StateFlow<AppSettingsUiState> = _uiState.asStateFlow()
 
-    private val _isLoading = mutableStateOf(false)
-    val isLoading: State<Boolean> = _isLoading
-
-    private val _error = mutableStateOf<String?>(null)
-    val error: State<String?> = _error
-    
-    // New state flow for better state management
-    private val _state = mutableStateOf<AppSettingsUiState>(AppSettingsUiState.Idle)
-    val state: State<AppSettingsUiState> = _state
+    // Backward compatibility - expose current settings
+    val state: StateFlow<AppSettingsUiState> = _uiState.asStateFlow()
     
     // Cache flag to prevent redundant API calls
     private var hasFetchedSettings = false
+    private var cachedSettings: AppSettings? = null
+
+    init {
+        // Auto-load settings on initialization
+        loadAppSettings()
+    }
 
     /**
      * Load app settings from API (with caching)
      */
     fun loadAppSettings(forceRefresh: Boolean = false) {
         // Skip if already loaded and not forcing refresh
-        if (hasFetchedSettings && !forceRefresh && _uiState.value != null) {
+        if (hasFetchedSettings && !forceRefresh && cachedSettings != null) {
+            _uiState.value = AppSettingsUiState.Success(cachedSettings!!)
             return
         }
         
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            _state.value = AppSettingsUiState.Loading
+            _uiState.value = AppSettingsUiState.Loading
 
             homeRepository.getAppSettings().collect { result: Result<AppSettings> ->
                 result.fold(
-                    onSuccess = { data: AppSettings ->
-                        _uiState.value = data
-                        _state.value = AppSettingsUiState.Success(data)
+                    onSuccess = { settings: AppSettings ->
+                        cachedSettings = settings
+                        _uiState.value = AppSettingsUiState.Success(settings)
                         hasFetchedSettings = true
                     },
                     onFailure = { err: Throwable ->
-                        val errorMsg = err.message ?: "Something went wrong"
-                        _error.value = errorMsg
-                        _state.value = AppSettingsUiState.Error(errorMsg)
+                        val errorMsg = err.message ?: "Failed to load app settings"
+                        // If we have cached settings, show error with cache
+                        _uiState.value = AppSettingsUiState.Error(errorMsg, cachedSettings)
                     }
                 )
-                _isLoading.value = false
             }
         }
     }
     
     /**
-     * Get Privacy Policy text
+     * Refresh settings from server
      */
-    fun getPrivacyPolicyText(): String {
-        return _uiState.value?.privacyPolicy ?: ""
+    fun refresh() {
+        loadAppSettings(forceRefresh = true)
     }
     
     /**
-     * Get Terms & Conditions text
+     * Get Privacy Policy HTML
      */
-    fun getTermsText(): String {
-        return _uiState.value?.termsConditions ?: ""
+    fun getPrivacyPolicyHtml(): String {
+        return cachedSettings?.policies?.privacyPolicyHtml ?: ""
     }
     
     /**
-     * Get About App text
+     * Get Terms & Conditions HTML
+     */
+    fun getTermsHtml(): String {
+        return cachedSettings?.policies?.termsConditionsHtml ?: ""
+    }
+    
+    /**
+     * Get About HTML
+     */
+    fun getAboutHtml(): String {
+        return cachedSettings?.about?.html ?: ""
+    }
+    
+    /**
+     * Get About text (plain text version)
      */
     fun getAboutText(): String {
-        return _uiState.value?.about ?: ""
+        return cachedSettings?.about?.text ?: ""
     }
 }
