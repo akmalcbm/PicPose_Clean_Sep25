@@ -63,7 +63,7 @@ fun TermsScreen(
                 }
                 
                 is AppSettingsUiState.Success -> {
-                    val termsHtml = (state as AppSettingsUiState.Success).settings.termsConditions
+                    val termsHtml = (state as AppSettingsUiState.Success).settings.policies.termsConditionsHtml
                     
                     if (termsHtml.isNotBlank()) {
                         AndroidView(

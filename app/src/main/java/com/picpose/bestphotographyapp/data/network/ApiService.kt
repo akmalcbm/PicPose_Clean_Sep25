@@ -10,7 +10,7 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 App Settings & Tips
     // -----------------------------------------------------------------------------------------
-    @GET("get_app_settings.php")
+    @GET("api/get_app_settings.php")
     suspend fun getAppSettings(
         @Query("api_key") apiKey: String? = null
     ): Response<AppSettingsResponse>

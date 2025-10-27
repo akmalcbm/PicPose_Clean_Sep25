@@ -22,6 +22,7 @@ import com.picpose.bestphotographyapp.data.remote.ApiResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Semaphore
@@ -49,6 +50,7 @@ class HomeRepository(
     private val database = AppDatabase.getDatabase(context)
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
     private val gson = Gson()
+    private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
 
     init {
         // optionally set global API key for RetrofitClient (used by interceptor)
@@ -580,11 +582,29 @@ class HomeRepository(
     
     /**
      * Fetch app settings from server for AdMob configuration
+     * Uses cache-first strategy for offline support
      */
-    suspend fun getAppSettings(): Flow<Result<AppSettings>> = flow {
+    suspend fun getAppSettings(forceRefresh: Boolean = false): Flow<Result<AppSettings>> = flow {
         try {
-            Log.d(TAG, "Fetching app settings from server")
+            Log.d(TAG, "Fetching app settings (forceRefresh=$forceRefresh)")
             
+            // Get cached settings once at the start to avoid multiple DataStore reads
+            val cachedSettings = withContext(Dispatchers.IO) {
+                try {
+                    appSettingsCache.cachedSettings.first()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to read cache: ${e.message}")
+                    null
+                }
+            }
+            
+            // Use cache first if not forcing refresh and cache exists
+            if (!forceRefresh && cachedSettings != null) {
+                Log.d(TAG, "Using cached app settings")
+                emit(Result.success(cachedSettings))
+            }
+            
+            // Fetch from API
             val apiResult = safeApiCall {
                 callWithRetries {
                     apiService.getAppSettings()
@@ -593,23 +613,50 @@ class HomeRepository(
             
             apiResult.fold(
                 onSuccess = { response ->
-                    if (response.success && response.data != null) {
-                        Log.d(TAG, "App settings fetched successfully")
+                    if (response.success) {
+                        Log.d(TAG, "App settings fetched successfully from API")
+                        // Save to cache
+                        withContext(Dispatchers.IO) {
+                            appSettingsCache.saveSettings(response.data)
+                        }
                         emit(Result.success(response.data))
                     } else {
-                        Log.w(TAG, "Server returned empty app settings: ${response.message}")
-                        emit(Result.failure(Exception("Empty app settings response")))
+                        Log.w(TAG, "Server returned unsuccessful response: ${response.message}")
+                        // Use cache on server error if available
+                        if (cachedSettings != null) {
+                            Log.d(TAG, "Falling back to cached settings after server error")
+                            emit(Result.success(cachedSettings))
+                        } else {
+                            emit(Result.failure(Exception(response.message ?: "Empty app settings response")))
+                        }
                     }
                 },
                 onFailure = { error ->
                     Log.e(TAG, "Failed to fetch app settings: ${error.message}")
-                    emit(Result.failure(error))
+                    // Use cache on network error if available
+                    if (cachedSettings != null) {
+                        Log.d(TAG, "Falling back to cached settings after network error")
+                        emit(Result.success(cachedSettings))
+                    } else {
+                        emit(Result.failure(error))
+                    }
                 }
             )
             
         } catch (e: Exception) {
             Log.e(TAG, "getAppSettings exception: ${e.message}")
-            emit(Result.failure(e))
+            // Final fallback to cache
+            withContext(Dispatchers.IO) {
+                try {
+                    appSettingsCache.cachedSettings.first()?.let { cached ->
+                        Log.d(TAG, "Using cached settings after exception")
+                        emit(Result.success(cached))
+                    } ?: emit(Result.failure(e))
+                } catch (cacheError: Exception) {
+                    Log.e(TAG, "Failed to read cache: ${cacheError.message}")
+                    emit(Result.failure(e))
+                }
+            }
         }
     }.flowOn(Dispatchers.IO)
 
