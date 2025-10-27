@@ -109,23 +109,6 @@ object RetrofitClient {
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val origRequest = chain.request()
-                val origUrl = origRequest.url
-
-                // Append api_key as query param if defaultApiKey is set
-                val newUrl = defaultApiKey?.let { key ->
-                    origUrl.newBuilder()
-                        .addQueryParameter("api_key", key)
-                        .build()
-                } ?: origUrl
-
-                val newRequest = origRequest.newBuilder()
-                    .url(newUrl)
-                    .build()
-
-                chain.proceed(newRequest)
-            }
             .addInterceptor(cacheInterceptor)
             .addNetworkInterceptor(offlineCacheInterceptor)
             .addInterceptor(monitoringInterceptor)

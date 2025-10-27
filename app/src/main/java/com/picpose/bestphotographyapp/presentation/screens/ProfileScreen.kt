@@ -684,7 +684,10 @@ fun HelpSupportDialog(
                                                 name = currentUser?.name ?: "Guest",
                                                 message = message
                                             )
-                                            val response = apiService.submitSupportQuery(request)
+                                            val response = apiService.submitSupportQuery(
+                                                request = request,
+                                                apiKey = RetrofitClient.defaultApiKey
+                                            )
 
                                             if (response.isSuccessful && response.body()?.success == true) {
                                                 snackbarHostState.showSnackbar("Message sent successfully!")
