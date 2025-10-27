@@ -15,7 +15,7 @@ interface ApiService {
         @Query("api_key") apiKey: String? = null
     ): Response<AppSettingsResponse>
 
-    @GET("ai_posts/get_daily_tips.php")
+    @GET("api/ai_posts/get_daily_tips.php")
     suspend fun getDailyTips(
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<List<DailyTip>>>
@@ -23,13 +23,13 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 AI Prompts
     // -----------------------------------------------------------------------------------------
-    @GET("ai_posts/get_ai_post.php")
+    @GET("api/ai_posts/get_ai_post.php")
     suspend fun getPromptById(
         @Query("id") promptId: String,
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<AIPrompt>>
 
-    @GET("ai_posts/get_ai_posts.php")
+    @GET("api/ai_posts/get_ai_posts.php")
     suspend fun getAiPosts(
         @Query("api_key") apiKey: String? = null,
         @Query("limit") limit: Int? = null,
@@ -45,7 +45,7 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 Guide Posts
     // -----------------------------------------------------------------------------------------
-    @GET("guide_posts/get_guide_posts.php")
+    @GET("api/guide_posts/get_guide_posts.php")
     suspend fun getGuidePosts(
         @Query("api_key") apiKey: String? = null,
         @Query("limit") limit: Int? = null,
@@ -58,7 +58,7 @@ interface ApiService {
         @Query("status") status: String? = null
     ): Response<ApiResponse<List<GuidePostDto>>>
 
-    @GET("guide_posts/get_guide_post.php")
+    @GET("api/guide_posts/get_guide_post.php")
     suspend fun getGuidePostById(
         @Query("id") guidePostId: String,
         @Query("api_key") apiKey: String? = null
@@ -67,7 +67,7 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 Categories
     // -----------------------------------------------------------------------------------------
-    @GET("ai_posts/get_categories.php")
+    @GET("api/ai_posts/get_categories.php")
     suspend fun getCategories(
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<List<CategoryDto>>>
@@ -75,7 +75,7 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 Quick Stats (total prompts, favorites, copies)
     // -----------------------------------------------------------------------------------------
-    @GET("ai_posts/get_quick_stats.php")
+    @GET("api/ai_posts/get_quick_stats.php")
     suspend fun getQuickStats(
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<StatsResponse>>
@@ -86,7 +86,7 @@ interface ApiService {
 
     // Likes (existing)
     @FormUrlEncoded
-    @POST("ai_posts/increment_like.php")
+    @POST("api/ai_posts/increment_like.php")
     suspend fun incrementLike(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
@@ -94,7 +94,7 @@ interface ApiService {
 
     // Views
     @FormUrlEncoded
-    @POST("ai_posts/increment_view.php")
+    @POST("api/ai_posts/increment_view.php")
     suspend fun incrementView(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
@@ -102,7 +102,7 @@ interface ApiService {
 
     // Copies
     @FormUrlEncoded
-    @POST("ai_posts/increment_copy.php")
+    @POST("api/ai_posts/increment_copy.php")
     suspend fun incrementCopy(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
@@ -110,7 +110,7 @@ interface ApiService {
 
     // Favorites ❤️ (your corrected version)
     @FormUrlEncoded
-    @POST("ai_posts/increment_favorite.php")
+    @POST("api/ai_posts/increment_favorite.php")
     suspend fun incrementFavorite(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
@@ -119,7 +119,7 @@ interface ApiService {
     // -----------------------------------------------------------------------------------------
     // 🔹 Support Query
     // -----------------------------------------------------------------------------------------
-    @POST("support/submit_query.php")
+    @POST("api/support/submit_query.php")
     suspend fun submitSupportQuery(
         @Body request: SupportQueryRequest,
         @Query("api_key") apiKey: String? = null
