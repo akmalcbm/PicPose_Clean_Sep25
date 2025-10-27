@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -97,18 +98,16 @@ fun ProfileScreen(
         ProfileOption("Help & Support", "Get help and contact support", Icons.AutoMirrored.Filled.HelpOutline)
     )
 
-    // 🌈 Beautiful gradient background for header
-    val gradientBackground = Brush.verticalGradient(
-        listOf(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.surface
-        )
-    )
+    // 🧭 Clean white background (matches ExploreScreen)
+    val whiteBackground = MaterialTheme.colorScheme.background.copy(alpha = 1f)
+
+    // 🧭 Dynamic background: White in light mode, dark in dark mode
+    val backgroundColor = MaterialTheme.colorScheme.background
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(gradientBackground),
+            .background(backgroundColor),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
