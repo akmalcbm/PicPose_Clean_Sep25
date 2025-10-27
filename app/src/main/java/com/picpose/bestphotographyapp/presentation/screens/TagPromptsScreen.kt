@@ -22,7 +22,7 @@ fun TagPromptsScreen(
     tag: String,
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit,
-    viewModel: AIPromptViewModel = viewModel()
+    viewModel: AIPromptViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }

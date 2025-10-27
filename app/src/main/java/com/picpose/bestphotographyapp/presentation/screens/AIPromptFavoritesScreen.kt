@@ -29,7 +29,7 @@ fun AIPromptFavoritesScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {},
     onNavigateToAllPrompts: () -> Unit,
-    viewModel: AIPromptViewModel = viewModel()
+    viewModel: AIPromptViewModel = hiltViewModel()
 ) {
     val favoritePrompts by viewModel.favoritePrompts.collectAsState()
     val uiState by viewModel.uiState.collectAsState()

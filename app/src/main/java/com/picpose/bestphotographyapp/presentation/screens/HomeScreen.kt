@@ -26,7 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel(),
+    viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToCategory: (Category) -> Unit,

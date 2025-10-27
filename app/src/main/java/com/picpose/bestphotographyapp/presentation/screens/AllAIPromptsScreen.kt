@@ -47,7 +47,7 @@ enum class ViewMode { GRID, LIST }
 fun AllAIPromptsScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {},
-    viewModel: AIPromptViewModel = viewModel(),
+    viewModel: AIPromptViewModel = hiltViewModel(),
     initialCategory: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
