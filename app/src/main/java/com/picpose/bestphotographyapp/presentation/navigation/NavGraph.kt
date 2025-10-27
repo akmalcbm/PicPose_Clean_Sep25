@@ -267,7 +267,12 @@ fun NavGraph(navController: NavHostController) {
 
         // 🔐 Privacy Policy Screen
         composable(route = Screen.Privacy.route) {
-            PrivacyScreen(onBack = { navController.popBackStack() })
+            PrivacyPolicyScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // 📄 Terms & Conditions Screen
+        composable(route = Screen.Terms.route) {
+            TermsScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ℹ️ About App Screen
