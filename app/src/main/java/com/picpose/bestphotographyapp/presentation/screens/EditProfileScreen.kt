@@ -162,42 +162,6 @@ fun EditProfileScreen(
                 maxLines = 4
             )
 
-            // 🪙 Account Type Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) {
-                Text(
-                    text = "Account Type",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                PlanOption(
-                    title = "Normal",
-                    description = "Free plan with ads",
-                    selected = selectedPlan == AccountType.NORMAL,
-                    onClick = { selectedPlan = AccountType.NORMAL }
-                )
-
-                PlanOption(
-                    title = "Premium",
-                    description = "Access premium content (ads may appear)",
-                    selected = selectedPlan == AccountType.PREMIUM,
-                    onClick = { selectedPlan = AccountType.PREMIUM }
-                )
-
-                PlanOption(
-                    title = "Ad-Free",
-                    description = "Completely ad-free experience",
-                    selected = selectedPlan == AccountType.AD_FREE,
-                    onClick = { selectedPlan = AccountType.AD_FREE }
-                )
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
             // 💾 Save Button
@@ -230,52 +194,6 @@ fun EditProfileScreen(
                 Text("Save Changes", fontSize = 16.sp)
             }
 
-        }
-    }
-}
-
-@Composable
-fun PlanOption(
-    title: String,
-    description: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 4.dp else 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = description,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            RadioButton(selected = selected, onClick = onClick)
         }
     }
 }

@@ -115,4 +115,13 @@ interface ApiService {
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
     ): Response<ApiResponse<Unit>>
+
+    // -----------------------------------------------------------------------------------------
+    // 🔹 Support Query
+    // -----------------------------------------------------------------------------------------
+    @POST("support/submit_query.php")
+    suspend fun submitSupportQuery(
+        @Body request: SupportQueryRequest,
+        @Query("api_key") apiKey: String? = null
+    ): Response<SupportQueryResponse>
 }
