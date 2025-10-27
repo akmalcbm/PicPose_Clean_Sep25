@@ -271,32 +271,61 @@ fun ProfileScreen(
 
         // 👤 Profile Management Section
         item {
-            Text(
-                text = "Profile Management",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
-            )
-        }
-
-        items(profileManagementOptions) { option ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
-            ) {
-                ProfileOptionCard(
-                    option = option,
-                    onClick = {
-                        when (option.title) {
-                            "Edit Profile" -> onNavigateToEditProfile()
-                            "Settings" -> onNavigateToSettings()
-                        }
-                    }
+            Column {
+                Text(
+                    text = "👤 Profile Management",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
                 )
+
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    ProfileOptionCard(
+                        option = ProfileOption(
+                            title = "Edit Profile",
+                            description = "Update your profile information",
+                            icon = Icons.Filled.Edit
+                        ),
+                        onClick = { onNavigateToEditProfile() }
+                    )
+                }
             }
         }
+
+        // ⚙️ App Settings Section
+        item {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "⚙️ App Settings",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+                )
+
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    ProfileOptionCard(
+                        option = ProfileOption(
+                            title = "Settings",
+                            description = "Customize your app preferences",
+                            icon = Icons.Filled.Settings
+                        ),
+                        onClick = { onNavigateToSettings() }
+                    )
+                }
+            }
+        }
+
 
         // 📄 App Info Section
         item {
@@ -471,32 +500,39 @@ fun HelpSupportDialog(
 ) {
     var message by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
-    var showSuccessSnackbar by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-        ) { paddingValues ->
-            Card(
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 16.dp
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            )
+                        )
+                    )
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Header
+                    // ✳️ Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -504,7 +540,7 @@ fun HelpSupportDialog(
                     ) {
                         Text(
                             text = "Help & Support",
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -513,134 +549,98 @@ fun HelpSupportDialog(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                Icons.Default.Close,
+                                imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    HorizontalDivider()
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                    // Support Contact Info
+                    // 📞 Support Contact Info
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Support Email
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Email,
-                                    contentDescription = "Email",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = "Email",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = supportEmail,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider()
-
-                            // Support Phone
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Phone,
-                                    contentDescription = "Phone",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = "Phone",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = supportPhone,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
+                            SupportRow(
+                                icon = Icons.Default.Email,
+                                label = "Email",
+                                value = supportEmail
+                            )
+                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            SupportRow(
+                                icon = Icons.Default.Phone,
+                                label = "Phone",
+                                value = supportPhone
+                            )
                         }
                     }
 
-                    // Message Input Section
-                    Text(
-                        text = "Send us a message",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    OutlinedTextField(
-                        value = message,
-                        onValueChange = { message = it },
-                        label = { Text("Your Message") },
-                        placeholder = { 
-                            Text(
-                                "Describe your issue or question...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            ) 
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        maxLines = 6,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
-                    )
-
-                    // User info display if logged in
-                    if (currentUser != null) {
+                    // 📨 Message Input
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
-                            text = "Sending as: ${currentUser.name} (${currentUser.email})",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                            text = "Send us a message",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+
+                        OutlinedTextField(
+                            value = message,
+                            onValueChange = { message = it },
+                            label = { Text("Your Message") },
+                            placeholder = {
+                                Text(
+                                    "Describe your issue or question...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(140.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            maxLines = 5,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+
+                        if (currentUser != null) {
+                            Text(
+                                text = "Sending as: ${currentUser.name} (${currentUser.email})",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                     }
 
-                    // Action Buttons
+                    // 🔘 Buttons
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
                             modifier = Modifier.weight(1f),
-                            enabled = !isSubmitting,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isSubmitting
                         ) {
                             Text("Cancel")
                         }
@@ -659,27 +659,20 @@ fun HelpSupportDialog(
                                                 message = message
                                             )
                                             val response = apiService.submitSupportQuery(request)
-                                            
+
                                             if (response.isSuccessful && response.body()?.success == true) {
-                                                snackbarHostState.showSnackbar(
-                                                    message = "Your message has been sent successfully!",
-                                                    duration = SnackbarDuration.Short
-                                                )
-                                                kotlinx.coroutines.delay(1500)
+                                                snackbarHostState.showSnackbar("Message sent successfully!")
+                                                kotlinx.coroutines.delay(1200)
                                                 onDismiss()
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    response.body()?.message ?: "Failed to submit query",
+                                                    response.body()?.message ?: "Failed to send message",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
                                         } catch (e: Exception) {
-                                            Toast.makeText(
-                                                context,
-                                                "Error: ${e.message}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                                         } finally {
                                             isSubmitting = false
                                         }
@@ -689,12 +682,12 @@ fun HelpSupportDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            enabled = !isSubmitting && message.isNotBlank(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isSubmitting && message.isNotBlank()
                         ) {
                             if (isSubmitting) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
@@ -708,5 +701,31 @@ fun HelpSupportDialog(
         }
     }
 }
+
+@Composable
+private fun SupportRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Column {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
 
 data class ProfileOption(val title: String, val description: String, val icon: ImageVector)
