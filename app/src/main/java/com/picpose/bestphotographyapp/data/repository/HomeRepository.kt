@@ -671,11 +671,9 @@ class HomeRepository(
         try {
             Log.d(TAG, "getCategories: fetching from API...")
 
-            val apiKey = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
-
             val apiResult: Result<ApiResponse<List<CategoryDto>>> = safeApiCall {
                 callWithRetries {
-                    apiService.getCategories(apiKey)
+                    apiService.getCategories(apiKey = null) // Uses default from interceptor
                 }
             }
 
