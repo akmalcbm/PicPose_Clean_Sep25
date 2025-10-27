@@ -172,6 +172,38 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * ✅ Fetch current user from API (if needed to get fresh data)
+     */
+    fun fetchCurrentUser() {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            
+            // First try to get user from session
+            val userId = userSessionManager.userId.firstOrNull()
+            if (userId != null) {
+                // Try to fetch from API
+                val result = authRepository.getUserProfile(userId)
+                if (result.isSuccess) {
+                    val user = result.getOrNull()!!
+                    _authState.value = AuthState.Success(user)
+                    // Update session with fresh data
+                    userSessionManager.saveUserSession(
+                        userId = user.id,
+                        email = user.email,
+                        name = user.name,
+                        profilePicture = user.profilePicture
+                    )
+                } else {
+                    // Fallback to session data
+                    refreshUserFromSession()
+                }
+            } else {
+                _authState.value = AuthState.Error("User not logged in")
+            }
+        }
+    }
 
     fun refreshUserSession(updatedUser: User) {
         viewModelScope.launch {

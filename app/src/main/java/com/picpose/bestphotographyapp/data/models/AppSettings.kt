@@ -28,6 +28,7 @@ data class AppSettings(
     
     // Privacy & Policy
     @SerializedName("privacy_policy") val privacyPolicy: String = "",
+    @SerializedName("terms_conditions") val termsConditions: String = "",
     
     // Support information
     @SerializedName("support_email") val supportEmail: String = "",

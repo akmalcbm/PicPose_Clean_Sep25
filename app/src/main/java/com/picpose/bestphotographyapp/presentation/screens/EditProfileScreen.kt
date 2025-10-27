@@ -46,8 +46,16 @@ fun EditProfileScreen(
 
     var name by remember { mutableStateOf(TextFieldValue(currentUser?.name ?: "")) }
     var bio by remember { mutableStateOf(TextFieldValue(currentUser?.bio ?: "")) }
-    var selectedPlan by remember { mutableStateOf(currentUser?.accountType ?: AccountType.NORMAL) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    // Update fields when user data loads
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            name = TextFieldValue(user.name)
+            bio = TextFieldValue(user.bio ?: "")
+        }
+    }
 
     val context = LocalContext.current
 
@@ -61,20 +69,54 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile") },
+                title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        // TODO: integrate update API
-                        onSaveSuccess()
-                    }) {
-                        Icon(Icons.Default.Check, contentDescription = "Save")
+                    IconButton(
+                        onClick = {
+                            if (!isSaving) {
+                                isSaving = true
+                                val nameText = name.text.trim()
+                                val bioText = bio.text.trim()
+
+                                authViewModel.updateProfile(
+                                    name = nameText,
+                                    bio = bioText,
+                                    profilePictureUri = selectedImageUri,
+                                    accountType = currentUser?.accountType ?: AccountType.NORMAL
+                                ) { result ->
+                                    isSaving = false
+                                    result.onSuccess { updatedUser ->
+                                        // ✅ Refresh session instantly
+                                        authViewModel.refreshUserSession(updatedUser)
+                                        Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                                        onSaveSuccess() // navigate back to Profile
+                                    }.onFailure { e ->
+                                        Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isSaving
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Check, contentDescription = "Save")
+                        }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { paddingValues ->
@@ -155,6 +197,7 @@ fun EditProfileScreen(
                 value = bio,
                 onValueChange = { bio = it },
                 label = { Text("Bio") },
+                placeholder = { Text("Tell us about yourself...") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
@@ -167,31 +210,44 @@ fun EditProfileScreen(
             // 💾 Save Button
             Button(
                 onClick = {
-                    // 🔹 Call repository through ViewModel to update profile
-                    val nameText = name.text.trim()
-                    val bioText = bio.text.trim()
+                    if (!isSaving) {
+                        isSaving = true
+                        val nameText = name.text.trim()
+                        val bioText = bio.text.trim()
 
-                    authViewModel.updateProfile(
-                        name = nameText,
-                        bio = bioText,
-                        profilePictureUri = selectedImageUri,
-                        accountType = selectedPlan
-                    ) { result ->
-                        result.onSuccess { updatedUser ->
-                            // ✅ Refresh session instantly
-                            authViewModel.refreshUserSession(updatedUser)
-                            onSaveSuccess() // navigate back to Profile
-                        }.onFailure { e ->
-                            Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                        authViewModel.updateProfile(
+                            name = nameText,
+                            bio = bioText,
+                            profilePictureUri = selectedImageUri,
+                            accountType = currentUser?.accountType ?: AccountType.NORMAL
+                        ) { result ->
+                            isSaving = false
+                            result.onSuccess { updatedUser ->
+                                // ✅ Refresh session instantly
+                                authViewModel.refreshUserSession(updatedUser)
+                                Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                                onSaveSuccess() // navigate back to Profile
+                            }.onFailure { e ->
+                                Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isSaving
             ) {
-                Text("Save Changes", fontSize = 16.sp)
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
         }
