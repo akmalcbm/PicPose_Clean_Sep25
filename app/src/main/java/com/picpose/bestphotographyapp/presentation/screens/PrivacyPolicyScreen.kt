@@ -27,7 +27,7 @@ fun PrivacyPolicyScreen(
     onNavigateBack: () -> Unit,
     appSettingsViewModel: AppSettingsViewModel = hiltViewModel()
 ) {
-    val state by appSettingsViewModel.state
+    val state by appSettingsViewModel.state.collectAsState()
     
     // Load settings if not already loaded
     LaunchedEffect(Unit) {
