@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.data.admob
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
@@ -183,29 +184,33 @@ class AdMobConfigManager private constructor(private val context: Context) {
         if (appId.isEmpty()) return null
         
         return AppSettings(
-            appId = appId,
-            banner1Id = prefs.getString(KEY_BANNER1_ID, "") ?: "",
-            banner2Id = prefs.getString(KEY_BANNER2_ID, "") ?: "",
-            interstitial1Id = prefs.getString(KEY_INTERSTITIAL1_ID, "") ?: "",
-            interstitial2Id = prefs.getString(KEY_INTERSTITIAL2_ID, "") ?: "",
-            native1Id = prefs.getString(KEY_NATIVE1_ID, "") ?: "",
-            native2Id = prefs.getString(KEY_NATIVE2_ID, "") ?: "",
-            native3Id = prefs.getString(KEY_NATIVE3_ID, "") ?: "",
-            rewarded1Id = prefs.getString(KEY_REWARDED1_ID, "") ?: ""
+            admob = Admob(
+                appId = appId,
+                banner1Id = prefs.getString(KEY_BANNER1_ID, "") ?: "",
+                banner2Id = prefs.getString(KEY_BANNER2_ID, "") ?: "",
+                interstitial1Id = prefs.getString(KEY_INTERSTITIAL1_ID, "") ?: "",
+                interstitial2Id = prefs.getString(KEY_INTERSTITIAL2_ID, "") ?: "",
+                native1Id = prefs.getString(KEY_NATIVE1_ID, "") ?: "",
+                native2Id = prefs.getString(KEY_NATIVE2_ID, "") ?: "",
+                native3Id = prefs.getString(KEY_NATIVE3_ID, "") ?: "",
+                rewarded1Id = prefs.getString(KEY_REWARDED1_ID, "") ?: ""
+            )
         )
     }
     
     private fun getFallbackSettings(): AppSettings {
         return AppSettings(
-            appId = TEST_APP_ID,
-            banner1Id = TEST_BANNER_ID,
-            banner2Id = TEST_BANNER_ID,
-            interstitial1Id = TEST_INTERSTITIAL_ID,
-            interstitial2Id = TEST_INTERSTITIAL_ID,
-            native1Id = TEST_NATIVE_ID,
-            native2Id = TEST_NATIVE_ID,
-            native3Id = TEST_NATIVE_ID,
-            rewarded1Id = TEST_REWARDED_ID
+            admob = Admob(
+                appId = TEST_APP_ID,
+                banner1Id = TEST_BANNER_ID,
+                banner2Id = TEST_BANNER_ID,
+                interstitial1Id = TEST_INTERSTITIAL_ID,
+                interstitial2Id = TEST_INTERSTITIAL_ID,
+                native1Id = TEST_NATIVE_ID,
+                native2Id = TEST_NATIVE_ID,
+                native3Id = TEST_NATIVE_ID,
+                rewarded1Id = TEST_REWARDED_ID
+            )
         )
     }
 }

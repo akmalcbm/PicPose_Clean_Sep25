@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.data
 
 import android.util.Log
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -231,15 +232,17 @@ class PromptRepository {
             
             // Mock app settings - in real app this would come from server
             val settings = AppSettings(
-                appId = "ca-app-pub-3940256099942544~3347511713",
-                banner1Id = "",
-                banner2Id = "",
-                interstitial1Id = "ca-app-pub-3940256099942544/1033173712",
-                interstitial2Id = "ca-app-pub-3940256099942544/1033173712",
-                native1Id = TEST_NATIVE_AD_ID,
-                native2Id = TEST_NATIVE_AD_ID,
-                native3Id = TEST_NATIVE_AD_ID,
-                rewarded1Id = ""
+                admob = Admob(
+                    appId = "ca-app-pub-3940256099942544~3347511713",
+                    banner1Id = "",
+                    banner2Id = "",
+                    interstitial1Id = "ca-app-pub-3940256099942544/1033173712",
+                    interstitial2Id = "ca-app-pub-3940256099942544/1033173712",
+                    native1Id = TEST_NATIVE_AD_ID,
+                    native2Id = TEST_NATIVE_AD_ID,
+                    native3Id = TEST_NATIVE_AD_ID,
+                    rewarded1Id = ""
+                )
             )
             
             emit(Result.success(settings))

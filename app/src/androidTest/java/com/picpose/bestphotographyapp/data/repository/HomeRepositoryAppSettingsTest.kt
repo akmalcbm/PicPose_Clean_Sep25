@@ -3,7 +3,9 @@ package com.picpose.bestphotographyapp.data.repository
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
+import com.picpose.bestphotographyapp.data.models.Contact
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -104,11 +106,11 @@ class HomeRepositoryAppSettingsTest {
     fun testAppSettings_BackwardCompatibility() {
         // Given: An AppSettings with nested data
         val settings = AppSettings(
-            admob = com.picpose.bestphotographyapp.data.models.Admob(
+            admob = Admob(
                 appId = "test_app_id",
                 banner1Id = "test_banner_id"
             ),
-            contact = com.picpose.bestphotographyapp.data.models.Contact(
+            contact = Contact(
                 email = "test@example.com",
                 phone = "123-456-7890"
             )
