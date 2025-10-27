@@ -121,12 +121,18 @@ fun AIPromptSectionHeader(
                     // Show dynamic stats
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         StatItem(
                             icon = Icons.Default.AutoAwesome,
                             count = stats.total_prompts,
                             label = "Available",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            count = stats.total_likes,
+                            label = "Likes",
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(

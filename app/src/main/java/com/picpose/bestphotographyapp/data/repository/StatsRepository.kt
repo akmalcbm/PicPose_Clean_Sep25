@@ -36,6 +36,7 @@ class StatsRepository(
 
     private fun StatsResponse.toEntity() = StatsEntity(
         total_prompts = total_prompts,
+        total_likes = total_likes,
         total_favorites = total_favorites,
         total_copies = total_copies,
         total_views = total_views, // ✅ Added mapping
@@ -44,6 +45,7 @@ class StatsRepository(
 
     private fun StatsEntity.toStatsResponse() = StatsResponse(
         total_prompts = total_prompts,
+        total_likes = total_likes,
         total_favorites = total_favorites,
         total_copies = total_copies,
         total_views = total_views
