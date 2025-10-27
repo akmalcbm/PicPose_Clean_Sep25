@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.components.home
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,28 +52,46 @@ fun QuickStatsCard(
             } else {
                 val stats = uiState.stats
                 if (stats != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        StatItem(
-                            icon = Icons.Default.AutoAwesome,
-                            value = stats.total_prompts.toString(),
-                            label = "AI Prompts",
-                            color = Color(0xFF6366F1)
-                        )
-                        StatItem(
-                            icon = Icons.Default.Favorite,
-                            value = stats.total_favorites.toString(),
-                            label = "Favorites",
-                            color = Color(0xFFE91E63)
-                        )
-                        StatItem(
-                            icon = Icons.Default.ContentCopy,
-                            value = stats.total_copies.toString(),
-                            label = "Copies",
-                            color = Color(0xFF10B981)
-                        )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // First row: Prompts and Likes
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                icon = Icons.Default.AutoAwesome,
+                                value = stats.total_prompts.toString(),
+                                label = "AI Prompts",
+                                color = Color(0xFF6366F1)
+                            )
+                            StatItem(
+                                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                value = stats.total_likes.toString(),
+                                label = "Likes",
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Second row: Favorites and Copies
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                icon = Icons.Default.Favorite,
+                                value = stats.total_favorites.toString(),
+                                label = "Favorites",
+                                color = Color(0xFFE91E63)
+                            )
+                            StatItem(
+                                icon = Icons.Default.ContentCopy,
+                                value = stats.total_copies.toString(),
+                                label = "Copies",
+                                color = Color(0xFF10B981)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
