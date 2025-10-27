@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.network.ApiService
+import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -364,7 +365,7 @@ class AIPromptViewModel @Inject constructor(
     fun incrementViewCount(promptId: Int) {
         viewModelScope.launch(Dispatchers.IO + errorHandler) {
             try {
-                api.incrementView(promptId)
+                api.incrementView(promptId, apiKey = RetrofitClient.defaultApiKey)
                 Log.d(TAG, "✅ View incremented for $promptId")
 
                 // ✅ Update locally (dynamic UI update)
@@ -387,7 +388,7 @@ class AIPromptViewModel @Inject constructor(
     fun incrementCopyCount(promptId: Int) {
         viewModelScope.launch(Dispatchers.IO + errorHandler) {
             try {
-                api.incrementCopy(promptId)
+                api.incrementCopy(promptId, apiKey = RetrofitClient.defaultApiKey)
                 Log.d(TAG, "✅ Copy incremented for $promptId")
             } catch (e: Exception) {
                 Log.w(TAG, "❌ Copy increment failed: ${e.message}")
@@ -398,7 +399,7 @@ class AIPromptViewModel @Inject constructor(
     fun incrementLikeCount(promptId: Int) {
         viewModelScope.launch(Dispatchers.IO + errorHandler) {
             try {
-                api.incrementLike(promptId)
+                api.incrementLike(promptId, apiKey = RetrofitClient.defaultApiKey)
                 Log.d(TAG, "✅ Like incremented for $promptId")
 
                 // ✅ Update locally (dynamic UI update)
@@ -421,7 +422,7 @@ class AIPromptViewModel @Inject constructor(
     fun incrementFavoriteCount(promptId: Int) {
         viewModelScope.launch(Dispatchers.IO + errorHandler) {
             try {
-                api.incrementFavorite(promptId)
+                api.incrementFavorite(promptId, apiKey = RetrofitClient.defaultApiKey)
                 Log.d(TAG, "✅ Favorite incremented for $promptId")
             } catch (e: Exception) {
                 Log.w(TAG, "❌ Favorite increment failed: ${e.message}")

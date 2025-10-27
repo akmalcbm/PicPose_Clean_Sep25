@@ -71,7 +71,9 @@ class AdMobConfigManager private constructor(private val context: Context) {
             
             // Fetch from server
             Log.d(TAG, "Fetching AdMob settings from server")
-            val response = RetrofitClient.apiService.getAppSettings()
+            val response = RetrofitClient.apiService.getAppSettings(
+                apiKey = RetrofitClient.defaultApiKey
+            )
             
             if (response.isSuccessful && response.body()?.success == true) {
                 val appSettings = response.body()?.data
@@ -126,7 +128,9 @@ class AdMobConfigManager private constructor(private val context: Context) {
     suspend fun forceRefreshSettings(): Flow<Result<AppSettings>> = flow {
         try {
             Log.d(TAG, "Force refreshing AdMob settings from server")
-            val response = RetrofitClient.apiService.getAppSettings()
+            val response = RetrofitClient.apiService.getAppSettings(
+                apiKey = RetrofitClient.defaultApiKey
+            )
             
             if (response.isSuccessful && response.body()?.success == true) {
                 val appSettings = response.body()?.data

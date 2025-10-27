@@ -51,9 +51,12 @@ class HomeRepository(
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
     private val gson = Gson()
     private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
+    
+    // API key to use for all requests
+    private val requestApiKey: String = apiKey ?: RetrofitClient.defaultApiKey ?: ""
 
     init {
-        // optionally set global API key for RetrofitClient (used by interceptor)
+        // optionally set global API key for RetrofitClient
         apiKey?.let { RetrofitClient.defaultApiKey = it }
     }
 
@@ -140,7 +143,7 @@ class HomeRepository(
         // Use callWithRetries wrapped by safeApiCall to get consistent Result<T> mapping
         val apiResult: Result<ApiResponse<List<DailyTip>>> = safeApiCall {
             callWithRetries {
-                apiService.getDailyTips()
+                apiService.getDailyTips(apiKey = requestApiKey)
             }
         }
 
@@ -188,7 +191,7 @@ class HomeRepository(
         val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
             callWithRetries {
                 apiService.getAiPosts(
-                    apiKey = null, // RetrofitClient.defaultApiKey used by interceptor; pass non-null to override
+                    apiKey = requestApiKey,
                     limit = limit,
                     offset = (page - 1) * limit,
                     q = search,
@@ -425,7 +428,7 @@ class HomeRepository(
             val result = safeApiCall {
                 callWithRetries {
                     apiService.getAiPosts(
-                        apiKey = null, // Uses default from interceptor
+                        apiKey = requestApiKey,
                         limit = 1,
                         offset = 0,
                         q = promptId // Search by ID
@@ -482,7 +485,7 @@ class HomeRepository(
         val apiResult: Result<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>> = safeApiCall {
             callWithRetries {
                 apiService.getGuidePosts(
-                    apiKey = null,
+                    apiKey = requestApiKey,
                     limit = limit,
                     offset = (page - 1) * limit,
                     page = page,
@@ -551,7 +554,7 @@ class HomeRepository(
             val response = apiSemaphore.withPermit {
                 apiService.getGuidePostById(
                     guidePostId = guidePostId,
-                    apiKey = null // Uses default from interceptor
+                    apiKey = requestApiKey
                 )
             }
 
@@ -607,7 +610,7 @@ class HomeRepository(
             // Fetch from API
             val apiResult = safeApiCall {
                 callWithRetries {
-                    apiService.getAppSettings()
+                    apiService.getAppSettings(apiKey = requestApiKey)
                 }
             }
             
@@ -673,7 +676,7 @@ class HomeRepository(
 
             val apiResult: Result<ApiResponse<List<CategoryDto>>> = safeApiCall {
                 callWithRetries {
-                    apiService.getCategories(apiKey = null) // Uses default from interceptor
+                    apiService.getCategories(apiKey = requestApiKey)
                 }
             }
 
