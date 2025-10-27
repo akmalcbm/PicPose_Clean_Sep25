@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
+import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
@@ -572,7 +574,11 @@ fun HelpSupportDialog(
                         }
                     }
 
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    HorizontalDivider(
+                        Modifier,
+                        DividerDefaults.Thickness,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    )
 
                     // 📞 Support Contact Info
                     Card(
@@ -592,7 +598,11 @@ fun HelpSupportDialog(
                                 label = "Email",
                                 value = supportEmail
                             )
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            HorizontalDivider(
+                                Modifier,
+                                DividerDefaults.Thickness,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
                             SupportRow(
                                 icon = Icons.Default.Phone,
                                 label = "Phone",
