@@ -1,4 +1,3 @@
-/*
 package com.picpose.bestphotographyapp.presentation.screens
 
 import androidx.compose.foundation.layout.Box
@@ -62,7 +61,7 @@ fun PrivacyScreen(
                     ) {
                         item {
                             Text(
-                                text = data?.policies?.privacyPolicyText ?: "No Privacy Policy found.",
+                                text = data?.privacyPolicy ?: "No Privacy Policy found.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 lineHeight = 22.sp
                             )
@@ -73,4 +72,3 @@ fun PrivacyScreen(
         }
     }
 }
-*/

@@ -1,4 +1,3 @@
-/*
 package com.picpose.bestphotographyapp.presentation.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -67,21 +68,54 @@ fun AboutScreen(
                     ) {
                         item {
                             Text(
-                                text = data?.appName ?: "App Name",
+                                text = data?.appName ?: "PicPose",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp
                             )
                             Text(
-                                text = data?.tagline ?: "",
+                                text = data?.tagline ?: "Capture, Create, Inspire",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = data?.description ?: "No description available.",
+                                text = data?.about ?: data?.description ?: "No description available.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 lineHeight = 22.sp
                             )
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Version and developer info
+                            Text(
+                                text = "Version",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = data?.appVersion ?: "1.0.0",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            if (!data?.developer.isNullOrBlank()) {
+                                Text(
+                                    text = "Developer",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = data?.developer ?: "",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -89,4 +123,3 @@ fun AboutScreen(
         }
     }
 }
-*/

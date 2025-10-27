@@ -256,16 +256,15 @@ fun NavGraph(navController: NavHostController) {
             ExploreScreen()
         }
 
-
-        /*
+        // 🔐 Privacy Policy Screen
         composable(route = Screen.Privacy.route) {
             PrivacyScreen(onBack = { navController.popBackStack() })
         }
 
+        // ℹ️ About App Screen
         composable(route = Screen.About.route) {
             AboutScreen(onBack = { navController.popBackStack() })
         }
-        */
 
     }
 }
