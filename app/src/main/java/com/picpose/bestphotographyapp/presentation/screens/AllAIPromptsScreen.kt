@@ -28,7 +28,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,7 +47,7 @@ enum class ViewMode { GRID, LIST }
 fun AllAIPromptsScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {},
-    viewModel: AIPromptViewModel = viewModel(),
+    viewModel: AIPromptViewModel = hiltViewModel(),
     initialCategory: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()

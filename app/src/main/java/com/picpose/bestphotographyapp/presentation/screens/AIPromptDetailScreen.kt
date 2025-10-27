@@ -91,7 +91,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AIPromptDetailScreen(
     promptId: String,
-    viewModel: AIPromptViewModel = viewModel(),
+    viewModel: AIPromptViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit,
     onTagClick: (String) -> Unit, // NEW: navigate to Tag screen
