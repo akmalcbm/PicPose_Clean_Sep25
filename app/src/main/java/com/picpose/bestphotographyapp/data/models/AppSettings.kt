@@ -102,6 +102,7 @@ data class AppSettingsResponse(
 data class SupportQueryRequest(
     @SerializedName("user_id") val userId: String? = null,
     @SerializedName("email") val email: String,
+    @SerializedName("phone") val phone: String,
     @SerializedName("name") val name: String,
     @SerializedName("message") val message: String
 )

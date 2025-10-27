@@ -9,14 +9,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +31,7 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,27 +48,24 @@ fun EditProfileScreen(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
 
-    // Update fields when user data loads
-    LaunchedEffect(currentUser) {
-        currentUser?.let { user ->
-            name = TextFieldValue(user.name)
-            bio = TextFieldValue(user.bio ?: "")
-        }
-    }
-
     val context = LocalContext.current
-
-    // Gallery launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
     }
 
-    Scaffold(
+    // ✅ Use EdgeToEdgeScaffold (handles paddings perfectly)
+    EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Edit Profile",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -82,7 +78,6 @@ fun EditProfileScreen(
                                 isSaving = true
                                 val nameText = name.text.trim()
                                 val bioText = bio.text.trim()
-
                                 authViewModel.updateProfile(
                                     name = nameText,
                                     bio = bioText,
@@ -91,10 +86,9 @@ fun EditProfileScreen(
                                 ) { result ->
                                     isSaving = false
                                     result.onSuccess { updatedUser ->
-                                        // ✅ Refresh session instantly
                                         authViewModel.refreshUserSession(updatedUser)
                                         Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-                                        onSaveSuccess() // navigate back to Profile
+                                        onSaveSuccess()
                                     }.onFailure { e ->
                                         Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
                                     }
@@ -114,142 +108,150 @@ fun EditProfileScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
                 )
             )
         }
-    ) { paddingValues ->
+    ) { innerPadding ->
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // 🖼 Profile Image Section
-            Box(
-                contentAlignment = Alignment.BottomEnd,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    .clickable { imagePickerLauncher.launch("image/*") }
-            ) {
-                if (selectedImageUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(selectedImageUri),
-                        contentDescription = "Selected Profile Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else if (!currentUser?.profilePicture.isNullOrBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(currentUser?.profilePicture)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Profile Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Default Icon",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                // Edit Icon Overlay
+            // 🖼 Profile Picture
+            item {
                 Box(
+                    contentAlignment = Alignment.BottomEnd,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(130.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        .clickable { imagePickerLauncher.launch("image/*") }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Change photo",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
+                    when {
+                        selectedImageUri != null -> {
+                            Image(
+                                painter = rememberAsyncImagePainter(selectedImageUri),
+                                contentDescription = "Selected Profile Image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
 
-            // ✏️ Name Field
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Full Name") },
-                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
+                        !currentUser?.profilePicture.isNullOrBlank() -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(currentUser?.profilePicture)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile Picture",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
 
-            // 📜 Bio Field
-            OutlinedTextField(
-                value = bio,
-                onValueChange = { bio = it },
-                label = { Text("Bio") },
-                placeholder = { Text("Tell us about yourself...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(12.dp),
-                maxLines = 4
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 💾 Save Button
-            Button(
-                onClick = {
-                    if (!isSaving) {
-                        isSaving = true
-                        val nameText = name.text.trim()
-                        val bioText = bio.text.trim()
-
-                        authViewModel.updateProfile(
-                            name = nameText,
-                            bio = bioText,
-                            profilePictureUri = selectedImageUri,
-                            accountType = currentUser?.accountType ?: AccountType.NORMAL
-                        ) { result ->
-                            isSaving = false
-                            result.onSuccess { updatedUser ->
-                                // ✅ Refresh session instantly
-                                authViewModel.refreshUserSession(updatedUser)
-                                Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-                                onSaveSuccess() // navigate back to Profile
-                            }.onFailure { e ->
-                                Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
-                            }
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Default Icon",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Change photo",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
 
+            // ✏️ Name Input
+            item {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Full Name") },
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+            }
+
+            // 📜 Bio Input
+            item {
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Bio") },
+                    placeholder = { Text("Tell us about yourself...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    maxLines = 4
+                )
+            }
+
+            // 💾 Save Button
+            item {
+                Button(
+                    onClick = {
+                        if (!isSaving) {
+                            isSaving = true
+                            val nameText = name.text.trim()
+                            val bioText = bio.text.trim()
+                            authViewModel.updateProfile(
+                                name = nameText,
+                                bio = bioText,
+                                profilePictureUri = selectedImageUri,
+                                accountType = currentUser?.accountType ?: AccountType.NORMAL
+                            ) { result ->
+                                isSaving = false
+                                result.onSuccess { updatedUser ->
+                                    authViewModel.refreshUserSession(updatedUser)
+                                    Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                                    onSaveSuccess()
+                                }.onFailure { e ->
+                                    Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    enabled = !isSaving
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Save Changes", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }

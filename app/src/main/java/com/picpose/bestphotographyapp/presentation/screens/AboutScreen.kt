@@ -1,40 +1,24 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.webkit.WebView
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -46,11 +30,15 @@ fun AboutScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    // Load app settings when first opened
     LaunchedEffect(Unit) {
         viewModel.loadAppSettings()
     }
 
-    Scaffold(
+    val colorScheme = MaterialTheme.colorScheme
+
+    // ✅ Use EdgeToEdgeScaffold for consistent padding and theming
+    EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("About App", fontWeight = FontWeight.Bold) },
@@ -58,31 +46,46 @@ fun AboutScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
+                    titleContentColor = colorScheme.onSurface
+                )
             )
         }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+    ) { innerPadding ->
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorScheme.background)
+                .padding(innerPadding)
+        ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                
+
                 is AppSettingsUiState.Success -> {
                     val settings = (state as AppSettingsUiState.Success).settings
                     val aboutHtml = settings.about.html
-                    
-                    // If HTML is available, show it in WebView
+
+                    // 🧭 If HTML content available, load it in WebView with theme support
                     if (aboutHtml.isNotBlank()) {
                         AndroidView(
                             factory = { context ->
                                 WebView(context).apply {
-                                    this.settings.javaScriptEnabled = false
-                                    this.settings.loadWithOverviewMode = true
-                                    this.settings.useWideViewPort = true
+                                    /*settings.javaScriptEnabled = false
+                                    settings.loadWithOverviewMode = true
+                                    settings.useWideViewPort = true*/
+                                    setBackgroundColor(colorScheme.background.toArgb())
                                 }
                             },
                             update = { webView ->
+                                val bgColor = colorScheme.background.toArgb()
+                                val textColor = colorScheme.onBackground.toArgb()
+                                val linkColor = colorScheme.primary.toArgb()
+
                                 val htmlContent = """
                                     <!DOCTYPE html>
                                     <html>
@@ -93,10 +96,23 @@ fun AboutScreen(
                                                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                                                 padding: 16px;
                                                 line-height: 1.6;
-                                                color: #333;
+                                                background-color: #${Integer.toHexString(bgColor).substring(2)};
+                                                color: #${Integer.toHexString(textColor).substring(2)};
+                                                transition: background-color 0.3s, color 0.3s;
                                             }
-                                            h1, h2, h3 { color: #1976D2; }
-                                            p { margin-bottom: 12px; }
+                                            h1, h2, h3 {
+                                                color: #${Integer.toHexString(linkColor).substring(2)};
+                                            }
+                                            a {
+                                                color: #${Integer.toHexString(linkColor).substring(2)};
+                                                text-decoration: none;
+                                            }
+                                            a:hover {
+                                                text-decoration: underline;
+                                            }
+                                            p {
+                                                margin-bottom: 12px;
+                                            }
                                         </style>
                                     </head>
                                     <body>
@@ -104,73 +120,86 @@ fun AboutScreen(
                                     </body>
                                     </html>
                                 """.trimIndent()
-                                webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+
+                                webView.loadDataWithBaseURL(
+                                    null,
+                                    htmlContent,
+                                    "text/html",
+                                    "UTF-8",
+                                    null
+                                )
                             },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // Fallback to plain text version
+                        // 🧩 Fallback: plain text About info
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             item {
                                 Text(
                                     text = settings.appName,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp
+                                    fontSize = 22.sp,
+                                    color = colorScheme.onSurface
                                 )
                                 Text(
                                     text = settings.tagline,
                                     fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = colorScheme.onSurfaceVariant
                                 )
+
                                 Spacer(modifier = Modifier.height(16.dp))
+
                                 Text(
                                     text = settings.about.text.ifBlank { settings.description },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    lineHeight = 22.sp
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = colorScheme.onBackground,
+                                        lineHeight = 22.sp
+                                    )
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(24.dp))
-                                HorizontalDivider()
+                                Divider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
-                                // Version and developer info
+
+                                // 📦 Version info
                                 Text(
                                     text = "Version",
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = colorScheme.primary
                                 )
                                 Text(
                                     text = "1.0.0",
                                     fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = colorScheme.onSurfaceVariant
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(12.dp))
-                                
+
+                                // 👨‍💻 Developer info
                                 if (settings.adminName.isNotBlank()) {
                                     Text(
                                         text = "Developer",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = colorScheme.primary
                                     )
                                     Text(
                                         text = settings.adminName,
                                         fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                         }
                     }
                 }
-                
+
                 is AppSettingsUiState.Error -> {
                     Column(
                         modifier = Modifier
@@ -182,18 +211,19 @@ fun AboutScreen(
                         Text(
                             "Failed to load About information",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.error
+                            color = colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadAppSettings(forceRefresh = true) }) {
-                            Text("Retry")
+                        Button(
+                            onClick = { viewModel.loadAppSettings(forceRefresh = true) },
+                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
+                        ) {
+                            Text("Retry", color = colorScheme.onPrimary)
                         }
                     }
                 }
-                
-                AppSettingsUiState.Idle -> {
-                    // Initial state - loading will trigger automatically
-                }
+
+                AppSettingsUiState.Idle -> Unit
             }
         }
     }

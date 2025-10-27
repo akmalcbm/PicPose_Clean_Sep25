@@ -284,5 +284,12 @@ fun NavGraph(navController: NavHostController) {
         composable(route = Screen.About.route) {
             AboutScreen(onBack = { navController.popBackStack() })
         }
+
+        //Help and Support
+        composable(Screen.HelpAndSupportScreen.route) {
+            HelpAndSupportScreen(onBack = { navController.popBackStack() })
+        }
+
+
     }
 }
