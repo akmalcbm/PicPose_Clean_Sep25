@@ -169,7 +169,7 @@ val state by viewModel.uiState.collectAsState()
 when (state) {
     is AppSettingsUiState.Loading -> ShowLoading()
     is AppSettingsUiState.Success -> {
-        val settings = (state as AppSettingsUiState.Success).settings
+        val settings = state.settings  // Direct access, no casting needed
         Text(settings.appName)
         Text(settings.contact.email)
     }
