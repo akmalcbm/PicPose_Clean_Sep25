@@ -16,13 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
 /**
- * Terms & Conditions Screen
- * Displays themed terms & conditions from API with edge-to-edge layout.
+ * ✅ Terms & Conditions Screen
+ * Fully edge-to-edge with adaptive theming — no top/bottom padding issues.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,15 +31,15 @@ fun TermsScreen(
 ) {
     val state by appSettingsViewModel.state.collectAsState()
 
-    // Load terms if not already loaded
+    // 🔹 Load settings when first opened
     LaunchedEffect(Unit) {
         appSettingsViewModel.loadAppSettings()
     }
 
     val colorScheme = MaterialTheme.colorScheme
 
-    // 🧭 Use EdgeToEdgeScaffold for correct spacing and adaptive theme
-    EdgeToEdgeScaffold(
+    // ✅ Proper Material3 Scaffold setup for edge-to-edge layout
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Terms & Conditions", fontWeight = FontWeight.Bold) },
@@ -52,9 +51,15 @@ fun TermsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
+                ),
+                // ✅ Handles status bar space correctly
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
-        }
+        },
+        // ✅ Prevent double-padding from system bars
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
         Box(
@@ -62,12 +67,16 @@ fun TermsScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
+                // ✅ Only respect horizontal insets for curved/gesture devices
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
         ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 is AppSettingsUiState.Success -> {
@@ -75,6 +84,7 @@ fun TermsScreen(
                         (state as AppSettingsUiState.Success).settings.policies.termsConditionsHtml
 
                     if (termsHtml.isNotBlank()) {
+                        // ✅ WebView: adaptive dark/light theming + full width
                         AndroidView(
                             factory = { context ->
                                 WebView(context).apply {
@@ -85,7 +95,6 @@ fun TermsScreen(
                                 }
                             },
                             update = { webView ->
-                                // Theme-aware HTML styling for dark/light mode
                                 val bgColor = colorScheme.background.toArgb()
                                 val textColor = colorScheme.onBackground.toArgb()
                                 val linkColor = colorScheme.primary.toArgb()
@@ -102,21 +111,14 @@ fun TermsScreen(
                                                 line-height: 1.6;
                                                 background-color: #${Integer.toHexString(bgColor).substring(2)};
                                                 color: #${Integer.toHexString(textColor).substring(2)};
-                                                transition: background-color 0.3s, color 0.3s;
                                             }
-                                            h1, h2, h3 {
-                                                color: #${Integer.toHexString(linkColor).substring(2)};
-                                            }
+                                            h1, h2, h3 { color: #${Integer.toHexString(linkColor).substring(2)}; }
                                             a {
                                                 color: #${Integer.toHexString(linkColor).substring(2)};
                                                 text-decoration: none;
                                             }
-                                            a:hover {
-                                                text-decoration: underline;
-                                            }
-                                            p {
-                                                margin-bottom: 12px;
-                                            }
+                                            a:hover { text-decoration: underline; }
+                                            p { margin-bottom: 12px; }
                                         </style>
                                     </head>
                                     <body>
@@ -136,16 +138,17 @@ fun TermsScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
+                        // 🧩 No HTML case — simple message
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(24.dp)
+                                .padding(horizontal = 20.dp, vertical = 24.dp)
                                 .verticalScroll(rememberScrollState()),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                "No Terms & Conditions Available",
+                                text = "No Terms & Conditions Available",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colorScheme.onSurfaceVariant
                             )
@@ -154,6 +157,7 @@ fun TermsScreen(
                 }
 
                 is AppSettingsUiState.Error -> {
+                    // ⚠️ Error fallback
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -162,7 +166,7 @@ fun TermsScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            "Failed to load Terms & Conditions",
+                            text = "Failed to load Terms & Conditions",
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
@@ -176,9 +180,7 @@ fun TermsScreen(
                     }
                 }
 
-                AppSettingsUiState.Idle -> {
-                    // Initial state - handled automatically
-                }
+                AppSettingsUiState.Idle -> Unit
             }
         }
     }

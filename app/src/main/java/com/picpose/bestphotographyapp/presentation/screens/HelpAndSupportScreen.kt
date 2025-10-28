@@ -24,12 +24,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.HorizontalDivider
 import com.picpose.bestphotographyapp.data.models.SupportQueryRequest
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
@@ -49,17 +47,17 @@ fun HelpAndSupportScreen(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    // Load app settings once
+    // 🔹 Load app settings once
     LaunchedEffect(Unit) { appSettingsViewModel.loadAppSettings() }
 
-    // Form states
+    // 🔸 Form state
     var name by remember { mutableStateOf(TextFieldValue(currentUser?.name ?: "")) }
     var email by remember { mutableStateOf(TextFieldValue(currentUser?.email ?: "")) }
     var phone by remember { mutableStateOf(TextFieldValue("")) }
     var message by remember { mutableStateOf(TextFieldValue("")) }
     var isSubmitting by remember { mutableStateOf(false) }
 
-    // Contact info
+    // 🔸 Contact info from settings or fallback
     val supportEmail = when (appSettingsState) {
         is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings.contact.email
         else -> "support@picpose.com"
@@ -69,7 +67,8 @@ fun HelpAndSupportScreen(
         else -> "+1-234-567-8900"
     }
 
-    EdgeToEdgeScaffold(
+    // ✅ Perfect edge-to-edge Scaffold setup
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Help & Support", fontWeight = FontWeight.Bold) },
@@ -79,11 +78,15 @@ fun HelpAndSupportScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface,
+                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
+                ),
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0) // 🚫 prevent double padding
     ) { innerPadding ->
 
         Column(
@@ -91,8 +94,12 @@ fun HelpAndSupportScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
-                .imePadding()               // ✅ prevents keyboard overlap
-                .navigationBarsPadding()    // ✅ handles gesture/nav bars
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
+                .imePadding() // ✅ smooth keyboard handling
         ) {
 
             // Scrollable content
@@ -109,6 +116,7 @@ fun HelpAndSupportScreen(
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.primary
                 )
+
                 Text(
                     "Please fill out the form below and our support team will get back to you shortly.",
                     color = colorScheme.onSurfaceVariant
@@ -151,7 +159,7 @@ fun HelpAndSupportScreen(
                     placeholder = { Text("Describe your issue or feedback...") },
                     maxLines = 6,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { /* close keyboard */ }),
+                    keyboardActions = KeyboardActions(onDone = { /* Close keyboard */ }),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp),
@@ -160,6 +168,7 @@ fun HelpAndSupportScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // 🔘 Submit Button
                 Button(
                     onClick = {
                         if (name.text.isBlank() || email.text.isBlank() || message.text.isBlank()) {
@@ -218,26 +227,25 @@ fun HelpAndSupportScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
                 HorizontalDivider(thickness = 1.dp, color = colorScheme.outline.copy(alpha = 0.3f))
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("You can also reach us at:", color = colorScheme.onSurfaceVariant)
 
-                //Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Email, contentDescription = "Email", tint = colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportEmail, color = colorScheme.onSurface)
                 }
 
-                //Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Phone, contentDescription = "Phone", tint = colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportPhone, color = colorScheme.onSurface)
                 }
 
-                //Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Our support team typically replies within 24 hours.",
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,

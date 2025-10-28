@@ -15,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -46,17 +48,14 @@ fun ExploreScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // ✅ Enable edge-to-edge mode for consistent behavior across devices
+    // ✅ Edge-to-edge support
     val activity = context as? Activity
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.window?.let {
-                WindowCompat.setDecorFitsSystemWindows(it, false)
-            }
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
 
-    // Handle error messages
+    // ✅ Error handling
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
             coroutineScope.launch {
@@ -66,7 +65,7 @@ fun ExploreScreen(
         }
     }
 
-    // Infinite scroll handling
+    // ✅ Infinite scroll
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
@@ -80,128 +79,124 @@ fun ExploreScreen(
             }
     }
 
+    // 🔹 Controls filter visibility
+    var showFilters by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding(), // Prevent keyboard overlap
+            .imePadding(),
         topBar = {
             ExploreTopBar(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = viewModel::updateSearchQuery,
-                onRefresh = viewModel::refresh
+                onRefresh = viewModel::refresh,
+                onToggleFilters = { showFilters = !showFilters }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        // ✅ Prevent double padding
-        contentWindowInsets = WindowInsets(0)
-    ) { paddingValues ->
-        Column(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 100.dp), // ✅ space for nav bar
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
         ) {
-            // Filters section
-            FilterChipsSection(
-                categories = uiState.categories,
-                selectedCategory = uiState.selectedCategory,
-                selectedContentFilter = uiState.selectedContentFilter,
-                selectedSortOption = uiState.selectedSortOption,
-                onCategorySelected = viewModel::updateCategory,
-                onContentFilterSelected = viewModel::updateContentFilter,
-                onSortOptionSelected = viewModel::updateSortOption
-            )
 
-            // Main content
+            // 🔹 Sticky header with animated filter visibility
+            stickyHeader {
+                AnimatedVisibility(
+                    visible = showFilters,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -80 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -80 })
+                ) {
+                    TranslucentStickyFilters(
+                        categories = uiState.categories,
+                        selectedCategory = uiState.selectedCategory,
+                        selectedContentFilter = uiState.selectedContentFilter,
+                        selectedSortOption = uiState.selectedSortOption,
+                        onCategorySelected = viewModel::updateCategory,
+                        onContentFilterSelected = viewModel::updateContentFilter,
+                        onSortOptionSelected = viewModel::updateSortOption
+                    )
+                }
+            }
+
             when {
                 uiState.isLoading && uiState.content.isEmpty() -> {
-                    LoadingSection()
+                    item { LoadingSection() }
                 }
 
                 uiState.content.isEmpty() && !uiState.isLoading -> {
-                    EmptyStateSection(
-                        searchQuery = uiState.searchQuery,
-                        selectedCategory = uiState.selectedCategory,
-                        onClearFilters = {
-                            viewModel.updateSearchQuery("")
-                            viewModel.updateCategory("All")
-                            viewModel.updateContentFilter(ContentFilter.ALL)
-                        }
-                    )
+                    item {
+                        EmptyStateSection(
+                            searchQuery = uiState.searchQuery,
+                            selectedCategory = uiState.selectedCategory,
+                            onClearFilters = {
+                                viewModel.updateSearchQuery("")
+                                viewModel.updateCategory("All")
+                                viewModel.updateContentFilter(ContentFilter.ALL)
+                            }
+                        )
+                    }
                 }
 
                 else -> {
-                    PullToRefreshBox(
-                        isRefreshing = uiState.isRefreshing,
-                        onRefresh = viewModel::refresh
-                    ) {
-                        LazyColumn(
-                            state = listState,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = 8.dp,
-                                bottom = 90.dp // ✅ Prevent overlap with bottom nav
-                            ),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            itemsIndexed(
-                                items = uiState.content,
-                                key = { index, content ->
-                                    when (content) {
-                                        is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                        is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                        else -> "CONTENT_${content.hashCode()}_$index"
-                                    }
-                                }
-                            ) { _, content ->
-                                when (content) {
-                                    is ExploreContent.AIPromptContent -> {
-                                        AIPromptCard(
-                                            prompt = content.prompt,
-                                            onClick = { onNavigateToPromptDetail(content.prompt) },
-                                            onCopy = {
-                                                val textToCopy = content.prompt.shortPrompt
-                                                    ?: content.prompt.fullPrompt
-                                                    ?: ""
-                                                clipboardManager.setText(AnnotatedString(textToCopy))
-                                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                            },
-                                            onFavoriteClick = { prompt ->
-                                                viewModel.togglePromptFavorite(prompt)
-                                            },
-                                            modifier = Modifier.animateItem()
-                                        )
-                                    }
-
-                                    is ExploreContent.GuidePostContent -> {
-                                        GuidePostCard(
-                                            guidePost = content.guidePost,
-                                            onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                            onFavoriteClick = { post ->
-                                                viewModel.toggleGuidePostFavorite(post)
-                                            },
-                                            modifier = Modifier.animateItem()
-                                        )
-                                    }
-                                }
+                    itemsIndexed(
+                        items = uiState.content,
+                        key = { index, content ->
+                            when (content) {
+                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                else -> "CONTENT_${content.hashCode()}_$index"
+                            }
+                        }
+                    ) { _, content ->
+                        when (content) {
+                            is ExploreContent.AIPromptContent -> {
+                                AIPromptCard(
+                                    prompt = content.prompt,
+                                    onClick = { onNavigateToPromptDetail(content.prompt) },
+                                    onCopy = {
+                                        val text =
+                                            content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
+                                        clipboardManager.setText(AnnotatedString(text))
+                                        Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
+                                    modifier = Modifier.animateItem()
+                                )
                             }
 
-                            // Pagination loading indicator
-                            if (uiState.isLoading && uiState.content.isNotEmpty()) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(32.dp),
-                                            strokeWidth = 3.dp
-                                        )
-                                    }
-                                }
+                            is ExploreContent.GuidePostContent -> {
+                                GuidePostCard(
+                                    guidePost = content.guidePost,
+                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                    onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                        }
+                    }
+
+                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
                             }
                         }
                     }
@@ -216,27 +211,27 @@ fun ExploreScreen(
 private fun ExploreTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onToggleFilters: () -> Unit
 ) {
     var isSearchExpanded by remember { mutableStateOf(false) }
 
     TopAppBar(
-        modifier = Modifier.statusBarsPadding(), // ✅ Prevent overlap with status bar safely
+        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
         title = {
             AnimatedContent(
                 targetState = isSearchExpanded,
                 transitionSpec = {
-                    slideInHorizontally() + fadeIn() togetherWith
-                            slideOutHorizontally() + fadeOut()
+                    slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
                 },
-                label = "search_animation"
+                label = "search_anim"
             ) { expanded ->
                 if (expanded) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
                         placeholder = { Text("Search content...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = {
                             IconButton(onClick = {
                                 isSearchExpanded = false
@@ -246,16 +241,12 @@ private fun ExploreTopBar(
                             }
                         },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                        )
+                        modifier = Modifier.fillMaxWidth()
                     )
                 } else {
                     Text(
                         "Explore",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -269,18 +260,20 @@ private fun ExploreTopBar(
                 IconButton(onClick = onRefresh) {
                     Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                 }
+                IconButton(onClick = onToggleFilters) {
+                    Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
 }
 
-
 @Composable
-private fun FilterChipsSection(
+private fun TranslucentStickyFilters(
     categories: List<String>,
     selectedCategory: String,
     selectedContentFilter: ContentFilter,
@@ -289,86 +282,86 @@ private fun FilterChipsSection(
     onContentFilterSelected: (ContentFilter) -> Unit,
     onSortOptionSelected: (SortOption) -> Unit
 ) {
-    // More compact filter section
-    Column(
+    var showMore by remember { mutableStateOf(false) }
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 4.dp) // Reduced vertical padding
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
+                )
+            )
+            .shadow(4.dp),
+        color = Color.Transparent // ✅ transparent to let gradient show
     ) {
-        // Combined Content Type and Categories in single row when possible
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 6.dp) // Reduced bottom padding
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Content Type Filters - more compact
-            items(ContentFilter.entries) { filter ->
-                FilterChip(
-                    onClick = { onContentFilterSelected(filter) },
-                    label = {
-                        Text(
-                            text = filter.displayName,
-                            style = MaterialTheme.typography.labelSmall // Smaller text
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(ContentFilter.entries) { filter ->
+                    FilterChip(
+                        onClick = { onContentFilterSelected(filter) },
+                        label = { Text(filter.displayName, style = MaterialTheme.typography.labelSmall) },
+                        selected = selectedContentFilter == filter,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         )
-                    },
-                    selected = selectedContentFilter == filter,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier.height(32.dp) // Smaller height
-                )
-            }
+                    )
+                }
 
-            // Add spacing between content types and categories
-            item { Spacer(modifier = Modifier.width(8.dp)) }
-
-            // Categories - only show a few most important ones
-            items(categories.take(4)) { category -> // Limit to 4 categories
-                FilterChip(
-                    onClick = { onCategorySelected(category) },
-                    label = {
-                        Text(
-                            text = category,
-                            style = MaterialTheme.typography.labelSmall // Smaller text
-                        )
-                    },
-                    selected = selectedCategory == category,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    modifier = Modifier.height(32.dp) // Smaller height
-                )
-            }
-        }
-
-        // Sort Options - only show when needed, in a more compact way
-        if (selectedContentFilter != ContentFilter.ALL || selectedCategory != "All") {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(SortOption.entries.take(3)) { option -> // Limit sort options
+                items(SortOption.entries.take(3)) { option ->
                     FilterChip(
                         onClick = { onSortOptionSelected(option) },
-                        label = {
-                            Text(
-                                text = option.displayName,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
+                        label = { Text(option.displayName, style = MaterialTheme.typography.labelSmall) },
                         selected = selectedSortOption == option,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(categories.take(if (showMore) categories.size else 5)) { category ->
+                    FilterChip(
+                        onClick = { onCategorySelected(category) },
+                        label = { Text(category, style = MaterialTheme.typography.labelSmall) },
+                        selected = selectedCategory == category,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.tertiary,
                             selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                        ),
-                        modifier = Modifier.height(28.dp) // Even smaller for sort options
+                        )
                     )
+                }
+
+                if (categories.size > 5) {
+                    item {
+                        AssistChip(
+                            onClick = { showMore = !showMore },
+                            label = { Text(if (showMore) "Less" else "More") },
+                            leadingIcon = {
+                                Icon(
+                                    if (showMore) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun LoadingSection() {

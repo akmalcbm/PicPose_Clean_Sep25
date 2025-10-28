@@ -4,8 +4,6 @@ import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -18,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -30,15 +27,15 @@ fun AboutScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Load app settings when first opened
+    // 🔹 Load settings on open
     LaunchedEffect(Unit) {
         viewModel.loadAppSettings()
     }
 
     val colorScheme = MaterialTheme.colorScheme
 
-    // ✅ Use EdgeToEdgeScaffold for consistent padding and theming
-    EdgeToEdgeScaffold(
+    // ✅ Use Scaffold with correct edge-to-edge handling
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("About App", fontWeight = FontWeight.Bold) },
@@ -50,9 +47,13 @@ fun AboutScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
+                ),
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0) // disable auto inset to prevent double space
     ) { innerPadding ->
 
         Box(
@@ -60,6 +61,12 @@ fun AboutScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
+                // ✅ Only respect horizontal safe insets to remove top/bottom extra gaps
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
         ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
@@ -70,14 +77,11 @@ fun AboutScreen(
                     val settings = (state as AppSettingsUiState.Success).settings
                     val aboutHtml = settings.about.html
 
-                    // 🧭 If HTML content available, load it in WebView with theme support
                     if (aboutHtml.isNotBlank()) {
+                        // ✅ WebView for HTML About content with theme support
                         AndroidView(
                             factory = { context ->
                                 WebView(context).apply {
-                                    /*settings.javaScriptEnabled = false
-                                    settings.loadWithOverviewMode = true
-                                    settings.useWideViewPort = true*/
                                     setBackgroundColor(colorScheme.background.toArgb())
                                 }
                             },
@@ -98,21 +102,14 @@ fun AboutScreen(
                                                 line-height: 1.6;
                                                 background-color: #${Integer.toHexString(bgColor).substring(2)};
                                                 color: #${Integer.toHexString(textColor).substring(2)};
-                                                transition: background-color 0.3s, color 0.3s;
                                             }
-                                            h1, h2, h3 {
-                                                color: #${Integer.toHexString(linkColor).substring(2)};
-                                            }
+                                            h1, h2, h3 { color: #${Integer.toHexString(linkColor).substring(2)}; }
                                             a {
                                                 color: #${Integer.toHexString(linkColor).substring(2)};
                                                 text-decoration: none;
                                             }
-                                            a:hover {
-                                                text-decoration: underline;
-                                            }
-                                            p {
-                                                margin-bottom: 12px;
-                                            }
+                                            a:hover { text-decoration: underline; }
+                                            p { margin-bottom: 12px; }
                                         </style>
                                     </head>
                                     <body>
@@ -132,7 +129,7 @@ fun AboutScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // 🧩 Fallback: plain text About info
+                        // 🧩 Fallback: Plain text About info
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -166,7 +163,6 @@ fun AboutScreen(
                                 Divider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // 📦 Version info
                                 Text(
                                     text = "Version",
                                     fontWeight = FontWeight.SemiBold,
@@ -181,7 +177,6 @@ fun AboutScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // 👨‍💻 Developer info
                                 if (settings.adminName.isNotBlank()) {
                                     Text(
                                         text = "Developer",

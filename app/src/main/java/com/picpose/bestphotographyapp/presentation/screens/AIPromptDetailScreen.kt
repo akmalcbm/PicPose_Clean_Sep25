@@ -252,10 +252,14 @@ fun AIPromptDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                )
+                ),
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                ) // ✅ perfect status bar handling
             )
         },
-        snackbarHostState = snackbarHostState
+        snackbarHostState = snackbarHostState,
+
     ) { innerPadding ->
 
         when {
@@ -263,7 +267,12 @@ fun AIPromptDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .padding(
+                            WindowInsets.safeDrawing
+                                .only(WindowInsetsSides.Horizontal)
+                                .asPaddingValues()
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -301,7 +310,7 @@ fun AIPromptDetailScreen(
                             .padding(innerPadding),
                         contentPadding = PaddingValues(
                             top = 8.dp,
-                            bottom = 56.dp // ✅ consistent nav bar spacing
+                            bottom = 100.dp // ✅ consistent nav bar gap
                         ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {

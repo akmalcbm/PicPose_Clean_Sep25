@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,12 +37,12 @@ fun AIPromptFavoritesScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ✅ Load favorites safely
+    // ✅ Load favorites once
     LaunchedEffect(Unit) {
         if (favoritePrompts.isEmpty()) viewModel.loadFavoritePrompts()
     }
 
-    // ✅ Error messages once per error
+    // ✅ Show error only once
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
@@ -50,8 +50,8 @@ fun AIPromptFavoritesScreen(
         }
     }
 
-    // ✅ Use our reusable EdgeToEdgeScaffold
-    EdgeToEdgeScaffold(
+    // ✅ Proper Material3 Scaffold with edge-to-edge layout
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -76,63 +76,80 @@ fun AIPromptFavoritesScreen(
                                     "${prompt.title}\n${prompt.fullPrompt ?: ""}"
                                 }
                                 clipboardManager.setText(AnnotatedString(allPrompts))
-                                Toast.makeText(
-                                    context,
-                                    "All favorites copied!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(context, "All favorites copied!", Toast.LENGTH_SHORT).show()
                             }
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
+                            Icon(Icons.Default.Share, contentDescription = "Share All")
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                // ✅ Handles status bar correctly
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
         },
-        snackbarHostState = snackbarHostState
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0) // 🚫 disable auto inset to avoid double spacing
     ) { innerPadding ->
 
-        when {
-            uiState.isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            favoritePrompts.isEmpty() -> {
-                EmptyFavoritesState(
-                    onNavigateToAllPrompts = onNavigateToAllPrompts, // ✅ Pass callback
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+                // ✅ only horizontal safe area, prevents top/bottom white bars
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
                 )
+        ) {
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
 
-            }
+                favoritePrompts.isEmpty() -> {
+                    EmptyFavoritesState(
+                        onNavigateToAllPrompts = onNavigateToAllPrompts,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .padding(innerPadding),
-                    contentPadding = PaddingValues(bottom = 48.dp, top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(favoritePrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                        AIPromptCard(
-                            prompt = prompt,
-                            onClick = { prompt.id?.let(onPromptClick) },
-                            onCopy = {
-                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
-                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                            },
-                            onFavoriteClick = { viewModel.toggleFavorite(prompt) },
-                            showFavoriteIcon = true,
-                            isCompact = false
-                        )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            top = 12.dp,
+                            bottom = 90.dp, // ✅ keeps space for bottom nav safely
+                            start = 16.dp,
+                            end = 16.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(favoritePrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                            AIPromptCard(
+                                prompt = prompt,
+                                onClick = { prompt.id?.let(onPromptClick) },
+                                onCopy = {
+                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
+                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                },
+                                onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+                                showFavoriteIcon = true,
+                                isCompact = false
+                            )
+                        }
                     }
                 }
             }
@@ -144,26 +161,21 @@ fun AIPromptFavoritesScreen(
 private fun EmptyFavoritesState(
     onNavigateToAllPrompts: () -> Unit,
     modifier: Modifier = Modifier
-)
- {
+) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text("💔", style = MaterialTheme.typography.displayLarge)
-
         Spacer(modifier = Modifier.height(12.dp))
-
         Text(
             text = "No Favorite Prompts",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = "Start adding your favorite prompts to see them here!",
             style = MaterialTheme.typography.bodyMedium,
@@ -171,12 +183,9 @@ private fun EmptyFavoritesState(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
-
         Spacer(modifier = Modifier.height(24.dp))
-
-
         Button(
-            onClick = { onNavigateToAllPrompts() }, // 👈 Navigate to All Prompts
+            onClick = onNavigateToAllPrompts,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
         ) {
             Icon(Icons.Default.Explore, contentDescription = null)
@@ -184,5 +193,4 @@ private fun EmptyFavoritesState(
             Text("Browse Prompts")
         }
     }
-
 }

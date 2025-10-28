@@ -26,18 +26,15 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
-import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
-import androidx.compose.foundation.layout.PaddingValues
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextOverflow
-import coil.compose.SubcomposeAsyncImage
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
-
+import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
 
 enum class ViewMode { GRID, LIST }
@@ -59,7 +56,7 @@ fun AllAIPromptsScreen(
     var showSearch by remember { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
 
-    // ✅ Edge-to-edge setup for Samsung devices
+    // ✅ Edge-to-edge setup for Android 11+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
@@ -99,8 +96,8 @@ fun AllAIPromptsScreen(
 
     val categories = uiState.categories
 
-    // ✅ Correct usage of EdgeToEdgeScaffold
-    EdgeToEdgeScaffold(
+    // ✅ Proper Scaffold (edge-to-edge)
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -139,17 +136,29 @@ fun AllAIPromptsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
         },
-        snackbarHostState = snackbarHostState
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0) // 🚫 disable auto padding
     ) { innerPadding ->
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // ✅ this is enough for safe area handling
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+                // ✅ horizontal safe area only
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
         ) {
 
             if (showSearch) {
@@ -208,7 +217,7 @@ fun AllAIPromptsScreen(
                         },
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 40.dp)
+                            .padding(bottom = 80.dp)
                     )
                 }
 
@@ -218,18 +227,17 @@ fun AllAIPromptsScreen(
                         ViewMode.GRID -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(minSize = 160.dp),
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 12.dp),
+                                modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
+                                    start = 12.dp,
+                                    end = 12.dp,
                                     top = 8.dp,
-                                    bottom = 80.dp
+                                    bottom = 100.dp // ✅ enough for bottom nav
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                                    // 🌟 Compact card inspired by SimilarPromptCard
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -238,10 +246,7 @@ fun AllAIPromptsScreen(
                                         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            // 🖼️ Image section
+                                        Column(modifier = Modifier.fillMaxWidth()) {
                                             SubcomposeAsyncImage(
                                                 model = prompt.imageUrl,
                                                 contentDescription = prompt.title,
@@ -280,7 +285,6 @@ fun AllAIPromptsScreen(
                                                 }
                                             )
 
-                                            // 🧾 Text section
                                             Column(
                                                 modifier = Modifier
                                                     .padding(12.dp)
@@ -311,7 +315,6 @@ fun AllAIPromptsScreen(
                             }
                         }
 
-
                         ViewMode.LIST -> {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
@@ -319,7 +322,7 @@ fun AllAIPromptsScreen(
                                     start = 16.dp,
                                     end = 16.dp,
                                     top = 8.dp,
-                                    bottom = 48.dp
+                                    bottom = 100.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
@@ -352,60 +355,8 @@ fun AllAIPromptsScreen(
 }
 
 /* ------------------------
-   Reused helper composables
+   Helper Composables
    ------------------------ */
-
-@Composable
-private fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier,
-        placeholder = { Text("Search prompts...") },
-        leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = null)
-        },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = onClear) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear")
-                }
-            }
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp)
-    )
-}
-
-@Composable
-private fun CategoryFilterRow(
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(categories) { category ->
-            FilterChip(
-                onClick = { onCategorySelected(category) },
-                label = { Text(category) },
-                selected = selectedCategory == category,
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF6366F1),
-                    selectedLabelColor = Color.White
-                )
-            )
-        }
-    }
-}
 
 @Composable
 private fun EmptyPromptsState(
@@ -419,41 +370,29 @@ private fun EmptyPromptsState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "🔍",
-            style = MaterialTheme.typography.displayLarge
-        )
-
+        Text("🔍", style = MaterialTheme.typography.displayLarge)
         Spacer(modifier = Modifier.height(16.dp))
-
         Text(
             text = if (searchQuery.isNotEmpty()) "No results found" else "No prompts available",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         val message = when {
             searchQuery.isNotEmpty() -> "Try different search terms or clear filters"
             selectedCategory != "All" -> "No prompts found in this category"
             else -> "Check back later for new prompts"
         }
-
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
             color = Color(0xFF64748B)
         )
-
         if (searchQuery.isNotEmpty() || selectedCategory != "All") {
             Spacer(modifier = Modifier.height(16.dp))
-
             Button(
                 onClick = onClearFilters,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6366F1)
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
             ) {
                 Text("Clear Filters")
             }

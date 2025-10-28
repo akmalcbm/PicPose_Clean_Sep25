@@ -116,4 +116,12 @@ class GuidePostViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearError() {
+        if (_uiState.value.error != null) {
+            _uiState.value = _uiState.value.copy(error = null)
+        }
+    }
+
+
 }

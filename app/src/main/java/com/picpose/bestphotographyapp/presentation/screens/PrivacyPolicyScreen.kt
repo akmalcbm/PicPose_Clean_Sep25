@@ -18,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -30,17 +29,16 @@ fun PrivacyPolicyScreen(
 ) {
     val state by appSettingsViewModel.state.collectAsState()
 
-    // Load settings when first opened
+    // 🔹 Load settings once when opened
     LaunchedEffect(Unit) {
         appSettingsViewModel.loadAppSettings()
     }
 
-    val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     val isDarkTheme = colorScheme.background.luminance() < 0.5
 
-    // 🧭 Use EdgeToEdgeScaffold for perfect top/bottom layout
-    EdgeToEdgeScaffold(
+    // ✅ Proper Scaffold for consistent edge-to-edge layout
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Privacy Policy", fontWeight = FontWeight.Bold) },
@@ -52,9 +50,13 @@ fun PrivacyPolicyScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
+                ),
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0) // disable auto inset to avoid double spacing
     ) { innerPadding ->
 
         Box(
@@ -62,12 +64,16 @@ fun PrivacyPolicyScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
+                // ✅ Only horizontal insets to remove top/bottom gaps
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                )
         ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 is AppSettingsUiState.Success -> {
@@ -75,6 +81,7 @@ fun PrivacyPolicyScreen(
                         (state as AppSettingsUiState.Success).settings.policies.privacyPolicyHtml
 
                     if (privacyPolicyHtml.isNotBlank()) {
+                        // ✅ WebView with light/dark adaptive style
                         AndroidView(
                             factory = { context ->
                                 WebView(context).apply {
@@ -85,7 +92,6 @@ fun PrivacyPolicyScreen(
                                 }
                             },
                             update = { webView ->
-                                // ✅ Dark/Light mode aware HTML style
                                 val bgColor = colorScheme.background.toArgb()
                                 val textColor = colorScheme.onBackground.toArgb()
                                 val linkColor = colorScheme.primary.toArgb()
@@ -102,21 +108,14 @@ fun PrivacyPolicyScreen(
                                                 line-height: 1.6;
                                                 background-color: #${Integer.toHexString(bgColor).substring(2)};
                                                 color: #${Integer.toHexString(textColor).substring(2)};
-                                                transition: background-color 0.3s, color 0.3s;
                                             }
-                                            h1, h2, h3 {
-                                                color: #${Integer.toHexString(linkColor).substring(2)};
-                                            }
+                                            h1, h2, h3 { color: #${Integer.toHexString(linkColor).substring(2)}; }
                                             a {
                                                 color: #${Integer.toHexString(linkColor).substring(2)};
                                                 text-decoration: none;
                                             }
-                                            a:hover {
-                                                text-decoration: underline;
-                                            }
-                                            p {
-                                                margin-bottom: 12px;
-                                            }
+                                            a:hover { text-decoration: underline; }
+                                            p { margin-bottom: 12px; }
                                         </style>
                                     </head>
                                     <body>
@@ -136,16 +135,17 @@ fun PrivacyPolicyScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
+                        // 🧩 Fallback text if HTML is blank
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(24.dp)
+                                .padding(horizontal = 20.dp, vertical = 24.dp)
                                 .verticalScroll(rememberScrollState()),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                "No Privacy Policy Available",
+                                text = "No Privacy Policy Available",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colorScheme.onSurfaceVariant
                             )
@@ -162,7 +162,7 @@ fun PrivacyPolicyScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            "Failed to load Privacy Policy",
+                            text = "Failed to load Privacy Policy",
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
@@ -176,9 +176,7 @@ fun PrivacyPolicyScreen(
                     }
                 }
 
-                AppSettingsUiState.Idle -> {
-                    // Idle state (nothing to show yet)
-                }
+                AppSettingsUiState.Idle -> Unit
             }
         }
     }
