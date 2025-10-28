@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.HorizontalDivider
 import com.picpose.bestphotographyapp.data.models.SupportQueryRequest
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
@@ -217,25 +218,26 @@ fun HelpAndSupportScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Divider(thickness = 1.dp, color = colorScheme.outline.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 1.dp, color = colorScheme.outline.copy(alpha = 0.3f))
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("You can also reach us at:", color = colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(12.dp))
 
+                //Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Email, contentDescription = "Email", tint = colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportEmail, color = colorScheme.onSurface)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+
+                //Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Phone, contentDescription = "Phone", tint = colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportPhone, color = colorScheme.onSurface)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
+                //Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "Our support team typically replies within 24 hours.",
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,

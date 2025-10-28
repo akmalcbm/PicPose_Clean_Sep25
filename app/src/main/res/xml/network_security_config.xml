@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow HTTP traffic only for your domain during development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">picpose.iamakmal.in</domain>
+    </domain-config>
+
+    <!-- Default: everything else requires HTTPS -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

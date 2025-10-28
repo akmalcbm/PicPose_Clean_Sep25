@@ -1,5 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,21 +14,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreen() {
     val userPoints = 2450
+    val activity = LocalContext.current as? Activity
+
+    // ✅ Enable edge-to-edge (for Android 11+)
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
+        }
+    }
+
     val rewards = listOf(
         Reward("Premium Filters Pack", "Unlock 20+ premium filters", 500, Icons.Filled.FilterVintage),
         Reward("Cloud Storage 100GB", "Extra cloud storage space", 800, Icons.Filled.CloudUpload),
         Reward("AI Photo Enhancement", "10 AI enhancement credits", 300, Icons.Filled.AutoAwesome),
         Reward("Premium Templates", "Access to premium templates", 600, Icons.Filled.WorkspacePremium),
         Reward("Photo Contest Entry", "Enter exclusive contests", 200, Icons.Filled.EmojiEvents),
-        Reward("1-on-1 Photography Tips", "Personal photography session", 1500, Icons.Filled.School)
+        Reward("1-on-1 Photography Tips", "Personal session with expert", 1500, Icons.Filled.School)
     )
 
     val achievements = listOf(
@@ -36,91 +50,121 @@ fun RewardsScreen() {
         Achievement("Popular Creator", "Get 1000 followers", false, Icons.Filled.People)
     )
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header
-        item {
-            Text(
-                text = "Rewards",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Earn points and unlock amazing rewards",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-
-        // Points Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+    // ✅ Scaffold for insets-safe layout
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                ),
+                title = {
+                    Text(
+                        text = "Rewards",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-            ) {
+            )
+        },
+        contentWindowInsets = WindowInsets(0)
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(
+                    WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                ),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = WindowInsets.navigationBars
+                    .asPaddingValues()
+                    .calculateBottomPadding() + 24.dp
+            )
+        ) {
+            // 🏆 Header Section
+            item {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         Icons.Filled.Stars,
                         contentDescription = "Points",
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = userPoints.toString(),
-                        fontSize = 36.sp,
+                        text = "$userPoints Points",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Your Points",
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        text = "Earn points and unlock exclusive rewards",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
                     )
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
-        }
 
-        // Available Rewards
-        item {
-            Text(
-                text = "Available Rewards",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
+            // 🎁 Available Rewards
+            item {
+                Text(
+                    text = "Available Rewards",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
-        items(rewards) { reward ->
-            RewardCard(
-                reward = reward,
-                userPoints = userPoints,
-                onRedeem = { /* Handle redeem */ }
-            )
-        }
+            items(rewards) { reward ->
+                RewardCard(
+                    reward = reward,
+                    userPoints = userPoints,
+                    onRedeem = { /* TODO: Handle redeem logic */ }
+                )
+            }
 
-        // Achievements Section
-        item {
-            Text(
-                text = "Achievements",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
+            // 🥇 Achievements
+            item {
+                Text(
+                    text = "Achievements",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
 
-        items(achievements) { achievement ->
-            AchievementCard(achievement = achievement)
+            items(achievements) { achievement ->
+                AchievementCard(achievement = achievement)
+            }
+
+            // ✨ Footer
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Keep earning points by participating in challenges and uploading your best shots!",
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                )
+            }
         }
     }
 }
@@ -135,12 +179,17 @@ fun RewardCard(
     val canRedeem = userPoints >= reward.pointsCost
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 2.dp, bottom = 2.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (canRedeem) MaterialTheme.colorScheme.surface
-            else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        )
+            containerColor = if (canRedeem)
+                MaterialTheme.colorScheme.surface
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -152,8 +201,10 @@ fun RewardCard(
                 reward.icon,
                 contentDescription = reward.title,
                 modifier = Modifier.size(40.dp),
-                tint = if (canRedeem) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                tint = if (canRedeem)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -162,17 +213,21 @@ fun RewardCard(
                 Text(
                     text = reward.title,
                     fontWeight = FontWeight.Medium,
-                    color = if (canRedeem) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = if (canRedeem)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
                 Text(
                     text = reward.description,
                     fontSize = 12.sp,
-                    color = if (canRedeem) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = if (canRedeem)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
                 Text(
-                    text = "${reward.pointsCost} points",
+                    text = "${reward.pointsCost} Points",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary
@@ -195,13 +250,17 @@ fun RewardCard(
 @Composable
 fun AchievementCard(achievement: Achievement) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 2.dp, bottom = 2.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (achievement.isCompleted)
                 MaterialTheme.colorScheme.tertiaryContainer
-            else MaterialTheme.colorScheme.surface
-        )
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
@@ -215,7 +274,8 @@ fun AchievementCard(achievement: Achievement) {
                 modifier = Modifier.size(32.dp),
                 tint = if (achievement.isCompleted)
                     MaterialTheme.colorScheme.onTertiaryContainer
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                else
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -226,14 +286,16 @@ fun AchievementCard(achievement: Achievement) {
                     fontWeight = FontWeight.Medium,
                     color = if (achievement.isCompleted)
                         MaterialTheme.colorScheme.onTertiaryContainer
-                    else MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = achievement.description,
                     fontSize = 12.sp,
                     color = if (achievement.isCompleted)
                         MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
 

@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp
 
 import android.app.Application
+import android.util.Log
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -9,50 +10,63 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class PicPoseApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
-        
-        // ✅ Initialize HTTP cache for Retrofit
+
+        // ✅ Initialize Retrofit cache safely
         com.picpose.bestphotographyapp.data.network.RetrofitClient.initCache(this)
 
-        // ✅ Initialize Google AdMob
-        MobileAds.initialize(this) { initializationStatus ->
-            // AdMob initialization complete
-        }
+        // ✅ Initialize Google Ads asynchronously to avoid ANR
+        initializeAdMobSafely()
 
-        // ✅ Enable test ads during development
-        val testDeviceIds = listOf("33BE2250B43518CCDA7DE426D04EE231") // Use your actual test device ID
-        val configuration = RequestConfiguration.Builder()
-            .setTestDeviceIds(testDeviceIds)
-            .build()
-        MobileAds.setRequestConfiguration(configuration)
-        
-        // ✅ Initialize AdMob config manager and fetch settings
+        // ✅ Initialize AdMob config manager (background fetch)
         initializeAdMobConfig()
     }
-    
+
+    /**
+     * Initialize Google Mobile Ads on background thread
+     */
+    private fun initializeAdMobSafely() {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            try {
+                val testDeviceIds = listOf("33BE2250B43518CCDA7DE426D04EE231")
+                val config = RequestConfiguration.Builder()
+                    .setTestDeviceIds(testDeviceIds)
+                    .build()
+                MobileAds.setRequestConfiguration(config)
+
+                // Delay slightly to ensure Google Play Services is ready
+                delay(300)
+
+                withContext(Dispatchers.Main) {
+                    MobileAds.initialize(this@PicPoseApplication) { status ->
+                        Log.d("PicPoseApp", "✅ AdMob initialized: ${status.adapterStatusMap.keys}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("PicPoseApp", "❌ Failed to initialize AdMob: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Fetch AdMob settings in background (safe)
+     */
     @OptIn(DelicateCoroutinesApi::class)
     private fun initializeAdMobConfig() {
-        try {
-            val adMobConfig = AdMobConfigManager.getInstance(this)
-            // Fetch settings in background - this will cache them for immediate use
-            kotlinx.coroutines.GlobalScope.launch {
-                try {
-                    adMobConfig.fetchAppSettings().first()
-                } catch (e: Exception) {
-                    // Settings will fallback to test IDs if server fetch fails
-                    android.util.Log.w("PicPoseApp", "AdMob config fetch failed, using fallback: ${e.message}")
-                }
+        GlobalScope.launch(Dispatchers.IO + SupervisorJob()) {
+            try {
+                val adMobConfig = AdMobConfigManager.getInstance(this@PicPoseApplication)
+                adMobConfig.fetchAppSettings().first()
+            } catch (e: Exception) {
+                Log.w("PicPoseApp", "⚠️ AdMob config fetch failed: ${e.message}")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("PicPoseApp", "Failed to initialize AdMob config: ${e.message}")
         }
     }
 
@@ -60,13 +74,13 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25) // Use 25% of device memory for image cache
+                    .maxSizePercent(0.25)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(this.cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50 * 1024 * 1024) // 50MB disk cache
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB
                     .build()
             }
             .build()
