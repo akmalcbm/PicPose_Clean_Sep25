@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -42,11 +44,11 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    
+
     val authState by authViewModel.authState.collectAsState()
     val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
     val context = LocalContext.current
-    
+
     // Google Sign-In launcher
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -56,38 +58,29 @@ fun LoginScreen(
             try {
                 val account = task.getResult(ApiException::class.java)
                 authViewModel.signInWithGoogle(account)
-            } catch (e: ApiException) {
-                // Handle error
-            }
+            } catch (_: ApiException) {}
         }
     }
-    
-    // Handle auth state changes and skip
+
+    // Navigate when logged in
     LaunchedEffect(authState, hasSkippedAuth) {
         if (authState is AuthState.Success || hasSkippedAuth) {
             onNavigateToHome()
             authViewModel.resetAuthState()
-            authViewModel.resetSkip() // Add this line
+            authViewModel.resetSkip()
         }
     }
-
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (isLoginMode) R.string.login else R.string.register)) },
+                title = { Text(if (isLoginMode) "Login" else "Register") },
                 actions = {
-                    TextButton(
-                        onClick = {
-                            authViewModel.skipAuth()
-                        }
-                    ) {
-                        Text(
-                            text = "Skip",
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    TextButton(onClick = { authViewModel.skipAuth() }) {
+                        Text("Skip", color = MaterialTheme.colorScheme.primary)
                     }
-                }
+                },
+                modifier = Modifier.statusBarsPadding()
             )
         }
     ) { paddingValues ->
@@ -97,59 +90,58 @@ fun LoginScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Logo
+            // Logo
+            Spacer(Modifier.height(40.dp))
             Image(
                 painter = painterResource(id = R.drawable.ic_logo_light),
                 contentDescription = "App Logo",
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(110.dp)
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Title
+
+            Spacer(Modifier.height(24.dp))
             Text(
-                text = stringResource(if (isLoginMode) R.string.login else R.string.register),
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
+                text = if (isLoginMode) "Welcome Back 👋" else "Create an Account",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Name field (only for registration)
+
+            Spacer(Modifier.height(32.dp))
+
+            // Name (register only)
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.name)) },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    label = { Text("Full Name") },
+                    leadingIcon = { Icon(Icons.Default.Person, null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
             }
-            
-            // Email field
+
+            // Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text(stringResource(R.string.email)) },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Password field
+
+            Spacer(Modifier.height(16.dp))
+
+            // Password
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text(stringResource(R.string.password)) },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                label = { Text("Password") },
+                leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
@@ -163,135 +155,136 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Login/Register button
+
+            Spacer(Modifier.height(24.dp))
+
+            // Submit
             Button(
                 onClick = {
-                    if (isLoginMode) {
-                        if (email.isNotBlank() && password.isNotBlank()) {
-                            authViewModel.login(email, password)
-                        }
-                    } else {
-                        if (name.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
-                            authViewModel.register(email, password, name)
-                        }
-                    }
+                    if (isLoginMode) authViewModel.login(email, password)
+                    else authViewModel.register(email, password, name)
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = authState !is AuthState.Loading
             ) {
-                if (authState is AuthState.Loading) {
+                if (authState is AuthState.Loading)
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                } else {
-                    Text(
-                        text = stringResource(if (isLoginMode) R.string.login else R.string.sign_up),
-                        fontSize = 16.sp
-                    )
-                }
+                else
+                    Text(if (isLoginMode) "Login" else "Sign Up", fontSize = 16.sp)
             }
-            
-            // Error message
+
             if (authState is AuthState.Error) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
                 Text(
                     text = (authState as AuthState.Error).message,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Toggle between login and register
+
+            Spacer(Modifier.height(16.dp))
+
+            // Switch mode
             TextButton(onClick = { isLoginMode = !isLoginMode }) {
                 Text(
-                    text = if (isLoginMode) {
-                        stringResource(R.string.dont_have_account) + " ${stringResource(R.string.sign_up)}"
-                    } else {
-                        stringResource(R.string.already_have_account) + " ${stringResource(R.string.login)}"
-                    }
+                    if (isLoginMode)
+                        "Don’t have an account? Sign Up"
+                    else
+                        "Already have an account? Login"
                 )
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Divider
+
+            Spacer(Modifier.height(30.dp))
+
+            // Divider - Or Login With
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    text = stringResource(R.string.or_login_with),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    text = "Or Login With",
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Social login buttons
-            OutlinedButton(
-                onClick = {
-                    val signInIntent = authViewModel.getGoogleSignInClient(context as Activity).signInIntent
-                    googleSignInLauncher.launch(signInIntent)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
+
+            Spacer(Modifier.height(28.dp))
+
+            // Social Login (modern style)
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_logo_light),
-                    contentDescription = "Google",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.sign_in_with_google))
+                // Google
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = {
+                            val intent = authViewModel.getGoogleSignInClient(context as Activity).signInIntent
+                            googleSignInLauncher.launch(intent)
+                        },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                shape = MaterialTheme.shapes.medium
+                            )
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_google), // your Google icon
+                            contentDescription = "Google",
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Google", fontSize = 13.sp, color = Color.Gray)
+                }
+
+                // Facebook
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = { /* TODO: Facebook Login */ },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color(0xFF1877F2).copy(alpha = 0.15f), MaterialTheme.shapes.medium)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_facebook), // your FB icon
+                            contentDescription = "Facebook",
+                            tint = Color(0xFF1877F2),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Facebook", fontSize = 13.sp, color = Color.Gray)
+                }
+
+                // Twitter / X
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = { /* TODO: Twitter Login */ },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color(0xFF000000).copy(alpha = 0.12f), MaterialTheme.shapes.medium)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_twitter), // your Twitter/X icon
+                            contentDescription = "Twitter",
+                            tint = Color(0xFF000000),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Twitter", fontSize = 13.sp, color = Color.Gray)
+                }
             }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            OutlinedButton(
-                onClick = { /* TODO: Implement Facebook login */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Facebook,
-                    contentDescription = "Facebook",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.sign_in_with_facebook))
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            OutlinedButton(
-                onClick = { /* TODO: Implement Twitter login */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AlternateEmail,
-                    contentDescription = "Twitter",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.sign_in_with_twitter))
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
