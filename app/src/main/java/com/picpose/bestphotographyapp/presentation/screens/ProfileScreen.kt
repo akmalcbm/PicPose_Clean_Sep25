@@ -67,7 +67,8 @@ fun ProfileScreen(
 
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val appSettingsState by appSettingsViewModel.uiState.collectAsState()
+
+    //val appSettingsState by appSettingsViewModel.uiState.collectAsState()
 
     // Load app settings and user data on first composition
     LaunchedEffect(Unit) {
@@ -76,6 +77,21 @@ fun ProfileScreen(
             authViewModel.fetchCurrentUser()
         }
     }
+
+    /*
+    // Extract settings from state
+    val appSettings = when (appSettingsState) {
+        is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings
+        is AppSettingsUiState.Error -> (appSettingsState as AppSettingsUiState.Error).cachedSettings
+        else -> null
+    }
+
+    // Profile options organized in groups
+    val profileManagementOptions = listOf(
+        ProfileOption("Edit Profile", "Update your profile information", Icons.Filled.Edit),
+    )
+    */
+
 
     val appInfoOptions = listOf(
         ProfileOption("Privacy Policy", "Read our privacy policy", Icons.Filled.PrivacyTip),
@@ -278,14 +294,84 @@ fun ProfileScreen(
                 )
             }
 
-            // App Info + Support + Logout remain unchanged ↓
+
+            // 👤 Profile Management Section
+            item {
+                Column {
+                    Text(
+                        text = "Profile Management",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+                    )
+
+                    // Only include Edit Profile here — Settings moved to App Settings section
+                    val profileOptions = listOf(
+                        ProfileOption(
+                            title = "Edit Profile",
+                            description = "Update your profile information",
+                            icon = Icons.Filled.Edit
+                        )
+                    )
+
+                    profileOptions.forEach { option ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
+                        ) {
+                            ProfileOptionCard(
+                                option = option,
+                                onClick = {
+                                    when (option.title) {
+                                        "Edit Profile" -> onNavigateToEditProfile()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+
+            // ⚙️ App Settings Section
+            item {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "App Settings",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+                    )
+
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn() + slideInVertically(),
+                        exit = fadeOut() + slideOutVertically()
+                    ) {
+                        ProfileOptionCard(
+                            option = ProfileOption(
+                                title = "Settings",
+                                description = "Customize your app preferences",
+                                icon = Icons.Filled.Settings
+                            ),
+                            onClick = { onNavigateToSettings() }
+                        )
+                    }
+                }
+            }
+
+
             item {
                 Text(
                     text = "App Info",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
+                    modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp, end = 4.dp)
                 )
             }
 
@@ -310,7 +396,7 @@ fun ProfileScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 12.dp, start = 4.dp, end = 4.dp)
+                    modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp, end = 4.dp)
                 )
             }
 
