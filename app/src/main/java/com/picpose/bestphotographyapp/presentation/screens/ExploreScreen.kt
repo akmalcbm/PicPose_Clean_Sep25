@@ -4,6 +4,8 @@ import android.app.Activity
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -91,7 +94,14 @@ fun ExploreScreen(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = viewModel::updateSearchQuery,
                 onRefresh = viewModel::refresh,
-                onToggleFilters = { showFilters = !showFilters }
+                onToggleFilters = { showFilters = !showFilters },
+                categories = uiState.categories,
+                selectedCategory = uiState.selectedCategory,
+                selectedContentFilter = uiState.selectedContentFilter,
+                selectedSortOption = uiState.selectedSortOption,
+                onCategorySelected = viewModel::updateCategory,
+                onContentFilterSelected = viewModel::updateContentFilter,
+                onSortOptionSelected = viewModel::updateSortOption
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -212,9 +222,17 @@ private fun ExploreTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onRefresh: () -> Unit,
-    onToggleFilters: () -> Unit
+    onToggleFilters: () -> Unit,
+    categories: List<String>,
+    selectedCategory: String,
+    selectedContentFilter: ContentFilter,
+    selectedSortOption: SortOption,
+    onCategorySelected: (String) -> Unit,
+    onContentFilterSelected: (ContentFilter) -> Unit,
+    onSortOptionSelected: (SortOption) -> Unit
 ) {
     var isSearchExpanded by remember { mutableStateOf(false) }
+    var isFilterExpanded by remember { mutableStateOf(false) }
 
     TopAppBar(
         modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
@@ -257,19 +275,88 @@ private fun ExploreTopBar(
                 IconButton(onClick = { isSearchExpanded = true }) {
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }
+
                 IconButton(onClick = onRefresh) {
                     Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                 }
-                IconButton(onClick = onToggleFilters) {
-                    Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                }
+
+                // 🧩 Animated Filter Button
+                val rotation by animateFloatAsState(
+                    targetValue = if (isFilterExpanded) 180f else 0f,
+                    animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f),
+                    label = "filter_rotation"
+                )
+
+                val scale by animateFloatAsState(
+                    targetValue = if (isFilterExpanded) 1.1f else 1f,
+                    animationSpec = spring(stiffness = 400f),
+                    label = "filter_scale"
+                )
+
+                // ✅ FIX: Move AnimatedVisibility to standalone composable
+                FilterButtonWithIndicator(
+                    isFilterExpanded = isFilterExpanded,
+                    rotation = rotation,
+                    scale = scale,
+                    onClick = {
+                        isFilterExpanded = !isFilterExpanded
+                        onToggleFilters()
+                    }
+                )
             }
+
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
+    //
+}
+
+@Composable
+private fun FilterButtonWithIndicator(
+    isFilterExpanded: Boolean,
+    rotation: Float,
+    scale: Float,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier.wrapContentSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.graphicsLayer {
+                rotationZ = rotation
+                scaleX = scale
+                scaleY = scale
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.FilterList,
+                contentDescription = if (isFilterExpanded) "Hide filters" else "Show filters"
+            )
+        }
+
+        // ✅ Now AnimatedVisibility has its own neutral scope
+        Box(contentAlignment = Alignment.Center) {
+            AnimatedVisibility(
+                visible = isFilterExpanded,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(12.dp)
+                        .offset(x = 16.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -289,19 +376,19 @@ private fun TranslucentStickyFilters(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
+                    listOf(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
                     )
                 )
             )
             .shadow(4.dp),
-        color = Color.Transparent // ✅ transparent to let gradient show
+        color = Color.Transparent
     ) {
         Column(
-            modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
+            // 🔹 Content Filters
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(ContentFilter.entries) { filter ->
                     FilterChip(
@@ -315,6 +402,7 @@ private fun TranslucentStickyFilters(
                     )
                 }
 
+                // 🔹 Sort Options
                 items(SortOption.entries.take(3)) { option ->
                     FilterChip(
                         onClick = { onSortOptionSelected(option) },
@@ -330,6 +418,7 @@ private fun TranslucentStickyFilters(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // 🔹 Categories
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(categories.take(if (showMore) categories.size else 5)) { category ->
                     FilterChip(
@@ -345,12 +434,13 @@ private fun TranslucentStickyFilters(
 
                 if (categories.size > 5) {
                     item {
+                        // 🔹 Replace vertical arrows with horizontal icons ▶️◀️
                         AssistChip(
                             onClick = { showMore = !showMore },
                             label = { Text(if (showMore) "Less" else "More") },
                             leadingIcon = {
                                 Icon(
-                                    if (showMore) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    if (showMore) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
                                     contentDescription = null
                                 )
                             }
@@ -361,7 +451,6 @@ private fun TranslucentStickyFilters(
         }
     }
 }
-
 
 @Composable
 private fun LoadingSection() {
