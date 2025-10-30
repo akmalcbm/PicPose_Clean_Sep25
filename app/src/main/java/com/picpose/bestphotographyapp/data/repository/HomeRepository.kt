@@ -265,25 +265,31 @@ class HomeRepository(
         category: String? = null,
         search: String? = null
     ): Flow<Result<List<AIPrompt>>> = flow {
-        val res = getAiPosts(page = page, limit = limit, category = category, search = search)
-        var emitted = false
-        res.collect { r ->
-            r.fold(
-                onSuccess = { pag ->
-                    emit(Result.success(pag.items))
-                    emitted = true
-                },
-                onFailure = { err ->
-                    emit(Result.failure(err))
-                    emitted = true
-                }
+        try {
+            val offsetValue = (page - 1) * limit
+
+            val response = apiService.getAiPosts(
+                apiKey = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c", // ✅ matches your ApiService
+                limit = limit,
+                offset = offsetValue, // ✅ correctly named parameter
+                category = category,
+                q = search,
+                status = "published"
             )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data ?: emptyList()
+                emit(Result.success(data))
+            } else {
+                emit(Result.failure(Exception(response.body()?.message ?: "Unknown API error")))
+            }
+
+        } catch (e: Exception) {
+            emit(Result.failure(e))
         }
-        if (!emitted) emit(Result.success(emptyList()))
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getAiPostsSimple flow exception: ${e.message}")
-        emit(Result.failure(e))
-    }
+    }.flowOn(Dispatchers.IO)
+
+
 
 
     // Replace your current toggleFavorite function with this FIXED version:
@@ -790,5 +796,101 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+
+    // ------------------------------------------------------------------
+    // 🔹 NEW: Explore Filters API Calls (Newest / Popular / Most Liked)
+    // ------------------------------------------------------------------
+
+    /**
+     * Fetch latest AI posts (Newest first)
+     */
+    suspend fun getLatestAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getAiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    offset = offset,
+                    status = "published"
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                emit(Result.success(list))
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Fetch trending / popular AI posts
+     * Uses /api/ai_posts/get_ai_post_by_trends.php
+     */
+    suspend fun getTrendingAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                // use your existing endpoint that returns trending content
+                apiService.getAiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    offset = offset,
+                    popular = true
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                emit(Result.success(list))
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Fetch Most Liked AI posts
+     * Uses your new get_ai_post_by_likes.php endpoint
+     */
+    suspend fun getMostLikedAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getMostLikedAiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    offset = offset
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                emit(Result.success(list))
+            },
+            onFailure = { err ->
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
+
 
 }

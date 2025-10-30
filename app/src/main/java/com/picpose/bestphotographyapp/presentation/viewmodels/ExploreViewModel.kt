@@ -8,37 +8,34 @@ import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 private const val TAG = "ExploreViewModel"
 
-// Unified content item for mixed display
+// 🔹 Unified content item for mixed display
 sealed class ExploreContent {
     data class AIPromptContent(val prompt: AIPrompt) : ExploreContent()
     data class GuidePostContent(val guidePost: GuidePost) : ExploreContent()
-    
+
     val id: String get() = when (this) {
         is AIPromptContent -> prompt.id ?: ""
         is GuidePostContent -> guidePost.id ?: ""
     }
-    
+
     val title: String get() = when (this) {
         is AIPromptContent -> prompt.title ?: "Untitled"
         is GuidePostContent -> guidePost.title ?: "Untitled"
     }
 }
 
+// 🔹 Sorting & Content filter options
 enum class SortOption(val displayName: String) {
     NEWEST("Newest"),
     POPULAR("Popular"),
-    FAVORITES("Favorites")
+    MOST_LIKED("Most Liked")
 }
 
 enum class ContentFilter(val displayName: String) {
@@ -47,6 +44,7 @@ enum class ContentFilter(val displayName: String) {
     GUIDE_POSTS("Guide Posts")
 }
 
+// 🔹 UI State
 data class ExploreUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -72,192 +70,224 @@ class ExploreViewModel @Inject constructor(
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
-    
-    // Job management for proper cancellation
     private var loadContentJob: Job? = null
-    private var searchJob: Job? = null
-    
-    // Caching mechanism
+
+    // 🔹 Cache
     private var cachedAIPrompts: List<AIPrompt>? = null
     private var cachedGuidePosts: List<GuidePost>? = null
     private var lastCacheTime = 0L
-    private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes cache
-    
+    private val CACHE_DURATION = 5 * 60 * 1000L // 5 min
+
     init {
-        // Set up search debouncing
+        // Default sort is always NEWEST
+        _uiState.value = _uiState.value.copy(selectedSortOption = SortOption.NEWEST)
+
+        // 🔹 Debounced Search
         viewModelScope.launch {
-            _searchQuery
-                .debounce(300)
+            _searchQuery.debounce(300)
                 .collectLatest { query ->
-                    _uiState.value = _uiState.value.copy(searchQuery = query)
+                    _uiState.update { it.copy(searchQuery = query, currentPage = 1) }
                     loadContent(forceRefresh = false)
                 }
         }
-        
+
         // Initial load
         loadContent()
         loadCategories()
     }
 
+    // -----------------------------------------------
+    // 🔹 UI Update Handlers
+    // -----------------------------------------------
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        invalidateCache()
     }
 
     fun updateContentFilter(filter: ContentFilter) {
-        _uiState.value = _uiState.value.copy(
-            selectedContentFilter = filter,
-            currentPage = 1
-        )
+        invalidateCache()
+        _uiState.update {
+            it.copy(selectedContentFilter = filter, currentPage = 1, content = emptyList())
+        }
         loadContent(forceRefresh = true)
     }
 
     fun updateCategory(category: String) {
-        _uiState.value = _uiState.value.copy(
-            selectedCategory = category,
-            currentPage = 1
-        )
+        // ✅ Reset cache + content for category change
+        invalidateCache()
+        _uiState.update {
+            it.copy(
+                selectedCategory = category,
+                currentPage = 1,
+                content = emptyList(),
+                hasMore = true
+            )
+        }
         loadContent(forceRefresh = true)
     }
 
     fun updateSortOption(sortOption: SortOption) {
-        _uiState.value = _uiState.value.copy(selectedSortOption = sortOption)
+        _uiState.update { it.copy(selectedSortOption = sortOption, currentPage = 1) }
+        invalidateCache()
         loadContent(forceRefresh = true)
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(isRefreshing = true, currentPage = 1)
+        _uiState.update { it.copy(isRefreshing = true, currentPage = 1) }
         invalidateCache()
         loadContent(forceRefresh = true)
     }
 
     fun loadMore() {
-        if (_uiState.value.isLoading || !_uiState.value.hasMore) return
-        
-        val nextPage = _uiState.value.currentPage + 1
-        _uiState.value = _uiState.value.copy(currentPage = nextPage)
+        val state = _uiState.value
+        if (state.isLoading || !state.hasMore) return
+        _uiState.update { it.copy(currentPage = it.currentPage + 1) }
         loadContent(append = true)
     }
 
+    // -----------------------------------------------
+    // 🔹 Core Loader
+    // -----------------------------------------------
     private fun loadContent(forceRefresh: Boolean = false, append: Boolean = false) {
         loadContentJob?.cancel()
         loadContentJob = viewModelScope.launch {
             try {
-                if (!append) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = true,
-                        error = null
+                if (!append) _uiState.update { it.copy(isLoading = true, error = null) }
+
+                val state = _uiState.value
+                val shouldLoadAI = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
+                val shouldLoadGuides = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.GUIDE_POSTS)
+
+                val aiPrompts = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else emptyList()
+                val guidePosts = if (shouldLoadGuides) loadGuidePosts(forceRefresh, state) else emptyList()
+
+                val mixed = combineAndSortContent(aiPrompts, guidePosts, state).distinctBy { it.id }
+
+                _uiState.update {
+                    val newContent = if (append)
+                        (it.content + mixed).distinctBy { c -> c.id }
+                    else
+                        mixed
+
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        content = newContent,
+                        aiPrompts = aiPrompts,
+                        guidePosts = guidePosts,
+                        hasMore = mixed.isNotEmpty() // ✅ Determines if more pages exist
                     )
                 }
 
-                val currentState = _uiState.value
-                val shouldLoadAI = currentState.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
-                val shouldLoadGuides = currentState.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.GUIDE_POSTS)
-
-                val aiPrompts = if (shouldLoadAI) {
-                    loadAIPrompts(forceRefresh, currentState)
-                } else emptyList()
-
-                val guidePosts = if (shouldLoadGuides) {
-                    loadGuidePosts(forceRefresh, currentState)
-                } else emptyList()
-
-                // Combine and sort content
-                val mixedContent = combineAndSortContent(aiPrompts, guidePosts, currentState)
-                
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    content = if (append) _uiState.value.content + mixedContent else mixedContent,
-                    aiPrompts = aiPrompts,
-                    guidePosts = guidePosts,
-                    hasMore = mixedContent.isNotEmpty() // Simplified - in real app, check pagination
-                )
-                
             } catch (e: CancellationException) {
-                Log.d(TAG, "loadContent cancelled")
+                Log.d(TAG, "Cancelled loadContent")
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadContent error: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    error = e.message
-                )
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = e.message) }
             }
         }
     }
 
+    // -----------------------------------------------
+    // 🔹 Load AI Prompts
+    // -----------------------------------------------
     private suspend fun loadAIPrompts(forceRefresh: Boolean, state: ExploreUiState): List<AIPrompt> {
         val now = System.currentTimeMillis()
-        
-        // Use cache if available and not forcing refresh
-        if (!forceRefresh && cachedAIPrompts != null && (now - lastCacheTime) < CACHE_DURATION) {
+        val limit = 20
+        val category = if (state.selectedCategory == "All") null else state.selectedCategory
+        val search = state.searchQuery.ifBlank { null }
+
+        // ✅ Skip cache when scrolling (page > 1)
+        if (!forceRefresh && state.currentPage == 1 && cachedAIPrompts != null && (now - lastCacheTime) < CACHE_DURATION) {
+            Log.d(TAG, "Using cached AI prompts (page=${state.currentPage})")
             return filterAIPrompts(cachedAIPrompts!!, state)
         }
 
         return try {
-            val category = if (state.selectedCategory == "All") null else state.selectedCategory
-            val search = state.searchQuery.ifBlank { null }
-            
             var result: List<AIPrompt> = emptyList()
-            
-            repository.getAiPostsSimple(
-                page = state.currentPage,
-                limit = 20,
-                category = category,
-                search = search
-            ).collect { apiResult ->
+
+            val flow = when (state.selectedSortOption) {
+                SortOption.NEWEST -> repository.getAiPostsSimple(
+                    page = state.currentPage,
+                    limit = limit,
+                    category = category,
+                    search = search
+                )
+                SortOption.POPULAR -> repository.getTrendingAiPosts(
+                    limit = limit,
+                    offset = (state.currentPage - 1) * limit
+                )
+                SortOption.MOST_LIKED -> repository.getMostLikedAiPosts(
+                    limit = limit,
+                    offset = (state.currentPage - 1) * limit
+                )
+            }
+
+            flow.collect { apiResult ->
                 apiResult.fold(
                     onSuccess = { prompts ->
-                        cachedAIPrompts = prompts
-                        lastCacheTime = now
-                        result = prompts
+                        // ✅ Sort by newest first
+                        val sorted = prompts.sortedByDescending { it.createdAt ?: "" }
+
+                        // ✅ Append new items if paginating, else reset
+                        result = if (state.currentPage > 1 && !forceRefresh) {
+                            val combined = (cachedAIPrompts.orEmpty() + sorted)
+                            combined.distinctBy { it.id } // remove duplicates
+                        } else {
+                            sorted
+                        }
+
+                        // ✅ Update cache only for first page
+                        if (state.currentPage == 1) {
+                            cachedAIPrompts = result
+                            lastCacheTime = now
+                        }
                     },
-                    onFailure = { 
-                        Log.w(TAG, "Failed to load AI prompts: ${it.message}")
-                        result = emptyList()
+                    onFailure = { e ->
+                        Log.w(TAG, "Failed to load AI prompts: ${e.message}")
                     }
                 )
             }
-            
+
+            Log.d(TAG, "Loaded ${result.size} AI prompts (page=${state.currentPage})")
             filterAIPrompts(result, state)
+
         } catch (e: Exception) {
             Log.e(TAG, "Error loading AI prompts: ${e.message}")
             emptyList()
         }
     }
 
+
+
+    // -----------------------------------------------
+    // 🔹 Load Guide Posts
+    // -----------------------------------------------
     private suspend fun loadGuidePosts(forceRefresh: Boolean, state: ExploreUiState): List<GuidePost> {
         val now = System.currentTimeMillis()
-        
-        // Use cache if available and not forcing refresh
+
         if (!forceRefresh && cachedGuidePosts != null && (now - lastCacheTime) < CACHE_DURATION) {
             return filterGuidePosts(cachedGuidePosts!!, state)
         }
 
         return try {
-            val search = state.searchQuery.ifBlank { null }
-            
             var result: List<GuidePost> = emptyList()
-            
             repository.getGuidePosts(
                 page = state.currentPage,
                 limit = 20,
-                search = search
+                search = state.searchQuery.ifBlank { null }
             ).collect { apiResult ->
                 apiResult.fold(
-                    onSuccess = { paginatedResult ->
-                        cachedGuidePosts = paginatedResult.items
+                    onSuccess = { data ->
+                        cachedGuidePosts = data.items
                         lastCacheTime = now
-                        result = paginatedResult.items
+                        result = data.items
                     },
-                    onFailure = { 
-                        Log.w(TAG, "Failed to load guide posts: ${it.message}")
-                        result = emptyList()
-                    }
+                    onFailure = { Log.w(TAG, "Guide posts load failed: ${it.message}") }
                 )
             }
-            
+
             filterGuidePosts(result, state)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading guide posts: ${e.message}")
@@ -265,40 +295,34 @@ class ExploreViewModel @Inject constructor(
         }
     }
 
+    // -----------------------------------------------
+    // 🔹 Filtering & Sorting
+    // -----------------------------------------------
     private fun filterAIPrompts(prompts: List<AIPrompt>, state: ExploreUiState): List<AIPrompt> {
         return prompts.filter { prompt ->
-            val matchesSearch = if (state.searchQuery.isBlank()) {
-                true
-            } else {
-                prompt.title?.contains(state.searchQuery, ignoreCase = true) == true ||
-                prompt.fullPrompt?.contains(state.searchQuery, ignoreCase = true) == true
-            }
-            
-            val matchesCategory = if (state.selectedCategory == "All") {
-                true
-            } else {
-                prompt.category == state.selectedCategory
-            }
-            
+            val matchesSearch = state.searchQuery.isBlank() ||
+                    prompt.title?.contains(state.searchQuery, true) == true ||
+                    prompt.fullPrompt?.contains(state.searchQuery, true) == true ||
+                    prompt.shortPrompt?.contains(state.searchQuery, true) == true
+
+            val matchesCategory =
+                state.selectedCategory == "All" ||
+                        prompt.category.equals(state.selectedCategory, ignoreCase = true)
+
             matchesSearch && matchesCategory
         }
     }
 
     private fun filterGuidePosts(posts: List<GuidePost>, state: ExploreUiState): List<GuidePost> {
         return posts.filter { post ->
-            val matchesSearch = if (state.searchQuery.isBlank()) {
-                true
-            } else {
-                post.title?.contains(state.searchQuery, ignoreCase = true) == true ||
-                post.content?.contains(state.searchQuery, ignoreCase = true) == true
-            }
-            
-            val matchesCategory = if (state.selectedCategory == "All") {
-                true
-            } else {
-                post.category == state.selectedCategory
-            }
-            
+            val matchesSearch = state.searchQuery.isBlank() ||
+                    post.title?.contains(state.searchQuery, true) == true ||
+                    post.content?.contains(state.searchQuery, true) == true
+
+            val matchesCategory =
+                state.selectedCategory == "All" ||
+                        post.category.equals(state.selectedCategory, ignoreCase = true)
+
             matchesSearch && matchesCategory
         }
     }
@@ -308,57 +332,56 @@ class ExploreViewModel @Inject constructor(
         guidePosts: List<GuidePost>,
         state: ExploreUiState
     ): List<ExploreContent> {
-        val content = mutableListOf<ExploreContent>()
-        
-        // Convert to ExploreContent
-        content.addAll(aiPrompts.map { ExploreContent.AIPromptContent(it) })
-        content.addAll(guidePosts.map { ExploreContent.GuidePostContent(it) })
-        
-        // Sort according to selected option
+        val combined = mutableListOf<ExploreContent>()
+        combined.addAll(aiPrompts.map { ExploreContent.AIPromptContent(it) })
+        combined.addAll(guidePosts.map { ExploreContent.GuidePostContent(it) })
+
         return when (state.selectedSortOption) {
-            SortOption.NEWEST -> content.sortedByDescending { 
+            SortOption.NEWEST -> combined.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> (it.prompt.createdAt ?: "") as Comparable<Any>
-                    is ExploreContent.GuidePostContent -> (it.guidePost.createdAt ?: "") as Comparable<Any>
+                    is ExploreContent.AIPromptContent -> it.prompt.createdAt
+                    is ExploreContent.GuidePostContent -> it.guidePost.createdAt
                 }
             }
-            SortOption.POPULAR -> content.sortedByDescending {
+            SortOption.POPULAR -> combined.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> (it.prompt.isPopular ?: false) as Comparable<Any>
-                    is ExploreContent.GuidePostContent -> (it.guidePost.viewCount ?: 0) as Comparable<Any>
+                    is ExploreContent.AIPromptContent -> (it.prompt.likes ?: 0) + (it.prompt.favorites ?: 0)
+                    is ExploreContent.GuidePostContent -> it.guidePost.viewCount ?: 0
                 }
             }
-            SortOption.FAVORITES -> content.sortedByDescending {
+            SortOption.MOST_LIKED -> combined.sortedByDescending {
                 when (it) {
-                    is ExploreContent.AIPromptContent -> (it.prompt.isFavorite ?: false) as Comparable<Any>
-                    is ExploreContent.GuidePostContent -> (it.guidePost.isFavorited ?: false) as Comparable<Any>
+                    is ExploreContent.AIPromptContent -> it.prompt.likes ?: 0
+                    is ExploreContent.GuidePostContent -> it.guidePost.viewCount ?: 0
                 }
             }
         }
     }
 
+    // -----------------------------------------------
+    // 🔹 Categories, Cache, Favorites
+    // -----------------------------------------------
     private fun loadCategories() {
         viewModelScope.launch {
             try {
                 repository.getCategories().collect { result ->
                     result.fold(
-                        onSuccess = { categories ->
-                            val categoryNames = listOf("All") + categories.map { it.name }
-                            _uiState.value = _uiState.value.copy(categories = categoryNames)
+                        onSuccess = { cats ->
+                            _uiState.update {
+                                it.copy(categories = listOf("All") + cats.map { c -> c.name })
+                            }
                         },
-                        onFailure = { error ->
-                            Log.w(TAG, "Failed to load categories: ${error.message}")
-                            // Fallback to default categories
-                            val fallbackCategories = listOf("All", "Portrait", "Landscape", "Architecture", "Nature", "Street", "Abstract")
-                            _uiState.value = _uiState.value.copy(categories = fallbackCategories)
+                        onFailure = {
+                            _uiState.update {
+                                it.copy(categories = listOf("All", "Portrait", "Nature", "Street", "Abstract"))
+                            }
                         }
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading categories: ${e.message}")
-                // Fallback to default categories
-                val fallbackCategories = listOf("All", "Portrait", "Landscape", "Architecture", "Nature", "Street", "Abstract")
-                _uiState.value = _uiState.value.copy(categories = fallbackCategories)
+                _uiState.update {
+                    it.copy(categories = listOf("All", "Portrait", "Nature", "Street", "Abstract"))
+                }
             }
         }
     }
@@ -370,85 +393,37 @@ class ExploreViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 
     fun togglePromptFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
-            try {
-                repository.toggleAIPromptFavorite(prompt.id ?: return@launch).collect { result ->
-                    result.fold(
-                        onSuccess = { updatedPrompt ->
-                            // Update cached data
-                            cachedAIPrompts = cachedAIPrompts?.map { 
-                                if (it.id == updatedPrompt.id) updatedPrompt else it 
-                            }
-                            
-                            // Update UI state
-                            val updatedContent = _uiState.value.content.map { content ->
-                                when (content) {
-                                    is ExploreContent.AIPromptContent -> {
-                                        if (content.prompt.id == updatedPrompt.id) {
-                                            ExploreContent.AIPromptContent(updatedPrompt)
-                                        } else content
-                                    }
-                                    else -> content
-                                }
-                            }
-                            
-                            _uiState.value = _uiState.value.copy(content = updatedContent)
-                        },
-                        onFailure = { error ->
-                            _uiState.value = _uiState.value.copy(
-                                error = "Failed to update favorite: ${error.message}"
-                            )
-                        }
-                    )
+            repository.toggleAIPromptFavorite(prompt.id ?: return@launch).collect { result ->
+                result.onSuccess { updated ->
+                    cachedAIPrompts = cachedAIPrompts?.map { if (it.id == updated.id) updated else it }
+                    _uiState.update {
+                        it.copy(content = it.content.map { c ->
+                            if (c is ExploreContent.AIPromptContent && c.prompt.id == updated.id)
+                                ExploreContent.AIPromptContent(updated) else c
+                        })
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error updating favorite: ${e.message}"
-                )
             }
         }
     }
 
     fun toggleGuidePostFavorite(guidePost: GuidePost) {
         viewModelScope.launch {
-            try {
-                repository.toggleGuidePostFavorite(guidePost.id ?: return@launch).collect { result ->
-                    result.fold(
-                        onSuccess = { updatedPost ->
-                            // Update cached data
-                            cachedGuidePosts = cachedGuidePosts?.map { 
-                                if (it.id == updatedPost.id) updatedPost else it 
-                            }
-                            
-                            // Update UI state
-                            val updatedContent = _uiState.value.content.map { content ->
-                                when (content) {
-                                    is ExploreContent.GuidePostContent -> {
-                                        if (content.guidePost.id == updatedPost.id) {
-                                            ExploreContent.GuidePostContent(updatedPost)
-                                        } else content
-                                    }
-                                    else -> content
-                                }
-                            }
-                            
-                            _uiState.value = _uiState.value.copy(content = updatedContent)
-                        },
-                        onFailure = { error ->
-                            _uiState.value = _uiState.value.copy(
-                                error = "Failed to update favorite: ${error.message}"
-                            )
-                        }
-                    )
+            repository.toggleGuidePostFavorite(guidePost.id ?: return@launch).collect { result ->
+                result.onSuccess { updated ->
+                    cachedGuidePosts = cachedGuidePosts?.map { if (it.id == updated.id) updated else it }
+                    _uiState.update {
+                        it.copy(content = it.content.map { c ->
+                            if (c is ExploreContent.GuidePostContent && c.guidePost.id == updated.id)
+                                ExploreContent.GuidePostContent(updated) else c
+                        })
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error updating favorite: ${e.message}"
-                )
             }
         }
     }
