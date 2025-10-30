@@ -130,20 +130,28 @@ fun HomeScreen(
                                     )
                                 }
 
-                                item {
-                                    AIPromptsRow(
-                                        prompts = uiState.aiPrompts,
-                                        onPromptClick = {
-                                            viewModel.logPromptView(it.id)
-                                            onNavigateToPromptDetail(it)
-                                        },
-                                        onCopyPrompt = {
-                                            viewModel.copyPromptToClipboard(context, it.fullPrompt ?: "")
-                                            viewModel.logPromptCopy(it.id)
-                                        },
-                                        onFavoriteClick = { viewModel.togglePromptFavorite(it) }
-                                    )
+                                // 🔹 Trending & Featured Tab Section (uses same horizontal AIPromptCard layout)
+                                if (uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty()) {
+                                    item {
+                                        SectionHeader(
+                                            title = "Community Highlights",
+                                            subtitle = "Explore trending & featured posts",
+                                            icon = Icons.Default.Star,
+                                            modifier = Modifier.padding(horizontal = 16.dp)
+                                        )
+                                    }
+
+                                    item {
+                                        TrendingFeaturedRow(
+                                            trendingPosts = uiState.trendingPosts,
+                                            featuredPosts = uiState.featuredPosts,
+                                            onPostClick = onNavigateToPostDetail,
+                                            onLikeClick = { viewModel.togglePostLike(it.id) },
+                                            onShareClick = { viewModel.sharePost(context, it) }
+                                        )
+                                    }
                                 }
+
                             }
 
                             // 🔹 Ad

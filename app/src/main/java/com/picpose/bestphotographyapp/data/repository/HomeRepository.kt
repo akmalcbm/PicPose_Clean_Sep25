@@ -801,7 +801,6 @@ class HomeRepository(
     // ------------------------------------------------------------------
     // 🔹 NEW: Explore Filters API Calls (Newest / Popular / Most Liked)
     // ------------------------------------------------------------------
-
     /**
      * Fetch latest AI posts (Newest first)
      */
@@ -830,6 +829,39 @@ class HomeRepository(
             }
         )
     }.flowOn(Dispatchers.IO)
+
+
+    /**
+     * Fetch the latest 5 AI posts (ordered by created_at DESC)
+     */
+    suspend fun getLatestRecent5AiPosts(
+        limit: Int = 5
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        Log.d(TAG, "getLatestRecent5AiPosts: fetching latest $limit posts")
+
+        val result: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getLatestRecent5AiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    order = "desc"
+                )
+            }
+        }
+
+        result.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                val sorted = list.sortedByDescending { it.createdAt ?: "" }
+                emit(Result.success(sorted.take(limit)))
+            },
+            onFailure = { error ->
+                Log.e(TAG, "getLatestRecent5AiPosts failed: ${error.message}")
+                emit(Result.failure(error))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
 
     /**
      * Fetch trending / popular AI posts

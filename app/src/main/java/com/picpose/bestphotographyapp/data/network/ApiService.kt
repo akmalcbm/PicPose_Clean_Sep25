@@ -55,6 +55,7 @@ interface ApiService {
         @Query("order") order: String = "desc"
     ): Response<ApiResponse<List<AIPrompt>>>
 
+
     /**
      * 🔸 Trending posts (for Explore filter or HomeScreen horizontal list)
      */

@@ -31,6 +31,8 @@ private const val TAG = "HomeViewModel"
 data class HomeUiState(
     val isLoading: Boolean = false,
     val featuredPosts: List<Post> = emptyList(),
+    val trendingPosts: List<Post> = emptyList(), // ✅ NEW
+    val selectedTab: HomeTab = HomeTab.Trending, // ✅ NEW
     val recentPosts: List<Post> = emptyList(),
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
@@ -40,6 +42,9 @@ data class HomeUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
+
+enum class HomeTab { Trending, Featured } // ✅ NEW
+
 @HiltViewModel
 class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
 
@@ -103,6 +108,8 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
         // ✅ NEW
         loadCategories()
         loadRecentPosts()
+
+        loadTrendingAndFeaturedPosts() // ✅ Add this line here
         
         // Load AI prompts only after a brief delay to avoid conflict with search debouncing
         viewModelScope.launch {
@@ -631,43 +638,126 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
     fun loadRecentPosts(limit: Int = 5) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "loadRecentPosts: fetching top $limit posts via getAiPosts...")
-                // Using your repository's getAiPosts() function
-                repository.getAiPosts(page = 1, limit = limit, status = "published")
-                    .collect { result ->
-                        result.fold(
-                            onSuccess = { paginatedResult ->
-                                val posts = paginatedResult.items.map { aiPrompt ->
-                                    // Convert AIPrompt → Post to reuse your Post UI
-                                    Post(
-                                        id = aiPrompt.id,
-                                        title = aiPrompt.title,
-                                        description = aiPrompt.shortPrompt
-                                            ?: aiPrompt.fullPrompt
-                                            ?: "",
-                                        image = aiPrompt.imageUrl ?: "",
-                                        category = aiPrompt.category ?: "",
-                                        //author = aiPrompt.author ?: "",
-                                        createdAt = aiPrompt.createdAt ?: "",
-                                        likes = aiPrompt.likes ?: 0,
-                                        //views = aiPrompt.views ?: 0
-                                    )
-                                }
-                                Log.d(TAG, "loadRecentPosts: received ${posts.size} posts")
-                                _uiState.value = _uiState.value.copy(recentPosts = posts)
-                            },
-                            onFailure = { err ->
-                                Log.e(TAG, "loadRecentPosts failed: ${err.message}")
-                                _uiState.value = _uiState.value.copy(error = err.message)
+                Log.d(TAG, "loadRecentPosts: fetching latest $limit posts by createdAt DESC...")
+                repository.getLatestRecent5AiPosts(limit).collect { result ->
+                    result.fold(
+                        onSuccess = { aiPrompts ->
+                            val posts = aiPrompts.map { aiPrompt ->
+                                Post(
+                                    id = aiPrompt.id ?: "",
+                                    title = aiPrompt.title ?: "Untitled",
+                                    description = aiPrompt.shortPrompt ?: aiPrompt.fullPrompt ?: "",
+                                    image = aiPrompt.imageUrl ?: "",
+                                    category = aiPrompt.category ?: "",
+                                    createdAt = aiPrompt.createdAt ?: "",
+                                    likes = aiPrompt.likes ?: 0,
+                                    favorites = aiPrompt.favorites ?: 0,
+                                    views = aiPrompt.views ?: 0,
+                                    isPopular = aiPrompt.isPopular ?: false,
+                                    isFeatured = aiPrompt.isFeatured ?: false
+                                )
                             }
-                        )
-                    }
+                            Log.d(TAG, "loadRecentPosts: received ${posts.size} posts")
+                            _uiState.value = _uiState.value.copy(recentPosts = posts)
+                        },
+                        onFailure = { err ->
+                            Log.e(TAG, "loadRecentPosts failed: ${err.message}")
+                            _uiState.value = _uiState.value.copy(error = err.message)
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "loadRecentPosts exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
+
+    // --------------------------------------------
+// 🔥 NEW CODE: Trending & Featured Posts Loader
+// --------------------------------------------
+    fun loadTrendingAndFeaturedPosts(limit: Int = 10) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "loadTrendingAndFeaturedPosts: fetching trending and featured posts...")
+
+                // Fetch Trending Posts
+                launch {
+                    repository.getTrendingAiPosts(limit = limit).collect { result ->
+                        result.fold(
+                            onSuccess = { aiPrompts ->
+                                val trending = aiPrompts.map { aiPrompt ->
+                                    Post(
+                                        id = aiPrompt.id ?: "",
+                                        title = aiPrompt.title ?: "Untitled",
+                                        description = aiPrompt.shortPrompt ?: aiPrompt.fullPrompt ?: "",
+                                        image = aiPrompt.imageUrl ?: "",
+                                        category = aiPrompt.category ?: "",
+                                        createdAt = aiPrompt.createdAt ?: "",
+                                        likes = aiPrompt.likes ?: 0,
+                                        favorites = aiPrompt.favorites ?: 0,
+                                        views = aiPrompt.views ?: 0,
+                                        isPopular = true,
+                                        isFeatured = aiPrompt.isFeatured ?: false
+                                    )
+                                }
+                                _uiState.value = _uiState.value.copy(trendingPosts = trending)
+                                Log.d(TAG, "loadTrendingAndFeaturedPosts: loaded ${trending.size} trending posts")
+                            },
+                            onFailure = { err ->
+                                Log.e(TAG, "loadTrendingAndFeaturedPosts (Trending) failed: ${err.message}")
+                                _uiState.value = _uiState.value.copy(error = err.message)
+                            }
+                        )
+                    }
+                }
+
+                // Fetch Featured Posts
+                launch {
+                    repository.getMostLikedAiPosts(limit = limit).collect { result ->
+                        result.fold(
+                            onSuccess = { aiPrompts ->
+                                val featured = aiPrompts.map { aiPrompt ->
+                                    Post(
+                                        id = aiPrompt.id ?: "",
+                                        title = aiPrompt.title ?: "Untitled",
+                                        description = aiPrompt.shortPrompt ?: aiPrompt.fullPrompt ?: "",
+                                        image = aiPrompt.imageUrl ?: "",
+                                        category = aiPrompt.category ?: "",
+                                        createdAt = aiPrompt.createdAt ?: "",
+                                        likes = aiPrompt.likes ?: 0,
+                                        favorites = aiPrompt.favorites ?: 0,
+                                        views = aiPrompt.views ?: 0,
+                                        isPopular = aiPrompt.isPopular ?: false,
+                                        isFeatured = true
+                                    )
+                                }
+                                _uiState.value = _uiState.value.copy(featuredPosts = featured)
+                                Log.d(TAG, "loadTrendingAndFeaturedPosts: loaded ${featured.size} featured posts")
+                            },
+                            onFailure = { err ->
+                                Log.e(TAG, "loadTrendingAndFeaturedPosts (Featured) failed: ${err.message}")
+                                _uiState.value = _uiState.value.copy(error = err.message)
+                            }
+                        )
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "loadTrendingAndFeaturedPosts exception: ${e.message}")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    /**
+     * 🔹 Updates the selected tab (Trending / Featured)
+     */
+    fun updateSelectedTab(tab: HomeTab) {
+        _uiState.value = _uiState.value.copy(selectedTab = tab)
+    }
+
+
 
 
 }
