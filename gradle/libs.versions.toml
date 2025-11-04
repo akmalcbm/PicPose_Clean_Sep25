@@ -12,12 +12,11 @@ okhttp = "4.12.0"
 # AndroidX
 coreKtx = "1.13.1"
 appcompat = "1.7.0"
-material = "1.12.0"
+material = "1.13.0"
 activity = "1.9.1"
 lifecycle = "2.8.3"
 splashscreen = "1.0.1"
 room = "2.6.1"
-accompanist = "0.32.0"
 
 # Navigation & DI
 navigation-compose = "2.8.3"
@@ -29,7 +28,8 @@ kotlinx-serialization = "1.6.3" # Update version
 ksp = "2.0.0-1.0.21" # Align with Kotlin version
 
 # Compose
-composeBom = "2024.09.00" # Use a stable BOM version
+composeBom = "2025.01.01" # latest stable Compose BOM
+material3 = "1.4.0"       # ✅ includes official PullToRefreshBox
 
 # Ad networks
 play-services-ads = "23.0.0"
@@ -48,6 +48,7 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 #constraintlayout = "2.2.0" # This may not be needed for Compose projects
+
 
 [libraries]
 # Core
@@ -73,7 +74,6 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # UI Libraries
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
-accompanist-swiperefresh = { group = "com.google.accompanist", name = "accompanist-swiperefresh", version.ref = "accompanist" }
 
 # Networking
 retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
@@ -99,12 +99,13 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-androidx-compose-material3-window-size = { group = "androidx.compose.material3", name = "material3-window-size-class" }
 
-# Ad networks (catalog entries)
+# ✅ Official Material 3 (includes PullToRefreshBox)
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-compose-material3-window-size = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3" }
+
+# Ad networks
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
 facebook-audience-network = { group = "com.facebook.android", name = "audience-network-sdk", version.ref = "audience-network" }
 

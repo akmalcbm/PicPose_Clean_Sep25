@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun AnimatedDailyTipCard(
+fun DailyTipCard(
     tip: String,
     onNextTip: () -> Unit,
     modifier: Modifier = Modifier

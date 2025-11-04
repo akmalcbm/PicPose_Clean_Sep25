@@ -70,19 +70,24 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
         }
     }
 
-    override fun newImageLoader(): ImageLoader {
-        return ImageLoader.Builder(this)
+    // ✅ Lazy singleton ImageLoader instance (only created once)
+    private val imageLoader by lazy {
+        ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                    .maxSizePercent(0.25) // Use up to 25% of app memory for images
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB
+                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB disk cache
                     .build()
             }
+            .crossfade(true) // Optional smooth fade-in
+            .respectCacheHeaders(false) // Ensures old images still load if offline
             .build()
     }
+
+    override fun newImageLoader(): ImageLoader = imageLoader
 }

@@ -4,12 +4,12 @@ import android.app.Activity
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -58,7 +59,7 @@ fun ExploreScreen(
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
 
-    // ✅ Error handling
+    // ✅ Snackbar error handling
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
             coroutineScope.launch {
@@ -82,8 +83,8 @@ fun ExploreScreen(
             }
     }
 
-    // 🔹 Controls filter visibility
     var showFilters by remember { mutableStateOf(false) }
+
 
     Scaffold(
         modifier = Modifier
@@ -104,117 +105,227 @@ fun ExploreScreen(
                 onSortOptionSelected = viewModel::updateSortOption
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
+        val hasContent = uiState.content.isNotEmpty()
+        val isLoading = uiState.isLoading
+        val shouldShowEmptyState = !isLoading && !hasContent
+
+        // ✅ 1. Show shimmer placeholders (while loading, before first content)
+        if (isLoading && !hasContent) {
+            ShimmerLoadingExploreScreen()
+            return@Scaffold
+        }
+
+        // ✅ 2. Only show empty screen AFTER loading completely done & no content
+        if (shouldShowEmptyState) {
+            EmptyStateSection(
+                searchQuery = uiState.searchQuery,
+                selectedCategory = uiState.selectedCategory,
+                onClearFilters = {
+                    viewModel.updateSearchQuery("")
+                    viewModel.updateCategory("All")
+                    viewModel.updateContentFilter(ContentFilter.ALL)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp, bottom = 60.dp)
+            )
+            return@Scaffold
+        }
+
+        // ✅ 3. Regular LazyColumn after content fetched
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 100.dp), // ✅ space for nav bar
+            contentPadding = PaddingValues(
+                top = 8.dp,
+                start = 12.dp,
+                end = 12.dp,
+                bottom = WindowInsets.navigationBars
+                    .asPaddingValues()
+                    .calculateBottomPadding() + 24.dp
+            ),
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(
-                    WindowInsets.safeDrawing
-                        .only(WindowInsetsSides.Horizontal)
-                        .asPaddingValues()
-                )
+                .consumeWindowInsets(innerPadding)
         ) {
-
-            // 🔹 Sticky header with animated filter visibility
-            stickyHeader {
-                AnimatedVisibility(
-                    visible = showFilters,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { -80 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -80 })
-                ) {
-                    TranslucentStickyFilters(
-                        categories = uiState.categories,
-                        selectedCategory = uiState.selectedCategory,
-                        selectedContentFilter = uiState.selectedContentFilter,
-                        selectedSortOption = uiState.selectedSortOption,
-                        onCategorySelected = viewModel::updateCategory,
-                        onContentFilterSelected = viewModel::updateContentFilter,
-                        onSortOptionSelected = viewModel::updateSortOption
-                    )
-                }
-            }
-
-            when {
-                uiState.isLoading && uiState.content.isEmpty() -> {
-                    item { LoadingSection() }
-                }
-
-                uiState.content.isEmpty() && !uiState.isLoading -> {
-                    item {
-                        EmptyStateSection(
-                            searchQuery = uiState.searchQuery,
+            // ✅ Filters sticky header only when content available
+            if (hasContent && showFilters) {
+                stickyHeader {
+                    AnimatedVisibility(
+                        visible = showFilters,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { -80 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { -80 })
+                    ) {
+                        TranslucentStickyFilters(
+                            categories = uiState.categories,
                             selectedCategory = uiState.selectedCategory,
-                            onClearFilters = {
-                                viewModel.updateSearchQuery("")
-                                viewModel.updateCategory("All")
-                                viewModel.updateContentFilter(ContentFilter.ALL)
-                            }
+                            selectedContentFilter = uiState.selectedContentFilter,
+                            selectedSortOption = uiState.selectedSortOption,
+                            onCategorySelected = viewModel::updateCategory,
+                            onContentFilterSelected = viewModel::updateContentFilter,
+                            onSortOptionSelected = viewModel::updateSortOption
                         )
                     }
                 }
+            }
 
-                else -> {
-                    itemsIndexed(
-                        items = uiState.content,
-                        key = { index, content ->
-                            when (content) {
-                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                else -> "CONTENT_${content.hashCode()}_$index"
-                            }
-                        }
-                    ) { _, content ->
-                        when (content) {
-                            is ExploreContent.AIPromptContent -> {
-                                AIPromptCard(
-                                    prompt = content.prompt,
-                                    onClick = { onNavigateToPromptDetail(content.prompt) },
-                                    onCopy = {
-                                        val text =
-                                            content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
-                                        clipboardManager.setText(AnnotatedString(text))
-                                        Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-
-                            is ExploreContent.GuidePostContent -> {
-                                GuidePostCard(
-                                    guidePost = content.guidePost,
-                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                    onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
+            // ✅ Main content
+            itemsIndexed(
+                items = uiState.content,
+                key = { index, content ->
+                    when (content) {
+                        is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                        is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                        else -> "CONTENT_${content.hashCode()}_$index"
+                    }
+                }
+            ) { _, content ->
+                when (content) {
+                    is ExploreContent.AIPromptContent -> {
+                        AIPromptCard(
+                            prompt = content.prompt,
+                            onClick = { onNavigateToPromptDetail(content.prompt) },
+                            onCopy = {
+                                val text = content.prompt.shortPrompt
+                                    ?: content.prompt.fullPrompt ?: ""
+                                clipboardManager.setText(AnnotatedString(text))
+                                Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                            },
+                            onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
+                            modifier = Modifier.animateItem()
+                        )
                     }
 
-                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                            }
-                        }
+                    is ExploreContent.GuidePostContent -> {
+                        GuidePostCard(
+                            guidePost = content.guidePost,
+                            onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                            onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                }
+            }
+
+            // ✅ Pagination loader at bottom (when loading more)
+            if (isLoading && hasContent) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+
+
+@Composable
+private fun ShimmerLoadingExploreScreen() {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alphaAnim"
+    )
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        items(4) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(12.dp)
+            ) {
+                // Top Row — image placeholder
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.LightGray.copy(alpha = alpha))
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Title Placeholder
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.LightGray.copy(alpha = alpha))
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Description line
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.LightGray.copy(alpha = alpha))
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Short description line 2
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.LightGray.copy(alpha = alpha))
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Bottom action row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 60.dp, height = 26.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.LightGray.copy(alpha = alpha))
+                        )
                     }
                 }
             }
         }
     }
 }
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -479,7 +590,8 @@ private fun LoadingSection() {
 private fun EmptyStateSection(
     searchQuery: String,
     selectedCategory: String,
-    onClearFilters: () -> Unit
+    onClearFilters: () -> Unit,
+    modifier: Modifier = Modifier // ✅ Added this
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),

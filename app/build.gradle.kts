@@ -98,8 +98,8 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
+
 
     // Activity & Lifecycle
     implementation(libs.androidx.activity.compose)
@@ -128,8 +128,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
-    implementation(libs.accompanist.swiperefresh)
 
     implementation(libs.play.services.ads)         // Google AdMob
     implementation(libs.facebook.audience.network) // Meta Audience Network
