@@ -124,7 +124,7 @@ fun HomeScreen(
                         item {
                             val tip = uiState.dailyTips[currentTipIndex % uiState.dailyTips.size]
                             AnimatedDailyTipCard(
-                                tip = tip.tip ?: "",
+                                tip = tip.tip,
                                 onNextTip = {
                                     currentTipIndex = (currentTipIndex + 1) % uiState.dailyTips.size
                                 },
@@ -208,7 +208,7 @@ fun HomeScreen(
                             RecentPostItem(
                                 post = post,
                                 onClick = {
-                                    val match = uiState.aiPrompts.find { it.id?.trim() == post.id.trim() }
+                                    val match = uiState.aiPrompts.find { it.id.trim() == post.id.trim() }
                                     if (match != null)
                                         onNavigateToPromptDetail(match)
                                     else
@@ -248,7 +248,6 @@ fun HomeScreen(
         }
     }
 }
-
 
 
 /* ───────────────────────────────

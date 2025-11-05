@@ -28,8 +28,8 @@ kotlinx-serialization = "1.6.3" # Update version
 ksp = "2.0.0-1.0.21" # Align with Kotlin version
 
 # Compose
-composeBom = "2025.01.01" # latest stable Compose BOM
-material3 = "1.4.0"       # ✅ includes official PullToRefreshBox
+composeBom = "2025.10.01" # latest stable Compose BOM 10 November 2025
+material3 = "1.4.0"       # ✅ includes official PullToRefreshBox BOM 10 November 2025
 
 # Ad networks
 play-services-ads = "23.0.0"
