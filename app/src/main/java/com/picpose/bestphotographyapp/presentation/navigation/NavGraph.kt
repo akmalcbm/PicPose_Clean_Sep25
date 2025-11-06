@@ -1,14 +1,16 @@
 package com.picpose.bestphotographyapp.presentation.navigation
 
+import android.app.Activity
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -20,10 +22,9 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 
-
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(navController: NavHostController, activity: Activity? = null) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
     val hasSkippedAuth = authViewModel.hasSkippedAuth.collectAsState().value
@@ -35,7 +36,29 @@ fun NavGraph(navController: NavHostController) {
         Screen.Login.route
     }
 
-    // ✅ Using androidx.navigation.compose.AnimatedNavHost (not deprecated)
+    // ✅ Global Back Handling — Go directly to Home
+    val context = activity ?: return
+    var lastBackPressTime by remember { mutableStateOf(0L) }
+
+    BackHandler {
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+
+        if (currentRoute != Screen.Home.route && currentRoute != Screen.Login.route) {
+            // Navigate directly to Home
+            navController.popBackStack(Screen.Home.route, inclusive = false)
+        } else {
+            // Optional: exit on double press (to avoid accidental exits)
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastBackPressTime < 2000) {
+                activity.finish()
+            } else {
+                lastBackPressTime = currentTime
+                Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ✅ Animated NavHost
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -52,7 +75,6 @@ fun NavGraph(navController: NavHostController) {
             fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { it / 4 })
         }
     ) {
-
         // 🏠 Home Screen
         composable(route = Screen.Home.route) {
             val homeVM: HomeViewModel = hiltViewModel()
@@ -86,7 +108,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // 🔎 Explore / Create / Rewards
+        // 🔎 Explore Screen
         composable(route = Screen.Explore.route) {
             ExploreScreen(
                 onNavigateToPromptDetail = { aiPrompt ->
@@ -100,10 +122,10 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
+        // Other screens (Create, Rewards, Profile, Settings, etc.)
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) { RewardsScreen() }
 
-        // 👤 Profile Screen
         composable(route = Screen.Profile.route) {
             ProfileScreen(
                 navController = navController,

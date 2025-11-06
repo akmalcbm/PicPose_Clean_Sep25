@@ -16,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -156,23 +158,89 @@ fun ExploreScreen(
                         .consumeWindowInsets(innerPadding)
                 ) {
                     if (hasContent && showFilters) {
+
                         stickyHeader {
+                            val isDark = isSystemInDarkTheme()
+
                             AnimatedVisibility(
                                 visible = showFilters,
-                                enter = fadeIn() + slideInVertically(initialOffsetY = { -80 }),
-                                exit = fadeOut() + slideOutVertically(targetOffsetY = { -80 })
+                                enter = fadeIn() + scaleIn(initialScale = 0.98f),
+                                exit = fadeOut() + scaleOut(targetScale = 0.98f)
                             ) {
-                                TranslucentStickyFilters(
-                                    categories = uiState.categories,
-                                    selectedCategory = uiState.selectedCategory,
-                                    selectedContentFilter = uiState.selectedContentFilter,
-                                    selectedSortOption = uiState.selectedSortOption,
-                                    onCategorySelected = viewModel::updateCategory,
-                                    onContentFilterSelected = viewModel::updateContentFilter,
-                                    onSortOptionSelected = viewModel::updateSortOption
-                                )
+                                // Outer container aligned with list padding (12.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 2.dp)
+                                        .offset(4.dp) // 👈 gentle floating offset
+                                ) {
+                                    // --- Frosted background layer (behind content, gets blurred) ---
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .blur(25.dp)
+                                            .background(
+                                                brush = Brush.verticalGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.30f)
+                                                    )
+                                                )
+                                            )
+                                            .border(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                                                RoundedCornerShape(20.dp)
+                                            )
+                                            .drawBehind {
+                                                // subtle top highlight for glass
+                                                drawRect(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            Color.White.copy(alpha = if (isDark) 0.06f else 0.12f),
+                                                            Color.Transparent
+                                                        ),
+                                                        startY = 0f,
+                                                        endY = size.height * 0.4f
+                                                    )
+                                                )
+                                            }
+                                    )
+
+                                    // --- Foreground: crisp content (NO BLUR applied here) ---
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(
+                                                if (isDark) Color.Black.copy(alpha = 0.10f)
+                                                else Color.White.copy(alpha = 0.12f)
+                                            )
+                                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                                            .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(20.dp),
+                                                ambientColor = Color.Black.copy(alpha = 0.05f),
+                                                spotColor = Color.Black.copy(alpha = 0.08f)
+                                            )
+                                    ) {
+                                        FrostedStickyFilters(
+                                            categories = uiState.categories,
+                                            selectedCategory = uiState.selectedCategory,
+                                            selectedContentFilter = uiState.selectedContentFilter,
+                                            selectedSortOption = uiState.selectedSortOption,
+                                            onCategorySelected = viewModel::updateCategory,
+                                            onContentFilterSelected = viewModel::updateContentFilter,
+                                            onSortOptionSelected = viewModel::updateSortOption
+                                        )
+                                    }
+                                }
                             }
                         }
+
+
+
                     }
 
                     itemsIndexed(
@@ -469,7 +537,7 @@ private fun FilterButtonWithIndicator(
 }
 
 @Composable
-private fun TranslucentStickyFilters(
+private fun FrostedStickyFilters(
     categories: List<String>,
     selectedCategory: String,
     selectedContentFilter: ContentFilter,
@@ -480,81 +548,81 @@ private fun TranslucentStickyFilters(
 ) {
     var showMore by remember { mutableStateOf(false) }
 
-    Surface(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 🔹 Content & Sort Filters Row
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(ContentFilter.entries) { filter ->
+                FilterChip(
+                    onClick = { onContentFilterSelected(filter) },
+                    label = { Text(filter.displayName, style = MaterialTheme.typography.labelSmall) },
+                    selected = selectedContentFilter == filter,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-            )
-            .shadow(4.dp),
-        color = Color.Transparent
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            // 🔹 Content Filters
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(ContentFilter.entries) { filter ->
-                    FilterChip(
-                        onClick = { onContentFilterSelected(filter) },
-                        label = { Text(filter.displayName, style = MaterialTheme.typography.labelSmall) },
-                        selected = selectedContentFilter == filter,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
-
-                // 🔹 Sort Options
-                items(SortOption.entries.take(3)) { option ->
-                    FilterChip(
-                        onClick = { onSortOptionSelected(option) },
-                        label = { Text(option.displayName, style = MaterialTheme.typography.labelSmall) },
-                        selected = selectedSortOption == option,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondary
-                        )
-                    )
-                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            item {
+                Spacer(modifier = Modifier.width(4.dp))
+            }
 
-            // 🔹 Categories
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(categories.take(if (showMore) categories.size else 5)) { category ->
-                    FilterChip(
-                        onClick = { onCategorySelected(category) },
-                        label = { Text(category, style = MaterialTheme.typography.labelSmall) },
-                        selected = selectedCategory == category,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                        )
+            items(SortOption.entries.take(3)) { option ->
+                FilterChip(
+                    onClick = { onSortOptionSelected(option) },
+                    label = { Text(option.displayName, style = MaterialTheme.typography.labelSmall) },
+                    selected = selectedSortOption == option,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
                     )
-                }
+                )
+            }
+        }
 
-                if (categories.size > 5) {
-                    item {
-                        // 🔹 Replace vertical arrows with horizontal icons ▶️◀️
-                        AssistChip(
-                            onClick = { showMore = !showMore },
-                            label = { Text(if (showMore) "Less" else "More") },
-                            leadingIcon = {
-                                Icon(
-                                    if (showMore) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    }
+        // 🔹 Category Filters Row
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(categories.take(if (showMore) categories.size else 5)) { category ->
+                FilterChip(
+                    onClick = { onCategorySelected(category) },
+                    label = { Text(category, style = MaterialTheme.typography.labelSmall) },
+                    selected = selectedCategory == category,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+
+            if (categories.size > 5) {
+                item {
+                    AssistChip(
+                        onClick = { showMore = !showMore },
+                        label = { Text(if (showMore) "Less" else "More") },
+                        leadingIcon = {
+                            Icon(
+                                if (showMore) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                                contentDescription = null
+                            )
+                        }
+                    )
                 }
             }
         }
