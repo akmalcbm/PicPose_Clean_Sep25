@@ -2,17 +2,90 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +108,11 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
-import com.picpose.bestphotographyapp.presentation.viewmodels.*
+import com.picpose.bestphotographyapp.presentation.viewmodels.ContentFilter
+import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreContent
+import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreViewModel
+import com.picpose.bestphotographyapp.presentation.viewmodels.SortOption
 import com.picpose.bestphotographyapp.utils.copyToClipboard
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -53,20 +128,36 @@ fun ExploreScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
+    // Add with your other rememberSaveable flags:
+    var hasAttemptedInitialLoad by rememberSaveable { mutableStateOf(false) }
+    var sawLoadingOnce by rememberSaveable { mutableStateOf(false) }
+    var minShimmerOver by rememberSaveable { mutableStateOf(false) }
+
     val activity = context as? Activity
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { message ->
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(message)
-                viewModel.clearError()
-            }
+
+    // Keep your min shimmer delay (good choice)
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(450)
+        minShimmerOver = true
+    }
+
+    // Update these effects:
+    LaunchedEffect(uiState.isLoading) {
+        if (uiState.isLoading) sawLoadingOnce = true
+    }
+
+    LaunchedEffect(uiState.isLoading, uiState.content.size, uiState.error) {
+        // Mark "attempt done" only after we actually tried or got something
+        if (!uiState.isLoading && (sawLoadingOnce || uiState.content.isNotEmpty() || uiState.error != null)) {
+            hasAttemptedInitialLoad = true
         }
     }
+
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -106,15 +197,38 @@ fun ExploreScreen(
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
-        val isInitialLoading = uiState.isLoading && uiState.content.isEmpty()
         val hasContent = uiState.content.isNotEmpty()
 
+        // Show shimmer if:
+        //  - content is empty AND (still loading OR haven't attempted initial load yet OR min shimmer time not over)
+        val shouldShowInitialShimmer =
+            uiState.content.isEmpty() && (!hasAttemptedInitialLoad || uiState.isLoading || !minShimmerOver)
+
+        // Show empty only when:
+        //  - not loading, attempted initial load, and still empty
+        val shouldShowEmpty =
+            !uiState.isLoading && hasAttemptedInitialLoad && uiState.content.isEmpty()
+
+
+        val shouldShowErrorEmpty =
+            uiState.error != null && uiState.content.isEmpty() && !uiState.isLoading
+
+
         when {
-            isInitialLoading -> {
-                ShimmerLoadingExploreScreen()
+            shouldShowInitialShimmer -> ShimmerLoadingExploreScreen()
+
+            shouldShowErrorEmpty -> {
+                EmptyStateSection(
+                    searchQuery = uiState.searchQuery,
+                    selectedCategory = uiState.selectedCategory,
+                    onClearFilters = { viewModel.refresh() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
             }
 
-            !uiState.isLoading && !hasContent -> {
+            shouldShowEmpty -> {
                 EmptyStateSection(
                     searchQuery = uiState.searchQuery,
                     selectedCategory = uiState.selectedCategory,
@@ -122,6 +236,8 @@ fun ExploreScreen(
                         viewModel.updateSearchQuery("")
                         viewModel.updateCategory("All")
                         viewModel.updateContentFilter(ContentFilter.ALL)
+                        // optional: kick a refresh
+                        viewModel.refresh()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -240,7 +356,6 @@ fun ExploreScreen(
                         }
 
 
-
                     }
 
                     itemsIndexed(
@@ -264,7 +379,11 @@ fun ExploreScreen(
                                             ?: ""
                                         copyToClipboard(context, clipboard, text, coroutineScope)
                                     },
-                                    onFavoriteClick = { prompt -> viewModel.togglePromptFavorite(prompt) },
+                                    onFavoriteClick = { prompt ->
+                                        viewModel.togglePromptFavorite(
+                                            prompt
+                                        )
+                                    },
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -273,7 +392,11 @@ fun ExploreScreen(
                                 GuidePostCard(
                                     guidePost = content.guidePost,
                                     onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                    onFavoriteClick = { post -> viewModel.toggleGuidePostFavorite(post) },
+                                    onFavoriteClick = { post ->
+                                        viewModel.toggleGuidePostFavorite(
+                                            post
+                                        )
+                                    },
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -300,7 +423,7 @@ fun ExploreScreen(
 
 
 @Composable
-private fun ShimmerLoadingExploreScreen() {
+private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -314,7 +437,12 @@ private fun ShimmerLoadingExploreScreen() {
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            top = 8.dp,
+            start = 12.dp,
+            end = 12.dp,
+            bottom = 24.dp
+        ),
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -389,8 +517,6 @@ private fun ShimmerLoadingExploreScreen() {
         }
     }
 }
-
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -562,7 +688,12 @@ private fun FrostedStickyFilters(
             items(ContentFilter.entries) { filter ->
                 FilterChip(
                     onClick = { onContentFilterSelected(filter) },
-                    label = { Text(filter.displayName, style = MaterialTheme.typography.labelSmall) },
+                    label = {
+                        Text(
+                            filter.displayName,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
                     selected = selectedContentFilter == filter,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -580,7 +711,12 @@ private fun FrostedStickyFilters(
             items(SortOption.entries.take(3)) { option ->
                 FilterChip(
                     onClick = { onSortOptionSelected(option) },
-                    label = { Text(option.displayName, style = MaterialTheme.typography.labelSmall) },
+                    label = {
+                        Text(
+                            option.displayName,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
                     selected = selectedSortOption == option,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.secondary,
