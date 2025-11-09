@@ -31,15 +31,18 @@ import com.picpose.bestphotographyapp.data.models.Post
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun TrendingFeaturedRow(
+fun TrendingFeaturedAndPopularRow(
     trendingPosts: List<Post>,
     featuredPosts: List<Post>,
+    popularPosts: List<Post>, // ✅ new param
     onPostClick: (Post) -> Unit,
     onLikeClick: (Post) -> Unit,
     onShareClick: (Post) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("Trending") }
-    val tabs = listOf("Trending", "Featured")
+
+    // ✅ Now includes Popular
+    val tabs = listOf("Trending", "Featured", "Popular")
 
     Column {
         // 🌈 Animated Tab Row
@@ -52,15 +55,12 @@ fun TrendingFeaturedRow(
                 val indicatorLeft by transition.animateDp(
                     transitionSpec = { spring() },
                     label = "indicatorLeft"
-                ) { tab ->
-                    tabPositions[tabs.indexOf(tab)].left
-                }
+                ) { tab -> tabPositions[tabs.indexOf(tab)].left }
                 val indicatorRight by transition.animateDp(
                     transitionSpec = { spring() },
                     label = "indicatorRight"
-                ) { tab ->
-                    tabPositions[tabs.indexOf(tab)].right
-                }
+                ) { tab -> tabPositions[tabs.indexOf(tab)].right }
+
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -84,7 +84,8 @@ fun TrendingFeaturedRow(
                             text = tab,
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
@@ -102,7 +103,13 @@ fun TrendingFeaturedRow(
             },
             label = "TrendingFeaturedTransition"
         ) { tab ->
-            val posts = if (tab == "Trending") trendingPosts else featuredPosts
+            // ✅ Choose posts based on tab
+            val posts = when (tab) {
+                "Trending" -> trendingPosts
+                "Featured" -> featuredPosts
+                "Popular" -> popularPosts
+                else -> emptyList()
+            }
 
             LazyRow(
                 modifier = Modifier
@@ -111,22 +118,33 @@ fun TrendingFeaturedRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                items(posts) { post ->
-                    TrendingFeaturedCard(
-                        post = post,
-                        categoryLabel = tab,
-                        onClick = { onPostClick(post) },
-                        onLikeClick = { onLikeClick(post) },
-                        onShareClick = { onShareClick(post) }
-                    )
+                if (posts.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No posts available",
+                            modifier = Modifier.padding(24.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    items(posts) { post ->
+                        TrendingFeaturedAndPopularCard(
+                            post = post,
+                            categoryLabel = tab,
+                            onClick = { onPostClick(post) },
+                            onLikeClick = { onLikeClick(post) },
+                            onShareClick = { onShareClick(post) }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun TrendingFeaturedCard(
+fun TrendingFeaturedAndPopularCard(
     post: Post,
     categoryLabel: String,
     onClick: () -> Unit,
@@ -220,7 +238,9 @@ fun TrendingFeaturedCard(
 fun CategoryChip(label: String) {
     val (bgColor, icon) = when (label) {
         "Trending" -> Color(0xFF00ACC1) to Icons.AutoMirrored.Filled.TrendingUp
-        else -> Color(0xFFFFC107) to Icons.Filled.Star
+        "Featured" -> Color(0xFFFFC107) to Icons.Filled.Star
+        "Popular" -> Color(0xFFE91E63) to Icons.Filled.Favorite
+        else -> MaterialTheme.colorScheme.primary to Icons.Filled.Star
     }
 
     Row(

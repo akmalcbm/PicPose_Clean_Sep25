@@ -864,37 +864,6 @@ class HomeRepository(
 
 
     /**
-     * Fetch trending / popular AI posts
-     * Uses /api/ai_posts/get_ai_post_by_trends.php
-     */
-    suspend fun getTrendingAiPosts(
-        limit: Int = 20,
-        offset: Int = 0
-    ): Flow<Result<List<AIPrompt>>> = flow {
-        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
-            callWithRetries {
-                // use your existing endpoint that returns trending content
-                apiService.getAiPosts(
-                    apiKey = requestApiKey,
-                    limit = limit,
-                    offset = offset,
-                    popular = true
-                )
-            }
-        }
-
-        apiResult.fold(
-            onSuccess = { wrapper ->
-                val list = wrapper.data ?: emptyList()
-                emit(Result.success(list))
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)
-
-    /**
      * Fetch Most Liked AI posts
      * Uses your new get_ai_post_by_likes.php endpoint
      */
@@ -922,6 +891,99 @@ class HomeRepository(
             }
         )
     }.flowOn(Dispatchers.IO)
+
+
+    /**
+     * ✅ Fetch Trending AI posts (based on engagement: likes + favorites > 0)
+     */
+    suspend fun getTrendingAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getTrendingAiPosts(
+                    apiKey = requestApiKey,
+                    type = "popular", // still acceptable, ignored by backend now
+                    limit = limit,
+                    offset = offset
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper -> emit(Result.success(wrapper.data ?: emptyList())) },
+            onFailure = { err -> emit(Result.failure(err)) }
+        )
+    }.flowOn(Dispatchers.IO)
+
+
+    /**
+     * ✅ Fetch Featured AI posts (admin marked is_featured = 1)
+     */
+    suspend fun getFeaturedAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        Log.d(TAG, "getFeaturedAiPosts: fetching featured posts (is_featured = 1)")
+
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getAiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    offset = offset,
+                    featured = true, // ✅ this filter actually exists in your API call
+                    status = "published"
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                emit(Result.success(list))
+            },
+            onFailure = { err ->
+                Log.e(TAG, "getFeaturedAiPosts failed: ${err.message}")
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * ✅ Fetch Popular AI posts (admin marked is_popular = 1)
+     */
+    suspend fun getPopularAiPosts(
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        Log.d(TAG, "getPopularAiPosts: fetching admin marked popular posts (is_popular = 1)")
+
+        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
+            callWithRetries {
+                apiService.getAiPosts(
+                    apiKey = requestApiKey,
+                    limit = limit,
+                    offset = offset,
+                    popular = true, // ✅ your API supports this param
+                    status = "published"
+                )
+            }
+        }
+
+        apiResult.fold(
+            onSuccess = { wrapper ->
+                val list = wrapper.data ?: emptyList()
+                emit(Result.success(list))
+            },
+            onFailure = { err ->
+                Log.e(TAG, "getPopularAiPosts failed: ${err.message}")
+                emit(Result.failure(err))
+            }
+        )
+    }.flowOn(Dispatchers.IO)
+
 
 
 

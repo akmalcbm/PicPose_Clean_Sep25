@@ -30,9 +30,10 @@ private const val TAG = "HomeViewModel"
 
 data class HomeUiState(
     val isLoading: Boolean = false,
+    val trendingPosts: List<Post> = emptyList(),
     val featuredPosts: List<Post> = emptyList(),
-    val trendingPosts: List<Post> = emptyList(), // ✅ NEW
-    val selectedTab: HomeTab = HomeTab.Trending, // ✅ NEW
+    val popularPosts: List<Post> = emptyList(), // ✅ NEW
+    val selectedTab: HomeTab = HomeTab.Trending,
     val recentPosts: List<Post> = emptyList(),
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
@@ -43,7 +44,7 @@ data class HomeUiState(
     val isRefreshing: Boolean = false
 )
 
-enum class HomeTab { Trending, Featured } // ✅ NEW
+enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
 @HiltViewModel
 class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
@@ -109,7 +110,7 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
         loadCategories()
         loadRecentPosts()
 
-        loadTrendingAndFeaturedPosts() // ✅ Add this line here
+        loadTrendingFeaturedAndPopularPosts() // ✅ Add this line here
         
         // Load AI prompts only after a brief delay to avoid conflict with search debouncing
         viewModelScope.launch {
@@ -673,16 +674,19 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
         }
     }
 
-    // --------------------------------------------
-// 🔥 NEW CODE: Trending & Featured Posts Loader
-// --------------------------------------------
-    fun loadTrendingAndFeaturedPosts(limit: Int = 10) {
-        viewModelScope.launch {
-            try {
-                Log.d(TAG, "loadTrendingAndFeaturedPosts: fetching trending and featured posts...")
 
-                // Fetch Trending Posts
-                launch {
+    /**
+     * Load Trending, Featured, and Popular posts for Home Screen
+     * Optimized for parallel safe fetching and clean UI updates
+     */
+    fun loadTrendingFeaturedAndPopularPosts(limit: Int = 10) {
+        viewModelScope.launch {
+            Log.d(TAG, "🔄 Starting loadTrendingFeaturedAndPopularPosts (limit=$limit)...")
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                // Launch all three fetches concurrently
+                val trendingJob = launch {
                     repository.getTrendingAiPosts(limit = limit).collect { result ->
                         result.fold(
                             onSuccess = { aiPrompts ->
@@ -697,24 +701,23 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
                                         likes = aiPrompt.likes ?: 0,
                                         favorites = aiPrompt.favorites ?: 0,
                                         views = aiPrompt.views ?: 0,
-                                        isPopular = true,
+                                        isPopular = aiPrompt.isPopular ?: false,
                                         isFeatured = aiPrompt.isFeatured ?: false
                                     )
-                                }
+                                }.sortedByDescending { (it.likes + it.favorites) }
                                 _uiState.value = _uiState.value.copy(trendingPosts = trending)
-                                Log.d(TAG, "loadTrendingAndFeaturedPosts: loaded ${trending.size} trending posts")
+                                Log.d(TAG, "✅ Loaded ${trending.size} trending posts")
                             },
                             onFailure = { err ->
-                                Log.e(TAG, "loadTrendingAndFeaturedPosts (Trending) failed: ${err.message}")
+                                Log.e(TAG, "❌ Failed to load trending posts: ${err.message}")
                                 _uiState.value = _uiState.value.copy(error = err.message)
                             }
                         )
                     }
                 }
 
-                // Fetch Featured Posts
-                launch {
-                    repository.getMostLikedAiPosts(limit = limit).collect { result ->
+                val featuredJob = launch {
+                    repository.getFeaturedAiPosts(limit = limit).collect { result ->
                         result.fold(
                             onSuccess = { aiPrompts ->
                                 val featured = aiPrompts.map { aiPrompt ->
@@ -731,31 +734,70 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
                                         isPopular = aiPrompt.isPopular ?: false,
                                         isFeatured = true
                                     )
-                                }
+                                }.sortedByDescending { it.createdAt } // sort newest featured first
                                 _uiState.value = _uiState.value.copy(featuredPosts = featured)
-                                Log.d(TAG, "loadTrendingAndFeaturedPosts: loaded ${featured.size} featured posts")
+                                Log.d(TAG, "✅ Loaded ${featured.size} featured posts")
                             },
                             onFailure = { err ->
-                                Log.e(TAG, "loadTrendingAndFeaturedPosts (Featured) failed: ${err.message}")
+                                Log.e(TAG, "❌ Failed to load featured posts: ${err.message}")
                                 _uiState.value = _uiState.value.copy(error = err.message)
                             }
                         )
                     }
                 }
 
+                val popularJob = launch {
+                    repository.getPopularAiPosts(limit = limit).collect { result ->
+                        result.fold(
+                            onSuccess = { aiPrompts ->
+                                val popular = aiPrompts.map { aiPrompt ->
+                                    Post(
+                                        id = aiPrompt.id ?: "",
+                                        title = aiPrompt.title ?: "Untitled",
+                                        description = aiPrompt.shortPrompt ?: aiPrompt.fullPrompt ?: "",
+                                        image = aiPrompt.imageUrl ?: "",
+                                        category = aiPrompt.category ?: "",
+                                        createdAt = aiPrompt.createdAt ?: "",
+                                        likes = aiPrompt.likes ?: 0,
+                                        favorites = aiPrompt.favorites ?: 0,
+                                        views = aiPrompt.views ?: 0,
+                                        isPopular = true,
+                                        isFeatured = aiPrompt.isFeatured ?: false
+                                    )
+                                }.sortedByDescending { it.views } // sort most viewed first
+                                _uiState.value = _uiState.value.copy(popularPosts = popular)
+                                Log.d(TAG, "✅ Loaded ${popular.size} popular posts")
+                            },
+                            onFailure = { err ->
+                                Log.e(TAG, "❌ Failed to load popular posts: ${err.message}")
+                                _uiState.value = _uiState.value.copy(error = err.message)
+                            }
+                        )
+                    }
+                }
+
+                // Wait for all to complete
+                listOf(trendingJob, featuredJob, popularJob).forEach { it.join() }
+
             } catch (e: Exception) {
-                Log.e(TAG, "loadTrendingAndFeaturedPosts exception: ${e.message}")
+                Log.e(TAG, "🔥 loadTrendingFeaturedAndPopularPosts exception: ${e.message}")
                 _uiState.value = _uiState.value.copy(error = e.message)
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
 
+
     /**
-     * 🔹 Updates the selected tab (Trending / Featured)
+     * 🔹 Updates the selected tab (Trending / Featured / Popular)
      */
     fun updateSelectedTab(tab: HomeTab) {
         _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
+
+
+
 
 
 

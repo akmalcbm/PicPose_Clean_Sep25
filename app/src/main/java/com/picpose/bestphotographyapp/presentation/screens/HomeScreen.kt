@@ -156,9 +156,10 @@ fun HomeScreen(
                             )
                         }
                         item {
-                            TrendingFeaturedRow(
+                            TrendingFeaturedAndPopularRow(
                                 trendingPosts = uiState.trendingPosts,
                                 featuredPosts = uiState.featuredPosts,
+                                popularPosts = uiState.popularPosts, // ✅ added new param
                                 onPostClick = onNavigateToPostDetail,
                                 onLikeClick = { viewModel.togglePostLike(it.id) },
                                 onShareClick = { viewModel.sharePost(context, it) }
