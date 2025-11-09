@@ -48,6 +48,7 @@ fun HomeScreen(
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
     onNavigateToGuidePostDetail: (GuidePost) -> Unit,
+    onNavigateToViewAll: (String) -> Unit // ✅ NEW
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -145,7 +146,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ Trending + Featured — show immediately when loaded */
+                    /** ✅ Trending + Featured + Popular — show immediately when loaded */
                     if (uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -159,10 +160,13 @@ fun HomeScreen(
                             TrendingFeaturedAndPopularRow(
                                 trendingPosts = uiState.trendingPosts,
                                 featuredPosts = uiState.featuredPosts,
-                                popularPosts = uiState.popularPosts, // ✅ added new param
+                                popularPosts = uiState.popularPosts,
                                 onPostClick = onNavigateToPostDetail,
                                 onLikeClick = { viewModel.togglePostLike(it.id) },
-                                onShareClick = { viewModel.sharePost(context, it) }
+                                onShareClick = { viewModel.sharePost(context, it) },
+                                onViewAllClick = { category ->
+                                    onNavigateToViewAll(category)
+                                }
                             )
                         }
                     }

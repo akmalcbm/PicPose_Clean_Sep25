@@ -17,6 +17,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.picpose.bestphotographyapp.presentation.components.home.ViewAllPromptsScreen
 import com.picpose.bestphotographyapp.presentation.screens.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
@@ -104,6 +105,9 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 onNavigateToGuidePostDetail = { guidePost ->
                     val safeId = Uri.encode(guidePost.id)
                     navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) { launchSingleTop = true }
+                },
+                onNavigateToViewAll = { category ->
+                    navController.navigate("viewAll/$category") { launchSingleTop = true }
                 }
             )
         }
@@ -206,6 +210,30 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 initialCategory = initialCategory
             )
         }
+
+
+        // 👇 NEW — View All Prompts (Trending / Featured / Popular)
+        composable(
+            route = "viewAll/{categoryType}",
+            arguments = listOf(navArgument("categoryType") {
+                type = NavType.StringType
+                defaultValue = "Trending"
+            })
+        ) { backStackEntry ->
+            val categoryType = backStackEntry.arguments?.getString("categoryType") ?: "Trending"
+            val homeVM: HomeViewModel = hiltViewModel()
+
+            ViewAllPromptsScreen(
+                categoryType = categoryType,
+                viewModel = homeVM,
+                onBack = { navController.popBackStack() },
+                onPromptClick = { promptId ->
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
+                }
+            )
+        }
+
+
 
         // ❤️ Favorites
         composable(route = Screen.AIPromptFavorites.route) {

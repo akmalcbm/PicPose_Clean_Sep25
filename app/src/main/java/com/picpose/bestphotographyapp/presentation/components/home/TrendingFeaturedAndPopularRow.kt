@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
@@ -34,10 +36,11 @@ import com.picpose.bestphotographyapp.data.models.Post
 fun TrendingFeaturedAndPopularRow(
     trendingPosts: List<Post>,
     featuredPosts: List<Post>,
-    popularPosts: List<Post>, // ✅ new param
+    popularPosts: List<Post>,
     onPostClick: (Post) -> Unit,
     onLikeClick: (Post) -> Unit,
-    onShareClick: (Post) -> Unit
+    onShareClick: (Post) -> Unit,
+    onViewAllClick: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("Trending") }
 
@@ -127,7 +130,7 @@ fun TrendingFeaturedAndPopularRow(
                         )
                     }
                 } else {
-                    items(posts) { post ->
+                    items(posts.take(10)) { post -> // show 10 max
                         TrendingFeaturedAndPopularCard(
                             post = post,
                             categoryLabel = tab,
@@ -136,8 +139,17 @@ fun TrendingFeaturedAndPopularRow(
                             onShareClick = { onShareClick(post) }
                         )
                     }
+
+                    // ✅ Improved "View All" card with gradient and icon
+                    item {
+                        EnhancedViewAllCard(
+                            title = tab, // Trending, Featured, or Popular
+                            onClick = { onViewAllClick(tab) }
+                        )
+                    }
                 }
             }
+
         }
     }
 }
@@ -233,6 +245,113 @@ fun TrendingFeaturedAndPopularCard(
         }
     }
 }
+
+
+@Composable
+fun EnhancedViewAllCard(
+    title: String,
+    onClick: () -> Unit
+) {
+    // 🌈 Dynamic gradient per category
+    val (gradient, icon) = when (title) {
+        "Trending" -> Brush.linearGradient(
+            listOf(Color(0xFF43CEA2), Color(0xFF037C75))
+        ) to Icons.AutoMirrored.Filled.TrendingUp
+
+        "Featured" -> Brush.linearGradient(
+            listOf(Color(0xFFFFD200), Color(0xFFFFA000))
+        ) to Icons.Filled.Star
+
+        "Popular" -> Brush.linearGradient(
+            listOf(Color(0xFFFF5F6D), Color(0xFFE81E63))
+        ) to Icons.Filled.Favorite
+
+        else -> Brush.linearGradient(
+            listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
+        ) to Icons.AutoMirrored.Filled.ArrowForward
+    }
+
+    // 💫 Hover animation effect (scale pulse)
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(Unit) {
+        scale.animateTo(
+            targetValue = 1.03f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .height(240.dp)
+            .padding(4.dp)
+            .graphicsLayer(
+                scaleX = scale.value,
+                scaleY = scale.value,
+                shadowElevation = 12f,
+                shape = RoundedCornerShape(20.dp),
+                clip = true
+            )
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(brush = gradient)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "View All Icon",
+                    tint = Color.White,
+                    modifier = Modifier.size(44.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "View All $title",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Divider(
+                    color = Color.White.copy(alpha = 0.5f),
+                    thickness = 1.dp,
+                    modifier = Modifier.width(80.dp)
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Explore more in $title",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color.White.copy(alpha = 0.85f)
+                    ),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+
+
 
 @Composable
 fun CategoryChip(label: String) {

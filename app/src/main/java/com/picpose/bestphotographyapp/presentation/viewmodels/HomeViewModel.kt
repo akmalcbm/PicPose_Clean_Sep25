@@ -797,6 +797,59 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
     }
 
 
+    fun loadMorePostsForCategory(category: String, currentSize: Int) {
+        val nextOffset = currentSize
+        viewModelScope.launch {
+            val flow = when (category) {
+                "Trending" -> repository.getTrendingAiPosts(limit = 10, offset = nextOffset)
+                "Featured" -> repository.getFeaturedAiPosts(limit = 10, offset = nextOffset)
+                "Popular"  -> repository.getPopularAiPosts(limit = 10, offset = nextOffset)
+                else       -> null // ✅ makes the when exhaustive
+            }
+
+            // only collect if valid
+            flow?.collect { result ->
+                result.onSuccess { newPosts ->
+                    val oldPosts = when (category) {
+                        "Trending" -> _uiState.value.trendingPosts
+                        "Featured" -> _uiState.value.featuredPosts
+                        "Popular"  -> _uiState.value.popularPosts
+                        else       -> emptyList()
+                    }
+                    val merged = oldPosts + newPosts.map { it.toPost() }
+
+                    _uiState.value = when (category) {
+                        "Trending" -> _uiState.value.copy(trendingPosts = merged)
+                        "Featured" -> _uiState.value.copy(featuredPosts = merged)
+                        "Popular"  -> _uiState.value.copy(popularPosts = merged)
+                        else       -> _uiState.value
+                    }
+                }
+
+                result.onFailure { err ->
+                    Log.e(TAG, "loadMorePostsForCategory($category) failed: ${err.message}")
+                    _uiState.value = _uiState.value.copy(error = err.message)
+                }
+            }
+        }
+    }
+
+
+    // ✅ Convert AIPrompt -> Post in one place
+    private fun com.picpose.bestphotographyapp.data.models.AIPrompt.toPost(): com.picpose.bestphotographyapp.data.models.Post =
+        com.picpose.bestphotographyapp.data.models.Post(
+            id         = this.id ?: "",
+            title      = this.title ?: "Untitled",
+            description= this.shortPrompt ?: this.fullPrompt ?: "",
+            image      = this.imageUrl ?: "",
+            category   = this.category ?: "",
+            createdAt  = this.createdAt ?: "",
+            likes      = this.likes ?: 0,
+            favorites  = this.favorites ?: 0,
+            views      = this.views ?: 0,
+            isPopular  = this.isPopular ?: false,
+            isFeatured = this.isFeatured ?: false
+        )
 
 
 
