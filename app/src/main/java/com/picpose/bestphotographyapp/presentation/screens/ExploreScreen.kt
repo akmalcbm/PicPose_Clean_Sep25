@@ -92,6 +92,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -113,6 +114,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreContent
 import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SortOption
 import com.picpose.bestphotographyapp.utils.copyToClipboard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -125,6 +127,10 @@ fun ExploreScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // 🔹 Track manual refresh status
+    var manualRefreshInFlight by rememberSaveable { mutableStateOf(false) }
+
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
@@ -182,7 +188,18 @@ fun ExploreScreen(
             ExploreTopBar(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = viewModel::updateSearchQuery,
-                onRefresh = viewModel::refresh,
+                isManualRefreshLoading = manualRefreshInFlight,
+
+                onRefresh = {
+                    // Start manual refresh
+                    manualRefreshInFlight = true
+                    viewModel.updateSearchQuery("")
+                    viewModel.updateCategory("All")
+                    viewModel.updateContentFilter(ContentFilter.ALL)
+                    viewModel.updateSortOption(SortOption.NEWEST)
+                    viewModel.refresh()
+                },
+
                 onToggleFilters = { showFilters = !showFilters },
                 categories = uiState.categories,
                 selectedCategory = uiState.selectedCategory,
@@ -196,6 +213,17 @@ fun ExploreScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
+
+        LaunchedEffect(uiState.isLoading, manualRefreshInFlight) {
+            if (manualRefreshInFlight && !uiState.isLoading) {
+                manualRefreshInFlight = false
+                listState.animateScrollToItem(0)
+                snackbarHostState.showSnackbar(
+                    if (uiState.content.isNotEmpty()) "All filters and content refreshed"
+                    else "No new content found"
+                )
+            }
+        }
 
         val hasContent = uiState.content.isNotEmpty()
 
@@ -288,7 +316,7 @@ fun ExploreScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 2.dp)
-                                        .offset(4.dp) // 👈 gentle floating offset
+                                        //.offset(4.dp) // 👈 gentle floating offset
                                 ) {
                                     // --- Frosted background layer (behind content, gets blurred) ---
                                     Box(
@@ -518,7 +546,6 @@ private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExploreTopBar(
@@ -532,10 +559,38 @@ private fun ExploreTopBar(
     selectedSortOption: SortOption,
     onCategorySelected: (String) -> Unit,
     onContentFilterSelected: (ContentFilter) -> Unit,
-    onSortOptionSelected: (SortOption) -> Unit
+    onSortOptionSelected: (SortOption) -> Unit,
+    isManualRefreshLoading: Boolean
 ) {
     var isSearchExpanded by remember { mutableStateOf(false) }
     var isFilterExpanded by remember { mutableStateOf(false) }
+
+    // 🎯 Controlled rotation state
+    val rotation = remember { androidx.compose.animation.core.Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // 💫 Animate rotation only while refresh is in flight
+    LaunchedEffect(isManualRefreshLoading) {
+        if (isManualRefreshLoading) {
+            var completedOneCycle = false
+            // keep rotating until at least one full spin done + loading completes
+            while (true) {
+                rotation.animateTo(
+                    targetValue = rotation.value + 360f,
+                    animationSpec = tween(durationMillis = 900, easing = LinearEasing)
+                )
+                completedOneCycle = true
+                // stop only after one full spin AND loading has finished
+                if (completedOneCycle && !isManualRefreshLoading) break
+            }
+        } else {
+            // Smoothly reset back to 0 (optional, for clean stop)
+            rotation.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
+            )
+        }
+    }
 
     TopAppBar(
         modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
@@ -579,27 +634,36 @@ private fun ExploreTopBar(
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }
 
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                // 🔁 Refresh Icon (controlled rotation)
+                IconButton(
+                    onClick = {
+                        if (!isManualRefreshLoading) { // prevent spam clicks
+                            coroutineScope.launch { onRefresh() }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        modifier = Modifier.rotate(rotation.value)
+                    )
                 }
 
-                // 🧩 Animated Filter Button
-                val rotation by animateFloatAsState(
+                // 🧩 Filter Button Animation
+                val filterRotation by animateFloatAsState(
                     targetValue = if (isFilterExpanded) 180f else 0f,
                     animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f),
                     label = "filter_rotation"
                 )
-
                 val scale by animateFloatAsState(
                     targetValue = if (isFilterExpanded) 1.1f else 1f,
                     animationSpec = spring(stiffness = 400f),
                     label = "filter_scale"
                 )
 
-                // ✅ FIX: Move AnimatedVisibility to standalone composable
                 FilterButtonWithIndicator(
                     isFilterExpanded = isFilterExpanded,
-                    rotation = rotation,
+                    rotation = filterRotation,
                     scale = scale,
                     onClick = {
                         isFilterExpanded = !isFilterExpanded
@@ -607,15 +671,16 @@ private fun ExploreTopBar(
                     }
                 )
             }
-
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
-    //
 }
+
+
+
 
 @Composable
 private fun FilterButtonWithIndicator(
