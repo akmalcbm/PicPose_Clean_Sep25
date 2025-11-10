@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -119,9 +120,11 @@ fun TrendingFeaturedAndPopularRow(
                     .fillMaxWidth()
                     .padding(top = 8.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically, // ✅ Added line for Center Vertically the Last Card Specially
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                if (posts.isEmpty()) {
+
+            if (posts.isEmpty()) {
                     item {
                         Text(
                             text = "No posts available",
@@ -286,7 +289,7 @@ fun EnhancedViewAllCard(
     Card(
         modifier = Modifier
             .width(180.dp)
-            .height(240.dp)
+            .height(280.dp)
             .padding(4.dp)
             .graphicsLayer(
                 scaleX = scale.value,
@@ -330,10 +333,10 @@ fun EnhancedViewAllCard(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Divider(
-                    color = Color.White.copy(alpha = 0.5f),
+                HorizontalDivider(
+                    modifier = Modifier.width(80.dp),
                     thickness = 1.dp,
-                    modifier = Modifier.width(80.dp)
+                    color = Color.White.copy(alpha = 0.5f)
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
