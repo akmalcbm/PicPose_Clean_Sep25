@@ -111,6 +111,8 @@ import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.ContentFilter
 import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreContent
+import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreLoadState
+import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SortOption
 import com.picpose.bestphotographyapp.utils.copyToClipboard
@@ -140,6 +142,7 @@ fun ExploreScreen(
     var minShimmerOver by rememberSaveable { mutableStateOf(false) }
 
     val activity = context as? Activity
+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
@@ -242,10 +245,34 @@ fun ExploreScreen(
             uiState.error != null && uiState.content.isEmpty() && !uiState.isLoading
 
 
-        when {
-            shouldShowInitialShimmer -> ShimmerLoadingExploreScreen()
+        when (uiState.loadState) {
 
-            shouldShowErrorEmpty -> {
+            ExploreLoadState.INITIAL -> {
+                ShimmerLoadingExploreScreen()
+            }
+
+            ExploreLoadState.LOADING -> {
+                // Loading and nothing loaded yet
+                LoadingSection()
+            }
+
+            ExploreLoadState.EMPTY -> {
+                EmptyStateSection(
+                    searchQuery = uiState.searchQuery,
+                    selectedCategory = uiState.selectedCategory,
+                    onClearFilters = {
+                        viewModel.updateSearchQuery("")
+                        viewModel.updateCategory("All")
+                        viewModel.updateContentFilter(ContentFilter.ALL)
+                        viewModel.refresh()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
+            }
+
+            ExploreLoadState.ERROR -> {
                 EmptyStateSection(
                     searchQuery = uiState.searchQuery,
                     selectedCategory = uiState.selectedCategory,
@@ -256,24 +283,8 @@ fun ExploreScreen(
                 )
             }
 
-            shouldShowEmpty -> {
-                EmptyStateSection(
-                    searchQuery = uiState.searchQuery,
-                    selectedCategory = uiState.selectedCategory,
-                    onClearFilters = {
-                        viewModel.updateSearchQuery("")
-                        viewModel.updateCategory("All")
-                        viewModel.updateContentFilter(ContentFilter.ALL)
-                        // optional: kick a refresh
-                        viewModel.refresh()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp, bottom = 60.dp)
-                )
-            }
+            ExploreLoadState.SUCCESS -> {
 
-            else -> {
                 val sortedContent = remember(uiState.content) {
                     uiState.content.sortedBy {
                         when (it) {
@@ -301,89 +312,14 @@ fun ExploreScreen(
                         .padding(innerPadding)
                         .consumeWindowInsets(innerPadding)
                 ) {
-                    if (hasContent && showFilters) {
 
+                    if (uiState.content.isNotEmpty() && showFilters) {
                         stickyHeader {
-                            val isDark = isSystemInDarkTheme()
-
-                            AnimatedVisibility(
-                                visible = showFilters,
-                                enter = fadeIn() + scaleIn(initialScale = 0.98f),
-                                exit = fadeOut() + scaleOut(targetScale = 0.98f)
-                            ) {
-                                // Outer container aligned with list padding (12.dp)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 2.dp)
-                                        //.offset(4.dp) // 👈 gentle floating offset
-                                ) {
-                                    // --- Frosted background layer (behind content, gets blurred) ---
-                                    Box(
-                                        modifier = Modifier
-                                            .matchParentSize()
-                                            .clip(RoundedCornerShape(20.dp))
-                                            .blur(25.dp)
-                                            .background(
-                                                brush = Brush.verticalGradient(
-                                                    listOf(
-                                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
-                                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.30f)
-                                                    )
-                                                )
-                                            )
-                                            .border(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                                                RoundedCornerShape(20.dp)
-                                            )
-                                            .drawBehind {
-                                                // subtle top highlight for glass
-                                                drawRect(
-                                                    Brush.verticalGradient(
-                                                        listOf(
-                                                            Color.White.copy(alpha = if (isDark) 0.06f else 0.12f),
-                                                            Color.Transparent
-                                                        ),
-                                                        startY = 0f,
-                                                        endY = size.height * 0.4f
-                                                    )
-                                                )
-                                            }
-                                    )
-
-                                    // --- Foreground: crisp content (NO BLUR applied here) ---
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(20.dp))
-                                            .background(
-                                                if (isDark) Color.Black.copy(alpha = 0.10f)
-                                                else Color.White.copy(alpha = 0.12f)
-                                            )
-                                            .padding(horizontal = 12.dp, vertical = 12.dp)
-                                            .shadow(
-                                                elevation = 8.dp,
-                                                shape = RoundedCornerShape(20.dp),
-                                                ambientColor = Color.Black.copy(alpha = 0.05f),
-                                                spotColor = Color.Black.copy(alpha = 0.08f)
-                                            )
-                                    ) {
-                                        FrostedStickyFilters(
-                                            categories = uiState.categories,
-                                            selectedCategory = uiState.selectedCategory,
-                                            selectedContentFilter = uiState.selectedContentFilter,
-                                            selectedSortOption = uiState.selectedSortOption,
-                                            onCategorySelected = viewModel::updateCategory,
-                                            onContentFilterSelected = viewModel::updateContentFilter,
-                                            onSortOptionSelected = viewModel::updateSortOption
-                                        )
-                                    }
-                                }
-                            }
+                            FrostedFiltersStickyHeader(
+                                uiState = uiState,
+                                viewModel = viewModel
+                            )
                         }
-
-
                     }
 
                     itemsIndexed(
@@ -396,7 +332,9 @@ fun ExploreScreen(
                             }
                         }
                     ) { _, content ->
+
                         when (content) {
+
                             is ExploreContent.AIPromptContent -> {
                                 AIPromptCard(
                                     prompt = content.prompt,
@@ -407,11 +345,7 @@ fun ExploreScreen(
                                             ?: ""
                                         copyToClipboard(context, clipboard, text, coroutineScope)
                                     },
-                                    onFavoriteClick = { prompt ->
-                                        viewModel.togglePromptFavorite(
-                                            prompt
-                                        )
-                                    },
+                                    onFavoriteClick = viewModel::togglePromptFavorite,
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -420,18 +354,14 @@ fun ExploreScreen(
                                 GuidePostCard(
                                     guidePost = content.guidePost,
                                     onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                    onFavoriteClick = { post ->
-                                        viewModel.toggleGuidePostFavorite(
-                                            post
-                                        )
-                                    },
+                                    onFavoriteClick = viewModel::toggleGuidePostFavorite,
                                     modifier = Modifier.animateItem()
                                 )
                             }
                         }
                     }
 
-                    if (uiState.isLoading && hasContent) {
+                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -446,6 +376,8 @@ fun ExploreScreen(
                 }
             }
         }
+
+
     }
 }
 
@@ -726,6 +658,91 @@ private fun FilterButtonWithIndicator(
         }
     }
 }
+
+@Composable
+fun FrostedFiltersStickyHeader(
+    uiState: ExploreUiState,
+    viewModel: ExploreViewModel
+) {
+    val isDark = isSystemInDarkTheme()
+
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn() + scaleIn(initialScale = 0.98f),
+        exit = fadeOut() + scaleOut(targetScale = 0.98f)
+    ) {
+
+        // Outer container matching list padding
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp)
+        ) {
+
+            // --- BACKGROUND Frosted Blur Layer ---
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .blur(25.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.30f)
+                            )
+                        )
+                    )
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .drawBehind {
+                        drawRect(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.06f else 0.12f),
+                                    Color.Transparent
+                                ),
+                                startY = 0f,
+                                endY = size.height * 0.4f
+                            )
+                        )
+                    }
+            )
+
+            // --- FOREGROUND Crisp Content ---
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (isDark) Color.Black.copy(alpha = 0.10f)
+                        else Color.White.copy(alpha = 0.12f)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.05f),
+                        spotColor = Color.Black.copy(alpha = 0.08f)
+                    )
+            ) {
+                FrostedStickyFilters(
+                    categories = uiState.categories,
+                    selectedCategory = uiState.selectedCategory,
+                    selectedContentFilter = uiState.selectedContentFilter,
+                    selectedSortOption = uiState.selectedSortOption,
+                    onCategorySelected = viewModel::updateCategory,
+                    onContentFilterSelected = viewModel::updateContentFilter,
+                    onSortOptionSelected = viewModel::updateSortOption
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun FrostedStickyFilters(

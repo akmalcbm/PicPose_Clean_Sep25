@@ -44,8 +44,9 @@ enum class ContentFilter(val displayName: String) {
     GUIDE_POSTS("Guide Posts")
 }
 
-// 🔹 UI State
+// 🔹 Explore UI State
 data class ExploreUiState(
+    val isFirstLoad: Boolean = true,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val content: List<ExploreContent> = emptyList(),
@@ -59,7 +60,37 @@ data class ExploreUiState(
     val error: String? = null,
     val hasMore: Boolean = true,
     val currentPage: Int = 1
-)
+) {
+
+    // ⭐ ADD THIS INSIDE ExploreUiState
+    val loadState: ExploreLoadState
+        get() = when {
+            // 🔥 1) FIRST EVER LOAD
+            content.isEmpty() && isLoading && error == null -> ExploreLoadState.INITIAL
+
+            // 🔥 2) LOADING after initial load
+            isLoading && content.isEmpty() -> ExploreLoadState.LOADING
+
+            // 🔥 3) ERROR but no content yet
+            error != null && content.isEmpty() -> ExploreLoadState.ERROR
+
+            // 🔥 4) No loading, no content, no error → proper empty
+            !isLoading && content.isEmpty() -> ExploreLoadState.EMPTY
+
+            // 🔥 5) Success
+            else -> ExploreLoadState.SUCCESS
+        }
+}
+
+
+enum class ExploreLoadState {
+    INITIAL,
+    LOADING,
+    SUCCESS,
+    EMPTY,
+    ERROR
+}
+
 
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
