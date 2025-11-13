@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -80,6 +81,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -115,6 +117,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreLoadState
 import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.ExploreViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SortOption
+import com.picpose.bestphotographyapp.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 import kotlinx.coroutines.launch
 
@@ -136,10 +139,9 @@ fun ExploreScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // Add with your other rememberSaveable flags:
-    var hasAttemptedInitialLoad by rememberSaveable { mutableStateOf(false) }
-    var sawLoadingOnce by rememberSaveable { mutableStateOf(false) }
-    var minShimmerOver by rememberSaveable { mutableStateOf(false) }
+    val connectivityObserver = remember { ConnectivityObserver(context) }
+    val networkStatus by connectivityObserver.observe().collectAsState(initial = ConnectivityObserver.Status.Available)
+
 
     val activity = context as? Activity
 
@@ -147,26 +149,6 @@ fun ExploreScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
-
-
-    // Keep your min shimmer delay (good choice)
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(450)
-        minShimmerOver = true
-    }
-
-    // Update these effects:
-    LaunchedEffect(uiState.isLoading) {
-        if (uiState.isLoading) sawLoadingOnce = true
-    }
-
-    LaunchedEffect(uiState.isLoading, uiState.content.size, uiState.error) {
-        // Mark "attempt done" only after we actually tried or got something
-        if (!uiState.isLoading && (sawLoadingOnce || uiState.content.isNotEmpty() || uiState.error != null)) {
-            hasAttemptedInitialLoad = true
-        }
-    }
-
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -228,159 +210,186 @@ fun ExploreScreen(
             }
         }
 
-        val hasContent = uiState.content.isNotEmpty()
+        if (
+            networkStatus != ConnectivityObserver.Status.Available &&
+            uiState.content.isEmpty() &&
+            !uiState.isLoading
+        ) {
+            NoInternetSection(
+                onRetry = { viewModel.refresh() }
+            )
+        } else {
+            // --- Your entire when(uiState.loadState) block goes here ---
+            when (uiState.loadState) {
 
-        // Show shimmer if:
-        //  - content is empty AND (still loading OR haven't attempted initial load yet OR min shimmer time not over)
-        val shouldShowInitialShimmer =
-            uiState.content.isEmpty() && (!hasAttemptedInitialLoad || uiState.isLoading || !minShimmerOver)
-
-        // Show empty only when:
-        //  - not loading, attempted initial load, and still empty
-        val shouldShowEmpty =
-            !uiState.isLoading && hasAttemptedInitialLoad && uiState.content.isEmpty()
-
-
-        val shouldShowErrorEmpty =
-            uiState.error != null && uiState.content.isEmpty() && !uiState.isLoading
-
-
-        when (uiState.loadState) {
-
-            ExploreLoadState.INITIAL -> {
-                ShimmerLoadingExploreScreen()
-            }
-
-            ExploreLoadState.LOADING -> {
-                // Loading and nothing loaded yet
-                LoadingSection()
-            }
-
-            ExploreLoadState.EMPTY -> {
-                EmptyStateSection(
-                    searchQuery = uiState.searchQuery,
-                    selectedCategory = uiState.selectedCategory,
-                    onClearFilters = {
-                        viewModel.updateSearchQuery("")
-                        viewModel.updateCategory("All")
-                        viewModel.updateContentFilter(ContentFilter.ALL)
-                        viewModel.refresh()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp, bottom = 60.dp)
-                )
-            }
-
-            ExploreLoadState.ERROR -> {
-                EmptyStateSection(
-                    searchQuery = uiState.searchQuery,
-                    selectedCategory = uiState.selectedCategory,
-                    onClearFilters = { viewModel.refresh() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp, bottom = 60.dp)
-                )
-            }
-
-            ExploreLoadState.SUCCESS -> {
-
-                val sortedContent = remember(uiState.content) {
-                    uiState.content.sortedBy {
-                        when (it) {
-                            is ExploreContent.AIPromptContent -> 0
-                            is ExploreContent.GuidePostContent -> 1
-                            else -> 2
-                        }
-                    }
+                ExploreLoadState.INITIAL -> {
+                    ShimmerLoadingExploreScreen()
                 }
 
-                LazyColumn(
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(
-                        top = 8.dp,
-                        start = 12.dp,
-                        end = 12.dp,
-                        bottom = WindowInsets.navigationBars
-                            .asPaddingValues()
-                            .calculateBottomPadding() + 24.dp
-                    ),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(innerPadding)
-                        .consumeWindowInsets(innerPadding)
-                ) {
+                ExploreLoadState.LOADING -> {
+                    // Loading and nothing loaded yet
+                    LoadingSection()
+                }
 
-                    if (uiState.content.isNotEmpty() && showFilters) {
-                        stickyHeader {
-                            FrostedFiltersStickyHeader(
-                                uiState = uiState,
-                                viewModel = viewModel
-                            )
+                ExploreLoadState.EMPTY -> {
+                    EmptyStateSection(
+                        searchQuery = uiState.searchQuery,
+                        selectedCategory = uiState.selectedCategory,
+                        onClearFilters = {
+                            viewModel.updateSearchQuery("")
+                            viewModel.updateCategory("All")
+                            viewModel.updateContentFilter(ContentFilter.ALL)
+                            viewModel.refresh()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 40.dp, bottom = 60.dp)
+                    )
+                }
+
+                ExploreLoadState.ERROR -> {
+                    EmptyStateSection(
+                        searchQuery = uiState.searchQuery,
+                        selectedCategory = uiState.selectedCategory,
+                        onClearFilters = { viewModel.refresh() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 40.dp, bottom = 60.dp)
+                    )
+                }
+
+                ExploreLoadState.SUCCESS -> {
+
+                    val sortedContent = remember(uiState.content) {
+                        uiState.content.sortedBy {
+                            when (it) {
+                                is ExploreContent.AIPromptContent -> 0
+                                is ExploreContent.GuidePostContent -> 1
+                                else -> 2
+                            }
                         }
                     }
 
-                    itemsIndexed(
-                        items = sortedContent,
-                        key = { index, content ->
+                    LazyColumn(
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(
+                            top = 8.dp,
+                            start = 12.dp,
+                            end = 12.dp,
+                            bottom = WindowInsets.navigationBars
+                                .asPaddingValues()
+                                .calculateBottomPadding() + 24.dp
+                        ),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding)
+                    )
+
+                    {
+
+                        if (uiState.content.isNotEmpty() && showFilters) {
+                            stickyHeader {
+                                FrostedFiltersStickyHeader(
+                                    uiState = uiState,
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
+
+                        itemsIndexed(
+                            items = sortedContent,
+                            key = { index, content ->
+                                when (content) {
+                                    is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                    is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                    else -> "CONTENT_${content.hashCode()}_$index"
+                                }
+                            }
+                        ) { _, content ->
+
                             when (content) {
-                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                else -> "CONTENT_${content.hashCode()}_$index"
+
+                                is ExploreContent.AIPromptContent -> {
+                                    AIPromptCard(
+                                        prompt = content.prompt,
+                                        onClick = { onNavigateToPromptDetail(content.prompt) },
+                                        onCopy = {
+                                            val text = content.prompt.shortPrompt
+                                                ?: content.prompt.fullPrompt
+                                                ?: ""
+                                            copyToClipboard(context, clipboard, text, coroutineScope)
+                                        },
+                                        onFavoriteClick = viewModel::togglePromptFavorite,
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
+
+                                is ExploreContent.GuidePostContent -> {
+                                    GuidePostCard(
+                                        guidePost = content.guidePost,
+                                        onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                        onFavoriteClick = viewModel::toggleGuidePostFavorite,
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
                             }
                         }
-                    ) { _, content ->
 
-                        when (content) {
-
-                            is ExploreContent.AIPromptContent -> {
-                                AIPromptCard(
-                                    prompt = content.prompt,
-                                    onClick = { onNavigateToPromptDetail(content.prompt) },
-                                    onCopy = {
-                                        val text = content.prompt.shortPrompt
-                                            ?: content.prompt.fullPrompt
-                                            ?: ""
-                                        copyToClipboard(context, clipboard, text, coroutineScope)
-                                    },
-                                    onFavoriteClick = viewModel::togglePromptFavorite,
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-
-                            is ExploreContent.GuidePostContent -> {
-                                GuidePostCard(
-                                    guidePost = content.guidePost,
-                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                    onFavoriteClick = viewModel::toggleGuidePostFavorite,
-                                    modifier = Modifier.animateItem()
-                                )
+                        if (uiState.isLoading && uiState.content.isNotEmpty()) {
+                            item {
+                                RepeatInlineShimmers()
                             }
                         }
-                    }
 
-                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                            }
-                        }
+
                     }
                 }
             }
-        }
 
+        }
 
     }
 }
 
+@Composable
+fun NoInternetSection(onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Icon(
+                imageVector = Icons.Default.WifiOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp)
+            )
+
+            Text(
+                text = "No Internet Connection",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = "Connect to Wi-Fi or mobile data to continue.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
+        }
+    }
+}
 
 @Composable
 private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
@@ -477,6 +486,70 @@ private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
         }
     }
 }
+
+
+@Composable
+private fun InlineShimmerItem() {
+    val infinite = rememberInfiniteTransition(label = "inline_shimmer")
+    val alpha by infinite.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(12.dp)
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.LightGray.copy(alpha = alpha))
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Box(
+            Modifier
+                .fillMaxWidth(0.6f)
+                .height(18.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color.LightGray.copy(alpha = alpha))
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Box(
+            Modifier
+                .fillMaxWidth(0.85f)
+                .height(14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color.LightGray.copy(alpha = alpha))
+        )
+    }
+}
+
+
+@Composable
+fun RepeatInlineShimmers() {
+    Column {
+        repeat(3) {
+            InlineShimmerItem()
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -946,4 +1019,6 @@ private fun EmptyStateSection(
             }
         }
     }
+
+
 }

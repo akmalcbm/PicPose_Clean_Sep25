@@ -62,22 +62,12 @@ data class ExploreUiState(
     val currentPage: Int = 1
 ) {
 
-    // ⭐ ADD THIS INSIDE ExploreUiState
     val loadState: ExploreLoadState
         get() = when {
-            // 🔥 1) FIRST EVER LOAD
-            content.isEmpty() && isLoading && error == null -> ExploreLoadState.INITIAL
-
-            // 🔥 2) LOADING after initial load
+            isFirstLoad && isLoading -> ExploreLoadState.INITIAL      // 👈 full shimmer
             isLoading && content.isEmpty() -> ExploreLoadState.LOADING
-
-            // 🔥 3) ERROR but no content yet
             error != null && content.isEmpty() -> ExploreLoadState.ERROR
-
-            // 🔥 4) No loading, no content, no error → proper empty
             !isLoading && content.isEmpty() -> ExploreLoadState.EMPTY
-
-            // 🔥 5) Success
             else -> ExploreLoadState.SUCCESS
         }
 }
@@ -90,6 +80,7 @@ enum class ExploreLoadState {
     EMPTY,
     ERROR
 }
+
 
 
 @HiltViewModel
@@ -110,8 +101,11 @@ class ExploreViewModel @Inject constructor(
     private val CACHE_DURATION = 5 * 60 * 1000L // 5 min
 
     init {
-        // Default sort is always NEWEST
-        _uiState.value = _uiState.value.copy(selectedSortOption = SortOption.NEWEST)
+        // 👇 Force loading state immediately on launch
+        _uiState.update { it.copy(isLoading = true) }
+
+        // Default sort
+        _uiState.update { it.copy(selectedSortOption = SortOption.NEWEST) }
 
         // 🔹 Debounced Search
         viewModelScope.launch {
@@ -183,7 +177,7 @@ class ExploreViewModel @Inject constructor(
         loadContentJob?.cancel()
         loadContentJob = viewModelScope.launch {
             try {
-                if (!append) _uiState.update { it.copy(isLoading = true, error = null) }
+                if (!append) _uiState.update { it.copy(isLoading = true, content = it.content) }
 
                 val state = _uiState.value
                 val shouldLoadAI = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
