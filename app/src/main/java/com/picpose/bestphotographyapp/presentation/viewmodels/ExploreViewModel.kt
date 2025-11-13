@@ -47,6 +47,7 @@ enum class ContentFilter(val displayName: String) {
 // 🔹 Explore UI State
 data class ExploreUiState(
     val isFirstLoad: Boolean = true,
+    val hasEverLoaded: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val content: List<ExploreContent> = emptyList(),
@@ -64,12 +65,26 @@ data class ExploreUiState(
 
     val loadState: ExploreLoadState
         get() = when {
-            isFirstLoad && isLoading -> ExploreLoadState.INITIAL      // 👈 full shimmer
-            isLoading && content.isEmpty() -> ExploreLoadState.LOADING
+            // 1️⃣ First time app opened → always shimmer until API returns
+            isFirstLoad && isLoading -> ExploreLoadState.INITIAL
+
+            // 2️⃣ After first API hit but still loading → shimmer (NOT empty)
+            hasEverLoaded.not() && isLoading -> ExploreLoadState.INITIAL
+
+            // 3️⃣ Loading more (pagination) → show list + inline shimmer
+            isLoading && content.isNotEmpty() -> ExploreLoadState.SUCCESS
+
+            // 4️⃣ API returned successfully but NO data came
+            hasEverLoaded && !isLoading && content.isEmpty() -> ExploreLoadState.EMPTY
+
+            // 5️⃣ Error + no data
             error != null && content.isEmpty() -> ExploreLoadState.ERROR
-            !isLoading && content.isEmpty() -> ExploreLoadState.EMPTY
+
+            // 6️⃣ Success content loaded
             else -> ExploreLoadState.SUCCESS
         }
+
+
 }
 
 
@@ -200,7 +215,9 @@ class ExploreViewModel @Inject constructor(
                         content = newContent,
                         aiPrompts = aiPrompts,
                         guidePosts = guidePosts,
-                        hasMore = mixed.isNotEmpty() // ✅ Determines if more pages exist
+                        hasMore = mixed.isNotEmpty(),
+                        hasEverLoaded = true,
+                        isFirstLoad = false
                     )
                 }
 
@@ -209,10 +226,20 @@ class ExploreViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadContent error: ${e.message}")
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = e.message) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = e.message,
+                        hasEverLoaded = true,
+                        isFirstLoad = false   // ADD THIS
+                    )
+
+                }
             }
         }
     }
+
 
     // -----------------------------------------------
     // 🔹 Load AI Prompts
