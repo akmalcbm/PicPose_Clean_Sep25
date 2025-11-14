@@ -65,24 +65,31 @@ data class ExploreUiState(
 
     val loadState: ExploreLoadState
         get() = when {
-            // 1️⃣ First time app opened → always shimmer until API returns
+
+            // FIRST APP LOAD
             isFirstLoad && isLoading -> ExploreLoadState.INITIAL
 
-            // 2️⃣ After first API hit but still loading → shimmer (NOT empty)
-            hasEverLoaded.not() && isLoading -> ExploreLoadState.INITIAL
+            // ANY REFRESH OR NEW FILTERS → SHOW SHIMMER
+            isLoading && content.isEmpty() -> ExploreLoadState.INITIAL
 
-            // 3️⃣ Loading more (pagination) → show list + inline shimmer
+            // PAGINATION (inline shimmer)
             isLoading && content.isNotEmpty() -> ExploreLoadState.SUCCESS
 
-            // 4️⃣ API returned successfully but NO data came
-            hasEverLoaded && !isLoading && content.isEmpty() -> ExploreLoadState.EMPTY
-
-            // 5️⃣ Error + no data
+            // ERROR + NO DATA
             error != null && content.isEmpty() -> ExploreLoadState.ERROR
 
-            // 6️⃣ Success content loaded
+            // EMPTY ONLY WHEN:
+            // 1. Not loading
+            // 2. No content
+            // 3. First load already completed
+            // 4. NOT refreshing
+            !isLoading && content.isEmpty() && hasEverLoaded && !isRefreshing ->
+                ExploreLoadState.EMPTY
+
             else -> ExploreLoadState.SUCCESS
         }
+
+
 
 
 }
@@ -173,10 +180,19 @@ class ExploreViewModel @Inject constructor(
     }
 
     fun refresh() {
-        _uiState.update { it.copy(isRefreshing = true, currentPage = 1) }
+        _uiState.update {
+            it.copy(
+                isRefreshing = true,
+                isLoading = true,   // ⭐ This prevents flicker
+                content = emptyList(),
+                currentPage = 1
+            )
+        }
         invalidateCache()
         loadContent(forceRefresh = true)
     }
+
+
 
     fun loadMore() {
         val state = _uiState.value

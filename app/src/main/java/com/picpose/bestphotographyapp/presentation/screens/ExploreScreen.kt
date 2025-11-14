@@ -121,8 +121,6 @@ import com.picpose.bestphotographyapp.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 import kotlinx.coroutines.launch
 
-
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExploreScreen(
@@ -135,7 +133,7 @@ fun ExploreScreen(
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // 🔹 Track manual refresh status
+    // 🔹 Track manual refresh status — controlled by UI (to animate icon) separate from viewModel flags
     var manualRefreshInFlight by rememberSaveable { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -144,14 +142,15 @@ fun ExploreScreen(
     val connectivityObserver = remember { ConnectivityObserver(context) }
     val networkStatus by connectivityObserver.observe().collectAsState(initial = ConnectivityObserver.Status.Available)
 
-
     val activity = context as? Activity
 
+    // Keep system windows setup once
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
 
+    // Pagination watcher
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
@@ -167,6 +166,13 @@ fun ExploreScreen(
 
     var showFilters by remember { mutableStateOf(false) }
 
+    // When viewModel finished loading, clear manualRefreshInFlight
+    LaunchedEffect(uiState.isLoading, uiState.isRefreshing) {
+        if (!uiState.isLoading && !uiState.isRefreshing) {
+            manualRefreshInFlight = false
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -176,17 +182,16 @@ fun ExploreScreen(
                 searchQuery = uiState.searchQuery,
                 onSearchQueryChange = viewModel::updateSearchQuery,
                 isManualRefreshLoading = manualRefreshInFlight,
-
                 onRefresh = {
                     // Start manual refresh
                     manualRefreshInFlight = true
+                    // Reset filters in UI (as earlier)
                     viewModel.updateSearchQuery("")
                     viewModel.updateCategory("All")
                     viewModel.updateContentFilter(ContentFilter.ALL)
                     viewModel.updateSortOption(SortOption.NEWEST)
                     viewModel.refresh()
                 },
-
                 onToggleFilters = { showFilters = !showFilters },
                 categories = uiState.categories,
                 selectedCategory = uiState.selectedCategory,
@@ -201,8 +206,9 @@ fun ExploreScreen(
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
+        // Show a snackbar after manual refresh completes
         LaunchedEffect(uiState.isLoading, manualRefreshInFlight) {
-            if (manualRefreshInFlight && !uiState.isLoading) {
+            if (manualRefreshInFlight && !uiState.isLoading && !uiState.isRefreshing) {
                 manualRefreshInFlight = false
                 listState.animateScrollToItem(0)
                 snackbarHostState.showSnackbar(
@@ -212,28 +218,42 @@ fun ExploreScreen(
             }
         }
 
+        // No internet full screen
         if (
             networkStatus != ConnectivityObserver.Status.Available &&
             uiState.content.isEmpty() &&
             !uiState.isLoading
         ) {
-            NoInternetSection(
-                onRetry = { viewModel.refresh() }
-            )
-        } else {
-            // --- Your entire when(uiState.loadState) block goes here ---
-            when (uiState.loadState) {
+            NoInternetSection(onRetry = { viewModel.refresh() })
+            return@Scaffold
+        }
 
-                ExploreLoadState.INITIAL -> {
-                    ShimmerLoadingExploreScreen()
-                }
+        // KEY FIX #1:
+        // If we're actively refreshing (manualRefreshInFlight or viewModel.isRefreshing) and the list is empty:
+        // show the full-screen shimmer instead of EmptyState/Blank screen.
+        val showFullScreenShimmer = (manualRefreshInFlight || uiState.isRefreshing) && uiState.content.isEmpty()
 
-                ExploreLoadState.LOADING -> {
-                    // Loading and nothing loaded yet
-                    LoadingSection()
-                }
+        if (showFullScreenShimmer) {
+            ShimmerLoadingExploreScreen()
+            return@Scaffold
+        }
 
-                ExploreLoadState.EMPTY -> {
+        // Otherwise proceed to normal loadState handling.
+        when (uiState.loadState) {
+
+            ExploreLoadState.INITIAL -> {
+                // initial shimmer
+                ShimmerLoadingExploreScreen()
+            }
+
+            ExploreLoadState.LOADING -> {
+                // Loading and nothing loaded yet (rare because INITIAL covers most)
+                LoadingSection()
+            }
+
+            ExploreLoadState.EMPTY -> {
+                // Only show empty when not refreshing and not manual-refreshing
+                if (!manualRefreshInFlight && !uiState.isRefreshing) {
                     EmptyStateSection(
                         searchQuery = uiState.searchQuery,
                         selectedCategory = uiState.selectedCategory,
@@ -247,114 +267,248 @@ fun ExploreScreen(
                             .fillMaxWidth()
                             .padding(top = 40.dp, bottom = 60.dp)
                     )
-                }
-
-                ExploreLoadState.ERROR -> {
-                    EmptyStateSection(
-                        searchQuery = uiState.searchQuery,
-                        selectedCategory = uiState.selectedCategory,
-                        onClearFilters = { viewModel.refresh() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 40.dp, bottom = 60.dp)
-                    )
-                }
-
-                ExploreLoadState.SUCCESS -> {
-
-                    val sortedContent = remember(uiState.content) {
-                        uiState.content.sortedBy {
-                            when (it) {
-                                is ExploreContent.AIPromptContent -> 0
-                                is ExploreContent.GuidePostContent -> 1
-                                else -> 2
-                            }
-                        }
-                    }
-
-                    LazyColumn(
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(
-                            top = 8.dp,
-                            start = 12.dp,
-                            end = 12.dp,
-                            bottom = WindowInsets.navigationBars
-                                .asPaddingValues()
-                                .calculateBottomPadding() + 24.dp
-                        ),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(innerPadding)
-                            .consumeWindowInsets(innerPadding)
-                    )
-
-                    {
-
-                        if (uiState.content.isNotEmpty() && showFilters) {
-                            stickyHeader {
-                                FrostedFiltersStickyHeader(
-                                    uiState = uiState,
-                                    viewModel = viewModel
-                                )
-                            }
-                        }
-
-                        itemsIndexed(
-                            items = sortedContent,
-                            key = { index, content ->
-                                when (content) {
-                                    is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                    is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                    else -> "CONTENT_${content.hashCode()}_$index"
-                                }
-                            }
-                        ) { _, content ->
-
-                            when (content) {
-
-                                is ExploreContent.AIPromptContent -> {
-                                    AIPromptCard(
-                                        prompt = content.prompt,
-                                        onClick = { onNavigateToPromptDetail(content.prompt) },
-                                        onCopy = {
-                                            val text = content.prompt.shortPrompt
-                                                ?: content.prompt.fullPrompt
-                                                ?: ""
-                                            copyToClipboard(context, clipboard, text, coroutineScope)
-                                        },
-                                        onFavoriteClick = viewModel::togglePromptFavorite,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                is ExploreContent.GuidePostContent -> {
-                                    GuidePostCard(
-                                        guidePost = content.guidePost,
-                                        onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                        onFavoriteClick = viewModel::toggleGuidePostFavorite,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-                            }
-                        }
-
-                        if (uiState.isLoading && uiState.content.isNotEmpty()) {
-                            item {
-                                RepeatInlineShimmers()
-                            }
-                        }
-
-
-                    }
+                } else {
+                    // while refreshing show shimmer (fallback)
+                    ShimmerLoadingExploreScreen()
                 }
             }
 
-        }
+            ExploreLoadState.ERROR -> {
+                EmptyStateSection(
+                    searchQuery = uiState.searchQuery,
+                    selectedCategory = uiState.selectedCategory,
+                    onClearFilters = { viewModel.refresh() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
+            }
 
+            ExploreLoadState.SUCCESS -> {
+                val sortedContent = remember(uiState.content) {
+                    uiState.content.sortedBy {
+                        when (it) {
+                            is ExploreContent.AIPromptContent -> 0
+                            is ExploreContent.GuidePostContent -> 1
+                            else -> 2
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(
+                        top = 8.dp,
+                        start = 12.dp,
+                        end = 12.dp,
+                        bottom = WindowInsets.navigationBars
+                            .asPaddingValues()
+                            .calculateBottomPadding() + 24.dp
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
+                ) {
+                    // sticky filters (only if content present)
+                    if (uiState.content.isNotEmpty() && showFilters) {
+                        stickyHeader {
+                            FrostedFiltersStickyHeader(uiState = uiState, viewModel = viewModel)
+                        }
+                    }
+
+                    // list items
+                    itemsIndexed(
+                        items = sortedContent,
+                        key = { index, content ->
+                            when (content) {
+                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                else -> "CONTENT_${content.hashCode()}_$index"
+                            }
+                        }
+                    ) { _, content ->
+                        when (content) {
+                            is ExploreContent.AIPromptContent -> {
+                                AIPromptCard(
+                                    prompt = content.prompt,
+                                    onClick = { onNavigateToPromptDetail(content.prompt) },
+                                    onCopy = {
+                                        val text = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
+                                        copyToClipboard(context, clipboard, text, coroutineScope)
+                                    },
+                                    onFavoriteClick = viewModel::togglePromptFavorite,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                            is ExploreContent.GuidePostContent -> {
+                                GuidePostCard(
+                                    guidePost = content.guidePost,
+                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                    onFavoriteClick = viewModel::toggleGuidePostFavorite,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                        }
+                    }
+
+                    // inline shimmers when loading more (only if we already have content)
+                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
+                        item {
+                            RepeatInlineShimmers()
+                        }
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
+/* ---------------------------
+   Top Bar & Helper Composables
+   (only changed: top bar rotation uses rememberInfiniteTransition while keeping UI same)
+   --------------------------- */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExploreTopBar(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onToggleFilters: () -> Unit,
+    categories: List<String>,
+    selectedCategory: String,
+    selectedContentFilter: ContentFilter,
+    selectedSortOption: SortOption,
+    onCategorySelected: (String) -> Unit,
+    onContentFilterSelected: (ContentFilter) -> Unit,
+    onSortOptionSelected: (SortOption) -> Unit,
+    isManualRefreshLoading: Boolean
+) {
+    var isSearchExpanded by remember { mutableStateOf(false) }
+    var isFilterExpanded by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // KEY FIX #2: use infinite transition for clean continuous rotation while refresh is active
+    val rotationDegrees: Float = if (isManualRefreshLoading) {
+        val transition = rememberInfiniteTransition(label = "refresh_rotation")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotationAnim"
+        ).value
+    } else {
+        0f
+    }
+
+    TopAppBar(
+        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        title = {
+            AnimatedContent(
+                targetState = isSearchExpanded,
+                transitionSpec = {
+                    slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
+                },
+                label = "search_anim"
+            ) { expanded ->
+                if (expanded) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        placeholder = { Text("Search content...") },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                isSearchExpanded = false
+                                onSearchQueryChange("")
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close search")
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        "Explore",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        },
+        actions = {
+            if (!isSearchExpanded) {
+                IconButton(onClick = { isSearchExpanded = true }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                }
+
+                IconButton(
+                    onClick = {
+                        // prevent multiple clicks while already spinning
+                        if (!isManualRefreshLoading) {
+                            coroutineScope.launch { onRefresh() }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        modifier = Modifier.rotate(rotationDegrees)
+                    )
+                }
+
+                val filterRotation by animateFloatAsState(
+                    targetValue = if (isFilterExpanded) 180f else 0f,
+                    animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f),
+                    label = "filter_rotation"
+                )
+                val scale by animateFloatAsState(
+                    targetValue = if (isFilterExpanded) 1.1f else 1f,
+                    animationSpec = spring(stiffness = 400f),
+                    label = "filter_scale"
+                )
+
+                FilterButtonWithIndicator(
+                    isFilterExpanded = isFilterExpanded,
+                    rotation = filterRotation,
+                    scale = scale,
+                    onClick = {
+                        isFilterExpanded = !isFilterExpanded
+                        onToggleFilters()
+                    }
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+/* ---------------------------
+   The rest of the file (NoInternetSection, Shimmer items, Filters etc.)
+   kept identical to your version — unchanged code below.
+   (I include them so you can paste whole file, unchanged except for minor ordering)
+   --------------------------- */
 
 @Composable
 fun NoInternetSection(onRetry: () -> Unit) {
@@ -489,7 +643,6 @@ private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
     }
 }
 
-
 @Composable
 private fun InlineShimmerItem() {
     val infinite = rememberInfiniteTransition(label = "inline_shimmer")
@@ -542,7 +695,6 @@ private fun InlineShimmerItem() {
     }
 }
 
-
 @Composable
 fun RepeatInlineShimmers() {
     Column {
@@ -552,183 +704,101 @@ fun RepeatInlineShimmers() {
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExploreTopBar(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onRefresh: () -> Unit,
-    onToggleFilters: () -> Unit,
-    categories: List<String>,
-    selectedCategory: String,
-    selectedContentFilter: ContentFilter,
-    selectedSortOption: SortOption,
-    onCategorySelected: (String) -> Unit,
-    onContentFilterSelected: (ContentFilter) -> Unit,
-    onSortOptionSelected: (SortOption) -> Unit,
-    isManualRefreshLoading: Boolean
-) {
-    var isSearchExpanded by remember { mutableStateOf(false) }
-    var isFilterExpanded by remember { mutableStateOf(false) }
-
-    // 🎯 Controlled rotation state
-    val rotation = remember { androidx.compose.animation.core.Animatable(0f) }
-    val coroutineScope = rememberCoroutineScope()
-
-    // 💫 Animate rotation only while refresh is in flight
-    LaunchedEffect(isManualRefreshLoading) {
-        if (isManualRefreshLoading) {
-            var completedOneCycle = false
-            // keep rotating until at least one full spin done + loading completes
-            while (true) {
-                rotation.animateTo(
-                    targetValue = rotation.value + 360f,
-                    animationSpec = tween(durationMillis = 900, easing = LinearEasing)
-                )
-                completedOneCycle = true
-                // stop only after one full spin AND loading has finished
-                if (completedOneCycle && !isManualRefreshLoading) break
-            }
-        } else {
-            // Smoothly reset back to 0 (optional, for clean stop)
-            rotation.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(durationMillis = 300, easing = LinearEasing)
+private fun LoadingSection() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                strokeWidth = 4.dp
+            )
+            Text(
+                text = "Loading content...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
-
-    TopAppBar(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
-        title = {
-            AnimatedContent(
-                targetState = isSearchExpanded,
-                transitionSpec = {
-                    slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
-                },
-                label = "search_anim"
-            ) { expanded ->
-                if (expanded) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search content...") },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                isSearchExpanded = false
-                                onSearchQueryChange("")
-                            }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close search")
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Text(
-                        "Explore",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        },
-        actions = {
-            if (!isSearchExpanded) {
-                IconButton(onClick = { isSearchExpanded = true }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
-
-                // 🔁 Refresh Icon (controlled rotation)
-                IconButton(
-                    onClick = {
-                        if (!isManualRefreshLoading) { // prevent spam clicks
-                            coroutineScope.launch { onRefresh() }
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        modifier = Modifier.rotate(rotation.value)
-                    )
-                }
-
-                // 🧩 Filter Button Animation
-                val filterRotation by animateFloatAsState(
-                    targetValue = if (isFilterExpanded) 180f else 0f,
-                    animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f),
-                    label = "filter_rotation"
-                )
-                val scale by animateFloatAsState(
-                    targetValue = if (isFilterExpanded) 1.1f else 1f,
-                    animationSpec = spring(stiffness = 400f),
-                    label = "filter_scale"
-                )
-
-                FilterButtonWithIndicator(
-                    isFilterExpanded = isFilterExpanded,
-                    rotation = filterRotation,
-                    scale = scale,
-                    onClick = {
-                        isFilterExpanded = !isFilterExpanded
-                        onToggleFilters()
-                    }
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-            titleContentColor = MaterialTheme.colorScheme.onSurface
-        )
-    )
 }
 
-
-
-
 @Composable
-private fun FilterButtonWithIndicator(
-    isFilterExpanded: Boolean,
-    rotation: Float,
-    scale: Float,
-    onClick: () -> Unit
+private fun EmptyStateSection(
+    searchQuery: String,
+    selectedCategory: String,
+    onClearFilters: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier.wrapContentSize(),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.graphicsLayer {
-                rotationZ = rotation
-                scaleX = scale
-                scaleY = scale
-            }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.FilterList,
-                contentDescription = if (isFilterExpanded) "Hide filters" else "Show filters"
-            )
-        }
-
-        // ✅ Now AnimatedVisibility has its own neutral scope
-        Box(contentAlignment = Alignment.Center) {
-            AnimatedVisibility(
-                visible = isFilterExpanded,
-                enter = fadeIn(),
-                exit = fadeOut()
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                            )
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChevronLeft,
+                    imageVector = Icons.Default.SearchOff,
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(12.dp)
-                        .offset(x = 16.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
+            }
+
+            Text(
+                text = if (searchQuery.isNotEmpty()) "No results found" else "No content available",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            val message = when {
+                searchQuery.isNotEmpty() -> "Try different search terms or clear filters"
+                selectedCategory != "All" -> "No content found in this category"
+                else -> "Check back later for new content"
+            }
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (searchQuery.isNotEmpty() || selectedCategory != "All") {
+                Button(
+                    onClick = onClearFilters,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Clear Filters")
+                }
             }
         }
     }
@@ -817,7 +887,6 @@ fun FrostedFiltersStickyHeader(
         }
     }
 }
-
 
 @Composable
 private fun FrostedStickyFilters(
@@ -922,105 +991,48 @@ private fun FrostedStickyFilters(
     }
 }
 
-@Composable
-private fun LoadingSection() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                strokeWidth = 4.dp
-            )
-            Text(
-                text = "Loading content...",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
 
 @Composable
-private fun EmptyStateSection(
-    searchQuery: String,
-    selectedCategory: String,
-    onClearFilters: () -> Unit,
-    modifier: Modifier = Modifier // ✅ Added this
+private fun FilterButtonWithIndicator(
+    isFilterExpanded: Boolean,
+    rotation: Float,
+    scale: Float,
+    onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.wrapContentSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.graphicsLayer {
+                rotationZ = rotation
+                scaleX = scale
+                scaleY = scale
+            }
         ) {
-            // Empty state icon
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+            Icon(
+                imageVector = Icons.Default.FilterList,
+                contentDescription = if (isFilterExpanded) "Hide filters" else "Show filters"
+            )
+        }
+
+        // ✅ Now AnimatedVisibility has its own neutral scope
+        Box(contentAlignment = Alignment.Center) {
+            AnimatedVisibility(
+                visible = isFilterExpanded,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
                 Icon(
-                    imageVector = Icons.Default.SearchOff,
+                    imageVector = Icons.Default.ChevronLeft,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    modifier = Modifier
+                        .size(12.dp)
+                        .offset(x = 16.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                 )
-            }
-
-            Text(
-                text = if (searchQuery.isNotEmpty()) "No results found" else "No content available",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            val message = when {
-                searchQuery.isNotEmpty() -> "Try different search terms or clear filters"
-                selectedCategory != "All" -> "No content found in this category"
-                else -> "Check back later for new content"
-            }
-
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (searchQuery.isNotEmpty() || selectedCategory != "All") {
-                Button(
-                    onClick = onClearFilters,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Clear Filters")
-                }
             }
         }
     }
-
-
 }
