@@ -360,7 +360,7 @@ private fun ExploreTopBar(
     )
 
     TopAppBar(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+        modifier = Modifier, // ❗ No inset padding here
         title = {
             AnimatedContent(targetState = isSearchExpanded, transitionSpec = {
                 slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
