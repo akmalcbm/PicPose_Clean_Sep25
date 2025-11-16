@@ -97,6 +97,9 @@ fun AIPromptDetailScreen(
     onTagClick: (String) -> Unit, // NEW: navigate to Tag screen
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var localPrompt by remember { mutableStateOf<AIPrompt?>(null) }
+
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
@@ -161,13 +164,16 @@ fun AIPromptDetailScreen(
             ?: uiState.allPrompts.find { it.id == promptId }
     }*/
 
-    val prompt = remember(promptId, uiState.allPrompts) {
+    val prompt = remember(promptId, uiState.allPrompts, uiState.selectedPrompt) {
         Log.d("PromptDetail", "Received promptId = $promptId")
         Log.d("PromptDetail", "Total prompts available = ${uiState.allPrompts.size}")
 
-        val match = uiState.allPrompts.find { it.id == promptId }
-        Log.d("PromptDetail", "Matched prompt? = ${match != null}")
+        val fromList = uiState.allPrompts.find { it.id?.trim() == promptId.trim() }
+        val fromSelected = uiState.selectedPrompt?.takeIf { it.id?.trim() == promptId.trim() }
 
+        val match = fromList ?: fromSelected
+
+        Log.d("PromptDetail", "Matched prompt? = ${match != null}")
         match
     }
 
@@ -179,19 +185,20 @@ fun AIPromptDetailScreen(
     }
 
     LaunchedEffect(promptId) {
-        if (prompt == null && !uiState.isLoading) {
-            Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
-            Log.e("PromptDetail", "❌ Prompt missing from allPrompts list. promptId=$promptId")
-            Log.e("PromptDetail", "First 5 ids: ${uiState.allPrompts.take(5).map { it.id }}")
-            Log.w("PromptDetail", "Fallback → loading prompt by id: $promptId")
-            viewModel.loadPromptById(promptId)
-        }
-        // ✅ Increment view count in background
-        runCatching {
-            viewModel.incrementViewCount(promptId.toInt())
+        val numericId = promptId.toIntOrNull()
+        if (numericId != null) {
+            viewModel.incrementViewCount(numericId)
         }
 
+        if (prompt == null) {
+            Log.w("PromptDetail", "⚠️ Prompt $promptId not found in memory → Fetching from API")
+            viewModel.loadPromptById(promptId)
+        } else {
+            // ensure VM knows which one is selected (in case we navigated from deep link)
+            viewModel.selectPromptForDetail(prompt)
+        }
     }
+
 
     LaunchedEffect(prompt?.id, prompt?.category) {
         val category = prompt?.category
@@ -224,6 +231,27 @@ fun AIPromptDetailScreen(
             isTransitionLoading = false
         } else {
             isTransitionLoading = true
+        }
+    }
+
+    LaunchedEffect(promptId, uiState.allPrompts, uiState.selectedPrompt) {
+        Log.d("PromptDetail", "Received promptId = $promptId")
+        Log.d("PromptDetail", "Total prompts available = ${uiState.allPrompts.size}")
+
+        val idTrim = promptId.trim()
+        val mergedSearch = listOfNotNull(
+            uiState.selectedPrompt,
+            *uiState.allPrompts.toTypedArray()
+        ).find { it.id?.trim() == idTrim }
+
+        Log.d("PromptDetail", "Matched prompt? = ${mergedSearch != null}")
+
+        if (mergedSearch != null) {
+            localPrompt = mergedSearch
+            viewModel.selectPromptForDetail(mergedSearch)
+        } else {
+            Log.w("PromptDetail", "⚠️ Not found → Fetching from API")
+            viewModel.loadPromptById(promptId)
         }
     }
 

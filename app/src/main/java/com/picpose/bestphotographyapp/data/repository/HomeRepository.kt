@@ -45,6 +45,7 @@ class HomeRepository(
 
     // Limit concurrent API calls (protect backend)
     private val apiSemaphore: Semaphore = Semaphore(3)
+
 ) {
     private val apiService: ApiService = RetrofitClient.apiService
     private val database = AppDatabase.getDatabase(context)
@@ -54,6 +55,18 @@ class HomeRepository(
     
     // API key to use for all requests - null is acceptable per API definition
     private val requestApiKey: String? = apiKey ?: RetrofitClient.defaultApiKey
+
+
+    companion object {
+        private var lastTotalPrompts: Int = 0
+
+        fun getLastTotalPrompts(): Int = lastTotalPrompts
+
+        fun setLastTotalPrompts(total: Int) {
+            lastTotalPrompts = total
+        }
+    }
+
 
     init {
         // optionally set global API key for RetrofitClient
@@ -259,6 +272,8 @@ class HomeRepository(
     }
 
     // Optionally expose a simpler list-based version (no meta)
+    // Optionally expose a simpler list-based version (no meta, but we still read total)
+    // simple list-based
     suspend fun getAiPostsSimple(
         page: Int = 1,
         limit: Int = 20,
@@ -269,16 +284,19 @@ class HomeRepository(
             val offsetValue = (page - 1) * limit
 
             val response = apiService.getAiPosts(
-                apiKey = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c", // ✅ matches your ApiService
+                apiKey = requestApiKey,
                 limit = limit,
-                offset = offsetValue, // ✅ correctly named parameter
+                offset = offsetValue,
                 category = category,
                 q = search,
                 status = "published"
             )
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data ?: emptyList()
+                val body = response.body()!!
+                val data = body.data ?: emptyList()
+                lastTotalPrompts = body.total ?: data.size      // ✅ save total
+
                 emit(Result.success(data))
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "Unknown API error")))
@@ -288,8 +306,6 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
-
-
 
 
     // Replace your current toggleFavorite function with this FIXED version:
@@ -333,32 +349,53 @@ class HomeRepository(
 
 
     /**
-     * Returns a typed list flow similar to older API naming used in ViewModel.
-     * Internally uses getAiPostsSimple.
+     * Paginated fetch of AI Prompts (Typed)
+     * Updates last total count for UI pagination
      */
     suspend fun getAllAIPromptsTyped(
         page: Int = 1,
         limit: Int = 20,
         category: String? = null,
-        search: String? = null,
-        tag: String? = null
+        search: String? = null
     ): Flow<Result<List<AIPrompt>>> = flow {
         try {
-            val inner = getAiPostsSimple(page = page, limit = limit, category = category, search = search)
-            inner.collect { r ->
-                r.fold(
-                    onSuccess = { list -> emit(Result.success(list)) },
-                    onFailure = { err -> emit(Result.failure(err)) }
-                )
+            val offset = (page - 1) * limit
+
+            Log.d(TAG, "getAllAIPromptsTyped => page=$page, limit=$limit, offset=$offset, category=$category, search=$search")
+
+            val response = apiService.getAiPosts(
+                apiKey = requestApiKey,
+                limit = limit,
+                offset = offset,
+                category = category,
+                q = search,
+                status = "published"
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val body = response.body()!!
+                val data = body.data ?: emptyList()
+
+                // ⭐ Update last total count for pagination & UI
+                body.total?.let { setLastTotalPrompts(it) }
+
+                // ⭐ Enrich local favorite flags
+                val enriched = data.map { p ->
+                    val fav = favoriteDao.isFavorite(p.id)
+                    p.copy(isFavorite = fav)
+                }
+
+                emit(Result.success(enriched))
+            } else {
+                emit(Result.failure(Exception(response.body()?.message ?: "API error")))
             }
         } catch (e: Exception) {
             Log.e(TAG, "getAllAIPromptsTyped exception: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getAllAIPromptsTyped flow exception: ${e.message}")
-        emit(Result.failure(e))
-    }
+    }.flowOn(Dispatchers.IO)
+
+
 
     /**
      * Alias for paginated get - matches ViewModel expected name getAllAIPrompts.
@@ -430,42 +467,33 @@ class HomeRepository(
      */
     suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
         try {
-            // Use the existing getAiPosts API with a search filter
-            val result = safeApiCall {
-                callWithRetries {
-                    apiService.getAiPosts(
-                        apiKey = requestApiKey,
-                        limit = 1,
-                        offset = 0,
-                        q = promptId // Search by ID
-                    )
-                }
-            }
-            
-            result.fold(
-                onSuccess = { wrapper ->
-                    val prompts = wrapper.data?.firstOrNull()
-                    if (prompts != null) {
-                        // Enrich with favorite status
-                        val isFav = withContext(Dispatchers.IO) {
-                            try { favoriteDao.isFavorite(prompts.id) } catch (_: Exception) { false }
-                        }
-                        emit(Result.success(prompts.copy(isFavorite = isFav)))
-                    } else {
-                        emit(Result.failure(Exception("Prompt not found")))
-                    }
-                },
-                onFailure = { error ->
-                    Log.w(TAG, "getPromptById failed: ${error.message}")
-                    emit(Result.failure(error))
-                }
+            val response = apiService.getPromptById(
+                promptId = promptId,
+                apiKey = requestApiKey
             )
 
+            if (response.isSuccessful && response.body()?.success == true) {
+                val body = response.body()!!
+                val prompt = body.data ?: throw Exception("Prompt not found")
+
+                // fetch favorite state from Room
+                val isFav = withContext(Dispatchers.IO) {
+                    favoriteDao.isFavorite(prompt.id)
+                }
+
+                emit(Result.success(prompt.copy(isFavorite = isFav)))
+            } else {
+                emit(Result.failure(Exception(response.body()?.message ?: "Prompt not found")))
+            }
+
         } catch (e: Exception) {
-            Log.e(TAG, "getPromptById exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+
+
+
 
     // -------------------------
     // GUIDE POSTS (paginated)

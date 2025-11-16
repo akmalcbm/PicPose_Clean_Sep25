@@ -13,5 +13,5 @@ data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,
     val data: T? = null,
-    val total: Int? = null // ✅ NEW: server-wide total items
+    val total: Int? = null        // ✅ NEW
 )

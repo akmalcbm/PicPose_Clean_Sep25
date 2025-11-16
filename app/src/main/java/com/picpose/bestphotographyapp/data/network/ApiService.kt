@@ -26,8 +26,9 @@ interface ApiService {
     @GET("api/ai_posts/get_ai_post.php")
     suspend fun getPromptById(
         @Query("id") promptId: String,
-        @Query("api_key") apiKey: String? = null
+        @Query("api_key") apiKey: String?
     ): Response<ApiResponse<AIPrompt>>
+
 
     /**
      * General list of AI posts with optional filters.

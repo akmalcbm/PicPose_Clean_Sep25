@@ -7,12 +7,11 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,7 +21,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -32,10 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 enum class ViewMode { GRID, LIST }
@@ -57,6 +59,9 @@ fun AllAIPromptsScreen(
     var showSearch by remember { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
 
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+
     // ✅ Edge-to-edge setup for Android 11+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -66,7 +71,7 @@ fun AllAIPromptsScreen(
 
     // ✅ Initial data load
     LaunchedEffect(Unit) {
-        viewModel.loadAllPrompts()
+        viewModel.loadAllPrompts(page = 1, forceRefresh = true)
         viewModel.loadCategories()
         initialCategory?.takeIf { it.isNotBlank() && it != "All" }?.let {
             viewModel.updateSelectedCategory(it)
@@ -81,6 +86,35 @@ fun AllAIPromptsScreen(
                 viewModel.clearError()
             }
         }
+    }
+
+    // ✅ Infinite scroll listener for LIST
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filter { it != null }
+            .map { it!! }
+            .distinctUntilChanged()
+            .collect { lastIndex ->
+                val totalItems = uiState.allPrompts.size
+                if (lastIndex >= totalItems - 5) {
+                    // near end → load next page
+                    viewModel.onListEndReached()
+                }
+            }
+    }
+
+    // ✅ Infinite scroll listener for GRID
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filter { it != null }
+            .map { it!! }
+            .distinctUntilChanged()
+            .collect { lastIndex ->
+                val totalItems = uiState.allPrompts.size
+                if (lastIndex >= totalItems - 4) {
+                    viewModel.onListEndReached()
+                }
+            }
     }
 
     val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
@@ -102,20 +136,23 @@ fun AllAIPromptsScreen(
         topBar = {
             TopAppBar(
                 title = {
+                    val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
+
                     Text(
                         text = if (uiState.selectedCategory != "All")
-                            "${uiState.selectedCategory} Prompts (${uiState.totalPromptsCount})"
+                            "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
                         else
-                            "All Prompts (${uiState.totalPromptsCount})"
+                            "All Prompts ($total)"   // ✅ e.g. All Prompts (188)
                     )
                 },
+
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadAllPrompts() }) {
+                    IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     IconButton(onClick = { showSearch = !showSearch }) {
@@ -202,7 +239,7 @@ fun AllAIPromptsScreen(
             }
 
             when {
-                uiState.isLoading -> {
+                uiState.isLoading && displayPrompts.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
@@ -227,6 +264,7 @@ fun AllAIPromptsScreen(
                     when (viewMode) {
                         ViewMode.GRID -> {
                             LazyVerticalGrid(
+                                state = gridState,
                                 columns = GridCells.Adaptive(minSize = 160.dp),
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
@@ -238,14 +276,22 @@ fun AllAIPromptsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                                items(displayPrompts, key = { it.id ?: it.hashCode().toString() }) { prompt ->
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                Log.d("PromptClick", "Clicked Prompt → id=${prompt.id}")
-                                                onPromptClick(prompt.id?.toString() ?: "")
-                                                       },
+                                                val id = prompt.id
+                                                if (id != null) {
+                                                    viewModel.selectPromptForDetail(prompt)  // ✅ set in VM
+                                                    Log.d("PromptClick", "Clicked Prompt → id=$id")
+                                                    onPromptClick(id)
+                                                } else {
+                                                    Toast
+                                                        .makeText(context, "Invalid prompt id", Toast.LENGTH_SHORT)
+                                                        .show()
+                                                }
+                                            },
                                         shape = RoundedCornerShape(14.dp),
                                         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -321,6 +367,7 @@ fun AllAIPromptsScreen(
 
                         ViewMode.LIST -> {
                             LazyColumn(
+                                state = listState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
@@ -330,10 +377,20 @@ fun AllAIPromptsScreen(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(displayPrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                                items(displayPrompts, key = { it.id ?: it.hashCode().toString() }) { prompt ->
                                     AIPromptCard(
                                         prompt = prompt,
-                                        onClick = { onPromptClick(prompt.id?.toString() ?: "") },
+                                        onClick = {
+                                            val id = prompt.id
+                                            if (id != null) {
+                                                viewModel.selectPromptForDetail(prompt)  // ✅ set VM
+                                                onPromptClick(id)
+                                            } else {
+                                                Toast
+                                                    .makeText(context, "Invalid prompt id", Toast.LENGTH_SHORT)
+                                                    .show()
+                                            }
+                                        },
                                         onCopy = {
                                             val textToCopy =
                                                 prompt.shortPrompt ?: prompt.fullPrompt ?: ""
