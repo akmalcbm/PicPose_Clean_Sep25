@@ -5,11 +5,13 @@ package com.picpose.bestphotographyapp.data.remote
  * {
  *   "success": true,
  *   "message": "OK",
+ *   "total": 188,
  *   "data": [...]
  * }
  */
 data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,
-    val data: T? = null
+    val data: T? = null,
+    val total: Int? = null // ✅ NEW: server-wide total items
 )

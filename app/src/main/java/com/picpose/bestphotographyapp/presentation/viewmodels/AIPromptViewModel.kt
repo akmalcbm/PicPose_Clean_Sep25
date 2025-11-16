@@ -32,6 +32,8 @@ data class AIPromptUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false,
     val similarPrompts: List<AIPrompt> = emptyList(),
+
+    val totalPromptsCount: Int = 0   // ⭐ NEW
 )
 
 @RequiresApi(Build.VERSION_CODES.O)

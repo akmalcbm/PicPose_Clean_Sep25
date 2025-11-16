@@ -104,9 +104,9 @@ fun AllAIPromptsScreen(
                 title = {
                     Text(
                         text = if (uiState.selectedCategory != "All")
-                            "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
+                            "${uiState.selectedCategory} Prompts (${uiState.totalPromptsCount})"
                         else
-                            "All Prompts (${displayPrompts.size})"
+                            "All Prompts (${uiState.totalPromptsCount})"
                     )
                 },
                 navigationIcon = {
