@@ -8,6 +8,263 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.data.models.AIPrompt
+
+@Composable
+fun AIPromptCard(
+    prompt: AIPrompt,
+    onClick: () -> Unit,
+    onCopy: () -> Unit,
+    isCompact: Boolean = false,
+    showFavoriteIcon: Boolean = true,
+    onFavoriteClick: (AIPrompt) -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+
+    // ============================================================================================
+    //  FIX: Prevent Image Reload Flicker When Heart Is Clicked
+    // ============================================================================================
+
+    val fixedImageUrl = remember(prompt.imageUrl) { prompt.imageUrl }
+
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(fixedImageUrl)
+            .crossfade(true) // first load only
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .allowHardware(true)
+            .build(),
+        filterQuality = FilterQuality.None // prevents redraw crash/flicker
+    )
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surface)
+    ) {
+
+        Column {
+
+            // =====================================================================
+            //  IMAGE SECTION (FLICKER-PROOF)
+            // =====================================================================
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            ) {
+
+                Image(
+                    painter = painter,
+                    contentDescription = prompt.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                when (painter.state) {
+                    is AsyncImagePainter.State.Loading -> {
+                        Box(
+                            Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+
+                    is AsyncImagePainter.State.Error -> {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.BrokenImage,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+
+                    else -> {}
+                }
+            }
+
+            // =====================================================================
+            //  CONTENT SECTION
+            // =====================================================================
+
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+
+                Text(
+                    text = prompt.title ?: "",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(6.dp))
+
+                Text(
+                    text = prompt.shortPrompt ?: "",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = colors.onSurfaceVariant
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // =====================================================================
+                //  BOTTOM ROW — CATEGORY | POPULAR | LIKE | VIEWS
+                // =====================================================================
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    // ---------- LEFT GROUP ----------
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                        // CATEGORY
+                        if (!prompt.category.isNullOrBlank()) {
+                            Text(
+                                text = prompt.category!!,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = colors.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            )
+                        }
+
+                        Spacer(Modifier.width(12.dp))
+
+                        // POPULAR
+                        if (prompt.isPopular) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Whatshot,
+                                    contentDescription = null,
+                                    tint = colors.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "Popular",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.error
+                                )
+                            }
+                        }
+                    }
+
+                    // ---------- RIGHT GROUP (LIKE + VIEWS) ----------
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                        // LIKE HEART
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable {
+                                onFavoriteClick(prompt)
+                            }
+                        ) {
+                            Icon(
+                                if (prompt.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Like",
+                                tint = if (prompt.isFavorite) colors.error else colors.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+
+                            Spacer(Modifier.width(4.dp))
+
+                            Text(
+                                "${prompt.likes}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(Modifier.width(16.dp))
+
+                        // VIEWS
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Visibility,
+                                contentDescription = "Views",
+                                tint = colors.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "${prompt.views ?: 0}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+/*
+package com.picpose.bestphotographyapp.presentation.components
+
+import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -305,3 +562,4 @@ fun AIPromptCard(
         }
     }
 }
+*/

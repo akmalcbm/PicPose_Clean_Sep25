@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -241,7 +242,10 @@ fun AllAIPromptsScreen(
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onPromptClick(prompt.id?.toString() ?: "") },
+                                            .clickable {
+                                                Log.d("PromptClick", "Clicked Prompt → id=${prompt.id}")
+                                                onPromptClick(prompt.id?.toString() ?: "")
+                                                       },
                                         shape = RoundedCornerShape(14.dp),
                                         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

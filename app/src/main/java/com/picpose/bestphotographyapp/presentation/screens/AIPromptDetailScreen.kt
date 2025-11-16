@@ -155,9 +155,22 @@ fun AIPromptDetailScreen(
     }
 
     var showImageDialog by remember { mutableStateOf(false) }
+
+    /*val prompt = remember(promptId, uiState.allPrompts) {
+        uiState.allPrompts.find { it.id.toString() == promptId }
+            ?: uiState.allPrompts.find { it.id == promptId }
+    }*/
+
     val prompt = remember(promptId, uiState.allPrompts) {
-        uiState.allPrompts.find { it.id == promptId }
+        Log.d("PromptDetail", "Received promptId = $promptId")
+        Log.d("PromptDetail", "Total prompts available = ${uiState.allPrompts.size}")
+
+        val match = uiState.allPrompts.find { it.id == promptId }
+        Log.d("PromptDetail", "Matched prompt? = ${match != null}")
+
+        match
     }
+
 
     if (showImageDialog) {
         prompt?.imageUrl?.let {
@@ -168,6 +181,9 @@ fun AIPromptDetailScreen(
     LaunchedEffect(promptId) {
         if (prompt == null && !uiState.isLoading) {
             Log.d("PromptDetail", "Prompt $promptId not in cache, loading...")
+            Log.e("PromptDetail", "❌ Prompt missing from allPrompts list. promptId=$promptId")
+            Log.e("PromptDetail", "First 5 ids: ${uiState.allPrompts.take(5).map { it.id }}")
+            Log.w("PromptDetail", "Fallback → loading prompt by id: $promptId")
             viewModel.loadPromptById(promptId)
         }
         // ✅ Increment view count in background

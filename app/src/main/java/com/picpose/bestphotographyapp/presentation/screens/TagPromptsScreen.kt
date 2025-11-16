@@ -104,6 +104,10 @@ fun TagPromptsScreen(
                                     snackbarHostState.showSnackbar("Prompt copied to clipboard")
                                 }
                             },
+                            isCompact = TODO(),
+                            showFavoriteIcon = TODO(),
+                            onFavoriteClick = TODO(),
+                            modifier = TODO(),
                             //onFavoriteToggle = { /* optionally wire favorite toggle here */ }
                         )
                     }

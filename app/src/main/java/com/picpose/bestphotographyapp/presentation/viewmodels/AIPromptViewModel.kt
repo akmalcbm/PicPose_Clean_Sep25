@@ -76,9 +76,11 @@ class AIPromptViewModel @Inject constructor(
     private var loadFavoritesJob: Job? = null
 
     init {
-        loadAllPrompts()
-        loadFavoritePrompts()
-        loadCategories()
+        viewModelScope.launch {
+            loadAllPrompts()
+            loadFavoritePrompts()
+            loadCategories()
+        }
     }
 
     // =========================================================================

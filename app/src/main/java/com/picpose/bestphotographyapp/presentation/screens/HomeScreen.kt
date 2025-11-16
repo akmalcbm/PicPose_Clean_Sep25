@@ -48,7 +48,7 @@ fun HomeScreen(
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
     onNavigateToGuidePostDetail: (GuidePost) -> Unit,
-    onNavigateToViewAll: (String) -> Unit // ✅ NEW
+    onNavigateToViewAll: (String) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
