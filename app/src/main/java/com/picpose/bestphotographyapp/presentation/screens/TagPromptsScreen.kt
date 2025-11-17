@@ -1,17 +1,39 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.admanager.AdManagerAdRequest
+import com.google.android.gms.ads.nativead.MediaView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.google.android.gms.ads.nativead.NativeAdView
+import com.google.android.gms.ads.AdLoader
+import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
@@ -27,6 +49,17 @@ fun TagPromptsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    val listState = rememberLazyListState()
+
+    // Normalize tag (remove leading # for matching & display)
+    val normalizedTag = remember(tag) { tag.removePrefix("#") }
+
+    // Sort state
+    var sortOption by rememberSaveable(normalizedTag) {
+        mutableStateOf(TagSortOption.LATEST)
+    }
 
     // Ensure prompts are loaded
     LaunchedEffect(Unit) {
@@ -35,44 +68,131 @@ fun TagPromptsScreen(
         }
     }
 
-    // Normalize tag (remove leading # for matching)
-    val normalizedTag = remember(tag) { tag.removePrefix("#") }
+    // Scroll to top when tag or sort changes
+    LaunchedEffect(normalizedTag, sortOption) {
+        listState.scrollToItem(0)
+    }
 
-    // Build filtered list
-    val taggedPrompts = remember(uiState.allPrompts, normalizedTag) {
-        uiState.allPrompts.filter { prompt ->
-            prompt.tags?.any { t ->
-                t.equals(normalizedTag, ignoreCase = true) ||
-                        t.equals(tag, ignoreCase = true) // in case tags already include '#'
-            } == true
+    // Native Ad state
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+
+    DisposableEffect(normalizedTag) {
+        val adLoader = AdLoader.Builder(
+            context,
+            // ✅ Test native ad unit
+            "ca-app-pub-3940256099942544/2247696110"
+        )
+            .forNativeAd { ad ->
+                nativeAd?.destroy()
+                nativeAd = ad
+            }
+            .withNativeAdOptions(
+                NativeAdOptions.Builder()
+                    .build()
+            )
+            .build()
+
+        adLoader.loadAd(AdManagerAdRequest.Builder().build())
+
+        onDispose {
+            nativeAd?.destroy()
+            nativeAd = null
         }
     }
+
+    // Filter by tag + apply sort
+    val taggedPrompts: List<AIPrompt> by remember(
+        uiState.allPrompts,
+        normalizedTag,
+        sortOption
+    ) {
+        mutableStateOf(
+            uiState.allPrompts
+                .filter { prompt ->
+                    prompt.tags?.any { t ->
+                        t.equals(normalizedTag, ignoreCase = true) ||
+                                t.equals(tag, ignoreCase = true) // if tags already contain '#'
+                    } == true
+                }
+                .let { list ->
+                    when (sortOption) {
+                        TagSortOption.LATEST -> list // API already returns latest first
+                        TagSortOption.MOST_VIEWED -> list.sortedByDescending { it.views }
+                        TagSortOption.MOST_LIKED -> list.sortedByDescending { it.likes }
+                    }
+                }
+        )
+    }
+
+    val accentColor = tagAccentColor(normalizedTag)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = "#$normalizedTag • ${taggedPrompts.size} prompts", fontWeight = FontWeight.SemiBold)
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Label,
+                                contentDescription = "Tag",
+                                tint = Color.White,
+                                modifier = Modifier.padding(end = 6.dp)
+                            )
+                            Text(
+                                text = "#$normalizedTag",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        if (taggedPrompts.isNotEmpty()) {
+                            Text(
+                                text = "${taggedPrompts.size} prompts",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
-                }
+                },
+                actions = {
+                    TagSortDropdown(
+                        current = sortOption,
+                        onChange = { sortOption = it },
+                        containerColor = accentColor
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = accentColor,
+                    navigationIconContentColor = Color.White,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            TagBannerAd()
+        }
     ) { innerPadding ->
+
         when {
             uiState.isLoading && uiState.allPrompts.isEmpty() -> {
-                Box(
+                // 🔄 Shimmer style 2 – full-width grey bars
+                TagShimmerList(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                        .padding(innerPadding)
+                )
             }
 
             taggedPrompts.isEmpty() -> {
@@ -82,7 +202,21 @@ fun TagPromptsScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No prompts found for #$normalizedTag")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "No prompts found",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Try another tag or refresh.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -91,28 +225,282 @@ fun TagPromptsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
+                    state = listState,
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 12.dp,
+                        bottom = 80.dp // space above banner ad
+                    ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(taggedPrompts) { prompt ->
+
+                    // Small header row with sort info
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Showing ${taggedPrompts.size} prompts",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = when (sortOption) {
+                                    TagSortOption.LATEST -> "Sorted: Latest"
+                                    TagSortOption.MOST_VIEWED -> "Sorted: Most Viewed"
+                                    TagSortOption.MOST_LIKED -> "Sorted: Most Liked"
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    // Cards + inline native ad
+                    itemsIndexed(taggedPrompts) { index, prompt ->
                         AIPromptCard(
                             prompt = prompt,
                             onClick = { onPromptClick(prompt.id) },
                             onCopy = {
-                                // optional snackbar after copy if your card exposes a copy callback
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("Prompt copied to clipboard")
                                 }
                             },
-                            isCompact = TODO(),
-                            showFavoriteIcon = TODO(),
-                            onFavoriteClick = TODO(),
-                            modifier = TODO(),
-                            //onFavoriteToggle = { /* optionally wire favorite toggle here */ }
+                            // You can adjust based on your global style
+                            isCompact = false,
+                            showFavoriteIcon = true,
+                            onFavoriteClick = {
+                                viewModel.toggleFavorite(prompt)
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
+
+                        // Insert native ad after 5th prompt (if available)
+                        if (index == 4 && nativeAd != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TagNativeAdCard(nativeAd = nativeAd!!)
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+// ---------------------------------------------
+// 🎨 Tag accent color (based on tag keywords)
+// ---------------------------------------------
+@Composable
+private fun tagAccentColor(tag: String): Color {
+    val lower = tag.lowercase()
+
+    return when {
+        // Fashion / style tags – pink
+        listOf("fashion", "style", "outfit", "dress", "barbie").any { it in lower } ->
+            Color(0xFFFF80AB)
+
+        // Sports tags – blue
+        listOf("sport", "cricket", "football", "soccer", "bike", "rider").any { it in lower } ->
+            Color(0xFF448AFF)
+
+        // Baby / kids – soft amber
+        listOf("baby", "kid", "child", "toddler", "cute").any { it in lower } ->
+            Color(0xFFFFC107)
+
+        // Wedding, couples – deep pink
+        listOf("wedding", "bride", "groom", "couple", "love").any { it in lower } ->
+            Color(0xFFE91E63)
+
+        else -> MaterialTheme.colorScheme.primary
+    }
+}
+
+// ---------------------------------------------
+// 🔽 Sort dropdown
+// ---------------------------------------------
+private enum class TagSortOption {
+    LATEST, MOST_VIEWED, MOST_LIKED
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TagSortDropdown(
+    current: TagSortOption,
+    onChange: (TagSortOption) -> Unit,
+    containerColor: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        AssistChip(
+            onClick = { expanded = true },
+            label = {
+                Text(
+                    text = when (current) {
+                        TagSortOption.LATEST -> "Latest"
+                        TagSortOption.MOST_VIEWED -> "Most Viewed"
+                        TagSortOption.MOST_LIKED -> "Most Liked"
+                    },
+                    color = Color.White
+                )
+            },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = containerColor.copy(alpha = 0.35f),
+                labelColor = Color.White
+            ),
+            border = null
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Latest First") },
+                onClick = {
+                    expanded = false
+                    onChange(TagSortOption.LATEST)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Most Viewed") },
+                onClick = {
+                    expanded = false
+                    onChange(TagSortOption.MOST_VIEWED)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Most Liked") },
+                onClick = {
+                    expanded = false
+                    onChange(TagSortOption.MOST_LIKED)
+                }
+            )
+        }
+    }
+}
+
+// ---------------------------------------------
+// 💡 Style-2 full width shimmer list
+// ---------------------------------------------
+@Composable
+private fun TagShimmerList(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(6) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        shape = MaterialTheme.shapes.medium
+                    )
+            )
+        }
+    }
+}
+
+// ---------------------------------------------
+// 📢 Native Ad (simple card style)
+// ---------------------------------------------
+@Composable
+private fun TagNativeAdCard(nativeAd: NativeAd) {
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp),
+        factory = { context ->
+            val adView = NativeAdView(context)
+
+            val root = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(32, 32, 32, 32)
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val media = MediaView(context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (180.dp.value * context.resources.displayMetrics.density).toInt()
+                )
+            }
+
+            val headline = TextView(context).apply {
+                textSize = 16f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            }
+
+            val body = TextView(context).apply {
+                textSize = 14f
+            }
+
+            val cta = Button(context)
+
+            root.addView(media)
+            root.addView(headline)
+            root.addView(body)
+            root.addView(cta)
+
+            adView.apply {
+                addView(root)
+                mediaView = media
+                headlineView = headline
+                bodyView = body
+                callToActionView = cta
+            }
+        },
+        update = { adView ->
+            (adView.headlineView as? TextView)?.text = nativeAd.headline
+            (adView.bodyView as? TextView)?.apply {
+                text = nativeAd.body ?: ""
+                visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+            (adView.callToActionView as? Button)?.apply {
+                text = nativeAd.callToAction ?: "Install"
+                visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+            adView.mediaView?.mediaContent = nativeAd.mediaContent
+            adView.setNativeAd(nativeAd)
+        }
+    )
+}
+
+// ---------------------------------------------
+// 📺 Banner Ad Bottom Bar
+// ---------------------------------------------
+@Composable
+private fun TagBannerAd() {
+    val context = LocalContext.current
+
+    Surface(
+        tonalElevation = 3.dp
+    ) {
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            factory = {
+                AdView(context).apply {
+                    // ✅ Test banner ad unit
+                    adUnitId = "ca-app-pub-3940256099942544/6300978111"
+                    setAdSize(AdSize.BANNER)
+                    loadAd(AdRequest.Builder().build())
+                }
+            }
+        )
     }
 }
