@@ -39,6 +39,9 @@ data class AIPromptUiState(
     val isRefreshing: Boolean = false,
     val similarPrompts: List<AIPrompt> = emptyList(),
 
+    // 🔹 Add this missing property!
+    val tagPrompts: List<AIPrompt> = emptyList(),
+
     // 🔢 Server total count (from "total")
     val totalPrompts: Int = 0,
 
@@ -46,7 +49,6 @@ data class AIPromptUiState(
     val selectedPrompt: AIPrompt? = null
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class AIPromptViewModel @Inject constructor(
     private val repository: HomeRepository,
@@ -290,52 +292,65 @@ class AIPromptViewModel @Inject constructor(
      */
     private val ongoingDetailFetches = mutableSetOf<String>()
 
+    // 🔹 Single Prompt for Detail Screen
     fun loadPromptById(promptId: String) {
-        if (promptId.isBlank()) return
-
-        // 🚫 Prevent duplicate fetch flood
-        if (ongoingDetailFetches.contains(promptId)) {
-            Log.d(TAG, "Skipping duplicate detail fetch id=$promptId")
-            return
+        // already same prompt selected → skip
+        uiState.value.selectedPrompt?.let {
+            if (it.id == promptId) {
+                Log.d(TAG, "loadPromptById: skipping, already selected id=$promptId")
+                return
+            }
         }
-        ongoingDetailFetches.add(promptId)
 
-        viewModelScope.launch(errorHandler) {
+        viewModelScope.launch {
+            Log.d(TAG, "loadPromptById: fetching from API id=$promptId")
+
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
             try {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-
-                repository.getPromptById(promptId)
-                    .collect { result ->
-                        result.fold(
-                            onSuccess = { prompt ->
-
-                                // merge into allPrompts list
-                                val updated = (_uiState.value.allPrompts + prompt)
+                repository.getPromptById(promptId).collect { result ->
+                    result.fold(
+                        onSuccess = { prompt ->
+                            _uiState.update { state ->
+                                // merge into list (avoid duplicates)
+                                val merged = (state.allPrompts + prompt)
                                     .distinctBy { it.id }
 
-                                _uiState.update {
-                                    it.copy(
-                                        selectedPrompt = prompt,
-                                        allPrompts = updated,
-                                        isLoading = false
-                                    )
-                                }
-
-                                prompt.category?.let { cat ->
-                                    loadSimilarPrompts(cat, prompt.id!!)
-                                }
-                            },
-                            onFailure = { ex ->
-                                Log.e(TAG, "loadPromptById failed: ${ex.message}")
-                                _uiState.update { it.copy(error = ex.message, isLoading = false) }
+                                state.copy(
+                                    allPrompts = merged,
+                                    selectedPrompt = prompt,
+                                    isLoading = false,
+                                    error = null
+                                )
                             }
-                        )
-                    }
-            } finally {
-                ongoingDetailFetches.remove(promptId)
+
+                            prompt.category?.let { cat ->
+                                loadSimilarPrompts(cat, prompt.id ?: "")
+                            }
+                        },
+                        onFailure = { ex ->
+                            Log.e(TAG, "loadPromptById failed: ${ex.message}")
+                            _uiState.update {
+                                it.copy(
+                                    error = ex.message ?: "Failed to load prompt",
+                                    isLoading = false
+                                )
+                            }
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "loadPromptById exception: ${e.message}")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Unknown error"
+                    )
+                }
             }
         }
     }
+
 
 
     // =========================================================================
@@ -507,6 +522,7 @@ class AIPromptViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
 
     // =========================================================================
     // 🔹 Similar Prompts

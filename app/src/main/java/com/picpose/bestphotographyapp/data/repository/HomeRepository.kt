@@ -182,7 +182,7 @@ class HomeRepository(
     // AI POSTS (paginated)
     // -------------------------
     // Returns PaginatedResult<AIPrompt> with favorite flags checked from Room
-    suspend fun getAiPosts(
+    /*suspend fun getAiPosts(
         page: Int = 1,
         limit: Int = 20,
         category: String? = null,
@@ -269,7 +269,7 @@ class HomeRepository(
     }.flowOn(Dispatchers.IO).catch { e ->
         Log.e(TAG, "getAiPosts flow exception: ${e.message}")
         emit(Result.failure(e))
-    }
+    }*/
 
     // Optionally expose a simpler list-based version (no meta)
     // Optionally expose a simpler list-based version (no meta, but we still read total)
@@ -400,7 +400,7 @@ class HomeRepository(
     /**
      * Alias for paginated get - matches ViewModel expected name getAllAIPrompts.
      */
-    suspend fun getAllAIPrompts(
+    /*suspend fun getAllAIPrompts(
         page: Int = 1,
         limit: Int = 20,
         category: String? = null,
@@ -421,11 +421,12 @@ class HomeRepository(
             featured = featured,
             status = status
         )
-    }
+    }*/
 
     /**
      * Alias for simple list - matches ViewModel expected name getAllAIPromptsSimple.
      */
+    /*
     suspend fun getAllAIPromptsSimple(
         page: Int = 1,
         limit: Int = 20,
@@ -434,6 +435,7 @@ class HomeRepository(
     ): Flow<Result<List<AIPrompt>>> {
         return getAiPostsSimple(page = page, limit = limit, category = category, search = search)
     }
+    */
 
     /**
      * Returns favorite prompts stored in Room as AIPrompt objects.
@@ -583,6 +585,7 @@ class HomeRepository(
     /**
      * Get single guide post by ID
      */
+    /*
     suspend fun getGuidePostById(guidePostId: String): Flow<Result<GuidePost>> = flow {
         try {
             val response = apiSemaphore.withPermit {
@@ -612,6 +615,8 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+    */
+
 
     // -------------------------
     // APP SETTINGS (AdMob)
@@ -832,7 +837,7 @@ class HomeRepository(
     /**
      * Fetch latest AI posts (Newest first)
      */
-    suspend fun getLatestAiPosts(
+    /*suspend fun getLatestAiPosts(
         limit: Int = 20,
         offset: Int = 0
     ): Flow<Result<List<AIPrompt>>> = flow {
@@ -856,7 +861,7 @@ class HomeRepository(
                 emit(Result.failure(err))
             }
         )
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO)*/
 
 
     /**
