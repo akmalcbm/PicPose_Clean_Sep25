@@ -552,19 +552,22 @@ private fun chooseMixedAdStyle(
     key: String,
     mode: ViewMode
 ): NativeAdStyle {
-    val bucket = abs(key.hashCode()) % 10
+    val bucket = kotlin.math.abs(key.hashCode()) % 10
+
     return when (mode) {
+
         ViewMode.LIST -> {
-            // LIST: 0–5 compact (60%), 6–9 large (40%)
-            if (bucket < 6) NativeAdStyle.Compact else NativeAdStyle.LargeMedia
+            // LIST: 0–3 compact (40%), 4–9 large (60%)
+            if (bucket < 4) NativeAdStyle.Compact else NativeAdStyle.LargeMedia
         }
 
         ViewMode.GRID -> {
-            // GRID: 0–2 compact (30%), 3–9 large (70%)
-            if (bucket < 3) NativeAdStyle.Compact else NativeAdStyle.LargeMedia
+            // GRID: 0% compact → ALWAYS LargeMedia
+            NativeAdStyle.LargeMedia
         }
     }
 }
+
 
 /* ------------------------
    Grid Prompt Card

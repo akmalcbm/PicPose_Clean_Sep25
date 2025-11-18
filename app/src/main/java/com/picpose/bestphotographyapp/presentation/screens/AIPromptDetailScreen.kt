@@ -17,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -137,6 +138,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.delay
@@ -682,20 +684,22 @@ fun AIPromptDetailScreen(
                             }
                         }
 
-                        // 📢 Native Ad
-                        if (nativeAd != null) {
-                            item {
-                                Card(
+                        // 📢 One-Time Large Native Ad with Shimmer Placeholder
+                        item {
+                            if (nativeAd == null) {
+                                // ⏳ Shimmer while ad loads
+                                LargeAdShimmerPlaceholder()
+                            } else {
+                                // 🎉 Real Large Ad
+                                LargeNativeAdCard(
+                                    nativeAd = nativeAd,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                                ) {
-                                    NativeAdCard(nativeAd = nativeAd!!)
-                                }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                )
                             }
                         }
+
 
                         // 🏷 Tags (expandable)
                         promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
@@ -893,6 +897,53 @@ fun AIPromptDetailScreen(
     }
 }
 
+
+@Composable
+fun LargeAdShimmerPlaceholder() {
+    val shimmerTransition = rememberInfiniteTransition()
+
+    val shimmerX by shimmerTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f, // keep large for full sweep
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1300,
+                easing = LinearEasing
+            )
+        )
+    )
+
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    )
+
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(shimmerX - 300f, 0f),
+        end = Offset(shimmerX, 300f)
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .height(220.dp),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(brush)
+        )
+    }
+}
+
+
+
 @Composable
 private fun StatsRow(
     likes: Int,
@@ -1044,64 +1095,6 @@ private fun SimilarPromptCard(
     }
 }
 
-@Composable
-private fun NativeAdCard(nativeAd: NativeAd) {
-    AndroidView(
-        factory = { context ->
-            val adView = NativeAdView(context)
-
-            val root = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(32, 32, 32, 32)
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-
-            val media = MediaView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    (180.dp.value * context.resources.displayMetrics.density).toInt()
-                )
-            }
-            val headline = TextView(context).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-                setTypeface(typeface, Typeface.BOLD)
-            }
-            val body = TextView(context).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            }
-            val cta = Button(context)
-
-            root.addView(media)
-            root.addView(headline)
-            root.addView(body)
-            root.addView(cta)
-
-            adView.apply {
-                addView(root)
-                mediaView = media
-                headlineView = headline
-                bodyView = body
-                callToActionView = cta
-            }
-        },
-        update = { adView ->
-            (adView.headlineView as? TextView)?.text = nativeAd.headline
-            (adView.bodyView as? TextView)?.apply {
-                text = nativeAd.body ?: ""
-                visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
-            }
-            (adView.callToActionView as? Button)?.apply {
-                text = nativeAd.callToAction ?: "Install"
-                visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
-            }
-            adView.mediaView?.mediaContent = nativeAd.mediaContent
-            adView.setNativeAd(nativeAd)
-        }
-    )
-}
 
 @Composable
 fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
