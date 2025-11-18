@@ -61,14 +61,54 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import com.picpose.bestphotographyapp.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 import kotlinx.coroutines.launch
+
+/** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
+/** ⚡ Enhanced adaptive frequency for best UX + Revenue */
+private fun dynamicGap(
+    position: Int,
+    totalItems: Int = 200,   // fallback when unknown
+    engagementScore: Float = 1f // 🔥 future use for ML tuning
+): Int {
+
+    // 🔐 Protection: Never show ads too early
+    if (position < 6) return Int.MAX_VALUE // disables ad
+
+    // 📌 If list/content is small → fewer ads
+    if (totalItems < 30) return 10
+    if (totalItems < 50) return 8
+
+    // 🧠 Scroll-depth based dynamic range (6–10)
+    val base = when {
+        position < 15 -> 10   // very gentle at top
+        position < 35 -> 8    // moderate
+        position < 60 -> 7    // stronger frequency
+        position < 120 -> 6   // engaged users
+        else -> 6             // highly engaged → max monetization
+    }
+
+    // ⚡ Engagement tuning (future powered)
+    val adjust = when {
+        engagementScore > 1.4f -> -1  // happy scrolling → +ads
+        engagementScore < 0.8f -> +1  // scrolling too fast → reduce ads
+        else -> 0
+    }
+
+    return (base + adjust).coerceIn(6, 10)
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -96,6 +136,38 @@ fun ExploreScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
+
+    // 🔁 Native Ad pool (preload multiple)
+    var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
+    val adContext = LocalContext.current
+
+    DisposableEffect(adContext) {
+        var disposed = false
+        val loadedAds = mutableListOf<NativeAd>()
+
+        val adLoader = AdLoader.Builder(
+            adContext,
+            "ca-app-pub-3940256099942544/2247696110" // Test native ad ID
+        )
+            .forNativeAd { ad ->
+                if (disposed) ad.destroy()
+                else {
+                    loadedAds.add(ad)
+                    nativeAds = loadedAds.toList()
+                }
+            }
+            .withNativeAdOptions(NativeAdOptions.Builder().build())
+            .build()
+
+        repeat(3) { adLoader.loadAd(AdRequest.Builder().build()) }
+
+        onDispose {
+            disposed = true
+            nativeAds.forEach { it.destroy() }
+            nativeAds = emptyList()
+        }
+    }
+
 
     // pagination detection
     LaunchedEffect(listState) {
@@ -217,13 +289,35 @@ fun ExploreScreen(
                             }
                         }
 
-                        itemsIndexed(items = sortedContent, key = { index, content ->
-                            when (content) {
-                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                else -> "CONTENT_${content.hashCode()}_$index"
+                        itemsIndexed(
+                            items = sortedContent,
+                            key = { index, content ->
+                                when (content) {
+                                    is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                    is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                    else -> "CONTENT_${content.hashCode()}_$index"
+                                }
                             }
-                        }) { _, content ->
+                        ) { index, content ->
+
+                            val gap = dynamicGap(index)
+                            val adToShow = if (nativeAds.isNotEmpty()) {
+                                nativeAds[(index / gap) % nativeAds.size]
+                            } else null
+
+                            val shouldShowAdHere =
+                                adToShow != null &&
+                                        index >= gap &&
+                                        (index % gap == gap - 1)
+
+                            if (shouldShowAdHere) {
+                                LargeNativeAdCard(
+                                    nativeAd = adToShow,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(16.dp))
+                            }
+
                             when (content) {
                                 is ExploreContent.AIPromptContent -> {
                                     AIPromptCard(

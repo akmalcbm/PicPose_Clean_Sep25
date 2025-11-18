@@ -2,26 +2,66 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ViewList
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -33,14 +73,61 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.ads.InlineNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 enum class ViewMode { GRID, LIST }
+
+// Local style enum for this screen
+private enum class NativeAdStyle {
+    LargeMedia,
+    Compact
+}
+
+/** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
+/** ⚡ Enhanced adaptive frequency for best UX + Revenue */
+private fun dynamicGap(
+    position: Int,
+    totalItems: Int = 200,   // fallback when unknown
+    engagementScore: Float = 1f // 🔥 future use for ML tuning
+): Int {
+
+    // 🔐 Protection: Never show ads too early
+    if (position < 6) return Int.MAX_VALUE // disables ad
+
+    // 📌 If list/content is small → fewer ads
+    if (totalItems < 30) return 10
+    if (totalItems < 50) return 8
+
+    // 🧠 Scroll-depth based dynamic range (6–10)
+    val base = when {
+        position < 15 -> 10   // very gentle at top
+        position < 35 -> 8    // moderate
+        position < 60 -> 7    // stronger frequency
+        position < 120 -> 6   // engaged users
+        else -> 6             // highly engaged → max monetization
+    }
+
+    // ⚡ Engagement tuning (future powered)
+    val adjust = when {
+        engagementScore > 1.4f -> -1  // happy scrolling → +ads
+        engagementScore < 0.8f -> +1  // scrolling too fast → reduce ads
+        else -> 0
+    }
+
+    return (base + adjust).coerceIn(6, 10)
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,14 +149,52 @@ fun AllAIPromptsScreen(
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
 
-    // ✅ Edge-to-edge setup for Android 11+
+    // Edge-to-edge for Android 11+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         }
     }
 
-    // ✅ Initial data load
+    // 🔁 Native Ad pool (preload multiple)
+    var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
+    val adContext = LocalContext.current
+
+    DisposableEffect(adContext) {
+        var disposed = false
+        val loadedAds = mutableListOf<NativeAd>()
+
+        val adLoader = AdLoader.Builder(
+            adContext,
+            "ca-app-pub-3940256099942544/2247696110" // ✅ Test native ad ID
+        )
+            .forNativeAd { ad ->
+                if (disposed) {
+                    // Safety: if composable already disposed, don't keep the ad
+                    ad.destroy()
+                } else {
+                    loadedAds.add(ad)
+                    nativeAds = loadedAds.toList()
+                }
+            }
+            .withNativeAdOptions(
+                NativeAdOptions.Builder().build()
+            )
+            .build()
+
+        // Preload a small pool (e.g. 3 ads)
+        repeat(3) {
+            adLoader.loadAd(AdRequest.Builder().build())
+        }
+
+        onDispose {
+            disposed = true
+            nativeAds.forEach { it.destroy() }
+            nativeAds = emptyList()
+        }
+    }
+
+    // Initial data load
     LaunchedEffect(Unit) {
         viewModel.loadAllPrompts(page = 1, forceRefresh = true)
         viewModel.loadCategories()
@@ -78,7 +203,7 @@ fun AllAIPromptsScreen(
         }
     }
 
-    // ✅ Error handling
+    // Error handling
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
             coroutineScope.launch {
@@ -88,30 +213,25 @@ fun AllAIPromptsScreen(
         }
     }
 
-    // ✅ Infinite scroll listener for LIST
+    // Infinite scroll listener for LIST
     LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .filter { it != null }
-            .map { it!! }
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .distinctUntilChanged()
-            .collect { lastIndex ->
+            .collect { lastVisible ->
                 val totalItems = uiState.allPrompts.size
-                if (lastIndex >= totalItems - 5) {
-                    // near end → load next page
+                if (lastVisible >= totalItems - 5) {
                     viewModel.onListEndReached()
                 }
             }
     }
 
-    // ✅ Infinite scroll listener for GRID
+    // Infinite scroll listener for GRID
     LaunchedEffect(gridState) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .filter { it != null }
-            .map { it!! }
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .distinctUntilChanged()
-            .collect { lastIndex ->
+            .collect { lastVisible ->
                 val totalItems = uiState.allPrompts.size
-                if (lastIndex >= totalItems - 4) {
+                if (lastVisible >= totalItems - 4) {
                     viewModel.onListEndReached()
                 }
             }
@@ -123,29 +243,28 @@ fun AllAIPromptsScreen(
                     prompt.title?.contains(uiState.searchQuery, true) == true ||
                     prompt.fullPrompt?.contains(uiState.searchQuery, true) == true ||
                     prompt.shortPrompt?.contains(uiState.searchQuery, true) == true
+
             val matchesCategory = uiState.selectedCategory == "All" ||
                     prompt.category == uiState.selectedCategory
+
             matchesSearch && matchesCategory
         }
     }
 
     val categories = uiState.categories
 
-    // ✅ Proper Scaffold (edge-to-edge)
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
-
                     Text(
                         text = if (uiState.selectedCategory != "All")
                             "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
                         else
-                            "All Prompts ($total)"   // ✅ e.g. All Prompts (188)
+                            "All Prompts ($total)"
                     )
                 },
-
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -183,7 +302,7 @@ fun AllAIPromptsScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0) // 🚫 disable auto padding
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
         Column(
@@ -191,7 +310,6 @@ fun AllAIPromptsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                // ✅ horizontal safe area only
                 .padding(
                     WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal)
@@ -199,6 +317,7 @@ fun AllAIPromptsScreen(
                 )
         ) {
 
+            // Search Bar
             if (showSearch) {
                 OutlinedTextField(
                     value = uiState.searchQuery,
@@ -219,12 +338,13 @@ fun AllAIPromptsScreen(
                 )
             }
 
+            // Category Chips
             if (categories.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(categories) { category ->
+                    itemsIndexed(categories) { _, category ->
                         FilterChip(
                             onClick = { viewModel.updateSelectedCategory(category) },
                             label = { Text(category) },
@@ -260,7 +380,6 @@ fun AllAIPromptsScreen(
                 }
 
                 else -> {
-                    val manager = clipboardManager
                     when (viewMode) {
                         ViewMode.GRID -> {
                             LazyVerticalGrid(
@@ -271,95 +390,63 @@ fun AllAIPromptsScreen(
                                     start = 12.dp,
                                     end = 12.dp,
                                     top = 8.dp,
-                                    bottom = 100.dp // ✅ enough for bottom nav
+                                    bottom = 100.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(displayPrompts, key = { it.id ?: it.hashCode().toString() }) { prompt ->
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                val id = prompt.id
-                                                if (id != null) {
-                                                    viewModel.selectPromptForDetail(prompt)  // ✅ set in VM
-                                                    Log.d("PromptClick", "Clicked Prompt → id=$id")
-                                                    onPromptClick(id)
-                                                } else {
-                                                    Toast
-                                                        .makeText(context, "Invalid prompt id", Toast.LENGTH_SHORT)
-                                                        .show()
-                                                }
-                                            },
-                                        shape = RoundedCornerShape(14.dp),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                                    ) {
-                                        Column(modifier = Modifier.fillMaxWidth()) {
-                                            SubcomposeAsyncImage(
-                                                model = prompt.imageUrl,
-                                                contentDescription = prompt.title,
-                                                modifier = Modifier
-                                                    .height(160.dp)
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
-                                                contentScale = ContentScale.Crop,
-                                                loading = {
-                                                    Box(
-                                                        Modifier
-                                                            .fillMaxSize()
-                                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        CircularProgressIndicator(
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            strokeWidth = 2.dp,
-                                                            modifier = Modifier.size(28.dp)
-                                                        )
-                                                    }
-                                                },
-                                                error = {
-                                                    Box(
-                                                        Modifier
-                                                            .fillMaxSize()
-                                                            .background(MaterialTheme.colorScheme.errorContainer),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Default.BrokenImage,
-                                                            contentDescription = "Image not found",
-                                                            tint = MaterialTheme.colorScheme.error
-                                                        )
-                                                    }
-                                                }
-                                            )
+                                itemsIndexed(
+                                    items = displayPrompts,
+                                    key = { index, item -> item.id ?: index.toString() }
+                                ) { index, prompt ->
 
-                                            Column(
-                                                modifier = Modifier
-                                                    .padding(12.dp)
-                                                    .fillMaxWidth()
-                                            ) {
-                                                Text(
-                                                    text = prompt.title ?: "",
-                                                    style = MaterialTheme.typography.titleSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    ),
-                                                    maxLines = 2,
-                                                    overflow = TextOverflow.Ellipsis
+                                    val gap = dynamicGap(index)
+                                    val adToShow = if (nativeAds.isNotEmpty()) {
+                                        nativeAds[(index / gap) % nativeAds.size]
+                                    } else null
+
+                                    val shouldShowAdHere =
+                                        adToShow != null &&
+                                                index >= gap &&
+                                                (index % gap == gap - 1)
+
+                                    if (shouldShowAdHere) {
+                                        val style = chooseMixedAdStyle(
+                                            key = prompt.id ?: index.toString(),
+                                            mode = ViewMode.GRID
+                                        )
+                                        when (style) {
+                                            NativeAdStyle.LargeMedia -> {
+                                                LargeNativeAdCard(
+                                                    nativeAd = adToShow,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = prompt.shortPrompt ?: "",
-                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    ),
-                                                    maxLines = 3,
-                                                    overflow = TextOverflow.Ellipsis
+                                            }
+
+                                            NativeAdStyle.Compact -> {
+                                                InlineNativeAdCard(
+                                                    nativeAd = adToShow,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
+                                    } else {
+                                        GridPromptItem(
+                                            prompt = prompt,
+                                            onClick = {
+                                                val id = prompt.id
+                                                if (id != null) {
+                                                    viewModel.selectPromptForDetail(prompt)
+                                                    onPromptClick(id)
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Invalid ID",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -377,24 +464,30 @@ fun AllAIPromptsScreen(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(displayPrompts, key = { it.id ?: it.hashCode().toString() }) { prompt ->
+                                itemsIndexed(
+                                    items = displayPrompts,
+                                    key = { index, item -> item.id ?: index.toString() }
+                                ) { index, prompt ->
+
                                     AIPromptCard(
                                         prompt = prompt,
                                         onClick = {
                                             val id = prompt.id
                                             if (id != null) {
-                                                viewModel.selectPromptForDetail(prompt)  // ✅ set VM
+                                                viewModel.selectPromptForDetail(prompt)
                                                 onPromptClick(id)
                                             } else {
-                                                Toast
-                                                    .makeText(context, "Invalid prompt id", Toast.LENGTH_SHORT)
-                                                    .show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "Invalid prompt ID",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }
                                         },
                                         onCopy = {
                                             val textToCopy =
                                                 prompt.shortPrompt ?: prompt.fullPrompt ?: ""
-                                            manager.setText(AnnotatedString(textToCopy))
+                                            clipboardManager.setText(AnnotatedString(textToCopy))
                                             Toast.makeText(
                                                 context,
                                                 "Prompt copied!",
@@ -405,6 +498,43 @@ fun AllAIPromptsScreen(
                                         showFavoriteIcon = true,
                                         isCompact = false
                                     )
+
+                                    val gap = dynamicGap(index)
+                                    val adToShow = if (nativeAds.isNotEmpty()) {
+                                        nativeAds[(index / gap) % nativeAds.size]
+                                    } else null
+
+                                    val shouldShowAdHere =
+                                        adToShow != null &&
+                                                index >= gap &&
+                                                (index % gap == gap - 1)
+
+                                    if (shouldShowAdHere) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        val style = chooseMixedAdStyle(
+                                            key = prompt.id ?: index.toString(),
+                                            mode = ViewMode.LIST
+                                        )
+
+                                        when (style) {
+                                            NativeAdStyle.Compact -> {
+                                                InlineNativeAdCard(
+                                                    nativeAd = adToShow,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+
+                                            NativeAdStyle.LargeMedia -> {
+                                                LargeNativeAdCard(
+                                                    nativeAd = adToShow,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
                                 }
                             }
                         }
@@ -416,9 +546,83 @@ fun AllAIPromptsScreen(
 }
 
 /* ------------------------
-   Helper Composables
-   ------------------------ */
+   Mixed Style Selection
+------------------------ */
+private fun chooseMixedAdStyle(
+    key: String,
+    mode: ViewMode
+): NativeAdStyle {
+    val bucket = abs(key.hashCode()) % 10
+    return when (mode) {
+        ViewMode.LIST -> {
+            // LIST: 0–5 compact (60%), 6–9 large (40%)
+            if (bucket < 6) NativeAdStyle.Compact else NativeAdStyle.LargeMedia
+        }
 
+        ViewMode.GRID -> {
+            // GRID: 0–2 compact (30%), 3–9 large (70%)
+            if (bucket < 3) NativeAdStyle.Compact else NativeAdStyle.LargeMedia
+        }
+    }
+}
+
+/* ------------------------
+   Grid Prompt Card
+------------------------ */
+@Composable
+private fun GridPromptItem(
+    prompt: AIPrompt,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SubcomposeAsyncImage(
+                model = prompt.imageUrl,
+                contentDescription = prompt.title,
+                modifier = Modifier
+                    .height(160.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Column(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = prompt.title ?: "",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = prompt.shortPrompt ?: "",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/* ------------------------
+   Empty State
+------------------------ */
 @Composable
 private fun EmptyPromptsState(
     searchQuery: String,
@@ -459,4 +663,29 @@ private fun EmptyPromptsState(
             }
         }
     }
+}
+
+/* ------------------------
+   Optional Shimmer Brush
+------------------------ */
+@Composable
+private fun shimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition()
+    val shimmer by transition.animateFloat(
+        initialValue = -200f,
+        targetValue = 200f,
+        animationSpec = infiniteRepeatable(
+            tween(900, easing = LinearEasing),
+            RepeatMode.Restart
+        )
+    )
+    return Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        start = Offset(shimmer, shimmer),
+        end = Offset(shimmer + 200f, shimmer + 200f)
+    )
 }
