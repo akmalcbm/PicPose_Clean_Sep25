@@ -65,10 +65,10 @@ fun QuickStatsCard(
                                 color = Color(0xFF6366F1)
                             )
                             StatItem(
-                                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                icon = Icons.Default.Favorite,
                                 value = stats.total_likes.toString(),
                                 label = "Likes",
-                                color = Color(0xFFFF9800)
+                                color = Color(0xFFE91E63)
                             )
                         }
                         
@@ -80,16 +80,16 @@ fun QuickStatsCard(
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             StatItem(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Default.CollectionsBookmark,
                                 value = stats.total_favorites.toString(),
                                 label = "Favorites",
-                                color = Color(0xFFE91E63)
+                                color = Color(0xFFFF5722)
                             )
                             StatItem(
                                 icon = Icons.Default.ContentCopy,
                                 value = stats.total_copies.toString(),
                                 label = "Copies",
-                                color = Color(0xFF10B981)
+                                color = Color(0xFF4CAF50)
                             )
                         }
                     }

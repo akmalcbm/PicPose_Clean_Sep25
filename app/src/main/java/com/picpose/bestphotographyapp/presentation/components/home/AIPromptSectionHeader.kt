@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
@@ -92,7 +92,7 @@ fun AIPromptSectionHeader(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "✨ Live Stats",
+                            text = "✨Live Stats",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -126,17 +126,17 @@ fun AIPromptSectionHeader(
                         StatItem(
                             icon = Icons.Default.AutoAwesome,
                             count = stats.total_prompts,
-                            label = "Available",
+                            label = "Prompts",
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(
-                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            icon = Icons.Default.Favorite,
                             count = stats.total_likes,
                             label = "Likes",
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(
-                            icon = Icons.Default.Favorite,
+                            icon = Icons.Default.CollectionsBookmark,
                             count = stats.total_favorites,
                             label = "Favorites",
                             modifier = Modifier.weight(1f)
@@ -144,7 +144,7 @@ fun AIPromptSectionHeader(
                         StatItem(
                             icon = Icons.Default.ContentCopy,
                             count = stats.total_copies,
-                            label = "Copied",
+                            label = "Copies",
                             modifier = Modifier.weight(1f)
                         )
                     }
