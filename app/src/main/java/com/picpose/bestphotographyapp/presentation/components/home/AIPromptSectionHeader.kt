@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
@@ -167,7 +168,7 @@ fun AIPromptSectionHeader(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Buttons Row
                 Row(
@@ -186,10 +187,10 @@ fun AIPromptSectionHeader(
                         contentPadding = PaddingValues(vertical = 14.dp)
                     ) {
                         Icon(
-                            Icons.Default.Favorite,
+                            Icons.Default.Bookmarks,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = Color(0xFFFF6B9D)
+                            tint = Color(0xFFFFFFFF)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(

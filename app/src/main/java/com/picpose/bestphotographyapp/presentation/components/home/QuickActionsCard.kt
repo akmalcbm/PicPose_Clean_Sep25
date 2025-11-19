@@ -83,14 +83,14 @@ fun QuickActionsCard(
                 )
 
                 ActionButton(
-                    icon = Icons.Default.Favorite,
+                    icon = Icons.Default.BookmarkAdded,
                     title = "My Favorites",
                     subtitle = "Saved prompts",
                     onClick = onNavigateToFavorites,
                     modifier = Modifier.weight(1f),
                     // Use secondaryContainer / secondary for second button
                     backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconColor = MaterialTheme.colorScheme.secondary
+                    iconColor = MaterialTheme.colorScheme.primary
                 )
             }
         }

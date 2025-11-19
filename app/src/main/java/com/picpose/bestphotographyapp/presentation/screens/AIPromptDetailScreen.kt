@@ -62,6 +62,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BookmarkAdded
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
@@ -319,10 +320,10 @@ fun AIPromptDetailScreen(
                     effectivePrompt?.let { p ->
                         IconButton(onClick = { viewModel.toggleFavorite(p) }) {
                             Icon(
-                                if (p.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite",
+                                if (p.isFavorite) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                                contentDescription = "Favorite Bookmarked AI Prompts",
                                 tint = if (p.isFavorite)
-                                    MaterialTheme.colorScheme.error
+                                    MaterialTheme.colorScheme.surfaceTint
                                 else
                                     LocalContentColor.current
                             )

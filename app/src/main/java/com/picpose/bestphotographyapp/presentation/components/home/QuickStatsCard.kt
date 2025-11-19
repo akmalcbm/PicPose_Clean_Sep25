@@ -62,7 +62,7 @@ fun QuickStatsCard(
                                 icon = Icons.Default.AutoAwesome,
                                 value = stats.total_prompts.toString(),
                                 label = "AI Prompts",
-                                color = Color(0xFF6366F1)
+                                color = Color(0xFFF44336)
                             )
                             StatItem(
                                 icon = Icons.Default.Favorite,
@@ -83,7 +83,7 @@ fun QuickStatsCard(
                                 icon = Icons.Default.CollectionsBookmark,
                                 value = stats.total_favorites.toString(),
                                 label = "Favorites",
-                                color = Color(0xFFFF5722)
+                                color = Color(0xFF673AB7)
                             )
                             StatItem(
                                 icon = Icons.Default.ContentCopy,
