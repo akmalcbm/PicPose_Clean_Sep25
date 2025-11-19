@@ -210,6 +210,157 @@ fun LargeNativeAdCard(
 }
 
 
+@Composable
+fun LargeNativeAdCardForGrid(
+    nativeAd: NativeAd?,
+    modifier: Modifier = Modifier
+) {
+    if (nativeAd == null) {
+        NativeAdShimmer(modifier.height(160.dp).padding(top = 0.dp), corner = 12)
+        return
+    }
+
+    // Extract Compose colors before AndroidView
+    val headlineColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val advertiserColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val sponsoredTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val sponsoredBackground = MaterialTheme.colorScheme.primary.toArgb()
+
+    val fade = remember { Animatable(0f) }
+    LaunchedEffect(nativeAd) { fade.animateTo(1f, tween(320)) }
+
+    Card(
+        modifier = modifier
+            .alpha(fade.value)
+            .padding(top = 4.dp),   // 🔥 Extra top margin for whole card
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
+    ) {
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            factory = { context ->
+
+                val adView = NativeAdView(context)
+
+                val wrapper = FrameLayout(context)
+
+                val root = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                }
+
+                /** MediaView (180dp height + top margin 8dp) */
+                val media = MediaView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        160.toPx(context)
+                    ).apply {
+                        topMargin = 14.toPx(context)   // 🔥 Add ~14dp top margin
+                    }
+                }
+
+
+                /** Headline */
+                val headline = TextView(context).apply {
+                    textSize = 17f
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(headlineColor)
+                    maxLines = 2
+                }
+
+                /** Body */
+                val body = TextView(context).apply {
+                    textSize = 14f
+                    setTextColor(bodyColor)
+                    maxLines = 3
+                }
+
+                /** Advertiser */
+                val advertiser = TextView(context).apply {
+                    textSize = 12f
+                    setTypeface(null, Typeface.ITALIC)
+                    setTextColor(advertiserColor)
+                }
+
+                /** CTA */
+                val cta = Button(context).apply { isAllCaps = false }
+
+                /** ⭐ Sponsored badge (TOP-LEFT) */
+                val badge = TextView(context).apply {
+                    text = "Sponsored"
+                    textSize = 11f
+                    setPadding(10, -12, 10, 4)
+                    backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
+                    setTextColor(sponsoredTextColor)
+                    clipToOutline = true
+                    outlineProvider = roundedOutline(30f, context)
+                }
+
+                /** Add content */
+                root.apply {
+                    addView(media)
+                    addView(headline)
+                    addView(body)
+                    addView(advertiser)
+                    addView(cta)
+                }
+
+                /** ⭐ Position badge TOP-LEFT above MediaView */
+                wrapper.apply {
+                    addView(root)
+                    addView(
+                        badge,
+                        FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            Gravity.TOP or Gravity.START
+                        ).apply {
+                            setMargins(6, 6, 0, 0)   // 🔥 Very small margin from top-left
+                        }
+                    )
+                }
+
+                adView.apply {
+                    addView(wrapper)
+                    mediaView = media
+                    headlineView = headline
+                    bodyView = body
+                    advertiserView = advertiser
+                    callToActionView = cta
+                    tag = badge
+                }
+
+                adView
+            },
+
+            update = { adView ->
+
+                (adView.headlineView as? TextView)?.text = nativeAd.headline
+
+                nativeAd.body?.let {
+                    (adView.bodyView as TextView).text = it
+                    adView.bodyView?.visibility = View.VISIBLE
+                } ?: run { adView.bodyView?.visibility = View.GONE }
+
+                nativeAd.advertiser?.let {
+                    (adView.advertiserView as TextView).text = it
+                    adView.advertiserView?.visibility = View.VISIBLE
+                } ?: run { adView.advertiserView?.visibility = View.GONE }
+
+                adView.mediaView?.setMediaContent(nativeAd.mediaContent)
+
+                (adView.callToActionView as? Button)?.text = nativeAd.callToAction
+
+                adView.setNativeAd(nativeAd)
+            }
+        )
+    }
+}
+
+
 
 /*-----------------------------------------------------------
    COMPACT INLINE NATIVE AD  (Policy-Safe)

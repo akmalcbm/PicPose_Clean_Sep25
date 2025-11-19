@@ -80,6 +80,7 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -141,7 +142,7 @@ fun AllAIPromptsScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val clipboardManager = LocalClipboardManager.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
@@ -207,7 +208,7 @@ fun AllAIPromptsScreen(
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
             coroutineScope.launch {
-                snackbarHostState.showSnackbar(msg)
+                snackBarHostState.showSnackbar(msg)
                 viewModel.clearError()
             }
         }
@@ -301,7 +302,7 @@ fun AllAIPromptsScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackBarHostState) },
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
@@ -417,7 +418,7 @@ fun AllAIPromptsScreen(
                                         )
                                         when (style) {
                                             NativeAdStyle.LargeMedia -> {
-                                                LargeNativeAdCard(
+                                                LargeNativeAdCardForGrid(
                                                     nativeAd = adToShow,
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
@@ -590,7 +591,7 @@ private fun GridPromptItem(
                 model = prompt.imageUrl,
                 contentDescription = prompt.title,
                 modifier = Modifier
-                    .height(160.dp)
+                    .height(190.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
                 contentScale = ContentScale.Crop
