@@ -199,7 +199,7 @@ fun LargeNativeAdCard(
                     adView.advertiserView?.visibility = View.VISIBLE
                 } ?: run { adView.advertiserView?.visibility = View.GONE }
 
-                adView.mediaView?.setMediaContent(nativeAd.mediaContent)
+                adView.mediaView?.mediaContent = nativeAd.mediaContent
 
                 (adView.callToActionView as? Button)?.text = nativeAd.callToAction
 
@@ -241,7 +241,7 @@ fun LargeNativeAdCardForGrid(
         AndroidView(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(6.dp),
             factory = { context ->
 
                 val adView = NativeAdView(context)
@@ -258,7 +258,7 @@ fun LargeNativeAdCardForGrid(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         160.toPx(context)
                     ).apply {
-                        topMargin = 14.toPx(context)   // 🔥 Add ~14dp top margin
+                        topMargin = 8.toPx(context)   // 🔥 Add ~8dp top margin
                     }
                 }
 
@@ -269,6 +269,7 @@ fun LargeNativeAdCardForGrid(
                     setTypeface(null, Typeface.BOLD)
                     setTextColor(headlineColor)
                     maxLines = 2
+
                 }
 
                 /** Body */
@@ -350,7 +351,7 @@ fun LargeNativeAdCardForGrid(
                     adView.advertiserView?.visibility = View.VISIBLE
                 } ?: run { adView.advertiserView?.visibility = View.GONE }
 
-                adView.mediaView?.setMediaContent(nativeAd.mediaContent)
+                adView.mediaView?.mediaContent = nativeAd.mediaContent
 
                 (adView.callToActionView as? Button)?.text = nativeAd.callToAction
 

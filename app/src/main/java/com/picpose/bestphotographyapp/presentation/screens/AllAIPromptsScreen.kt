@@ -591,7 +591,7 @@ private fun GridPromptItem(
                 model = prompt.imageUrl,
                 contentDescription = prompt.title,
                 modifier = Modifier
-                    .height(190.dp)
+                    .height(195.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
                 contentScale = ContentScale.Crop
