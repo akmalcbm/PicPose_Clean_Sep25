@@ -310,7 +310,7 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
 
                             // ✅ Update UI state on Main thread
                             val updatedPrompts = _uiState.value.aiPrompts.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
+                                if (p.id == prompt.id) p.copy(isBookmarked = isNowFavorite) else p
                             }
 
                             // Update favorite count

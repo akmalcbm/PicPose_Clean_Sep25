@@ -389,15 +389,15 @@ class AIPromptViewModel @Inject constructor(
                         onSuccess = { isNowFavorite ->
                             // cache update
                             cachedPrompts = cachedPrompts?.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
+                                if (p.id == prompt.id) p.copy(isBookmarked = isNowFavorite) else p
                             }
 
                             val updatedAll = _uiState.value.allPrompts.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavorite = isNowFavorite) else p
+                                if (p.id == prompt.id) p.copy(isBookmarked = isNowFavorite) else p
                             }
 
                             val updatedFavorites = if (isNowFavorite) {
-                                (_uiState.value.favoritePrompts + prompt.copy(isFavorite = true))
+                                (_uiState.value.favoritePrompts + prompt.copy(isBookmarked = true))
                                     .distinctBy { it.id }
                             } else {
                                 _uiState.value.favoritePrompts.filter { it.id != prompt.id }
@@ -408,7 +408,7 @@ class AIPromptViewModel @Inject constructor(
                                     allPrompts = updatedAll,
                                     favoritePrompts = updatedFavorites,
                                     selectedPrompt = it.selectedPrompt?.let { sel ->
-                                        if (sel.id == prompt.id) sel.copy(isFavorite = isNowFavorite) else sel
+                                        if (sel.id == prompt.id) sel.copy(isBookmarked = isNowFavorite) else sel
                                     }
                                 )
                             }
@@ -440,17 +440,17 @@ class AIPromptViewModel @Inject constructor(
                 repository.getFavoritePrompts().collect { result ->
                     result.fold(
                         onSuccess = { favs ->
-                            val safeFavs = favs.map { it.copy(isFavorite = true) }
+                            val safeFavs = favs.map { it.copy(isBookmarked = true) }
                             val favIds = safeFavs.mapNotNull { it.id }.toSet()
 
                             _uiState.update { state ->
                                 state.copy(
                                     favoritePrompts = safeFavs,
                                     allPrompts = state.allPrompts.map {
-                                        it.copy(isFavorite = favIds.contains(it.id))
+                                        it.copy(isBookmarked = favIds.contains(it.id))
                                     },
                                     selectedPrompt = state.selectedPrompt?.let { sel ->
-                                        sel.copy(isFavorite = favIds.contains(sel.id))
+                                        sel.copy(isBookmarked = favIds.contains(sel.id))
                                     }
                                 )
                             }

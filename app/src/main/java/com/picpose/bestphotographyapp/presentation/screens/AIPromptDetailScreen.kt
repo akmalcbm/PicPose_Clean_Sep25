@@ -320,9 +320,9 @@ fun AIPromptDetailScreen(
                     effectivePrompt?.let { p ->
                         IconButton(onClick = { viewModel.toggleFavorite(p) }) {
                             Icon(
-                                if (p.isFavorite) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                                if (p.isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                                 contentDescription = "Favorite Bookmarked AI Prompts",
-                                tint = if (p.isFavorite)
+                                tint = if (p.isBookmarked)
                                     MaterialTheme.colorScheme.surfaceTint
                                 else
                                     LocalContentColor.current

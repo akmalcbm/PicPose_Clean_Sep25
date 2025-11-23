@@ -105,10 +105,10 @@ fun AIPromptCard(
 
                     IconButton(onClick = { onFavoriteClick(prompt) }) {
                         Icon(
-                            imageVector = if (prompt.isFavorite)
+                            imageVector = if (prompt.isBookmarked)
                                 Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (prompt.isFavorite)
+                            tint = if (prompt.isBookmarked)
                                 MaterialTheme.colorScheme.error else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -17,7 +17,7 @@ interface FavoritePromptDao {
     suspend fun isFavoriteCount(promptId: String): Int // ✅ FIXED: Added suspend
 
     // ✅ FIXED: Made suspend and proper coroutine handling
-    suspend fun isFavorite(promptId: String): Boolean {
+    suspend fun isBookmarked(promptId: String): Boolean {
         return isFavoriteCount(promptId) > 0
     }
 

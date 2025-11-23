@@ -178,99 +178,6 @@ class HomeRepository(
         emit(Result.failure(e))
     }
 
-    // -------------------------
-    // AI POSTS (paginated)
-    // -------------------------
-    // Returns PaginatedResult<AIPrompt> with favorite flags checked from Room
-    /*suspend fun getAiPosts(
-        page: Int = 1,
-        limit: Int = 20,
-        category: String? = null,
-        search: String? = null,
-        tag: String? = null,
-        popular: Boolean? = null,
-        featured: Boolean? = null,
-        status: String? = "published"
-    ): Flow<Result<PaginatedResult<AIPrompt>>> = flow {
-        if (useMocks) {
-            // if you keep mock provider in project reuse it; here we return empty for brevity
-            emit(Result.success(PaginatedResult(items = emptyList(), meta = null)))
-            return@flow
-        }
-
-        Log.d(TAG, "Fetching AI posts: page=$page limit=$limit category=$category search=$search tag=$tag popular=$popular featured=$featured status=$status")
-
-        // Use retries + concurrency limiting for the network call
-        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
-            callWithRetries {
-                apiService.getAiPosts(
-                    apiKey = requestApiKey,
-                    limit = limit,
-                    offset = (page - 1) * limit,
-                    q = search,
-                    category = category,
-                    tag = tag,
-                    popular = popular,
-                    status = status,
-                    featured = featured
-                )
-            }
-        }
-
-        apiResult.fold(
-            onSuccess = { wrapper ->
-                try {
-                    // wrapper.data may already be List<AIPrompt> (typed by Retrofit) or generic objects - handle both
-                    val rawList = wrapper.data
-                    val prompts: List<AIPrompt> = when {
-                        rawList == null -> emptyList()
-                        rawList.isEmpty() -> emptyList()
-                        // If already parsed as AIPrompt (common case)
-                        true -> rawList.filterIsInstance<AIPrompt>()
-                        else -> {
-                            // fallback: convert each element via Gson (handles LinkedTreeMap etc)
-                            rawList.mapNotNull { elem ->
-                                try {
-                                    val json = gson.toJson(elem)
-                                    gson.fromJson(json, AIPrompt::class.java)
-                                } catch (_: Exception) {
-                                    null
-                                }
-                            }
-                        }
-                    }
-
-                    // Enrich with favorite status from Room (safely)
-                    val enriched = prompts.map { p ->
-                        val fav = try { favoriteDao.isFavorite(p.id) } catch (_: Exception) { false }
-                        p.copy(isFavorite = fav)
-                    }
-
-                    // Try to extract meta if present in wrapper (if ApiResponse supports meta)
-                    val meta: MetaDto? = try {
-                        // wrapper may have 'meta' property (Retrofit typed ApiResponse could include it)
-                        val metaField = wrapper.javaClass.getDeclaredField("meta").also { it.isAccessible = true }
-                        metaField.get(wrapper) as? MetaDto
-                    } catch (_: Exception) {
-                        null
-                    }
-
-                    emit(Result.success(PaginatedResult(items = enriched, meta = meta)))
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing AI posts: ${e.message}")
-                    emit(Result.failure(e))
-                }
-            },
-            onFailure = { err ->
-                Log.w(TAG, "getAiPosts failed: ${err.message}")
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getAiPosts flow exception: ${e.message}")
-        emit(Result.failure(e))
-    }*/
-
     // Optionally expose a simpler list-based version (no meta)
     // Optionally expose a simpler list-based version (no meta, but we still read total)
     // simple list-based
@@ -314,7 +221,7 @@ class HomeRepository(
         try {
             // ✅ FIXED: Ensure all database operations happen on IO dispatcher
             val currentlyFavorite = withContext(Dispatchers.IO) {
-                favoriteDao.isFavorite(prompt.id)
+                favoriteDao.isBookmarked(prompt.id)
             }
 
             if (currentlyFavorite) {
@@ -381,8 +288,8 @@ class HomeRepository(
 
                 // ⭐ Enrich local favorite flags
                 val enriched = data.map { p ->
-                    val fav = favoriteDao.isFavorite(p.id)
-                    p.copy(isFavorite = fav)
+                    val fav = favoriteDao.isBookmarked(p.id)
+                    p.copy(isBookmarked = fav)
                 }
 
                 emit(Result.success(enriched))
@@ -395,47 +302,6 @@ class HomeRepository(
         }
     }.flowOn(Dispatchers.IO)
 
-
-
-    /**
-     * Alias for paginated get - matches ViewModel expected name getAllAIPrompts.
-     */
-    /*suspend fun getAllAIPrompts(
-        page: Int = 1,
-        limit: Int = 20,
-        category: String? = null,
-        search: String? = null,
-        tag: String? = null,
-        popular: Boolean? = null,
-        featured: Boolean? = null,
-        status: String? = "published"
-    ): Flow<Result<PaginatedResult<AIPrompt>>> {
-        // reuse existing getAiPosts implementation (signature matches closely)
-        return getAiPosts(
-            page = page,
-            limit = limit,
-            category = category,
-            search = search,
-            tag = tag,
-            popular = popular,
-            featured = featured,
-            status = status
-        )
-    }*/
-
-    /**
-     * Alias for simple list - matches ViewModel expected name getAllAIPromptsSimple.
-     */
-    /*
-    suspend fun getAllAIPromptsSimple(
-        page: Int = 1,
-        limit: Int = 20,
-        category: String? = null,
-        search: String? = null
-    ): Flow<Result<List<AIPrompt>>> {
-        return getAiPostsSimple(page = page, limit = limit, category = category, search = search)
-    }
-    */
 
     /**
      * Returns favorite prompts stored in Room as AIPrompt objects.
@@ -480,10 +346,10 @@ class HomeRepository(
 
                 // fetch favorite state from Room
                 val isFav = withContext(Dispatchers.IO) {
-                    favoriteDao.isFavorite(prompt.id)
+                    favoriteDao.isBookmarked(prompt.id)
                 }
 
-                emit(Result.success(prompt.copy(isFavorite = isFav)))
+                emit(Result.success(prompt.copy(isBookmarked = isFav)))
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "Prompt not found")))
             }
@@ -492,8 +358,6 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
-
-
 
 
 
@@ -581,41 +445,6 @@ class HomeRepository(
             }
         )
     }.flowOn(kotlinx.coroutines.Dispatchers.IO)
-
-    /**
-     * Get single guide post by ID
-     */
-    /*
-    suspend fun getGuidePostById(guidePostId: String): Flow<Result<GuidePost>> = flow {
-        try {
-            val response = apiSemaphore.withPermit {
-                apiService.getGuidePostById(
-                    guidePostId = guidePostId,
-                    apiKey = requestApiKey
-                )
-            }
-
-            val result = safeApiCall { response }
-            result.fold(
-                onSuccess = { wrapper ->
-                    val guidePostDto = wrapper.data
-                    if (guidePostDto != null) {
-                        emit(Result.success(guidePostDto.toGuidePost()))
-                    } else {
-                        emit(Result.failure(Exception("Guide post not found")))
-                    }
-                },
-                onFailure = { error ->
-                    emit(Result.failure(error))
-                }
-            )
-
-        } catch (e: Exception) {
-            Log.e(TAG, "getGuidePostById exception: ${e.message}")
-            emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO)
-    */
 
 
     // -------------------------
@@ -760,47 +589,29 @@ class HomeRepository(
     /**
      * Toggle AI prompt favorite status
      */
-    suspend fun toggleAIPromptFavorite(promptId: String): Flow<Result<AIPrompt>> = flow {
+    suspend fun toggleAIPromptFavorite(prompt: AIPrompt): Flow<Result<AIPrompt>> = flow {
         try {
-            val isFavorite = favoriteDao.isFavorite(promptId)
-            
-            if (isFavorite) {
-                // Remove from favorites
-                favoriteDao.removeFromFavorites(promptId)
-                Log.d(TAG, "Removed AI prompt from favorites: $promptId")
+            val promptId = prompt.id
+            val isFav = withContext(Dispatchers.IO) { favoriteDao.isBookmarked(promptId) }
+
+            if (isFav) {
+                withContext(Dispatchers.IO) { favoriteDao.removeFromFavorites(promptId) }
             } else {
-                // Add to favorites
-                favoriteDao.addToFavorites(
-                    FavoritePrompt(
-                        promptId = promptId,
-                        title = "Sample Prompt",          // provide required parameter
-                        shortPrompt = "Sample short prompt", // provide required parameter
-                        fullPrompt = "Sample full prompt", // provide required parameter
-                        imageUrl = "",                     // provide required parameter
-                        category = "",                     // provide required parameter
-                        favoritedAt = System.currentTimeMillis()
-                    )
-                )
-                Log.d(TAG, "Added AI prompt to favorites: $promptId")
+                withContext(Dispatchers.IO) {
+                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
+                }
             }
-            
-            // Return a mock updated prompt - in a real app, you'd fetch from local cache or API
-            val updatedPrompt = AIPrompt(
-                id = promptId,
-                title = "Sample Prompt",
-                shortPrompt = "Sample short prompt",     // provide required parameter
-                fullPrompt = "Sample prompt content",
-                imageUrl = "",                           // provide required parameter  
-                category = "",                           // provide required parameter
-                isFavorite = !isFavorite                 // fix: use isFavorite instead of isFavorited
-            )
-            
-            emit(Result.success(updatedPrompt))
+
+            // return original prompt with updated bookmark state
+            val updated = prompt.copy(isBookmarked = !isFav)
+
+            emit(Result.success(updated))
+
         } catch (e: Exception) {
-            Log.e(TAG, "toggleAIPromptFavorite exception: ${e.message}")
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
 
     // -------------------------
     // FAVORITES - GUIDE POSTS
@@ -829,39 +640,6 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
-
-
-    // ------------------------------------------------------------------
-    // 🔹 NEW: Explore Filters API Calls (Newest / Popular / Most Liked)
-    // ------------------------------------------------------------------
-    /**
-     * Fetch latest AI posts (Newest first)
-     */
-    /*suspend fun getLatestAiPosts(
-        limit: Int = 20,
-        offset: Int = 0
-    ): Flow<Result<List<AIPrompt>>> = flow {
-        val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
-            callWithRetries {
-                apiService.getAiPosts(
-                    apiKey = requestApiKey,
-                    limit = limit,
-                    offset = offset,
-                    status = "published"
-                )
-            }
-        }
-
-        apiResult.fold(
-            onSuccess = { wrapper ->
-                val list = wrapper.data ?: emptyList()
-                emit(Result.success(list))
-            },
-            onFailure = { err ->
-                emit(Result.failure(err))
-            }
-        )
-    }.flowOn(Dispatchers.IO)*/
 
 
     /**
@@ -1016,8 +794,5 @@ class HomeRepository(
             }
         )
     }.flowOn(Dispatchers.IO)
-
-
-
 
 }

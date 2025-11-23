@@ -213,7 +213,7 @@ fun AIPromptCardOnlyHome(
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onFavoriteClick(prompt)
                                             // ✅ Increment favorite count in background (only if newly favorited)
-                                            if (!prompt.isFavorite) {
+                                            if (!prompt.isBookmarked) {
                                                 prompt.id.toIntOrNull()?.let { id ->
                                                     viewModel?.incrementFavoriteCount(id)
                                                 }
@@ -222,10 +222,10 @@ fun AIPromptCardOnlyHome(
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (prompt.isFavorite) Icons.Filled.Favorite
+                                            imageVector = if (prompt.isBookmarked) Icons.Filled.Favorite
                                             else Icons.Filled.FavoriteBorder,
                                             contentDescription = "Toggle Favorite",
-                                            tint = if (prompt.isFavorite)
+                                            tint = if (prompt.isBookmarked)
                                                 Color(0xFFE91E63) else Color(0xFF64748B),
                                             modifier = Modifier.size(18.dp)
                                         )

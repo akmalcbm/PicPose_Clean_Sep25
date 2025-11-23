@@ -69,6 +69,7 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.components.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import com.picpose.bestphotographyapp.utils.ConnectivityObserver
@@ -320,7 +321,31 @@ fun ExploreScreen(
 
                             when (content) {
                                 is ExploreContent.AIPromptContent -> {
-                                    AIPromptCard(
+                                    AIPromptCardWithEffects(
+                                        prompt = content.prompt,
+                                        onClick = { onNavigateToPromptDetail(content.prompt) },
+                                        onCopy = {
+                                            val text = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
+                                            copyToClipboard(context, clipboard, text, coroutineScope)
+                                        },
+                                        //isCompact = false,
+                                        showFavoriteIcon = true,
+
+                                        //onFavoriteClick = { viewModel.togglePromptBookmark(it) }, // optional, kept for compat
+                                        onLikeClick = { updatedPrompt ->
+                                            viewModel.togglePromptLike(updatedPrompt)
+                                            viewModel.updatePromptInList(updatedPrompt)
+                                        },                                                 // NEW: should update like on server
+
+                                        onBookmarkClick = { updatedPrompt ->
+                                            viewModel.togglePromptBookmark(updatedPrompt)
+                                            viewModel.updatePromptInList(updatedPrompt)
+                                        },                                                   // NEW: should update bookmark on server
+
+                                        modifier = Modifier.animateItem()
+                                    )
+
+                                    /*AIPromptCard(
                                         prompt = content.prompt,
                                         onClick = { onNavigateToPromptDetail(content.prompt) },
                                         onCopy = {
@@ -329,7 +354,7 @@ fun ExploreScreen(
                                         },
                                         onFavoriteClick = { viewModel.togglePromptFavorite(it) },
                                         modifier = Modifier.animateItem()
-                                    )
+                                    )*/
                                 }
                                 is ExploreContent.GuidePostContent -> {
                                     GuidePostCard(

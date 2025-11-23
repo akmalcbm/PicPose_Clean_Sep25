@@ -213,9 +213,9 @@ fun AIPromptCard(
                             }
                         ) {
                             Icon(
-                                if (prompt.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                if (prompt.isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Like",
-                                tint = if (prompt.isFavorite) colors.error else colors.onSurfaceVariant,
+                                tint = if (prompt.isBookmarked) colors.error else colors.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
 

@@ -392,22 +392,6 @@ class ExploreViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
-    // favorites toggles (update content & cache)
-    fun togglePromptFavorite(prompt: AIPrompt) {
-        viewModelScope.launch {
-            repository.toggleAIPromptFavorite(prompt.id ?: return@launch).collect { result ->
-                result.onSuccess { updated ->
-                    cachedAIPrompts = cachedAIPrompts?.map { if (it.id == updated.id) updated else it }
-                    _uiState.update {
-                        it.copy(content = it.content.map { c ->
-                            if (c is ExploreContent.AIPromptContent && c.prompt.id == updated.id)
-                                ExploreContent.AIPromptContent(updated) else c
-                        })
-                    }
-                }
-            }
-        }
-    }
 
     fun toggleGuidePostFavorite(guidePost: GuidePost) {
         viewModelScope.launch {
@@ -424,6 +408,78 @@ class ExploreViewModel @Inject constructor(
             }
         }
     }
+
+    fun togglePromptLike(prompt: AIPrompt) {
+        val updated = prompt.copy(
+            isBookmarked = prompt.isBookmarked,
+            likes = prompt.likes
+        )
+
+        // Update UI list
+        _uiState.update { st ->
+            st.copy(
+                content = st.content.map {
+                    if (it is ExploreContent.AIPromptContent && it.prompt.id == prompt.id)
+                        ExploreContent.AIPromptContent(updated)
+                    else it
+                }
+            )
+        }
+    }
+
+
+    fun togglePromptBookmark(prompt: AIPrompt) {
+        viewModelScope.launch {
+            repository.toggleAIPromptFavorite(prompt).collect { result ->
+                result.onSuccess { updatedPrompt ->
+
+                    _uiState.update { st ->
+                        st.copy(
+                            content = st.content.map {
+                                if (it is ExploreContent.AIPromptContent && it.prompt.id == prompt.id)
+                                    ExploreContent.AIPromptContent(updatedPrompt)
+                                else it
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+    // favorites toggles (update content & cache)
+    fun togglePromptFavorite(prompt: AIPrompt) {
+        viewModelScope.launch {
+            repository.toggleAIPromptFavorite(prompt ?: return@launch).collect { result ->
+                result.onSuccess { updated ->
+                    cachedAIPrompts = cachedAIPrompts?.map { if (it.id == updated.id) updated else it }
+                    _uiState.update {
+                        it.copy(content = it.content.map { c ->
+                            if (c is ExploreContent.AIPromptContent && c.prompt.id == updated.id)
+                                ExploreContent.AIPromptContent(updated) else c
+                        })
+                    }
+                }
+            }
+        }
+    }
+    */
+
+    fun updatePromptInList(updated: AIPrompt) {
+        _uiState.update { state ->
+            state.copy(
+                content = state.content.map { item ->
+                    if (item is ExploreContent.AIPromptContent && item.prompt.id == updated.id) {
+                        ExploreContent.AIPromptContent(updated)
+                    } else item
+                }
+            )
+        }
+    }
+
+
+
 }
 
 

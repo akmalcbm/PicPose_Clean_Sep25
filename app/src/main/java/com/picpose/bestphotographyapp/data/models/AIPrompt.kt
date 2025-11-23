@@ -25,7 +25,8 @@ data class AIPrompt(
     val isFeatured: Boolean = false,
 
     // ✅ Mutable favorites for UI toggling
-    var isFavorite: Boolean = false,
+    var isBookmarked: Boolean = false,  //Bookmark = isFavorite Added/ Removed from the Favourite List
+    var isLikes: Boolean = false,       // Likes = Likes Increase / Decrease
 
     val status: String? = "published",
     val priority: Int = 0,
