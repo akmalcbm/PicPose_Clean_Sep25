@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
+import com.picpose.bestphotographyapp.data.repository.ExploreRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -82,9 +83,9 @@ enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
-    private val repository: HomeRepository
+    private val homeRepository: HomeRepository,
+    private val exploreRepository: ExploreRepository
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(ExploreUiState())
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
 
@@ -243,9 +244,9 @@ class ExploreViewModel @Inject constructor(
         return try {
             var result: List<AIPrompt> = emptyList()
             val flow = when (state.selectedSortOption) {
-                SortOption.NEWEST -> repository.getAiPostsSimple(page = state.currentPage, limit = limit, category = category, search = search)
-                SortOption.POPULAR -> repository.getTrendingAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
-                SortOption.MOST_LIKED -> repository.getMostLikedAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
+                SortOption.NEWEST -> homeRepository.getAiPostsSimple(page = state.currentPage, limit = limit, category = category, search = search)
+                SortOption.POPULAR -> homeRepository.getTrendingAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
+                SortOption.MOST_LIKED -> homeRepository.getMostLikedAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
             }
 
             flow.collect { apiResult ->
@@ -284,7 +285,7 @@ class ExploreViewModel @Inject constructor(
 
         return try {
             var result: List<GuidePost> = emptyList()
-            repository.getGuidePosts(page = state.currentPage, limit = 20, search = state.searchQuery.ifBlank { null })
+            homeRepository.getGuidePosts(page = state.currentPage, limit = 20, search = state.searchQuery.ifBlank { null })
                 .collect { apiResult ->
                     apiResult.fold(
                         onSuccess = { data ->
@@ -366,7 +367,7 @@ class ExploreViewModel @Inject constructor(
     private fun loadCategories() {
         viewModelScope.launch {
             try {
-                repository.getCategories().collect { result ->
+                homeRepository.getCategories().collect { result ->
                     result.fold(
                         onSuccess = { cats ->
                             _uiState.update { it.copy(categories = listOf("All") + cats.map { c -> c.name }) }
@@ -395,7 +396,7 @@ class ExploreViewModel @Inject constructor(
 
     fun toggleGuidePostFavorite(guidePost: GuidePost) {
         viewModelScope.launch {
-            repository.toggleGuidePostFavorite(guidePost.id ?: return@launch).collect { result ->
+            homeRepository.toggleGuidePostFavorite(guidePost.id ?: return@launch).collect { result ->
                 result.onSuccess { updated ->
                     cachedGuidePosts = cachedGuidePosts?.map { if (it.id == updated.id) updated else it }
                     _uiState.update {
@@ -410,42 +411,29 @@ class ExploreViewModel @Inject constructor(
     }
 
     fun togglePromptLike(prompt: AIPrompt) {
-        val updated = prompt.copy(
-            isBookmarked = prompt.isBookmarked,
-            likes = prompt.likes
-        )
-
-        // Update UI list
-        _uiState.update { st ->
-            st.copy(
-                content = st.content.map {
-                    if (it is ExploreContent.AIPromptContent && it.prompt.id == prompt.id)
-                        ExploreContent.AIPromptContent(updated)
-                    else it
-                }
-            )
-        }
-    }
-
-
-    fun togglePromptBookmark(prompt: AIPrompt) {
         viewModelScope.launch {
-            repository.toggleAIPromptFavorite(prompt).collect { result ->
-                result.onSuccess { updatedPrompt ->
-
-                    _uiState.update { st ->
-                        st.copy(
-                            content = st.content.map {
-                                if (it is ExploreContent.AIPromptContent && it.prompt.id == prompt.id)
-                                    ExploreContent.AIPromptContent(updatedPrompt)
-                                else it
-                            }
-                        )
-                    }
+            exploreRepository.togglePromptLike(prompt).collect { result ->
+                result.onSuccess { updated ->
+                    updatePromptInList(updated)
                 }
             }
         }
     }
+
+
+
+
+    fun togglePromptBookmark(prompt: AIPrompt) {
+        viewModelScope.launch {
+            exploreRepository.togglePromptBookmark(prompt).collect { result ->
+                result.onSuccess { updated ->
+                    updatePromptInList(updated)
+                }
+            }
+        }
+    }
+
+
 
     /*
     // favorites toggles (update content & cache)
@@ -477,7 +465,6 @@ class ExploreViewModel @Inject constructor(
             )
         }
     }
-
 
 
 }

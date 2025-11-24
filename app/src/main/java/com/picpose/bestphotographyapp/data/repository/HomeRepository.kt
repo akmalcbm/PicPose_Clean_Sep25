@@ -50,6 +50,8 @@ class HomeRepository(
     private val apiService: ApiService = RetrofitClient.apiService
     private val database = AppDatabase.getDatabase(context)
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
+    private val likedDao = database.likedPromptDao()
+
     private val gson = Gson()
     private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
     
@@ -289,8 +291,13 @@ class HomeRepository(
                 // ⭐ Enrich local favorite flags
                 val enriched = data.map { p ->
                     val fav = favoriteDao.isBookmarked(p.id)
-                    p.copy(isBookmarked = fav)
+                    val liked = likedDao.isLiked(p.id)
+                    p.copy(
+                        isBookmarked = fav,
+                        isLikes = liked
+                    )
                 }
+
 
                 emit(Result.success(enriched))
             } else {
@@ -794,5 +801,6 @@ class HomeRepository(
             }
         )
     }.flowOn(Dispatchers.IO)
+
 
 }

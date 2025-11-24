@@ -3,9 +3,11 @@ package com.picpose.bestphotographyapp.di
 import android.content.Context
 import androidx.room.Room
 import com.picpose.bestphotographyapp.data.database.AppDatabase
+import com.picpose.bestphotographyapp.data.database.LikedPromptDao
 import com.picpose.bestphotographyapp.data.database.StatsDao
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.repository.ExploreRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import com.picpose.bestphotographyapp.data.repository.StatsRepository
 import dagger.Module
@@ -46,4 +48,15 @@ object RepositoryModule {
     @Singleton
     fun provideHomeRepository(@ApplicationContext context: Context): HomeRepository =
         HomeRepository(context)
+
+    @Provides
+    fun provideLikedPromptDao(db: AppDatabase): LikedPromptDao = db.likedPromptDao()
+
+    @Provides
+    @Singleton
+    fun provideExploreRepository(
+        @ApplicationContext context: Context
+    ): ExploreRepository = ExploreRepository(context)
+
+
 }

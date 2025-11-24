@@ -9,15 +9,17 @@ import androidx.room.TypeConverters
 @Database(
     entities = [
         FavoritePrompt::class,  // existing
+        LikedPrompt::class,   // ⬅ NEW
         StatsEntity::class      // ✅ add this new entity
     ],
-    version = 2, // ✅ increment version
+    version = 3, // ✅ increment version
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun favoriteDao(): FavoritePromptDao
+    abstract fun likedPromptDao(): LikedPromptDao    // ⬅ NEW
     abstract fun statsDao(): StatsDao
 
     companion object {
