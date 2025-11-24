@@ -9,8 +9,20 @@ import com.google.gson.annotations.SerializedName
 data class User(
     @SerializedName("id") val id: String,
     @SerializedName("email") val email: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("profile_picture") val profilePicture: String? = null,
+
+    @SerializedName("name")
+    val name: String? = null,
+
+    @SerializedName("username")
+    val username: String? = null, // backend support
+
+    @SerializedName("profile_picture")
+    val profilePicture: String? = null,
+
+    @SerializedName("profile_pic")
+    val profilePic: String? = null, // backend support
+
+
     @SerializedName("followers_count") val followersCount: Int = 0,
     @SerializedName("following_count") val followingCount: Int = 0,
     @SerializedName("posts_count") val postsCount: Int = 0,
@@ -20,7 +32,23 @@ data class User(
     // 🔹 New Fields
     @SerializedName("account_type") val accountType: AccountType = AccountType.NORMAL,
     @SerializedName("role") val role: UserRole = UserRole.USER
+
 )
+
+{
+    val displayName: String
+        get() = name ?: username ?: "Guest User"
+
+    val displayProfilePicture: String?
+        get() = when {
+            !profilePicture.isNullOrBlank() && profilePicture!!.startsWith("http") -> profilePicture
+            !profilePicture.isNullOrBlank() -> "https://picpose.iamakmal.in/" + profilePicture
+            !profilePic.isNullOrBlank() && profilePic!!.startsWith("http") -> profilePic
+            !profilePic.isNullOrBlank() -> "https://picpose.iamakmal.in/" + profilePic
+            else -> null
+        }
+
+}
 
 /**
  * Enum representing user account type (used for monetization)

@@ -170,10 +170,10 @@ fun ProfileScreen(
                                     modifier = Modifier.size(120.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
-                                    if (!currentUser?.profilePicture.isNullOrBlank()) {
+                                    if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(LocalContext.current)
-                                                .data(currentUser?.profilePicture)
+                                                .data(currentUser?.displayProfilePicture)
                                                 .crossfade(true)
                                                 .build(),
                                             contentDescription = "Profile Picture",
@@ -236,7 +236,7 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 Text(
-                                    text = currentUser?.name ?: "Guest User",
+                                    text = currentUser?.displayName ?: "Guest User",
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,

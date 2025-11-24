@@ -65,6 +65,7 @@ fun LoginScreen(
     LaunchedEffect(authState, hasSkippedAuth) {
         if (authState is AuthState.Success || hasSkippedAuth) {
             onNavigateToHome()
+            authViewModel.fetchCurrentUser()
             authViewModel.resetAuthState()
             authViewModel.resetSkip()
         }

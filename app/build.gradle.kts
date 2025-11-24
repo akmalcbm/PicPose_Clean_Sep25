@@ -129,6 +129,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    implementation(libs.canhub.image.cropper)
+
     implementation(libs.play.services.ads)         // Google AdMob
     implementation(libs.facebook.audience.network) // Meta Audience Network
 
@@ -148,7 +150,6 @@ dependencies {
 
     // Window Size
     implementation(libs.androidx.compose.material3.window.size)
-
 
     // Tests
     testImplementation(libs.junit)

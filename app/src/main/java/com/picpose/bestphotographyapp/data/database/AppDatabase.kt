@@ -12,7 +12,7 @@ import androidx.room.TypeConverters
         LikedPrompt::class,   // ⬅ NEW
         StatsEntity::class      // ✅ add this new entity
     ],
-    version = 3, // ✅ increment version
+    version = 1, // ✅ increment version
     exportSchema = false
 )
 @TypeConverters(Converters::class)
