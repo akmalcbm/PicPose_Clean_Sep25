@@ -211,7 +211,7 @@ fun ProfileScreen(
                                     }
 
                                     // 📸 Camera Overlay Icon
-                                    Box(
+                                    /*Box(
                                         modifier = Modifier
                                             .size(34.dp)
                                             .align(Alignment.BottomEnd)
@@ -230,7 +230,7 @@ fun ProfileScreen(
                                             tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(18.dp)
                                         )
-                                    }
+                                    }*/
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))

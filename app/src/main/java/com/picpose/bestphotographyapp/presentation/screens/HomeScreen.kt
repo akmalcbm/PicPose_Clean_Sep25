@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
 import com.picpose.bestphotographyapp.presentation.components.home.*
+import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import kotlinx.coroutines.launch
@@ -55,6 +56,9 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val statsViewModel: StatsViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
     // ✅ Edge-to-edge layout
     LaunchedEffect(Unit) {
@@ -83,9 +87,10 @@ fun HomeScreen(
             HomeTopBar(
                 titleText = "PicPose",
                 initialSearch = "",
+                userImage = currentUser?.displayProfilePicture,
                 onQueryChanged = { query -> viewModel.onSearchChanged(query) },
                 onSearchClick = { query -> viewModel.onSearchChanged(query) },
-                onProfileClick = { /* future profile */ }
+                onProfileClick = { /* navigate profile */ }
             )
         },
         contentWindowInsets = WindowInsets(0)
