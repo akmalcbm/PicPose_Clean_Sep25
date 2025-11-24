@@ -167,7 +167,7 @@ fun ProfileScreen(
                             ) {
                                 // Profile Picture
                                 Box(
-                                    modifier = Modifier.size(120.dp),
+                                    modifier = Modifier.size(150.dp),
                                     contentAlignment = Alignment.BottomEnd
                                 ) {
                                     if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
@@ -182,8 +182,8 @@ fun ProfileScreen(
                                                 .fillMaxSize()
                                                 .clip(CircleShape)
                                                 .border(
-                                                    2.dp,
-                                                    MaterialTheme.colorScheme.primary,
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onSurface,
                                                     CircleShape
                                                 )
                                         )
