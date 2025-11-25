@@ -254,7 +254,7 @@ fun ProfileScreen(
 
                                 Text(
                                     text = currentUser?.bio
-                                        ?: "Capturing moments, creating memories ✨",
+                                        ?: "Capturing moments, creating memories-✨",
                                     fontSize = 14.sp,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),

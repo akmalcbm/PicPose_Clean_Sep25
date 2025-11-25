@@ -108,6 +108,9 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 },
                 onNavigateToViewAll = { category ->
                     navController.navigate("viewAll/$category") { launchSingleTop = true }
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
                 }
             )
         }

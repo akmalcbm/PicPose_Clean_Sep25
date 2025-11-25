@@ -49,7 +49,8 @@ fun HomeScreen(
     onNavigateToPostDetail: (Post) -> Unit,
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
     onNavigateToGuidePostDetail: (GuidePost) -> Unit,
-    onNavigateToViewAll: (String) -> Unit
+    onNavigateToViewAll: (String) -> Unit,
+    onNavigateToEditProfile: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -90,7 +91,7 @@ fun HomeScreen(
                 userImage = currentUser?.displayProfilePicture,
                 onQueryChanged = { query -> viewModel.onSearchChanged(query) },
                 onSearchClick = { query -> viewModel.onSearchChanged(query) },
-                onProfileClick = { /* navigate profile */ }
+                onProfileClick = { onNavigateToEditProfile() }
             )
         },
         contentWindowInsets = WindowInsets(0)
