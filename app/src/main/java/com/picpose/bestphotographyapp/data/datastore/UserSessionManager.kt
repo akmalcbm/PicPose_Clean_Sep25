@@ -11,7 +11,10 @@ import java.io.IOException
 
 /**
  * DataStore for user session management
- * Updated for real-time UI sync across Profile & Settings screens.
+ * Includes:
+ * - Bio field
+ * - Real-time UI sync
+ * - Full session support (login, update profile, logout)
  */
 class UserSessionManager(private val context: Context) {
 
@@ -22,18 +25,20 @@ class UserSessionManager(private val context: Context) {
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
         private val USER_PROFILE_PICTURE_KEY = stringPreferencesKey("user_profile_picture")
+        private val USER_BIO_KEY = stringPreferencesKey("user_bio") // ✅ NEW
         private val USER_TOKEN_KEY = stringPreferencesKey("user_token")
+
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
         private val HAS_SKIPPED_AUTH_KEY = booleanPreferencesKey("has_skipped_auth")
     }
 
-    /** ✅ Emit helper with safe fallback for IOException */
+    /** Safe mapping helper */
     private fun <T> Flow<Preferences>.safeMap(transform: suspend (Preferences) -> T): Flow<T> =
         catch { exception ->
             if (exception is IOException) emit(emptyPreferences()) else throw exception
         }.map(transform)
 
-    /** ✅ Observables */
+    /** Observable session fields */
     val isLoggedIn: Flow<Boolean> = context.userDataStore.data.safeMap {
         it[IS_LOGGED_IN_KEY] ?: false
     }
@@ -45,54 +50,75 @@ class UserSessionManager(private val context: Context) {
     val userId: Flow<String?> = context.userDataStore.data.safeMap { it[USER_ID_KEY] }
     val userEmail: Flow<String?> = context.userDataStore.data.safeMap { it[USER_EMAIL_KEY] }
     val userName: Flow<String?> = context.userDataStore.data.safeMap { it[USER_NAME_KEY] }
-    val userProfilePicture: Flow<String?> = context.userDataStore.data.safeMap { it[USER_PROFILE_PICTURE_KEY] }
-    val userToken: Flow<String?> = context.userDataStore.data.safeMap { it[USER_TOKEN_KEY] }
+    val userProfilePicture: Flow<String?> =
+        context.userDataStore.data.safeMap { it[USER_PROFILE_PICTURE_KEY] }
+
+    val userBio: Flow<String?> = context.userDataStore.data.safeMap {
+        it[USER_BIO_KEY] ?: ""
+    }
+
+    val userToken: Flow<String?> = context.userDataStore.data.safeMap {
+        it[USER_TOKEN_KEY]
+    }
 
     /**
-     * ✅ Save user session after login or register
-     * Automatically sets `is_logged_in = true`
+     * Save full session after login, register, or profile update
      */
     suspend fun saveUserSession(
         userId: String,
         email: String,
         name: String,
         profilePicture: String? = null,
+        bio: String? = null,              // ✅ NEW
         token: String? = null
     ) {
         context.userDataStore.edit { prefs ->
             prefs[USER_ID_KEY] = userId
             prefs[USER_EMAIL_KEY] = email
             prefs[USER_NAME_KEY] = name
+
             profilePicture?.let { prefs[USER_PROFILE_PICTURE_KEY] = it }
+            bio?.let { prefs[USER_BIO_KEY] = it } // ✅ NEW
+
             token?.let { prefs[USER_TOKEN_KEY] = it }
+
             prefs[IS_LOGGED_IN_KEY] = true
-            prefs[HAS_SKIPPED_AUTH_KEY] = false // reset skip if user logs in
+            prefs[HAS_SKIPPED_AUTH_KEY] = false
         }
     }
 
     /**
-     * ✅ Update only name, photo, or bio after Edit Profile
+     * Update limited fields (Edit Profile partial updates)
      */
-    suspend fun updateUserProfile(name: String, profilePicture: String?) {
+    suspend fun updateUserProfile(
+        name: String? = null,
+        profilePicture: String? = null,
+        bio: String? = null      // ✅ NEW
+    ) {
         context.userDataStore.edit { prefs ->
-            prefs[USER_NAME_KEY] = name
+            name?.let { prefs[USER_NAME_KEY] = it }
             profilePicture?.let { prefs[USER_PROFILE_PICTURE_KEY] = it }
+            bio?.let { prefs[USER_BIO_KEY] = it } // ✅ NEW
         }
     }
 
     /**
-     * ✅ Clear all user data on logout
-     */
-    suspend fun clearUserSession() {
-        context.userDataStore.edit { prefs -> prefs.clear() }
-    }
-
-    /**
-     * ✅ Set skip auth flag
+     * Set skip-auth flag (for "Skip" button)
      */
     suspend fun setSkipAuth(skipped: Boolean) {
         context.userDataStore.edit { prefs ->
             prefs[HAS_SKIPPED_AUTH_KEY] = skipped
         }
     }
+
+    /**
+     * Clear entire session
+     */
+    suspend fun clearUserSession() {
+        context.userDataStore.edit { prefs ->
+            prefs.clear()
+            prefs[HAS_SKIPPED_AUTH_KEY] = false   // 👈 force skip = false
+        }
+    }
+
 }

@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
 import com.picpose.bestphotographyapp.presentation.components.home.*
+import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
@@ -50,18 +51,21 @@ fun HomeScreen(
     onNavigateToPromptDetail: (AIPrompt) -> Unit,
     onNavigateToGuidePostDetail: (GuidePost) -> Unit,
     onNavigateToViewAll: (String) -> Unit,
-    onNavigateToEditProfile: () -> Unit
+    onNavigateToEditProfile: () -> Unit,
+    onRequestLogin: () -> Unit        // ✅ NEW — navigation callback
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
+
     val uiState by viewModel.uiState.collectAsState()
     val statsViewModel: StatsViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
 
     val authViewModel: AuthViewModel = hiltViewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
-    // ✅ Edge-to-edge layout
+    // Enable edge-to-edge layout
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
@@ -70,9 +74,7 @@ fun HomeScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     var currentTipIndex by remember { mutableIntStateOf(0) }
 
-    /** ✅ Smart shimmer control — short & partial
-     * Show shimmer only if absolutely no section data is loaded yet
-     */
+    // Initial shimmer loading logic
     val isCompletelyEmpty =
         uiState.aiPrompts.isEmpty() &&
                 uiState.trendingPosts.isEmpty() &&
@@ -91,7 +93,12 @@ fun HomeScreen(
                 userImage = currentUser?.displayProfilePicture,
                 onQueryChanged = { query -> viewModel.onSearchChanged(query) },
                 onSearchClick = { query -> viewModel.onSearchChanged(query) },
-                onProfileClick = { onNavigateToEditProfile() }
+
+                // ⭐ Updated correct logic here
+                onProfileClick = {
+                    if (isLoggedIn) onNavigateToEditProfile()
+                    else onRequestLogin()
+                }
             )
         },
         contentWindowInsets = WindowInsets(0)
@@ -110,9 +117,11 @@ fun HomeScreen(
                 }
             }
         ) {
+
             if (showShimmer) {
                 ShimmerLoadingHomeScreen()
             } else {
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -123,10 +132,11 @@ fun HomeScreen(
                             .calculateBottomPadding() + 24.dp
                     )
                 ) {
-                    /** ✅ Welcome Header */
+
+                    // Welcome Header
                     item { AnimatedWelcomeHeader() }
 
-                    /** ✅ Daily Tip — load instantly when available */
+                    // Daily Tip
                     if (uiState.dailyTips.isNotEmpty()) {
                         item {
                             val tip = uiState.dailyTips[currentTipIndex % uiState.dailyTips.size]
@@ -140,7 +150,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ AI Prompts Section */
+                    // AI Prompts Section
                     if (uiState.aiPrompts.isNotEmpty()) {
                         item {
                             AIPromptSectionHeader(
@@ -152,7 +162,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ Trending + Featured + Popular — show immediately when loaded */
+                    // Trending & Featured & Popular
                     if (uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -162,6 +172,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+
                         item {
                             TrendingFeaturedAndPopularRow(
                                 trendingPosts = uiState.trendingPosts,
@@ -177,7 +188,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ Banner Ad */
+                    // Banner Ad
                     item {
                         AdmobBannerAd(
                             modifier = Modifier
@@ -186,7 +197,7 @@ fun HomeScreen(
                         )
                     }
 
-                    /** ✅ Categories Section */
+                    // Categories
                     if (uiState.categories.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -205,7 +216,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ Recent Posts — move this earlier for faster visual load */
+                    // Recent Posts
                     if (uiState.recentPosts.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -215,6 +226,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+
                         items(uiState.recentPosts.take(5)) { post ->
                             RecentPostItem(
                                 post = post,
@@ -232,7 +244,7 @@ fun HomeScreen(
                         }
                     }
 
-                    /** ✅ Guides Section */
+                    // Guides
                     if (uiState.guidePosts.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -242,6 +254,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+
                         item {
                             GuidePostsRow(
                                 guidePosts = uiState.guidePosts,
@@ -259,6 +272,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 
 /* ───────────────────────────────

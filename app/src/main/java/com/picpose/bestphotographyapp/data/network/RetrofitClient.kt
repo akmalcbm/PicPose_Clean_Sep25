@@ -4,125 +4,140 @@ import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.CacheControl
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
+
     private const val TAG = "API"
     private const val BASE_URL = "https://picpose.iamakmal.in/"
-    private const val CACHE_SIZE = 10L * 1024 * 1024 // 10 MB cache
+    private const val CACHE_SIZE = 10L * 1024 * 1024 // 10MB
 
-    // Exposed global override for API key header (optional)
-    var defaultApiKey: String? = "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
-    
-    // Cache directory (will be set from Application context)
+    // Global API key used everywhere unless overridden
+    var defaultApiKey: String? =
+        "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
+
     private var cacheDir: java.io.File? = null
-    
-    /**
-     * Initialize cache directory from application context
-     */
+
     fun initCache(context: android.content.Context) {
         cacheDir = java.io.File(context.cacheDir, "http_cache")
     }
 
-    // Cache interceptor for offline support
-    private val cacheInterceptor = Interceptor { chain ->
-        var request = chain.request()
-        
-        // Add cache control for GET requests
-        if (request.method == "GET") {
-            val cacheControl = okhttp3.CacheControl.Builder()
-                .maxAge(5, TimeUnit.MINUTES) // Cache for 5 minutes
-                .build()
-            
-            request = request.newBuilder()
-                .cacheControl(cacheControl)
-                .build()
+    // -----------------------------
+    // 1. Automatic API Key Interceptor
+    // -----------------------------
+    private val apiKeyInterceptor = Interceptor { chain ->
+        val req = chain.request().newBuilder()
+
+        defaultApiKey?.let { key ->
+            req.addHeader("X-API-Key", key)
         }
-        
-        chain.proceed(request)
+
+        chain.proceed(req.build())
     }
-    
-    // Offline cache interceptor
+
+
+    // -----------------------------
+    // 2. Cache Interceptor for Online Mode
+    // -----------------------------
+    private val cacheInterceptor = Interceptor { chain ->
+        val request = chain.request()
+
+        val newRequest = request.newBuilder()
+            .header("Cache-Control", "public, max-age=300") // 5 minute cache
+            .build()
+
+        chain.proceed(newRequest)
+    }
+
+
+    // -----------------------------
+    // 3. Offline Cache Interceptor
+    // -----------------------------
     private val offlineCacheInterceptor = Interceptor { chain ->
         var request = chain.request()
-        
-        // Force cache when offline for GET requests
-        if (request.method == "GET") {
-            val cacheControl = okhttp3.CacheControl.Builder()
-                .maxStale(7, TimeUnit.DAYS) // Use stale cache up to 7 days when offline
-                .build()
-            
-            request = request.newBuilder()
-                .cacheControl(cacheControl)
-                .build()
-        }
-        
+
+        val cacheControl = CacheControl.Builder()
+            .maxStale(7, TimeUnit.DAYS)
+            .build()
+
+        request = request.newBuilder()
+            .cacheControl(cacheControl)
+            .build()
+
         chain.proceed(request)
     }
 
-    // Monitoring interceptor (logs requests/responses)
+
+    // -----------------------------
+    // 4. API Monitoring Interceptor (safe logging)
+    // -----------------------------
     private val monitoringInterceptor = Interceptor { chain ->
         val request = chain.request()
         val start = System.currentTimeMillis()
-        Log.d(TAG, "➡️ REQUEST  ${request.method} ${request.url}  | headers=${request.headers}")
 
-        // optionally log request body (be careful with large/binary)
-        try {
-            request.body?.let { body ->
-                val buffer = okio.Buffer()
-                body.writeTo(buffer)
-                val bodyText = buffer.readUtf8()
-                Log.d(TAG, "➡️ REQUEST BODY: $bodyText")
-            }
-        } catch (_: Exception) { /* ignore */ }
+        Log.d(TAG, "➡️ ${request.method} ${request.url}")
 
         val response: Response = try {
             chain.proceed(request)
         } catch (e: Exception) {
-            val dur = System.currentTimeMillis() - start
-            Log.e(TAG, "❌ NETWORK ERROR ${request.method} ${request.url}  (${dur}ms): ${e.message}")
+            Log.e(TAG, "❌ ERROR on ${request.url}: ${e.message}")
             throw e
         }
 
         val duration = System.currentTimeMillis() - start
-        Log.d(TAG, "⬅️ RESPONSE ${response.code} ${response.request.url} (${duration}ms)")
+        Log.d(TAG, "⬅️ ${response.code} (${duration}ms) ${response.request.url}")
 
         try {
-            val respBody = response.peekBody(Long.MAX_VALUE).string()
-            Log.d(TAG, "⬅️ RESPONSE BODY: $respBody")
-        } catch (_: Exception) { /* ignore large bodies */ }
+            val copy = response.peekBody(1024 * 1024).string()
+            Log.d(TAG, "⬅️ BODY: $copy")
+        } catch (_: Exception) { }
 
         response
     }
 
-    // OkHttp logging
-    private val httpLogging = HttpLoggingInterceptor { message -> Log.d(TAG, message) }
-        .apply { level = HttpLoggingInterceptor.Level.BODY }
 
-    // Build OkHttpClient with interceptors
+    // -----------------------------
+    // 5. Http Logging (debug only)
+    // -----------------------------
+    private val httpLogging = HttpLoggingInterceptor { msg ->
+        Log.d(TAG, msg)
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BASIC
+    }
+
+
+    // -----------------------------
+    // 6. OkHttp Setup
+    // -----------------------------
     private val okHttpClient: OkHttpClient by lazy {
         val builder = OkHttpClient.Builder()
             .callTimeout(60, TimeUnit.SECONDS)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+
+            // Order of interceptors is important
+            .addInterceptor(apiKeyInterceptor)
             .addInterceptor(cacheInterceptor)
             .addNetworkInterceptor(offlineCacheInterceptor)
             .addInterceptor(monitoringInterceptor)
             .addInterceptor(httpLogging)
-        
-        // Add cache if directory is set
+
         cacheDir?.let {
             builder.cache(okhttp3.Cache(it, CACHE_SIZE))
         }
-        
+
         builder.build()
     }
 
-    // Retrofit instance
+
+    // -----------------------------
+    // 7. Retrofit Instance
+    // -----------------------------
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -131,11 +146,12 @@ object RetrofitClient {
             .build()
     }
 
-    // Expose ApiService singleton (replace ApiService with your interface)
-    val apiService: ApiService by lazy {
-        retrofit.create(ApiService::class.java)
+
+    // Main ApiService instance
+    val apiService: UserApiService by lazy {
+        retrofit.create(UserApiService::class.java)
     }
 
-    // Helper to create additional services if needed
+    // Create custom service if needed
     fun <T> createService(clazz: Class<T>): T = retrofit.create(clazz)
 }

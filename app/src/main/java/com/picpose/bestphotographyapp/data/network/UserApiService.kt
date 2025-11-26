@@ -3,20 +3,17 @@ package com.picpose.bestphotographyapp.data.network
 import com.picpose.bestphotographyapp.data.models.AuthResponse
 import com.picpose.bestphotographyapp.data.models.LoginRequest
 import com.picpose.bestphotographyapp.data.models.RegisterRequest
+import com.picpose.bestphotographyapp.data.models.SocialAuthData
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
-/**
- * User API service for authentication and user profile operations
- *
- * Notes:
- * - All endpoints accept an optional apiKey; prefer sending via header "X-API-Key".
- * - updateProfile is multipart and accepts profile picture as "profile_picture".
- */
 interface UserApiService {
 
+    // ---------------------------------------------------------
+    // LOGIN
+    // ---------------------------------------------------------
     @POST("api/users.php")
     suspend fun login(
         @Query("action") action: String = "login",
@@ -24,6 +21,10 @@ interface UserApiService {
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
+
+    // ---------------------------------------------------------
+    // REGISTER
+    // ---------------------------------------------------------
     @POST("api/users.php")
     suspend fun register(
         @Query("action") action: String = "register",
@@ -31,27 +32,40 @@ interface UserApiService {
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
+
+    // ---------------------------------------------------------
+    // GET USER PROFILE
+    // ---------------------------------------------------------
     @GET("api/users.php")
     suspend fun getUserProfile(
         @Query("id") userId: String,
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
-    @PUT("api/users.php")
-    suspend fun updateUserProfile(
-        @Query("id") userId: String,
-        @Body user: Map<String, @JvmSuppressWildcards Any>,
+
+    // ---------------------------------------------------------
+    // SOCIAL LOGIN (Google / Facebook)
+    // ---------------------------------------------------------
+    @POST("api/social_login.php")
+    suspend fun socialLogin(
+        @Body data: SocialAuthData,
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
+
+    // ---------------------------------------------------------
+    // MULTIPART PROFILE UPDATE
+    // Fields MUST match your PHP file
+    // ---------------------------------------------------------
     @Multipart
     @POST("api/update_profile.php")
     suspend fun updateProfile(
         @Part("user_id") userId: RequestBody,
         @Part("name") name: RequestBody,
-        @Part("bio") bio: RequestBody?,
+        @Part("bio") bio: RequestBody,
         @Part("account_type") accountType: RequestBody,
         @Part profile_picture: MultipartBody.Part?,
-        @Header("X-API-Key") apiKey: String? = null
+        @Part("api_key") apiKey: RequestBody
     ): Response<AuthResponse>
+
 }

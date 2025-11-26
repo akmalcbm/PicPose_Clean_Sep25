@@ -1,8 +1,9 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Context
+import android.credentials.CredentialManager
+import android.credentials.GetCredentialException
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,11 +27,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.common.api.ApiException
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthState
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,28 +46,22 @@ fun LoginScreen(
 
     val authState by authViewModel.authState.collectAsState()
     val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
-    val context = LocalContext.current
 
-    // Google Sign-In launcher
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                authViewModel.signInWithGoogle(account)
-            } catch (_: ApiException) {}
-        }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // ⚠️ IMPORTANT — Reset skip state when Login screen opens
+    LaunchedEffect(Unit) {
+        authViewModel.resetSkip()
+        authViewModel.initGoogleClient(context)
     }
 
-    // Navigate when logged in
+    // 🔥 Auto navigate after success login or after Skip
     LaunchedEffect(authState, hasSkippedAuth) {
         if (authState is AuthState.Success || hasSkippedAuth) {
             onNavigateToHome()
             authViewModel.fetchCurrentUser()
             authViewModel.resetAuthState()
-            authViewModel.resetSkip()
         }
     }
 
@@ -84,6 +78,7 @@ fun LoginScreen(
             )
         }
     ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,8 +87,9 @@ fun LoginScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
+
             Spacer(Modifier.height(40.dp))
+
             Image(
                 painter = painterResource(id = R.drawable.ic_logo_light),
                 contentDescription = "App Logo",
@@ -101,6 +97,7 @@ fun LoginScreen(
             )
 
             Spacer(Modifier.height(24.dp))
+
             Text(
                 text = if (isLoginMode) "Welcome Back 👋" else "Create an Account",
                 fontSize = 26.sp,
@@ -110,7 +107,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Name (register only)
+            // Full Name only on Register
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name,
@@ -150,7 +147,8 @@ fun LoginScreen(
                         )
                     }
                 },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation =
+                    if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -158,22 +156,28 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Submit
+            // Submit Button
             Button(
                 onClick = {
                     if (isLoginMode) authViewModel.login(email, password)
                     else authViewModel.register(email, password, name)
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 enabled = authState !is AuthState.Loading
             ) {
-                if (authState is AuthState.Loading)
+                if (authState is AuthState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                else
-                    Text(if (isLoginMode) "Login" else "Sign Up", fontSize = 16.sp)
+                } else {
+                    Text(
+                        if (isLoginMode) "Login" else "Sign Up",
+                        fontSize = 16.sp
+                    )
+                }
             }
 
             if (authState is AuthState.Error) {
@@ -187,7 +191,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Switch mode
+            // Toggle Login/Register
             TextButton(onClick = { isLoginMode = !isLoginMode }) {
                 Text(
                     if (isLoginMode)
@@ -199,7 +203,9 @@ fun LoginScreen(
 
             Spacer(Modifier.height(30.dp))
 
-            // Divider - Or Login With
+            // ------------------------------
+            // Divider (OR login with)
+            // ------------------------------
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -215,18 +221,30 @@ fun LoginScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            // Social Login (modern style)
+            // ------------------------------
+            // SOCIAL LOGIN BUTTONS
+            // ------------------------------
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Google
+
+                // 🌟 Google Sign-In (Credential Manager API)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
                         onClick = {
-                            val intent = authViewModel.getGoogleSignInClient(context as Activity).signInIntent
-                            googleSignInLauncher.launch(intent)
+                            scope.launch {
+                                try {
+                                    val response = authViewModel.startGoogleSignIn().getOrNull()
+                                    authViewModel.finishGoogleSignIn(
+                                        response = response,
+                                        onResult = { /* UI will auto update */ }
+                                    )
+                                } catch (e: GetCredentialException) {
+                                    // user cancelled / no account
+                                }
+                            }
                         },
                         modifier = Modifier
                             .size(56.dp)
@@ -236,51 +254,54 @@ fun LoginScreen(
                             )
                     ) {
                         Image(
-                            painter = painterResource(R.drawable.ic_google), // your Google icon
+                            painter = painterResource(R.drawable.ic_google),
                             contentDescription = "Google",
                             modifier = Modifier.size(26.dp)
                         )
                     }
+
                     Spacer(Modifier.height(6.dp))
                     Text("Google", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Facebook
+                // Facebook Button (UI only for now)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
-                        onClick = { /* TODO: Facebook Login */ },
+                        onClick = { /* TODO Facebook */ },
                         modifier = Modifier
                             .size(56.dp)
                             .background(Color(0xFF1877F2).copy(alpha = 0.15f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_facebook), // your FB icon
+                            painter = painterResource(R.drawable.ic_facebook),
                             contentDescription = "Facebook",
                             tint = Color(0xFF1877F2),
                             modifier = Modifier.size(28.dp)
                         )
                     }
+
                     Spacer(Modifier.height(6.dp))
                     Text("Facebook", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Twitter / X
+                // Twitter Button
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
-                        onClick = { /* TODO: Twitter Login */ },
+                        onClick = { /* TODO Twitter */ },
                         modifier = Modifier
                             .size(56.dp)
-                            .background(Color(0xFF000000).copy(alpha = 0.12f), MaterialTheme.shapes.medium)
+                            .background(Color.Black.copy(alpha = 0.12f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_twitter), // your Twitter/X icon
+                            painter = painterResource(R.drawable.ic_twitter),
                             contentDescription = "Twitter",
-                            tint = Color(0xFF000000),
+                            tint = Color.Black,
                             modifier = Modifier.size(26.dp)
                         )
                     }
+
                     Spacer(Modifier.height(6.dp))
-                    Text("X(Twitter)", fontSize = 13.sp, color = Color.Gray)
+                    Text("X (Twitter)", fontSize = 13.sp, color = Color.Gray)
                 }
             }
 

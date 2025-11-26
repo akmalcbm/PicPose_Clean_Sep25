@@ -9,7 +9,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,27 +17,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
@@ -51,117 +45,138 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
 
-/**
- * EditProfileScreen
- *
- * - Option A workflow (Camera -> Crop, Gallery -> Crop)
- * - Bottom sheet: Take Photo / Choose from Gallery / Remove Photo
- * - Crop with CanHub (v4.x) using CropImageContract
- * - Compress resulting image before sending to server
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onSaveSuccess: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
-    // UI state
+
+    // State
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var bio by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
-
-    // bottom sheet state
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val showPhotoSheet = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    var showSheet by remember { mutableStateOf(false) }
 
-    // animate camera bubble
+    // Animation for camera button
     val cameraScale = remember { Animatable(1f) }
     LaunchedEffect(Unit) {
-        cameraScale.animateTo(1.12f, animationSpec = tween(220))
-        cameraScale.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
+        cameraScale.animateTo(1.12f, tween(220))
+        cameraScale.animateTo(
+            1f,
+            spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow)
+        )
     }
 
-    // populate fields when user arrives
+    // Pre-fill fields
     LaunchedEffect(currentUser) {
-        currentUser?.let { u ->
-            // prefer displayName helper fields on user (if you added them)
-            val displayName = u.name ?: u.username ?: ""
-            name = TextFieldValue(displayName)
-            bio = TextFieldValue(u.bio ?: "")
+        currentUser?.let {
+            name = TextFieldValue(it.displayName)
+            bio = TextFieldValue(it.bio ?: "")
         }
     }
 
-    // Crop launcher
+    // 🚫 If user is NOT logged in — redirect to login screen
+    if (!isLoggedIn || currentUser == null) {
+        NotLoggedInScreen(
+            onBack = onNavigateBack,
+            onNavigateToLogin = {
+                onNavigateToLogin()    // ⭐ Go to LoginScreen properly
+            }
+        )
+        return
+    }
+
+
+    // Cropper launcher
     val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
-            // the cropped image Uri (local file)
             selectedImageUri = result.uriContent
         } else {
-            val ex = result.error
-            Toast.makeText(context, ex?.message ?: "Crop cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, result.error?.message ?: "Crop failed", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Gallery picker: after pick -> launch cropper for chosen Uri
-    val galleryPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+
+    // Gallery picker
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
         uri?.let {
-            val cropOptions = CropImageOptions().apply {
+            val opts = CropImageOptions().apply {
                 fixAspectRatio = true
                 aspectRatioX = 1
                 aspectRatioY = 1
                 guidelines = CropImageView.Guidelines.ON
-                outputCompressQuality = 85
                 outputCompressFormat = Bitmap.CompressFormat.JPEG
+                outputCompressQuality = 85
             }
-            val contractOptions = CropImageContractOptions(uri, cropOptions)
-            cropLauncher.launch(contractOptions)
-
+            cropLauncher.launch(CropImageContractOptions(uri, opts))
         }
     }
 
-    // Camera preview launcher (TakePicturePreview) -> get Bitmap -> save to temp file -> crop
-    val takePicturePreviewLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp: Bitmap? ->
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bmp ->
         if (bmp != null) {
-            // write bitmap to cache file and launch cropper
             scope.launch {
-                val uri = saveBitmapToCacheAndGetUri(context.cacheDir, bmp)
+                val uri = saveBitmapToCache(context.cacheDir, bmp)
                 if (uri != null) {
-                    val cropOptions = CropImageOptions().apply {
+                    val opts = CropImageOptions().apply {
                         fixAspectRatio = true
                         aspectRatioX = 1
                         aspectRatioY = 1
                         guidelines = CropImageView.Guidelines.ON
-                        outputCompressQuality = 85
                         outputCompressFormat = Bitmap.CompressFormat.JPEG
+                        outputCompressQuality = 85
                     }
-                    val contractOptions = CropImageContractOptions(uri, cropOptions)
-                    cropLauncher.launch(contractOptions)
-                } else {
-                    Toast.makeText(context, "Failed to save photo", Toast.LENGTH_SHORT).show()
+                    cropLauncher.launch(CropImageContractOptions(uri, opts))
                 }
             }
-        } else {
-            Toast.makeText(context, "Camera cancelled", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Helper to open chooser: we will show bottom sheet instead (no single-chooser API)
-    fun openGallery() {
-        galleryPicker.launch("image/*")
-    }
+    fun openCamera() = cameraLauncher.launch(null)
+    fun openGallery() = galleryLauncher.launch("image/*")
 
-    fun openCamera() {
-        takePicturePreviewLauncher.launch(null)
-    }
+    // AI Bio Suggestions
+    val aiBioSuggestions = listOf(
+        "Capturing moments, creating memories ✨",
+        "Chasing light & freezing time 📸",
+        "Turning everyday life into art 🎨",
+        "Creating magic through my lens ✨",
+        "Living life one snapshot at a time 🌿",
+        "Finding beauty in small details 🌱",
+        "Smile. Click. Repeat. 📷",
+        "Collecting moments, not things 💫",
+        "Where creativity meets clarity ✨",
+        "Storytelling through frames 🎞️",
+        "Exploring the world through my lens 🌍",
+        "Life looks better through a camera ✨",
+        "Curating moments that matter ❤️",
+        "Photography is my second language 📷",
+        "Framing emotions in every shot 💫",
+        "In love with light & shadows 🌙",
+        "Crafting visuals with passion ✨",
+        "Moments that tell real stories 📚",
+        "Minimal, aesthetic & meaningful ✨",
+        "Capturing authentic vibes only 🎯"
+    )
+
+    var showBioMenu by remember { mutableStateOf(false) }
 
     // UI
     EdgeToEdgeScaffold(
@@ -170,97 +185,93 @@ fun EditProfileScreen(
                 title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                }
             )
         }
-    ) { innerPadding ->
+    ) { padding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding)
+                .padding(padding)
                 .verticalScroll(scrollState)
-                .imePadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
 
-            // PROFILE IMAGE + CAMERA BUTTON (Instagram-like)
-            Box(modifier = Modifier.size(130.dp).padding(bottom = 6.dp), contentAlignment = Alignment.Center) {
-
-                // Outer circular clickable image
+            // PROFILE PHOTO
+            Box(
+                modifier = Modifier.size(140.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(130.dp)
+                        .size(140.dp)
                         .clip(CircleShape)
                         .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                         .clickable {
-                            // open sheet
-                            showSheet = true
-                            scope.launch { if (!sheetState.isVisible) sheetState.show() }
+                            showPhotoSheet.value = true
+                            scope.launch { sheetState.show() }
                         }
                 ) {
                     when {
                         selectedImageUri != null -> {
-                            // user selected/cropped image
                             AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(selectedImageUri)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Selected Profile Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                model = selectedImageUri,
+                                contentDescription = "Selected",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
-                        !currentUser?.profilePicture.isNullOrBlank() -> {
+                        !currentUser?.displayProfilePicture.isNullOrBlank() -> {
                             AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(currentUser?.profilePicture)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile Picture",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                model = currentUser?.displayProfilePicture,
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
                         else -> {
-                            Surface(modifier = Modifier.fillMaxSize().clip(CircleShape), color = MaterialTheme.colorScheme.primary) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(60.dp)
+                                    )
                                 }
                             }
                         }
                     }
                 }
 
-                // Floating camera button positioned outside the circle
+                // Camera floating button
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .offset(x = 8.dp, y = 8.dp)
-                        .size(46.dp)
-                        .graphicsLayer(
-                            scaleX = cameraScale.value,
-                            scaleY = cameraScale.value,
-                            shadowElevation = 8f
-                        )
+                        .offset(10.dp, 10.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
-                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         .clickable {
-                            // open chooser bottom sheet directly
-                            showSheet = true
-                            scope.launch { if (!sheetState.isVisible) sheetState.show() }
+                            showPhotoSheet.value = true
+                            scope.launch { sheetState.show() }
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Change photo", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
 
@@ -269,118 +280,155 @@ fun EditProfileScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Full Name") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Default.Person, null) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                enabled = !isSaving
+                singleLine = true
             )
 
-            // BIO FIELD
-            OutlinedTextField(
-                value = bio,
-                onValueChange = { bio = it },
-                label = { Text("Bio") },
-                placeholder = { Text("Tell us about yourself...") },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-                shape = RoundedCornerShape(12.dp),
-                maxLines = 4,
-                enabled = !isSaving
-            )
+            // BIO FIELD WITH AI
+            Box(modifier = Modifier.fillMaxWidth()) {
+
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Bio") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    maxLines = 4,
+                    trailingIcon = {
+                        IconButton(onClick = { showBioMenu = true }) {
+                            Icon(
+                                Icons.Default.Lightbulb,
+                                contentDescription = "AI Bio",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = showBioMenu,
+                    onDismissRequest = { showBioMenu = false }
+                ) {
+
+                    Text(
+                        "AI Bio Suggestions",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    aiBioSuggestions.forEach { suggestion ->
+                        DropdownMenuItem(
+                            text = { Text(suggestion) },
+                            onClick = {
+                                bio = TextFieldValue(suggestion)
+                                showBioMenu = false
+                            }
+                        )
+                    }
+                }
+            }
 
             // SAVE BUTTON
             Button(
                 onClick = {
-                    if (!isSaving) {
-                        val nameText = name.text.trim()
-                        val bioText = bio.text.trim()
-                        if (nameText.isEmpty()) {
-                            Toast.makeText(context, "Please enter your name", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        isSaving = true
-                        scope.launch {
-                            // optionally compress again before upload (cropper already set compress quality)
-                            val finalUri = selectedImageUri?.let { uri ->
-                                compressUriToJpeg(context = context, uri = uri, quality = 80)
-                            } ?: selectedImageUri
+                    if (name.text.trim().isEmpty()) {
+                        Toast.makeText(context, "Please enter your name", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
 
-                            authViewModel.updateProfile(
-                                name = nameText,
-                                bio = bioText,
-                                profilePictureUri = finalUri,
-                                accountType = currentUser?.accountType ?: AccountType.NORMAL
-                            ) { result ->
-                                isSaving = false
-                                result.onSuccess { updatedUser ->
-                                    authViewModel.refreshUserSession(updatedUser)
-                                    Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-                                    onSaveSuccess()
-                                }.onFailure { e ->
-                                    Toast.makeText(context, e.message ?: "Update failed", Toast.LENGTH_SHORT).show()
-                                }
+                    isSaving = true
+
+                    scope.launch {
+                        val finalUri = selectedImageUri?.let {
+                            compressUri(context, it)
+                        }
+
+                        authViewModel.updateProfile(
+                            name = name.text.trim(),
+                            bio = bio.text.trim(),
+                            profilePictureUri = finalUri,
+                            accountType = currentUser?.accountType ?: AccountType.NORMAL
+                        ) { result ->
+                            isSaving = false
+                            result.onSuccess {
+                                Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
+                                onSaveSuccess()
+                            }.onFailure {
+                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(14.dp),
-                enabled = !isSaving
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp)
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
                 } else {
                     Text("Save Changes", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Tip: Use a friendly name and short bio to help others recognize you in the app.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 
-    // Bottom sheet (take photo / gallery / remove)
-    if (showSheet) {
+    // PHOTO BOTTOM SHEET
+    if (showPhotoSheet.value) {
         ModalBottomSheet(
             onDismissRequest = {
-                showSheet = false
+                showPhotoSheet.value = false
                 scope.launch { sheetState.hide() }
             },
             sheetState = sheetState
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Take Photo
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 ListItem(
                     headlineContent = { Text("Take Photo") },
-                    leadingContent = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                    leadingContent = { Icon(Icons.Default.CameraAlt, null) },
                     modifier = Modifier.clickable {
-                        showSheet = false
-                        scope.launch {
-                            sheetState.hide()
-                            openCamera()
-                        }
+                        showPhotoSheet.value = false
+                        scope.launch { sheetState.hide() }
+                        openCamera()
                     }
                 )
-                // Choose from gallery
                 ListItem(
                     headlineContent = { Text("Choose from Gallery") },
-                    leadingContent = { Icon(Icons.Default.PhotoLibrary, contentDescription = null) },
+                    leadingContent = { Icon(Icons.Default.PhotoLibrary, null) },
                     modifier = Modifier.clickable {
-                        showSheet = false
-                        scope.launch {
-                            sheetState.hide()
-                            openGallery()
-                        }
+                        showPhotoSheet.value = false
+                        scope.launch { sheetState.hide() }
+                        openGallery()
                     }
                 )
-                // Remove photo
                 ListItem(
-                    headlineContent = { Text("Remove Photo", color = MaterialTheme.colorScheme.error) },
-                    leadingContent = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    headlineContent = {
+                        Text("Remove Photo", color = MaterialTheme.colorScheme.error)
+                    },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.Delete,
+                            "Remove",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
                     modifier = Modifier.clickable {
-                        showSheet = false
-                        scope.launch { sheetState.hide() }
                         selectedImageUri = null
+                        showPhotoSheet.value = false
+                        scope.launch { sheetState.hide() }
                     }
                 )
             }
@@ -388,44 +436,87 @@ fun EditProfileScreen(
     }
 }
 
-/**
- * Save a Bitmap to cache and return a Uri to that file (Uri.fromFile).
- * Using cacheDir ensures the file is local and readable by cropper.
- */
-private suspend fun saveBitmapToCacheAndGetUri(cacheDir: File, bitmap: Bitmap): Uri? {
+@Composable
+fun NotLoggedInScreen(
+    onBack: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Icon(
+            Icons.Default.PersonOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(80.dp)
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            "You're not logged in",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "Please login to edit your profile",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            onClick = onNavigateToLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Login")
+        }
+
+        TextButton(onClick = onBack) {
+            Text("Cancel")
+        }
+    }
+}
+
+
+/** Save bitmap to cache */
+private suspend fun saveBitmapToCache(dir: File, bmp: Bitmap): Uri? {
     return withContext(Dispatchers.IO) {
         try {
-            val tmpFile = File.createTempFile("camera_", ".jpg", cacheDir)
-            val out: OutputStream = FileOutputStream(tmpFile)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-            out.flush()
+            val tmp = File(dir, "camera_${System.currentTimeMillis()}.jpg")
+            val out = FileOutputStream(tmp)
+            bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
             out.close()
-            Uri.fromFile(tmpFile)
+            Uri.fromFile(tmp)
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }
 }
 
-/**
- * Compress a Uri (image) to a temporary JPEG file and return its Uri.
- * This can be called before upload to reduce size further.
- */
-suspend fun compressUriToJpeg(context: android.content.Context, uri: Uri, quality: Int = 80): Uri? {
+/** Compress an image Uri before upload */
+suspend fun compressUri(context: android.content.Context, uri: Uri, quality: Int = 80): Uri? {
     return withContext(Dispatchers.IO) {
         try {
             val input = context.contentResolver.openInputStream(uri) ?: return@withContext null
-            val bitmap = android.graphics.BitmapFactory.decodeStream(input)
+            val bmp = android.graphics.BitmapFactory.decodeStream(input)
             input.close()
-            val tmpFile = File(context.cacheDir, "profile_${System.currentTimeMillis()}.jpg")
-            val out = FileOutputStream(tmpFile)
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, out)
-            out.flush()
+
+            val file = File(context.cacheDir, "profile_${System.currentTimeMillis()}.jpg")
+            val out = FileOutputStream(file)
+            bmp.compress(Bitmap.CompressFormat.JPEG, quality, out)
             out.close()
-            Uri.fromFile(tmpFile)
+
+            Uri.fromFile(file)
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }

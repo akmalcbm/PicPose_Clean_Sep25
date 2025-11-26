@@ -79,41 +79,63 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         // 🏠 Home Screen
         composable(route = Screen.Home.route) {
             val homeVM: HomeViewModel = hiltViewModel()
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
             HomeScreen(
                 viewModel = homeVM,
+
                 onNavigateToAllPrompts = {
                     navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
                 },
+
                 onNavigateToFavorites = {
                     navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true }
                 },
+
                 onNavigateToCategory = { category ->
                     val safeCategory = Uri.encode(category.name)
                     navController.navigate("${Screen.AllAIPrompts.route}?category=$safeCategory") {
                         launchSingleTop = true
                     }
                 },
+
                 onNavigateToPostDetail = { post ->
                     val safeId = Uri.encode(post.id)
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
+
                 onNavigateToPromptDetail = { aiPrompt ->
                     val safeId = Uri.encode(aiPrompt.id)
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
+
                 onNavigateToGuidePostDetail = { guidePost ->
                     val safeId = Uri.encode(guidePost.id)
                     navController.navigate(Screen.GuidePostDetail.createRoute(safeId)) { launchSingleTop = true }
                 },
+
                 onNavigateToViewAll = { category ->
                     navController.navigate("viewAll/$category") { launchSingleTop = true }
                 },
+
                 onNavigateToEditProfile = {
-                    navController.navigate(Screen.EditProfile.route)
+                    // Only allow if logged in
+                    if (isLoggedIn)
+                        navController.navigate(Screen.EditProfile.route)
+                    else
+                        navController.navigate(Screen.Login.route)
+                },
+
+                // ⭐ REQUIRED NEW PARAMETER
+                onRequestLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
+
 
         // 🔎 Explore Screen
         composable(route = Screen.Explore.route) {
@@ -142,9 +164,11 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 onNavigateToAllPrompts = { navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true } },
                 onNavigateToFavorites = { navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true } },
                 onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                        launchSingleTop = true
+                    authViewModel.logout {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             )
@@ -160,9 +184,19 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         ) {
             EditProfileScreen(
                 onNavigateBack = { navController.popBackStack() },
+
+                // ⭐ FIXED LOGIN REDIRECT
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.EditProfile.route) { inclusive = true }  // remove EditProfile from stack
+                        launchSingleTop = true
+                    }
+                },
+
                 onSaveSuccess = { navController.popBackStack() }
             )
         }
+
 
         // ⚙️ Settings Screen
         composable(
@@ -173,9 +207,11 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                        launchSingleTop = true
+                    authViewModel.logout {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             )

@@ -4,54 +4,84 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Represents a user in the system.
- * Supports multiple account types and roles.
  */
 data class User(
-    @SerializedName("id") val id: String,
-    @SerializedName("email") val email: String,
 
+    @SerializedName("id")
+    val id: String,
+
+    @SerializedName("email")
+    val email: String,
+
+    // Backend may return `name` OR `display_name`
     @SerializedName("name")
     val name: String? = null,
 
-    @SerializedName("username")
-    val username: String? = null, // backend support
+    @SerializedName("display_name")
+    val displayNameBackend: String? = null,
 
+    @SerializedName("username")
+    val username: String? = null,
+
+    // Profile picture (2 possible keys)
     @SerializedName("profile_picture")
     val profilePicture: String? = null,
 
     @SerializedName("profile_pic")
-    val profilePic: String? = null, // backend support
+    val profilePic: String? = null,
 
+    // Social stats
+    @SerializedName("followers_count")
+    val followersCount: Int = 0,
 
-    @SerializedName("followers_count") val followersCount: Int = 0,
-    @SerializedName("following_count") val followingCount: Int = 0,
-    @SerializedName("posts_count") val postsCount: Int = 0,
-    @SerializedName("bio") val bio: String? = null,
-    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("following_count")
+    val followingCount: Int = 0,
 
-    // 🔹 New Fields
-    @SerializedName("account_type") val accountType: AccountType = AccountType.NORMAL,
-    @SerializedName("role") val role: UserRole = UserRole.USER
+    @SerializedName("posts_count")
+    val postsCount: Int = 0,
 
-)
+    @SerializedName("bio")
+    val bio: String? = null,
 
-{
+    @SerializedName("created_at")
+    val createdAt: String? = null,
+
+    @SerializedName("account_type")
+    val accountType: AccountType = AccountType.NORMAL,
+
+    @SerializedName("role")
+    val role: UserRole = UserRole.USER
+) {
+
+    /**
+     * Final Display Name Helper
+     */
     val displayName: String
-        get() = name ?: username ?: "Guest User"
-
-    val displayProfilePicture: String?
         get() = when {
-            !profilePicture.isNullOrBlank() && profilePicture!!.startsWith("http") -> profilePicture
-            !profilePicture.isNullOrBlank() -> "https://picpose.iamakmal.in/" + profilePicture
-            !profilePic.isNullOrBlank() && profilePic!!.startsWith("http") -> profilePic
-            !profilePic.isNullOrBlank() -> "https://picpose.iamakmal.in/" + profilePic
-            else -> null
+            !name.isNullOrBlank() -> name
+            !displayNameBackend.isNullOrBlank() -> displayNameBackend
+            !username.isNullOrBlank() -> username
+            else -> "Guest User"
         }
 
+    /**
+     * Return fully qualified profile picture URL
+     */
+    val displayProfilePicture: String?
+        get() {
+            val base = "https://picpose.iamakmal.in/"
+            val pic = when {
+                !profilePicture.isNullOrBlank() -> profilePicture
+                !profilePic.isNullOrBlank() -> profilePic
+                else -> return null
+            }
+
+            return if (pic.startsWith("http")) pic else base + pic.removePrefix("/")
+        }
 }
 
 /**
- * Enum representing user account type (used for monetization)
+ * Account types
  */
 enum class AccountType(val value: String) {
     @SerializedName("normal")
@@ -75,7 +105,7 @@ enum class AccountType(val value: String) {
 }
 
 /**
- * Enum representing user role type (permissions/identity)
+ * User roles
  */
 enum class UserRole(val value: String) {
     @SerializedName("user")
@@ -99,7 +129,7 @@ enum class UserRole(val value: String) {
 }
 
 /**
- * Login request model
+ * Login Request
  */
 data class LoginRequest(
     @SerializedName("email") val email: String,
@@ -107,40 +137,38 @@ data class LoginRequest(
 )
 
 /**
- * Register request model
+ * Register Request – BACKEND COMPATIBLE
  */
 data class RegisterRequest(
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("role") val role: String = "user",
-    @SerializedName("account_type") val accountType: String = "normal"
+    @SerializedName("name") val name: String
 )
 
 /**
- * Auth response model
+ * Auth Response from server (compatible with all PHP formats)
  */
 data class AuthResponse(
-    @SerializedName("success") val success: Boolean? = null,
-    @SerializedName("status") val status: String? = null,
-    @SerializedName("message") val message: String?,
-    @SerializedName("user") val user: User?,
-    @SerializedName("token") val token: String?
+    @SerializedName("status") val status: String? = null,      // "success" or "error"
+    @SerializedName("success") val successFlag: Boolean? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("user") val user: User? = null,
+    @SerializedName("token") val token: String? = null
 ) {
     fun isSuccessful(): Boolean {
         return when {
-            status != null -> status.equals("success", ignoreCase = true)
-            success != null -> success
+            status != null -> status.equals("success", true)
+            successFlag != null -> successFlag == true
             else -> false
         }
     }
 }
 
 /**
- * Social auth data model
+ * Social Auth Payload
  */
 data class SocialAuthData(
-    val provider: String, // "google", "facebook", "twitter"
+    val provider: String,
     val token: String,
     val email: String,
     val name: String,
