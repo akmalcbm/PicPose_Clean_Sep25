@@ -16,62 +16,45 @@ class SettingsManager(private val context: Context) {
 
     companion object {
         private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore("app_settings")
-        private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+
+        private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")   // system | light | dark
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
     }
 
-    val isDarkMode: Flow<Boolean> = context.settingsDataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[DARK_MODE_KEY] ?: false
-        }
+    /** Theme mode flow */
+    val themeMode: Flow<String> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[THEME_MODE_KEY] ?: "system" }
 
+    /** Language flow */
     val language: Flow<String> = context.settingsDataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[LANGUAGE_KEY] ?: "en" // Default to English
-        }
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[LANGUAGE_KEY] ?: "en" }
 
+    /** Notification flow */
     val notificationsEnabled: Flow<Boolean> = context.settingsDataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[NOTIFICATIONS_ENABLED_KEY] ?: true
-        }
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[NOTIFICATIONS_ENABLED_KEY] ?: true }
 
-    suspend fun setDarkMode(enabled: Boolean) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[DARK_MODE_KEY] = enabled
+    /** Save theme mode */
+    suspend fun setThemeMode(mode: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[THEME_MODE_KEY] = mode  // system | light | dark
         }
     }
 
+    /** Save language */
     suspend fun setLanguage(languageCode: String) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[LANGUAGE_KEY] = languageCode
+        context.settingsDataStore.edit { prefs ->
+            prefs[LANGUAGE_KEY] = languageCode
         }
     }
 
+    /** Save notifications */
     suspend fun setNotificationsEnabled(enabled: Boolean) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[NOTIFICATIONS_ENABLED_KEY] = enabled
+        context.settingsDataStore.edit { prefs ->
+            prefs[NOTIFICATIONS_ENABLED_KEY] = enabled
         }
     }
 }

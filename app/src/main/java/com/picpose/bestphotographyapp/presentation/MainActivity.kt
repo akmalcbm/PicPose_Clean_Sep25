@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,38 +30,50 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Step 1: Enable true edge-to-edge layout
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
+
             val settingsViewModel: SettingsViewModel =
                 androidx.lifecycle.viewmodel.compose.viewModel()
-            val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
 
-            PicPoseTheme(darkTheme = isDarkMode) {
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            val systemDark = isSystemInDarkTheme()
+
+            // Convert String → Boolean?
+            val requestedDarkTheme: Boolean? = when (themeMode.lowercase()) {
+                "light" -> false
+                "dark" -> true
+                else -> null  // system default
+            }
+
+            // Convert nullable → final Boolean
+            val finalDarkTheme: Boolean = requestedDarkTheme ?: systemDark
+
+            PicPoseTheme(darkTheme = finalDarkTheme) {
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
-                    // ✅ Step 2: Show bottom navigation only on main sections
                     val showBottomNav =
                         currentRoute != Screen.Splash.route &&
                                 currentRoute != Screen.Login.route
 
                     Scaffold(
-                        // Prevent default window insets for full edge-to-edge control
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                        contentWindowInsets = WindowInsets(0),
                         bottomBar = {
                             if (showBottomNav) {
                                 BottomNavigationBar(navController = navController)
                             }
                         }
                     ) { paddingValues ->
-                        // ✅ Step 3: Pass activity to NavGraph for global back handling
+
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -68,7 +81,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             NavGraph(
                                 navController = navController,
-                                activity = this@MainActivity // 👈 Added
+                                activity = this@MainActivity
                             )
                         }
                     }
@@ -77,3 +90,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+

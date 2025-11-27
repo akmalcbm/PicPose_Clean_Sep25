@@ -12,42 +12,46 @@ import javax.inject.Inject
 
 /**
  * ViewModel for app settings
+ * Supports: System | Light | Dark theme
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsManager: SettingsManager
 ) : ViewModel() {
 
-    val isDarkMode: StateFlow<Boolean> = settingsManager.isDarkMode
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    // THEME MODE: "system", "light", "dark"
+    val themeMode: StateFlow<String> = settingsManager.themeMode
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "system")
 
+    // LANGUAGE
     val language: StateFlow<String> = settingsManager.language
         .stateIn(viewModelScope, SharingStarted.Eagerly, "en")
 
+    // NOTIFICATIONS
     val notificationsEnabled: StateFlow<Boolean> = settingsManager.notificationsEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
-    /**
-     * Toggle dark mode
-     */
-    fun setDarkMode(enabled: Boolean) {
+    // ----------------------------
+    // UPDATE THEME MODE
+    // ----------------------------
+    fun setThemeMode(mode: String) {
         viewModelScope.launch {
-            settingsManager.setDarkMode(enabled)
+            settingsManager.setThemeMode(mode) // system | light | dark
         }
     }
 
-    /**
-     * Set language
-     */
+    // ----------------------------
+    // UPDATE LANGUAGE
+    // ----------------------------
     fun setLanguage(languageCode: String) {
         viewModelScope.launch {
             settingsManager.setLanguage(languageCode)
         }
     }
 
-    /**
-     * Toggle notifications
-     */
+    // ----------------------------
+    // UPDATE NOTIFICATIONS
+    // ----------------------------
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             settingsManager.setNotificationsEnabled(enabled)

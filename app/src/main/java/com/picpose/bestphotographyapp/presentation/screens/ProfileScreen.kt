@@ -1,6 +1,12 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -46,6 +52,11 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -286,41 +297,31 @@ private fun ProfileHeaderCard(
             // ----------------------------
             Box(
                 modifier = Modifier
-                    .size(140.dp)
+                    .size(150.dp)
                     .padding(bottom = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
 
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            width = 3.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                NeonGradientRing(
+                    size = 150.dp,
+                    borderWidth = 3.dp
                 ) {
                     if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
                         AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(currentUser.displayProfilePicture)
-                                .crossfade(true)
-                                .build(),
+                            model = currentUser.displayProfilePicture,
                             contentDescription = "Profile Picture",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(132.dp)
+                                .size(140.dp)
                                 .clip(CircleShape)
                         )
                     } else {
                         DefaultProfileImage(
-                            modifier = Modifier.size(132.dp)
+                            modifier = Modifier.size(140.dp)
                         )
                     }
                 }
+
             }
 
             Spacer(Modifier.height(14.dp))
@@ -361,6 +362,44 @@ private fun ProfileHeaderCard(
                     .fillMaxWidth(0.90f)
             )
         }
+    }
+}
+
+@Composable
+fun NeonGradientRing(
+    modifier: Modifier = Modifier,
+    size: Dp = 150.dp,
+    borderWidth: Dp = 6.dp,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val gradientColors = listOf(
+        Color(0xFFFF5F6D),  // Pink
+        Color(0xFFFFC371),  // Orange
+        Color(0xFF42E695),  // Green
+        Color(0xFF3BB2B8),  // Teal
+        Color(0xFF4776E6),  // Blue
+        Color(0xFF8E54E9)   // Purple
+    )
+
+    val brush = Brush.sweepGradient(gradientColors)
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .shadow(
+                elevation = 25.dp,
+                shape = CircleShape,
+                ambientColor = Color(0xFF8E54E9).copy(alpha = 0.7f),
+                spotColor = Color(0xFFFF5F6D).copy(alpha = 0.7f)
+            )
+            .background(
+                brush = brush,
+                shape = CircleShape
+            )
+            .padding(borderWidth),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 
