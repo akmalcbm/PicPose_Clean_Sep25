@@ -1,9 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -49,6 +46,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.asPaddingValues
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,64 +61,31 @@ fun ProfileScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
     appSettingsViewModel: AppSettingsViewModel = hiltViewModel()
 ) {
-    var showLogoutDialog by remember { mutableStateOf(false) }
-
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
-    //val appSettingsState by appSettingsViewModel.uiState.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Load app settings and user data on first composition
-    LaunchedEffect(Unit) {
-        appSettingsViewModel.loadAppSettings()
-        if (isLoggedIn && currentUser == null) {
-            authViewModel.fetchCurrentUser()
-        }
-    }
-
-    /*
-    // Extract settings from state
-    val appSettings = when (appSettingsState) {
-        is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings
-        is AppSettingsUiState.Error -> (appSettingsState as AppSettingsUiState.Error).cachedSettings
-        else -> null
-    }
-
-    // Profile options organized in groups
-    val profileManagementOptions = listOf(
-        ProfileOption("Edit Profile", "Update your profile information", Icons.Filled.Edit),
-    )
-    */
-
-
-    val appInfoOptions = listOf(
-        ProfileOption("Privacy Policy", "Read our privacy policy", Icons.Filled.PrivacyTip),
-        ProfileOption("Terms & Conditions", "Terms and conditions", Icons.Filled.Description),
-        ProfileOption("About", "About the app", Icons.Filled.Info)
-    )
-
-    val supportOptions = listOf(
-        ProfileOption(
-            "Help & Support",
-            "Get help and contact support",
-            Icons.AutoMirrored.Filled.HelpOutline
+    // ⭐ RANDOM fallback bios (UI only)
+    val fallbackBios = remember {
+        listOf(
+            "Capturing moments, creating memories ✨",
+            "Chasing light & freezing time 📸",
+            "Turning everyday life into art 🎨",
+            "Life looks better through a lens ✨",
+            "Framing emotions in every shot 💫"
         )
-    )
+    }
 
-    val backgroundColor = MaterialTheme.colorScheme.background
+    val chosenFallbackBio = remember { fallbackBios.random() }
 
-    // ✅ Wrapping everything in Scaffold for proper top inset handling
     Scaffold(
         topBar = {
             TopAppBar(
                 modifier = Modifier.windowInsetsPadding(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 ),
-                title = { Text("Profile", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                title = { Text("Profile", fontWeight = FontWeight.Bold) }
             )
         },
         contentWindowInsets = WindowInsets(0)
@@ -129,7 +94,6 @@ fun ProfileScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundColor)
                 .padding(innerPadding)
                 .padding(
                     WindowInsets.safeDrawing
@@ -140,152 +104,34 @@ fun ProfileScreen(
             contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
         ) {
 
-            // 👤 Profile Header
+            // -------------------------------
+            // PROFILE HEADER CARD
+            // -------------------------------
             item {
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically()
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(0.95f),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .padding(vertical = 32.dp, horizontal = 16.dp)
-                                    .fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                // Profile Picture
-                                Box(
-                                    modifier = Modifier.size(150.dp),
-                                    contentAlignment = Alignment.BottomEnd
-                                ) {
-                                    if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(currentUser?.displayProfilePicture)
-                                                .crossfade(true)
-                                                .build(),
-                                            contentDescription = "Profile Picture",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape)
-                                                .border(
-                                                    1.dp,
-                                                    MaterialTheme.colorScheme.onSurface,
-                                                    CircleShape
-                                                )
-                                        )
-                                    } else {
-                                        Card(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            )
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    Icons.Filled.Person,
-                                                    contentDescription = "Profile Picture",
-                                                    modifier = Modifier.size(50.dp),
-                                                    tint = MaterialTheme.colorScheme.onPrimary
-                                                )
-                                            }
-                                        }
-                                    }
 
-                                    // 📸 Camera Overlay Icon
-                                    /*Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .align(Alignment.BottomEnd)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary)
-                                            .border(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.surface,
-                                                CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CameraAlt,
-                                            contentDescription = "Edit Photo",
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }*/
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = currentUser?.displayName ?: "Guest User",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Text(
-                                    text = currentUser?.email ?: "Not logged in",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Text(
-                                    text = currentUser?.bio
-                                        ?: "Capturing moments, creating memories-✨",
-                                    fontSize = 14.sp,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                    modifier = Modifier
-                                        .padding(top = 4.dp)
-                                        .fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
+                    ProfileHeaderCard(
+                        currentUser = currentUser,
+                        fallbackBio = chosenFallbackBio
+                    )
                 }
             }
 
-            // Quick Stats + Quick Actions
+            // Quick Stats
             item {
                 val statsViewModel: StatsViewModel = hiltViewModel()
                 QuickStatsCard(
                     viewModel = statsViewModel,
                     modifier = Modifier
                         .padding(horizontal = 8.dp)
-                        .animateItem(
-                            fadeInSpec = null,
-                            fadeOutSpec = null,
-                            placementSpec = spring(
-                                stiffness = Spring.StiffnessMediumLow,
-                                visibilityThreshold = IntOffset.VisibilityThreshold
-                            )
-                        )
                 )
             }
 
+            // Quick Actions
             item {
                 QuickActionsCard(
                     onNavigateToAllPrompts = onNavigateToAllPrompts,
@@ -294,127 +140,85 @@ fun ProfileScreen(
                 )
             }
 
-
-            // 👤 Profile Management Section
+            // ------------------------
+            // PROFILE MANAGEMENT
+            // ------------------------
             item {
-                Column {
-                    Text(
-                        text = "Profile Management",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
-                    )
-
-                    // Only include Edit Profile here — Settings moved to App Settings section
-                    val profileOptions = listOf(
-                        ProfileOption(
-                            title = "Edit Profile",
-                            description = "Update your profile information",
-                            icon = Icons.Filled.Edit
-                        )
-                    )
-
-                    profileOptions.forEach { option ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically(),
-                            exit = fadeOut() + slideOutVertically()
-                        ) {
-                            ProfileOptionCard(
-                                option = option,
-                                onClick = {
-                                    when (option.title) {
-                                        "Edit Profile" -> onNavigateToEditProfile()
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
+                SectionHeader("Profile Management")
             }
 
-
-            // ⚙️ App Settings Section
             item {
-                Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "App Settings",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
-                    )
-
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically(),
-                        exit = fadeOut() + slideOutVertically()
-                    ) {
-                        ProfileOptionCard(
-                            option = ProfileOption(
-                                title = "Settings",
-                                description = "Customize your app preferences",
-                                icon = Icons.Filled.Settings
-                            ),
-                            onClick = { onNavigateToSettings() }
-                        )
-                    }
-                }
-            }
-
-
-            item {
-                Text(
-                    text = "App Info",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp, end = 4.dp)
+                ProfileOptionCard(
+                    option = ProfileOption(
+                        title = "Edit Profile",
+                        description = "Update your profile information",
+                        icon = Icons.Filled.Edit
+                    ),
+                    onClick = { onNavigateToEditProfile() }
                 )
             }
 
-            items(appInfoOptions) { option ->
-                AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
-                    ProfileOptionCard(
-                        option = option,
-                        onClick = {
-                            when (option.title) {
-                                "Privacy Policy" -> navController.navigate(Screen.Privacy.route)
-                                "Terms & Conditions" -> navController.navigate(Screen.Terms.route)
-                                "About" -> navController.navigate(Screen.About.route)
-                            }
-                        }
-                    )
-                }
+            // ------------------------
+            // APP SETTINGS
+            // ------------------------
+            item {
+                SectionHeader("App Settings")
             }
 
             item {
-                Text(
-                    text = "Support",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp, end = 4.dp)
+                ProfileOptionCard(
+                    option = ProfileOption(
+                        title = "Settings",
+                        description = "Customize your app preferences",
+                        icon = Icons.Filled.Settings
+                    ),
+                    onClick = onNavigateToSettings
                 )
             }
 
-            items(supportOptions) { option ->
-                AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
-                    ProfileOptionCard(
-                        option = option,
-                        onClick = {
-                            if (option.title == "Help & Support") {
-                                navController.navigate(Screen.HelpAndSupportScreen.route) {
-                                    launchSingleTop = true
-                                }
-                            }
+            // ------------------------
+            // APP INFO
+            // ------------------------
+            item { SectionHeader("App Info") }
+
+            items(
+                listOf(
+                    ProfileOption("Privacy Policy", "Read our privacy policy", Icons.Filled.PrivacyTip),
+                    ProfileOption("Terms & Conditions", "Terms and conditions", Icons.Filled.Description),
+                    ProfileOption("About", "About the app", Icons.Filled.Info)
+                )
+            ) { option ->
+                ProfileOptionCard(
+                    option = option,
+                    onClick = {
+                        when (option.title) {
+                            "Privacy Policy" -> navController.navigate(Screen.Privacy.route)
+                            "Terms & Conditions" -> navController.navigate(Screen.Terms.route)
+                            "About" -> navController.navigate(Screen.About.route)
                         }
-                    )
-                }
+                    }
+                )
             }
 
+            // ------------------------
+            // SUPPORT
+            // ------------------------
+            item { SectionHeader("Support") }
+
+            item {
+                ProfileOptionCard(
+                    option = ProfileOption(
+                        "Help & Support",
+                        "Get help and contact support",
+                        Icons.AutoMirrored.Filled.HelpOutline
+                    ),
+                    onClick = { navController.navigate(Screen.HelpAndSupportScreen.route) }
+                )
+            }
+
+            // ------------------------
+            // LOGOUT / LOGIN BUTTON
+            // ------------------------
             item {
                 if (isLoggedIn) {
                     OutlinedButton(
@@ -431,7 +235,7 @@ fun ProfileScreen(
                     }
                 } else {
                     Button(
-                        onClick = { onNavigateToLogin() },
+                        onClick = onNavigateToLogin,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Login")
@@ -444,30 +248,155 @@ fun ProfileScreen(
     }
 
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogout()
-                    }
-                ) {
-                    Text("Logout")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+        LogoutDialog(onDismiss = { showLogoutDialog = false }, onConfirm = onLogout)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// -----------------------------------------------------
+// PROFILE HEADER COMPOSABLE (Enhanced & Polished)
+// -----------------------------------------------------
+@Composable
+private fun ProfileHeaderCard(
+    currentUser: com.picpose.bestphotographyapp.data.models.User?,
+    fallbackBio: String
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(10.dp)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 28.dp, horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+
+            // ----------------------------
+            // PROFILE IMAGE WITH RING
+            // ----------------------------
+            Box(
+                modifier = Modifier
+                    .size(140.dp)
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(currentUser.displayProfilePicture)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Profile Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(132.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        DefaultProfileImage(
+                            modifier = Modifier.size(132.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // ----------------------------
+            // NAME
+            // ----------------------------
+            Text(
+                text = currentUser?.displayName ?: "Guest User",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            // ----------------------------
+            // EMAIL
+            // ----------------------------
+            Text(
+                text = currentUser?.email ?: "Not logged in",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+
+            // ----------------------------
+            // BIO
+            // ----------------------------
+            Text(
+                text = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .fillMaxWidth(0.90f)
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun DefaultProfileImage(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary),
+        color = MaterialTheme.colorScheme.primary,
+        shape = CircleShape
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(56.dp)
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+    )
+}
+
 @Composable
 fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
     Card(
@@ -476,20 +405,39 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(option.icon, contentDescription = option.title, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Icon(option.icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+
+            Column(Modifier.weight(1f)) {
                 Text(option.title, fontWeight = FontWeight.Medium)
-                Text(option.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text(
+                    option.description,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
             }
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Navigate", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Icon(Icons.Filled.ChevronRight, null)
         }
     }
+}
+
+@Composable
+private fun LogoutDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Logout") },
+        text = { Text("Are you sure you want to logout?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Logout") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 data class ProfileOption(val title: String, val description: String, val icon: ImageVector)

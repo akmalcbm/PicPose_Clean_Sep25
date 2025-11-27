@@ -59,11 +59,18 @@ fun LoginScreen(
     // 🔥 Auto navigate after success login or after Skip
     LaunchedEffect(authState, hasSkippedAuth) {
         if (authState is AuthState.Success || hasSkippedAuth) {
-            onNavigateToHome()
+
+            // 🟢 Server se latest profile fetch → includes bio
             authViewModel.fetchCurrentUser()
+
+            // Now navigate
+            onNavigateToHome()
+
+            // Reset state
             authViewModel.resetAuthState()
         }
     }
+
 
     Scaffold(
         topBar = {
@@ -157,10 +164,16 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             // Submit Button
+            // Submit Button
             Button(
                 onClick = {
-                    if (isLoginMode) authViewModel.login(email, password)
-                    else authViewModel.register(email, password, name)
+                    if (isLoginMode) {
+                        // ⭐ Correct login saving
+                        authViewModel.login(email, password)
+                    } else {
+                        // ⭐ Correct register saving
+                        authViewModel.register(email, password, name)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,6 +192,7 @@ fun LoginScreen(
                     )
                 }
             }
+
 
             if (authState is AuthState.Error) {
                 Spacer(Modifier.height(12.dp))

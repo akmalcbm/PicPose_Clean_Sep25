@@ -58,8 +58,6 @@ fun EditProfileScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
-
-    // State
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var bio by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -70,17 +68,7 @@ fun EditProfileScreen(
     val showPhotoSheet = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Animation for camera button
-    val cameraScale = remember { Animatable(1f) }
-    LaunchedEffect(Unit) {
-        cameraScale.animateTo(1.12f, tween(220))
-        cameraScale.animateTo(
-            1f,
-            spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow)
-        )
-    }
-
-    // Pre-fill fields
+    // Prefill name + bio
     LaunchedEffect(currentUser) {
         currentUser?.let {
             name = TextFieldValue(it.displayName)
@@ -88,19 +76,15 @@ fun EditProfileScreen(
         }
     }
 
-    // 🚫 If user is NOT logged in — redirect to login screen
     if (!isLoggedIn || currentUser == null) {
         NotLoggedInScreen(
             onBack = onNavigateBack,
-            onNavigateToLogin = {
-                onNavigateToLogin()    // ⭐ Go to LoginScreen properly
-            }
+            onNavigateToLogin = onNavigateToLogin
         )
         return
     }
 
-
-    // Cropper launcher
+    // Crop launcher
     val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             selectedImageUri = result.uriContent
@@ -109,21 +93,29 @@ fun EditProfileScreen(
         }
     }
 
+    // Build crop options safely
+    fun cropOptions(): CropImageOptions {
+        return CropImageOptions().apply {
+            fixAspectRatio = true
+            aspectRatioX = 1
+            aspectRatioY = 1
+            guidelines = CropImageView.Guidelines.ON
+            outputCompressFormat = Bitmap.CompressFormat.JPEG
+            outputCompressQuality = 85
+        }
+    }
 
     // Gallery picker
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val opts = CropImageOptions().apply {
-                fixAspectRatio = true
-                aspectRatioX = 1
-                aspectRatioY = 1
-                guidelines = CropImageView.Guidelines.ON
-                outputCompressFormat = Bitmap.CompressFormat.JPEG
-                outputCompressQuality = 85
-            }
-            cropLauncher.launch(CropImageContractOptions(uri, opts))
+            cropLauncher.launch(
+                CropImageContractOptions(
+                    uri,
+                    cropOptions()
+                )
+            )
         }
     }
 
@@ -135,15 +127,12 @@ fun EditProfileScreen(
             scope.launch {
                 val uri = saveBitmapToCache(context.cacheDir, bmp)
                 if (uri != null) {
-                    val opts = CropImageOptions().apply {
-                        fixAspectRatio = true
-                        aspectRatioX = 1
-                        aspectRatioY = 1
-                        guidelines = CropImageView.Guidelines.ON
-                        outputCompressFormat = Bitmap.CompressFormat.JPEG
-                        outputCompressQuality = 85
-                    }
-                    cropLauncher.launch(CropImageContractOptions(uri, opts))
+                    cropLauncher.launch(
+                        CropImageContractOptions(
+                            uri,
+                            cropOptions()
+                        )
+                    )
                 }
             }
         }
@@ -152,7 +141,6 @@ fun EditProfileScreen(
     fun openCamera() = cameraLauncher.launch(null)
     fun openGallery() = galleryLauncher.launch("image/*")
 
-    // AI Bio Suggestions
     val aiBioSuggestions = listOf(
         "Capturing moments, creating memories ✨",
         "Chasing light & freezing time 📸",
@@ -164,21 +152,11 @@ fun EditProfileScreen(
         "Collecting moments, not things 💫",
         "Where creativity meets clarity ✨",
         "Storytelling through frames 🎞️",
-        "Exploring the world through my lens 🌍",
-        "Life looks better through a camera ✨",
-        "Curating moments that matter ❤️",
-        "Photography is my second language 📷",
-        "Framing emotions in every shot 💫",
-        "In love with light & shadows 🌙",
-        "Crafting visuals with passion ✨",
-        "Moments that tell real stories 📚",
-        "Minimal, aesthetic & meaningful ✨",
-        "Capturing authentic vibes only 🎯"
+        "Exploring the world through my lens 🌍"
     )
 
     var showBioMenu by remember { mutableStateOf(false) }
 
-    // UI
     EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
@@ -196,13 +174,13 @@ fun EditProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(20.dp),
+                .padding(20.dp)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
 
-            // PROFILE PHOTO
+            // Profile photo
             Box(
                 modifier = Modifier.size(140.dp),
                 contentAlignment = Alignment.Center
@@ -222,18 +200,20 @@ fun EditProfileScreen(
                             AsyncImage(
                                 model = selectedImageUri,
                                 contentDescription = "Selected",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
-                        !currentUser?.displayProfilePicture.isNullOrBlank() -> {
+
+                        !currentUser!!.displayProfilePicture.isNullOrBlank() -> {
                             AsyncImage(
-                                model = currentUser?.displayProfilePicture,
+                                model = currentUser!!.displayProfilePicture,
                                 contentDescription = "Profile",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
+
                         else -> {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
@@ -253,7 +233,7 @@ fun EditProfileScreen(
                     }
                 }
 
-                // Camera floating button
+                // Camera button
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -267,15 +247,11 @@ fun EditProfileScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Icon(Icons.Default.CameraAlt, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
-            // NAME FIELD
+            // Name
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -286,9 +262,8 @@ fun EditProfileScreen(
                 singleLine = true
             )
 
-            // BIO FIELD WITH AI
+            // Bio
             Box(modifier = Modifier.fillMaxWidth()) {
-
                 OutlinedTextField(
                     value = bio,
                     onValueChange = { bio = it },
@@ -300,11 +275,7 @@ fun EditProfileScreen(
                     maxLines = 4,
                     trailingIcon = {
                         IconButton(onClick = { showBioMenu = true }) {
-                            Icon(
-                                Icons.Default.Lightbulb,
-                                contentDescription = "AI Bio",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                            Icon(Icons.Default.Lightbulb, contentDescription = "AI Bio", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 )
@@ -313,7 +284,6 @@ fun EditProfileScreen(
                     expanded = showBioMenu,
                     onDismissRequest = { showBioMenu = false }
                 ) {
-
                     Text(
                         "AI Bio Suggestions",
                         style = MaterialTheme.typography.labelLarge,
@@ -333,7 +303,7 @@ fun EditProfileScreen(
                 }
             }
 
-            // SAVE BUTTON
+            // Save Button
             Button(
                 onClick = {
                     if (name.text.trim().isEmpty()) {
@@ -341,25 +311,27 @@ fun EditProfileScreen(
                         return@Button
                     }
 
-                    isSaving = true
+                    currentUser?.let { user ->  // smart-cast fix
 
-                    scope.launch {
-                        val finalUri = selectedImageUri?.let {
-                            compressUri(context, it)
-                        }
+                        isSaving = true
 
-                        authViewModel.updateProfile(
-                            name = name.text.trim(),
-                            bio = bio.text.trim(),
-                            profilePictureUri = finalUri,
-                            accountType = currentUser?.accountType ?: AccountType.NORMAL
-                        ) { result ->
-                            isSaving = false
-                            result.onSuccess {
-                                Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
-                                onSaveSuccess()
-                            }.onFailure {
-                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            val finalUri = selectedImageUri?.let { compressUri(context, it) }
+                            val finalBio = bio.text.trim().ifBlank { null }
+
+                            authViewModel.updateProfile(
+                                name = name.text.trim(),
+                                bio = finalBio,
+                                profilePictureUri = finalUri,
+                                accountType = user.accountType
+                            ) { result ->
+                                isSaving = false
+                                result.onSuccess {
+                                    Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
+                                    onSaveSuccess()
+                                }.onFailure {
+                                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
