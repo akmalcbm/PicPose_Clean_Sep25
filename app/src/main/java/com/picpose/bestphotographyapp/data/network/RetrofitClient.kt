@@ -147,11 +147,14 @@ object RetrofitClient {
     }
 
 
-    // Main ApiService instance
-    val apiService: UserApiService by lazy {
-        retrofit.create(UserApiService::class.java)
+    // ❌ WRONG:
+    // val apiService: UserApiService
+
+    // ✅ RIGHT:
+    val apiService: ApiService by lazy {
+        retrofit.create(ApiService::class.java)
     }
 
-    // Create custom service if needed
+    // Additional services
     fun <T> createService(clazz: Class<T>): T = retrofit.create(clazz)
 }

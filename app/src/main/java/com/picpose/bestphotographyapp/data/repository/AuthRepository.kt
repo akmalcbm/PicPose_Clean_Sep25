@@ -128,21 +128,26 @@ class AuthRepository @Inject constructor(
         )
 
         return try {
-            val response = RetrofitClient.apiService.socialLogin(payload)
+            val response = userApi.socialLogin(
+                data = payload,
+                apiKey = API_KEY
+            )
+
             val body = response.body()
 
             if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
                 return Result.success(body.user!!)
             }
 
-            val message = safeServerError(response.errorBody()?.string(), body?.message)
-            Result.failure(Exception(message))
+            val msg = safeServerError(response.errorBody()?.string(), body?.message)
+            Result.failure(Exception(msg))
 
         } catch (e: Exception) {
-            Log.e(TAG, "Google ID token login exception: ${e.message}")
+            Log.e(TAG, "Google social login error: ${e.message}")
             Result.failure(e)
         }
     }
+
 
     // ---------------------------------------------------------
     // 4. FACEBOOK LOGIN THROUGH FIREBASE

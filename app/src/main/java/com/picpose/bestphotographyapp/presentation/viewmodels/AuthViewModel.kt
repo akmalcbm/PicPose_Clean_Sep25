@@ -1,7 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.Context
-import android.credentials.GetCredentialResponse
+import androidx.credentials.GetCredentialResponse
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -41,47 +41,64 @@ class AuthViewModel @Inject constructor(
         googleClient = GoogleAuthUiClient(context)
     }
 
-    /** Step 1 — Launch Google Sign-In */
+    /** Step 1 — Launch Google Sign-In (returns AndroidX Credential response) */
     suspend fun startGoogleSignIn(): Result<GetCredentialResponse?> {
         return try {
-            val response = googleClient?.signIn()
+            val response = googleClient?.signIn() // googleClient should return androidx.credentials.GetCredentialResponse?
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    /** Step 2 — Handle Google credential result */
+    /**
+     * Step 2 — Handle Google credential result (androidx.credentials.GetCredentialResponse)
+     *
+     * Notes:
+     * - `response` must be the same type returned by startGoogleSignIn() (androidx.credentials.GetCredentialResponse?)
+     * - `googleClient.parseGoogleCredential` should accept androidx.credentials.GetCredentialResponse?
+     */
     suspend fun finishGoogleSignIn(
         response: GetCredentialResponse?,
         onResult: (Result<User>) -> Unit
     ) {
-        val googleData: GoogleUserData? = googleClient?.parseGoogleCredential(response)
+        // Parse credential safely
+        val googleData: GoogleUserData? = try {
+            googleClient?.parseGoogleCredential(response)
+        } catch (e: Exception) {
+            null
+        }
 
         if (googleData == null) {
-            onResult(Result.failure(Exception("Unable to sign in with Google")))
+            onResult(Result.failure(Exception("Unable to sign in with Google (no credential)")))
             return
         }
 
+        // Proceed to backend login
         viewModelScope.launch {
             _authState.value = AuthState.Loading
 
-            val result = authRepository.signInWithGoogleIdToken(
-                idToken = googleData.idToken ?: "",
-                email = googleData.email ?: "",
-                name = googleData.displayName ?: "",
-                profilePicture = googleData.profilePictureUrl
-            )
+            val result = try {
+                authRepository.signInWithGoogleIdToken(
+                    idToken = googleData.idToken ?: "",
+                    email = googleData.email ?: "",
+                    name = googleData.displayName ?: "",
+                    profilePicture = googleData.profilePictureUrl
+                )
+            } catch (e: Exception) {
+                Result.failure<User>(e)
+            }
 
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
 
+                // Save user session — use named parameters so the call fails at compile time if your manager signature differs.
                 userSessionManager.saveUserSession(
                     userId = user.id,
                     email = user.email,
                     name = user.displayName,
                     profilePicture = user.displayProfilePicture,
-                    bio = user.bio
+                    bio = user.bio // remove this named arg if your saveUserSession doesn't accept bio
                 )
 
                 _authState.value = AuthState.Success(user)
