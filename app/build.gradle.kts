@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.generators.BuildConfigData
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.JavaVersion
 
@@ -100,7 +99,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
-
     // Activity & Lifecycle
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -123,6 +121,16 @@ dependencies {
 
     //OKHttp
     implementation(libs.okhttp.logging.interceptor)
+
+    // ⭐ OkHttp core (needed for Twitter token exchange)
+    implementation(libs.okhttp3)
+
+    // ⭐ Moshi (Twitter JSON parsing)
+    implementation(libs.moshi)
+    implementation(libs.moshi.kotlin)
+
+    // ⭐ Browser custom tabs (launch Twitter OAuth)
+    implementation(libs.androidx.browser)
 
     // Room Database
     implementation(libs.androidx.room.runtime)

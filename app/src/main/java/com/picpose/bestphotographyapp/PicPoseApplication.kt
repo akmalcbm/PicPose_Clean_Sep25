@@ -6,9 +6,12 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.facebook.FacebookSdk
+import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -19,14 +22,21 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
 
-        // ✅ Initialize Retrofit cache safely
-        com.picpose.bestphotographyapp.data.network.RetrofitClient.initCache(this)
+        // Retrofit cache
+        RetrofitClient.initCache(this)
 
-        // ✅ Initialize Google Ads asynchronously to avoid ANR
+        // AdMob
         initializeAdMobSafely()
-
-        // ✅ Initialize AdMob config manager (background fetch)
         initializeAdMobConfig()
+
+        // ⭐ NEW Facebook SDK Initialization
+        FacebookSdk.setApplicationId(getString(R.string.facebook_app_id))
+        FacebookSdk.setClientToken(getString(R.string.facebook_client_token))
+
+        FacebookSdk.setAutoInitEnabled(true)
+        FacebookSdk.fullyInitialize()
+
+        AppEventsLogger.activateApp(this)
     }
 
     /**

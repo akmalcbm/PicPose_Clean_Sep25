@@ -136,7 +136,17 @@ class AuthRepository @Inject constructor(
             val body = response.body()
 
             if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
-                return Result.success(body.user!!)
+                // save session
+                val serverUser = body.user!!
+                userSessionManager.saveUserSession(
+                    userId = serverUser.id,
+                    email = serverUser.email,
+                    name = serverUser.displayName,
+                    profilePicture = serverUser.displayProfilePicture,
+                    bio = serverUser.bio,
+                    token = body.token
+                )
+                return Result.success(serverUser)
             }
 
             val msg = safeServerError(response.errorBody()?.string(), body?.message)
@@ -177,6 +187,47 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Facebook login exception: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // ---------------------------------------------------------
+    // 4b. TWITTER LOGIN (send token to server for app JWT)
+    // ---------------------------------------------------------
+    suspend fun signInWithTwitter(token: String): Result<User> {
+        return try {
+            val payload = SocialAuthData(
+                provider = "twitter",
+                token = token,
+                email = "",
+                name = "",
+                profilePicture = null
+            )
+
+            val response = userApi.socialLogin(
+                data = payload,
+                apiKey = API_KEY
+            )
+
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true && body.user != null) {
+                val serverUser = body.user!!
+                userSessionManager.saveUserSession(
+                    userId = serverUser.id,
+                    email = serverUser.email,
+                    name = serverUser.displayName,
+                    profilePicture = serverUser.displayProfilePicture,
+                    bio = serverUser.bio,
+                    token = body.token
+                )
+                return Result.success(serverUser)
+            }
+
+            val msg = safeServerError(response.errorBody()?.string(), body?.message)
+            Result.failure(Exception(msg))
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Twitter social login error: ${e.message}")
             Result.failure(e)
         }
     }

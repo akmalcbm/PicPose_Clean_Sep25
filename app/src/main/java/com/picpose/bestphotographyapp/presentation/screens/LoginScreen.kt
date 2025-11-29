@@ -1,9 +1,8 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
-import android.content.Context
-import android.credentials.CredentialManager
 import android.credentials.GetCredentialException
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -48,29 +47,23 @@ fun LoginScreen(
     val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
 
     val context = LocalContext.current
+    val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
 
-    // ⚠️ IMPORTANT — Reset skip state when Login screen opens
+    // Reset skip state
     LaunchedEffect(Unit) {
         authViewModel.resetSkip()
         authViewModel.initGoogleClient(context)
     }
 
-    // 🔥 Auto navigate after success login or after Skip
+    // Auto navigate after success
     LaunchedEffect(authState, hasSkippedAuth) {
         if (authState is AuthState.Success || hasSkippedAuth) {
-
-            // 🟢 Server se latest profile fetch → includes bio
             authViewModel.fetchCurrentUser()
-
-            // Now navigate
             onNavigateToHome()
-
-            // Reset state
             authViewModel.resetAuthState()
         }
     }
-
 
     Scaffold(
         topBar = {
@@ -114,7 +107,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Full Name only on Register
+            // Full Name for Register
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name,
@@ -154,8 +147,8 @@ fun LoginScreen(
                         )
                     }
                 },
-                visualTransformation =
-                    if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible)
+                    VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -164,20 +157,15 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             // Submit Button
-            // Submit Button
             Button(
                 onClick = {
                     if (isLoginMode) {
-                        // ⭐ Correct login saving
                         authViewModel.login(email, password)
                     } else {
-                        // ⭐ Correct register saving
                         authViewModel.register(email, password, name)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
@@ -186,18 +174,14 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text(
-                        if (isLoginMode) "Login" else "Sign Up",
-                        fontSize = 16.sp
-                    )
+                    Text(if (isLoginMode) "Login" else "Sign Up", fontSize = 16.sp)
                 }
             }
-
 
             if (authState is AuthState.Error) {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = (authState as AuthState.Error).message,
+                    (authState as AuthState.Error).message,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center
                 )
@@ -205,7 +189,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Toggle Login/Register
             TextButton(onClick = { isLoginMode = !isLoginMode }) {
                 Text(
                     if (isLoginMode)
@@ -217,9 +200,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(30.dp))
 
-            // ------------------------------
-            // Divider (OR login with)
-            // ------------------------------
+            // Divider
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -235,29 +216,25 @@ fun LoginScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            // ------------------------------
             // SOCIAL LOGIN BUTTONS
-            // ------------------------------
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
 
-                // 🌟 Google Sign-In (Credential Manager API)
+                // ⭐ GOOGLE SIGN-IN
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
                         onClick = {
                             scope.launch {
                                 try {
                                     val response = authViewModel.startGoogleSignIn().getOrNull()
-                                    authViewModel.finishGoogleSignIn(
-                                        response = response,
-                                        onResult = { /* UI will auto update */ }
-                                    )
-                                } catch (e: GetCredentialException) {
-                                    // user cancelled / no account
+                                    authViewModel.finishGoogleSignIn(response) { }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
                                 }
+
                             }
                         },
                         modifier = Modifier
@@ -273,15 +250,14 @@ fun LoginScreen(
                             modifier = Modifier.size(26.dp)
                         )
                     }
-
                     Spacer(Modifier.height(6.dp))
                     Text("Google", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Facebook Button (UI only for now)
+                // ⭐ FACEBOOK SIGN-IN
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
-                        onClick = { /* TODO Facebook */ },
+                        onClick = { authViewModel.startFacebookLogin(activity) },
                         modifier = Modifier
                             .size(56.dp)
                             .background(Color(0xFF1877F2).copy(alpha = 0.15f), MaterialTheme.shapes.medium)
@@ -293,27 +269,25 @@ fun LoginScreen(
                             modifier = Modifier.size(28.dp)
                         )
                     }
-
                     Spacer(Modifier.height(6.dp))
                     Text("Facebook", fontSize = 13.sp, color = Color.Gray)
                 }
 
-                // Twitter Button
+                // ⭐ TWITTER SIGN-IN
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
-                        onClick = { /* TODO Twitter */ },
+                        onClick = { authViewModel.startTwitterSignIn(context) },
                         modifier = Modifier
                             .size(56.dp)
-                            .background(Color.Black.copy(alpha = 0.12f), MaterialTheme.shapes.medium)
+                            .background(Color(0xFF4F4E4E).copy(alpha = 0.12f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_twitter),
                             contentDescription = "Twitter",
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(26.dp)
                         )
                     }
-
                     Spacer(Modifier.height(6.dp))
                     Text("X (Twitter)", fontSize = 13.sp, color = Color.Gray)
                 }
