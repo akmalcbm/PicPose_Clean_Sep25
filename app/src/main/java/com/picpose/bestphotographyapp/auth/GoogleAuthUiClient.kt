@@ -54,7 +54,7 @@ class GoogleAuthUiClient(private val context: Context) {
     }
 
     companion object {
-        // TODO: replace with your Google Web Client ID (OAuth 2.0 Client ID for Web)
-        const val GOOGLE_WEB_CLIENT_ID = "TODO_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com"
+        // Done replace with your Google Web Client ID (OAuth 2.0 Client ID for Web)
+        const val GOOGLE_WEB_CLIENT_ID = "424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com"
     }
 }

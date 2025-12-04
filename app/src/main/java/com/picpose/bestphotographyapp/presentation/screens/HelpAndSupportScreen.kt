@@ -51,7 +51,7 @@ fun HelpAndSupportScreen(
     LaunchedEffect(Unit) { appSettingsViewModel.loadAppSettings() }
 
     // 🔸 Form state
-    var name by remember { mutableStateOf(TextFieldValue(currentUser?.name ?: "")) }
+    var name by remember { mutableStateOf(TextFieldValue(currentUser?.displayName ?: "")) }
     var email by remember { mutableStateOf(TextFieldValue(currentUser?.email ?: "")) }
     var phone by remember { mutableStateOf(TextFieldValue("")) }
     var message by remember { mutableStateOf(TextFieldValue("")) }

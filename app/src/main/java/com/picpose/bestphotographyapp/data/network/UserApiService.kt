@@ -11,9 +11,10 @@ import retrofit2.http.*
 
 interface UserApiService {
 
-    // ---------------------------------------------------------
-    // LOGIN
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------------
+    // EMAIL/PASSWORD LOGIN
+    // POST: /api/users.php?action=login
+    // -------------------------------------------------------------------
     @POST("api/users.php")
     suspend fun login(
         @Query("action") action: String = "login",
@@ -21,10 +22,10 @@ interface UserApiService {
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
-
-    // ---------------------------------------------------------
-    // REGISTER
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------------
+    // REGISTER NEW USER
+    // POST: /api/users.php?action=register
+    // -------------------------------------------------------------------
     @POST("api/users.php")
     suspend fun register(
         @Query("action") action: String = "register",
@@ -32,31 +33,31 @@ interface UserApiService {
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
-
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------------
     // GET USER PROFILE
-    // ---------------------------------------------------------
+    // GET: /api/users.php?id=123
+    // -------------------------------------------------------------------
     @GET("api/users.php")
     suspend fun getUserProfile(
         @Query("id") userId: String,
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
-
-    // ---------------------------------------------------------
-    // SOCIAL LOGIN (Google / Facebook)
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------------
+    // SOCIAL LOGIN (Google / Facebook / Twitter)
+    // POST: /api/social_login.php
+    // BODY: SocialAuthData
+    // -------------------------------------------------------------------
     @POST("api/social_login.php")
     suspend fun socialLogin(
         @Body data: SocialAuthData,
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 
-
-    // ---------------------------------------------------------
-    // MULTIPART PROFILE UPDATE
-    // Fields MUST match your PHP file
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------------
+    // UPDATE USER PROFILE (with optional image upload)
+    // POST: /api/update_profile.php
+    // -------------------------------------------------------------------
     @Multipart
     @POST("api/update_profile.php")
     suspend fun updateProfile(
@@ -67,5 +68,4 @@ interface UserApiService {
         @Part profile_picture: MultipartBody.Part?,
         @Part("api_key") apiKey: RequestBody
     ): Response<AuthResponse>
-
 }

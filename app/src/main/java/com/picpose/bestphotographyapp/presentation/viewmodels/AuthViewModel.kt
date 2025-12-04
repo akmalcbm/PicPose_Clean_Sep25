@@ -6,7 +6,6 @@ import android.net.Uri
 import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.facebook.AccessToken
 import com.facebook.CallbackManager
 import com.picpose.bestphotographyapp.auth.*
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
@@ -20,7 +19,8 @@ import javax.inject.Inject
 import kotlin.random.Random
 
 // ---------------------------
-// Auth State (kept from your project)
+// Auth State
+// ---------------------------
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
@@ -31,60 +31,61 @@ sealed class AuthState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userSessionManager: UserSessionManager,
-    private val googleClient: GoogleAuthUiClient,
-    private val facebookClient: FacebookAuthClient,
-    private val twitterClient: TwitterAuthClient
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
-    // --------------------------
-    // Google helper (uses your existing functions)
-    // --------------------------
+    // ----------------------------------------
+    // SOCIAL LOGIN CLIENTS
+    // ----------------------------------------
+    private var googleClient: GoogleAuthUiClient? = null
+    private val facebookClient = FacebookAuthClient()
+    private val twitterClient = TwitterAuthClient()
+
+    // ----------------------------------------
+    // GOOGLE LOGIN
+    // ----------------------------------------
     fun initGoogleClient(context: Context) {
-        // kept for compatibility — we provided client via DI; but also ensure googleClient has valid context if needed
-        // (our GoogleAuthUiClient already accepts context in constructor which Hilt can't supply here,
-        // so your existing initGoogleClient(context) can remain — using the DI-provided client is preferred.)
+        googleClient = GoogleAuthUiClient(context)
     }
 
     suspend fun startGoogleSignIn(): Result<GetCredentialResponse?> {
         return try {
-            val response = googleClient.signIn()
+            val response = googleClient?.signIn()
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun finishGoogleSignIn(response: GetCredentialResponse?, onResult: (Result<User>) -> Unit) {
-        val googleData = try { googleClient.parseGoogleCredential(response) } catch (e: Exception) { null }
+    suspend fun finishGoogleSignIn(
+        response: GetCredentialResponse?,
+        onResult: (Result<User>) -> Unit
+    ) {
+        val googleData = try {
+            googleClient?.parseGoogleCredential(response)
+        } catch (e: Exception) {
+            null
+        }
+
         if (googleData == null) {
-            onResult(Result.failure(Exception("Unable to sign in with Google (no credential)")))
+            onResult(Result.failure(Exception("Google credential missing")))
             return
         }
 
+        _authState.value = AuthState.Loading
+
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
-            val result = try {
-                authRepository.signInWithGoogleIdToken(
-                    idToken = googleData.idToken ?: "",
-                    email = googleData.email ?: "",
-                    name = googleData.displayName ?: "",
-                    profilePicture = googleData.profilePictureUrl
-                )
-            } catch (e: Exception) {
-                Result.failure<User>(e)
-            }
+            val result = authRepository.socialLogin(
+                provider = "google",
+                token = googleData.idToken ?: "",
+                email = googleData.email ?: "",
+                name = googleData.displayName ?: "",
+                profilePicture = googleData.profilePictureUrl
+            )
 
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
-                userSessionManager.saveUserSession(
-                    userId = user.id,
-                    email = user.email,
-                    name = user.displayName,
-                    profilePicture = user.displayProfilePicture,
-                    bio = user.bio
-                )
-                _authState.value = AuthState.Success(user)
+                saveAndEmitSuccess(user)
                 onResult(Result.success(user))
             } else {
                 val msg = result.exceptionOrNull()?.message ?: "Google login failed"
@@ -94,17 +95,133 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    // --------------------------
-    // State flows (preserve existing)
-    // --------------------------
+    // ----------------------------------------
+    // FACEBOOK LOGIN
+    // ----------------------------------------
+    fun getFacebookCallbackManager(): CallbackManager =
+        facebookClient.getCallbackManager()
+
+    fun startFacebookLogin(activity: Activity) {
+        _authState.value = AuthState.Loading
+
+        facebookClient.startLogin(
+            activity = activity,
+            onSuccess = { accessToken ->
+                if (accessToken != null) {
+                    signInWithFacebook(accessToken.token)
+                } else {
+                    _authState.value = AuthState.Error("Facebook returned null token")
+                }
+            },
+            onError = { error ->
+                _authState.value = AuthState.Error(error)
+            }
+        )
+    }
+
+    private fun signInWithFacebook(token: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            val result = authRepository.socialLogin(
+                provider = "facebook",
+                token = token,
+                email = null,  // optional
+                name = null,
+                profilePicture = null
+            )
+
+            if (result.isSuccess) {
+                saveAndEmitSuccess(result.getOrNull()!!)
+            } else {
+                _authState.value =
+                    AuthState.Error(result.exceptionOrNull()?.message ?: "Facebook login failed")
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // TWITTER LOGIN (PKCE)
+    // ----------------------------------------
+    private var twitterVerifier: String? = null
+    private var twitterState: String? = null
+
+    fun startTwitterSignIn(context: Context) {
+        val verifier = PKCEUtil.generateCodeVerifier()
+        val challenge = PKCEUtil.codeChallengeFromVerifier(verifier)
+        val state = "st_${Random.nextInt(999999)}"
+
+        twitterVerifier = verifier
+        twitterState = state
+
+        val url = twitterClient.buildAuthorizationUrl(
+            codeChallenge = challenge,
+            state = state
+        )
+
+        twitterClient.launchAuth(context, url)
+    }
+
+    fun handleTwitterRedirect(uri: Uri) {
+        val code = uri.getQueryParameter("code")
+        val state = uri.getQueryParameter("state")
+
+        if (code.isNullOrEmpty()) {
+            _authState.value = AuthState.Error("Twitter code missing")
+            return
+        }
+        if (state != twitterState) {
+            _authState.value = AuthState.Error("Twitter state mismatch")
+            return
+        }
+
+        val verifier = twitterVerifier ?: run {
+            _authState.value = AuthState.Error("Missing PKCE verifier")
+            return
+        }
+
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+
+            val tokenResult = twitterClient.exchangeCodeForToken(code, verifier)
+            if (tokenResult.isSuccess) {
+                val token = tokenResult.getOrNull()?.access_token
+                if (token.isNullOrEmpty()) {
+                    _authState.value = AuthState.Error("Twitter access token invalid")
+                    return@launch
+                }
+
+                val loginResult = authRepository.socialLogin(
+                    provider = "twitter",
+                    token = token,
+                    email = null,
+                    name = null,
+                    profilePicture = null
+                )
+
+                if (loginResult.isSuccess) {
+                    saveAndEmitSuccess(loginResult.getOrNull()!!)
+                } else {
+                    _authState.value =
+                        AuthState.Error(loginResult.exceptionOrNull()?.message ?: "Twitter login failed")
+                }
+            } else {
+                _authState.value =
+                    AuthState.Error(tokenResult.exceptionOrNull()?.message ?: "Twitter token exchange failed")
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // AUTH STATE & USER FLOWS
+    // ----------------------------------------
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    val isLoggedIn: StateFlow<Boolean> =
-        userSessionManager.isLoggedIn.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val isLoggedIn = userSessionManager.isLoggedIn
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val hasSkippedAuth: StateFlow<Boolean> =
-        userSessionManager.hasSkippedAuth.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val hasSkippedAuth = userSessionManager.hasSkippedAuth
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val currentUser: StateFlow<User?> = combine(
         userSessionManager.userId,
@@ -112,32 +229,25 @@ class AuthViewModel @Inject constructor(
         userSessionManager.userName,
         userSessionManager.userProfilePicture,
         userSessionManager.userBio
-    ) { id, email, name, profilePicture, bio ->
+    ) { id, email, name, pic, bio ->
         if (!id.isNullOrBlank() && !email.isNullOrBlank() && !name.isNullOrBlank()) {
-            User(
-                id = id,
-                email = email,
-                name = name,
-                profilePicture = profilePicture,
-                bio = bio
-            )
+            User(id, email, name, profilePicture = pic, bio = bio)
         } else null
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _authEvents = MutableSharedFlow<AuthState>()
     val authEvents = _authEvents.asSharedFlow()
 
-    // --------------------------
-    // Email + Password login / register (unchanged)
-    // --------------------------
+    // ----------------------------------------
+    // EMAIL + PASSWORD LOGIN
+    // ----------------------------------------
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.login(email, password)
+
             if (result.isSuccess) {
-                val user = result.getOrNull()!!
-                _authState.value = AuthState.Success(user)
-                _authEvents.emit(AuthState.Success(user))
+                saveAndEmitSuccess(result.getOrNull()!!)
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: "Login failed")
@@ -149,10 +259,9 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = authRepository.register(email, password, name)
+
             if (result.isSuccess) {
-                val user = result.getOrNull()!!
-                _authState.value = AuthState.Success(user)
-                _authEvents.emit(AuthState.Success(user))
+                saveAndEmitSuccess(result.getOrNull()!!)
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
@@ -160,101 +269,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    // --------------------------
-    // FACEBOOK: start login (UI) -> token -> pass to repository
-    // --------------------------
-    fun getFacebookCallbackManager(): CallbackManager = facebookClient.getCallbackManager()
-
-    fun startFacebookLogin(activity: Activity) {
-        facebookClient.startLogin(activity, { accessToken ->
-            // On success return token string to repository
-            if (accessToken != null) {
-                signInWithFacebook(accessToken.token)
-            } else {
-                _authState.value = AuthState.Error("Facebook token null")
-            }
-        }, { error ->
-            _authState.value = AuthState.Error(error)
-        })
-    }
-
-    fun signInWithFacebook(token: String) {
-        viewModelScope.launch {
-            _authState.value = AuthState.Loading
-            val result = authRepository.signInWithFacebook(token)
-            if (result.isSuccess) {
-                val user = result.getOrNull()!!
-                _authState.value = AuthState.Success(user)
-                _authEvents.emit(AuthState.Success(user))
-            } else {
-                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Facebook login failed")
-            }
-        }
-    }
-
-    // --------------------------
-    // TWITTER (PKCE + redirect)
-    // --------------------------
-    private var twitterVerifier: String? = null
-    private var twitterState: String? = null
-
-    fun startTwitterSignIn(context: Context) {
-        val verifier = PKCEUtil.generateCodeVerifier()
-        val challenge = PKCEUtil.codeChallengeFromVerifier(verifier)
-        val state = "st_${Random.nextInt(999999)}"
-        twitterVerifier = verifier
-        twitterState = state
-
-        val url = twitterClient.buildAuthorizationUrl(codeChallenge = challenge, state = state)
-        twitterClient.launchAuth(context, url)
-    }
-
-    fun handleTwitterRedirect(uri: Uri) {
-        // Called from Activity.onNewIntent when deep link arrives
-        val code = uri.getQueryParameter("code")
-        val state = uri.getQueryParameter("state")
-
-        if (code.isNullOrEmpty()) {
-            _authState.value = AuthState.Error("Twitter callback missing code")
-            return
-        }
-        if (state != twitterState) {
-            _authState.value = AuthState.Error("Twitter state mismatch")
-            return
-        }
-        val verifier = twitterVerifier
-        if (verifier.isNullOrEmpty()) {
-            _authState.value = AuthState.Error("Missing PKCE verifier")
-            return
-        }
-
-        viewModelScope.launch {
-            _authState.value = AuthState.Loading
-            val tokenResult = twitterClient.exchangeCodeForToken(code, verifier)
-            if (tokenResult.isSuccess) {
-                val token = tokenResult.getOrNull()?.access_token
-                if (token.isNullOrEmpty()) {
-                    _authState.value = AuthState.Error("Twitter returned empty access token")
-                    return@launch
-                }
-                // send token to server to get/create user
-                val loginResult = authRepository.signInWithTwitter(token)
-                if (loginResult.isSuccess) {
-                    val user = loginResult.getOrNull()!!
-                    _authState.value = AuthState.Success(user)
-                    _authEvents.emit(AuthState.Success(user))
-                } else {
-                    _authState.value = AuthState.Error(loginResult.exceptionOrNull()?.message ?: "Twitter login failed")
-                }
-            } else {
-                _authState.value = AuthState.Error(tokenResult.exceptionOrNull()?.message ?: "Twitter token exchange failed")
-            }
-        }
-    }
-
-    // --------------------------
-    // LOGOUT / SKIP / PROFILE helpers (unchanged)
-    // --------------------------
+    // ----------------------------------------
+    // LOGOUT
+    // ----------------------------------------
     fun logout(onDone: (() -> Unit)? = null) {
         viewModelScope.launch {
             authRepository.logout()
@@ -264,6 +281,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // ----------------------------------------
+    // SKIP & RESET
+    // ----------------------------------------
     fun skipAuth() {
         viewModelScope.launch { userSessionManager.setSkipAuth(true) }
     }
@@ -276,40 +296,23 @@ class AuthViewModel @Inject constructor(
         _authState.value = AuthState.Idle
     }
 
-    fun refreshUserFromSession() {
-        viewModelScope.launch {
-            val id = userSessionManager.userId.firstOrNull()
-            val email = userSessionManager.userEmail.firstOrNull()
-            val name = userSessionManager.userName.firstOrNull()
-            val pic = userSessionManager.userProfilePicture.firstOrNull()
-
-            if (!id.isNullOrEmpty() && !email.isNullOrEmpty() && !name.isNullOrEmpty()) {
-                _authState.value = AuthState.Success(User(id, email, name, profilePicture = pic))
-            }
-        }
-    }
-
+    // ----------------------------------------
+    // PROFILE REFRESH
+    // ----------------------------------------
     fun fetchCurrentUser() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
 
             val userId = userSessionManager.userId.firstOrNull()
             if (userId == null) {
-                _authState.value = AuthState.Error("User not logged in")
+                _authState.value = AuthState.Error("Not logged in")
                 return@launch
             }
 
             val result = authRepository.getUserProfile(userId)
-
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
-                userSessionManager.saveUserSession(
-                    userId = user.id,
-                    email = user.email,
-                    name = user.displayName,
-                    bio = user.bio,
-                    profilePicture = user.displayProfilePicture
-                )
+                saveSession(user)
                 _authState.value = AuthState.Success(user)
             } else {
                 refreshUserFromSession()
@@ -325,26 +328,54 @@ class AuthViewModel @Inject constructor(
         onResult: (Result<User>) -> Unit
     ) {
         viewModelScope.launch {
-            val result =
-                authRepository.updateProfile(name, bio, profilePictureUri, accountType)
+            val result = authRepository.updateProfile(
+                name, bio, profilePictureUri, accountType
+            )
 
             if (result.isSuccess) {
-                refreshUserSession(result.getOrNull()!!)
+                saveSession(result.getOrNull()!!)
             }
 
             onResult(result)
         }
     }
 
-    private fun refreshUserSession(updatedUser: User) {
+    // ----------------------------------------
+    // INTERNAL HELPERS
+    // ----------------------------------------
+    private fun saveAndEmitSuccess(user: User) {
+        viewModelScope.launch {
+            saveSession(user)
+            _authState.value = AuthState.Success(user)
+            _authEvents.emit(AuthState.Success(user))
+        }
+    }
+
+    private fun saveSession(user: User) {
         viewModelScope.launch {
             userSessionManager.saveUserSession(
-                userId = updatedUser.id,
-                email = updatedUser.email,
-                name = updatedUser.displayName,
-                profilePicture = updatedUser.displayProfilePicture,
-                bio = updatedUser.bio
+                userId = user.id,
+                email = user.email,
+                name = user.displayName,
+                profilePicture = user.displayProfilePicture,
+                bio = user.bio,
+                token = null
             )
+        }
+    }
+
+    private fun refreshUserFromSession() {
+        viewModelScope.launch {
+            val id = userSessionManager.userId.firstOrNull()
+            val email = userSessionManager.userEmail.firstOrNull()
+            val name = userSessionManager.userName.firstOrNull()
+            val pic = userSessionManager.userProfilePicture.firstOrNull()
+            val bio = userSessionManager.userBio.firstOrNull()
+
+            if (!id.isNullOrBlank() && !email.isNullOrBlank() && !name.isNullOrBlank()) {
+                _authState.value =
+                    AuthState.Success(User(id, email, name, profilePicture = pic, bio = bio))
+            }
         }
     }
 }

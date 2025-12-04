@@ -3,7 +3,7 @@ package com.picpose.bestphotographyapp.data.models
 import com.google.gson.annotations.SerializedName
 
 /**
- * Represents a user in the system.
+ * Represents a user returned from the backend.
  */
 data class User(
 
@@ -13,9 +13,9 @@ data class User(
     @SerializedName("email")
     val email: String,
 
-    // Backend may return `name` OR `display_name`
+    // Backend may return name OR display_name
     @SerializedName("name")
-    val name: String? = null,
+    val nameRaw: String? = null,
 
     @SerializedName("display_name")
     val displayNameBackend: String? = null,
@@ -23,22 +23,22 @@ data class User(
     @SerializedName("username")
     val username: String? = null,
 
-    // Profile picture (2 possible keys)
+    // Social auth metadata
+    @SerializedName("provider")
+    val provider: String? = null,
+
+    @SerializedName("social_id")
+    val socialId: String? = null,
+
+    @SerializedName("api_token")
+    val apiToken: String? = null,
+
+    // Profile picture support (2 key variations)
     @SerializedName("profile_picture")
     val profilePicture: String? = null,
 
     @SerializedName("profile_pic")
     val profilePic: String? = null,
-
-    // Social stats
-    @SerializedName("followers_count")
-    val followersCount: Int = 0,
-
-    @SerializedName("following_count")
-    val followingCount: Int = 0,
-
-    @SerializedName("posts_count")
-    val postsCount: Int = 0,
 
     @SerializedName("bio")
     val bio: String? = null,
@@ -54,34 +54,39 @@ data class User(
 ) {
 
     /**
-     * Final Display Name Helper
+     * Unified safe display name
      */
     val displayName: String
         get() = when {
-            !name.isNullOrBlank() -> name
+            !nameRaw.isNullOrBlank() -> nameRaw
             !displayNameBackend.isNullOrBlank() -> displayNameBackend
             !username.isNullOrBlank() -> username
             else -> "Guest User"
         }
 
     /**
-     * Return fully qualified profile picture URL
+     * Normalized profile picture URL
      */
     val displayProfilePicture: String?
         get() {
             val base = "https://picpose.iamakmal.in/"
-            val pic = when {
+            val raw = when {
                 !profilePicture.isNullOrBlank() -> profilePicture
                 !profilePic.isNullOrBlank() -> profilePic
                 else -> return null
             }
 
-            return if (pic.startsWith("http")) pic else base + pic.removePrefix("/")
+            // Already a full link
+            if (raw.startsWith("http")) return raw
+
+            // Remove accidental double slashes
+            val cleaned = raw.removePrefix("/")
+            return base + cleaned
         }
 }
 
 /**
- * Account types
+ * Account types (Matches database enum)
  */
 enum class AccountType(val value: String) {
     @SerializedName("normal")
@@ -105,7 +110,7 @@ enum class AccountType(val value: String) {
 }
 
 /**
- * User roles
+ * User roles used for admin/premium logic
  */
 enum class UserRole(val value: String) {
     @SerializedName("user")
@@ -129,7 +134,7 @@ enum class UserRole(val value: String) {
 }
 
 /**
- * Login Request
+ * Email/Password Login Request
  */
 data class LoginRequest(
     @SerializedName("email") val email: String,
@@ -137,7 +142,7 @@ data class LoginRequest(
 )
 
 /**
- * Register Request – BACKEND COMPATIBLE
+ * Register Request
  */
 data class RegisterRequest(
     @SerializedName("email") val email: String,
@@ -146,10 +151,10 @@ data class RegisterRequest(
 )
 
 /**
- * Auth Response from server (compatible with all PHP formats)
+ * Auth Response wrapper
  */
 data class AuthResponse(
-    @SerializedName("status") val status: String? = null,      // "success" or "error"
+    @SerializedName("status") val status: String? = null,
     @SerializedName("success") val successFlag: Boolean? = null,
     @SerializedName("message") val message: String? = null,
     @SerializedName("user") val user: User? = null,
@@ -165,14 +170,21 @@ data class AuthResponse(
 }
 
 /**
- * Social Auth Payload
+ * Social Auth Payload — Unified for Google, Facebook, Twitter
  */
 data class SocialAuthData(
     val provider: String,
     val token: String,
-    val email: String,
-    val name: String,
-    val profilePicture: String?,
+
+    // Social providers may not always return email/name
+    val email: String? = null,
+    val name: String? = null,
+
+    val profilePicture: String? = null,
+
+    val socialId: String? = null,   // ADD THIS
+
+    // Default values supported by backend
     val role: String = "user",
     val accountType: String = "normal"
 )

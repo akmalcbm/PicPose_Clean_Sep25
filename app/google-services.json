@@ -1,31 +1,36 @@
 {
   "project_info": {
-    "project_number": "123456789000",
-    "project_id": "picpose-app",
-    "storage_bucket": "picpose-app.appspot.com"
+    "project_number": "424655024692",
+    "project_id": "picpose-ai-prompt-book",
+    "storage_bucket": "picpose-ai-prompt-book.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789000:android:abcdef123456",
+        "mobilesdk_app_id": "1:424655024692:android:d992316da5654579f25061",
         "android_client_info": {
           "package_name": "com.picpose.bestphotographyapp"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789000-abcdefghijklmnop.apps.googleusercontent.com",
+          "client_id": "424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIza-placeholder-key-replace-with-real"
+          "current_key": "AIzaSyBc3CFkiKG7os0PCnnqq91KESUjjAol6mk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

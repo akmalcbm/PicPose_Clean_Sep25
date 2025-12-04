@@ -10,9 +10,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.picpose.bestphotographyapp" />
-                  <option name="mobileSdkAppId" value="1:123456789000:android:abcdef123456" />
-                  <option name="projectId" value="picpose-app" />
-                  <option name="projectNumber" value="123456789000" />
+                  <option name="mobileSdkAppId" value="1:424655024692:android:d992316da5654579f25061" />
+                  <option name="projectId" value="picpose-ai-prompt-book" />
+                  <option name="projectNumber" value="424655024692" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
