@@ -18,6 +18,7 @@ import org.json.JSONObject
  *     onError   = { message -> ... }
  * )
  */
+
 class FacebookAuthClient {
 
     private val callbackManager: CallbackManager = CallbackManager.Factory.create()

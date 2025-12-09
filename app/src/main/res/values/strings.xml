@@ -61,7 +61,7 @@
     <string name="no_favorite_prompts_title">No Favorite Prompts</string>
     <string name="no_favorite_prompts_description">Start exploring AI prompts and add your favorites here!</string>
     <string name="browse_prompts_button">Browse Prompts</string>
-    <string name="facebook_app_id">YOUR_FB_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FB_CLIENT_TOKEN</string>
+    <string name="facebook_app_id" translatable="false">1158827679752112</string>
+    <string name="facebook_client_token" translatable="false">0656140dee77bb556f0f3eb80cbb7d67</string>
 
 </resources>
