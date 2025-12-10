@@ -88,7 +88,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(16.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.ic_logo_light),
@@ -100,12 +100,12 @@ fun LoginScreen(
 
             Text(
                 text = if (isLoginMode) "Welcome Back 👋" else "Create an Account",
-                fontSize = 26.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Full Name for Register
             if (!isLoginMode) {
@@ -198,7 +198,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Divider
             Row(
@@ -214,7 +214,7 @@ fun LoginScreen(
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
 
             // SOCIAL LOGIN BUTTONS
             Row(
@@ -254,6 +254,8 @@ fun LoginScreen(
                     Text("Google", fontSize = 13.sp, color = Color.Gray)
                 }
 
+                /*
+                //Currently Hide will be UnHide in the Next Version
                 // ⭐ FACEBOOK SIGN-IN
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
@@ -273,6 +275,8 @@ fun LoginScreen(
                     Text("Facebook", fontSize = 13.sp, color = Color.Gray)
                 }
 
+
+                //Currently Hide will be UnHide in the Next Version
                 // ⭐ TWITTER SIGN-IN
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
@@ -291,6 +295,8 @@ fun LoginScreen(
                     Spacer(Modifier.height(6.dp))
                     Text("X (Twitter)", fontSize = 13.sp, color = Color.Gray)
                 }
+                */
+
             }
 
             Spacer(Modifier.height(40.dp))
