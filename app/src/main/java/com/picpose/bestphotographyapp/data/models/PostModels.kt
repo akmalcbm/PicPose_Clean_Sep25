@@ -94,7 +94,7 @@ fun PostDto.toPost(): Post {
     )
 }
 
-// 🔹 Simple Category model (unchanged)
+// 🔹 Simple Category model
 data class Category(
     val id: String,
     val name: String,

@@ -150,6 +150,8 @@ fun AllAIPromptsScreen(
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
 
+    val categoryListState = rememberLazyListState()
+
     // Edge-to-edge for Android 11+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -197,12 +199,14 @@ fun AllAIPromptsScreen(
 
     // Initial data load
     LaunchedEffect(Unit) {
-        viewModel.loadAllPrompts(page = 1, forceRefresh = true)
-        viewModel.loadCategories()
-        initialCategory?.takeIf { it.isNotBlank() && it != "All" }?.let {
-            viewModel.updateSelectedCategory(it)
+        if (!initialCategory.isNullOrBlank() && initialCategory != "All") {
+            viewModel.onCategorySelected(initialCategory)
+        } else {
+            viewModel.loadAllPrompts(page = 1, forceRefresh = true)
         }
+        viewModel.loadCategories()
     }
+
 
     // Error handling
     LaunchedEffect(uiState.error) {
@@ -213,6 +217,7 @@ fun AllAIPromptsScreen(
             }
         }
     }
+
 
     // Infinite scroll listener for LIST
     LaunchedEffect(listState) {
@@ -245,8 +250,7 @@ fun AllAIPromptsScreen(
                     prompt.fullPrompt?.contains(uiState.searchQuery, true) == true ||
                     prompt.shortPrompt?.contains(uiState.searchQuery, true) == true
 
-            val matchesCategory = uiState.selectedCategory == "All" ||
-                    prompt.category == uiState.selectedCategory
+            val matchesCategory = true // server already filtering
 
             matchesSearch && matchesCategory
         }
@@ -342,14 +346,33 @@ fun AllAIPromptsScreen(
             // Category Chips
             if (categories.isNotEmpty()) {
                 LazyRow(
+                    state = categoryListState,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(categories) { _, category ->
+                    itemsIndexed(categories) { index, category ->
+
                         FilterChip(
-                            onClick = { viewModel.updateSelectedCategory(category) },
-                            label = { Text(category) },
                             selected = uiState.selectedCategory == category,
+                            onClick = {
+                                // 🔥 1️⃣ Scroll CONTENT to top
+                                coroutineScope.launch {
+                                    listState.scrollToItem(0)
+                                    gridState.scrollToItem(0)
+                                }
+
+                                // 🔥 2️⃣ Scroll CATEGORY CHIP to center
+                                coroutineScope.launch {
+                                    categoryListState.animateScrollToItem(
+                                        index = index,
+                                        scrollOffset = -200 // 🔥 center feel (adjust if needed)
+                                    )
+                                }
+
+                                // 🔥 3️⃣ Load category data
+                                viewModel.onCategorySelected(category)
+                            },
+                            label = { Text(category) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Color(0xFF6366F1),
                                 selectedLabelColor = Color.White
@@ -359,7 +382,7 @@ fun AllAIPromptsScreen(
                 }
             }
 
-            when {
+                when {
                 uiState.isLoading && displayPrompts.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -372,7 +395,7 @@ fun AllAIPromptsScreen(
                         selectedCategory = uiState.selectedCategory,
                         onClearFilters = {
                             viewModel.updateSearchQuery("")
-                            viewModel.updateSelectedCategory("All")
+                            viewModel.onCategorySelected("All")
                         },
                         modifier = Modifier
                             .fillMaxSize()

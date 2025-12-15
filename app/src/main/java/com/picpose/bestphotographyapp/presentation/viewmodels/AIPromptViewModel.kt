@@ -1,8 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -72,6 +70,8 @@ class AIPromptViewModel @Inject constructor(
     private var currentPage = 1        // last loaded page
     private var canLoadMore = true     // false when reach totalPrompts
 
+    private var selectedCategoryServer: String? = null
+
     private val _similarPromptsClickCount = MutableStateFlow(0)
     val similarPromptsClickCount: StateFlow<Int> = _similarPromptsClickCount.asStateFlow()
 
@@ -113,6 +113,33 @@ class AIPromptViewModel @Inject constructor(
         onSearchChanged(query)
     }
 
+
+    fun onCategorySelected(category: String) {
+        selectedCategoryServer = if (category == "All") null else category
+
+        // reset paging
+        currentPage = 1
+        canLoadMore = true
+        cachedPrompts = null
+
+        _uiState.update {
+            it.copy(
+                selectedCategory = category,
+                allPrompts = emptyList()
+            )
+        }
+
+        loadAllPrompts(
+            page = 1,
+            category = selectedCategoryServer,
+            forceRefresh = true
+        )
+    }
+
+
+    /*
+    //Check Later If Above Works Remove Below nad where it is uses replace with onCategorySelected
+    @Deprecated("Use onCategorySelected instead")
     fun updateSelectedCategory(category: String) {
         _uiState.update { it.copy(selectedCategory = category) }
 
@@ -125,12 +152,14 @@ class AIPromptViewModel @Inject constructor(
         lastCacheTime = 0L
 
         loadAllPrompts(
-            page = 1,
-            category = categoryFilter,
+            page = currentPage + 1,
+            category = selectedCategoryServer,
             search = _uiState.value.searchQuery.ifBlank { null },
             forceRefresh = true
         )
-    }
+    }*/
+
+
 
     // =========================================================================
     // 🔹 Load All Prompts (with cache + paging)
@@ -202,7 +231,7 @@ class AIPromptViewModel @Inject constructor(
                                             error = null
                                         )
                                     }
-                                    updateCategoriesFromPrompts(prompts)
+                                    //updateCategoriesFromPrompts(prompts)
                                 } else {
                                     // append for pagination (avoid duplicates)
                                     val currentList = _uiState.value.allPrompts
@@ -272,7 +301,7 @@ class AIPromptViewModel @Inject constructor(
 
         loadAllPrompts(
             page = currentPage + 1,
-            category = categoryFilter,
+            category = selectedCategoryServer,
             search = searchFilter,
             forceRefresh = false
         )
@@ -286,11 +315,6 @@ class AIPromptViewModel @Inject constructor(
         _uiState.update { it.copy(selectedPrompt = prompt) }
     }
 
-    /**
-     * Detail ke liye ek hi network call per promptId.
-     * Pehle local list + selectedPrompt me dhundhta hai, nahi mila to API se lata hai.
-     */
-    private val ongoingDetailFetches = mutableSetOf<String>()
 
     // 🔹 Single Prompt for Detail Screen
     fun loadPromptById(promptId: String) {
@@ -371,6 +395,7 @@ class AIPromptViewModel @Inject constructor(
             kotlinx.coroutines.delay(400)
             loadAllPrompts(
                 page = 1,
+                category = selectedCategoryServer,
                 search = query.ifBlank { null },
                 forceRefresh = true
             )
@@ -500,24 +525,44 @@ class AIPromptViewModel @Inject constructor(
     // 🔹 Categories
     // =========================================================================
 
+    private var categoriesLoaded = false
+
     fun loadCategories() {
+        if (categoriesLoaded) return
+
         viewModelScope.launch(errorHandler) {
-            try {
-                updateCategoriesFromPrompts(_uiState.value.allPrompts)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+            repository.getCategories().collect { result ->
+                result.fold(
+                    onSuccess = { categories ->
+                        val names = categories
+                            .mapNotNull { it.name }
+                            .distinct()
+                            .sorted()
+
+                        _uiState.update {
+                            it.copy(categories = listOf("All") + names)
+                        }
+
+                        categoriesLoaded = true
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(error = e.message) }
+                    }
+                )
             }
         }
     }
 
-    private fun updateCategoriesFromPrompts(prompts: List<AIPrompt>) {
+
+
+    /*private fun updateCategoriesFromPrompts(prompts: List<AIPrompt>) {
         val cats = listOf("All") + prompts
             .mapNotNull { it.category?.takeIf { cat -> cat.isNotBlank() } }
             .distinct()
             .sorted()
 
         _uiState.update { it.copy(categories = cats) }
-    }
+    }*/
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }

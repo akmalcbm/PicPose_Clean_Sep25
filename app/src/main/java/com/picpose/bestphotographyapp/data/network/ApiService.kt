@@ -57,6 +57,27 @@ interface ApiService {
     ): Response<ApiResponse<List<AIPrompt>>>
 
 
+    /* Not Used by ye get ai post me already implements tha
+    getAiPosts(
+   limit,
+   offset,
+   category,
+   q,
+   status
+)
+    *//**
+     * 🔸 Categories Wise Posts (for Explore categories filter or HomeScreen horizontal list with category Chips)
+     *//*
+
+    @GET("api/ai_posts/get_ai_post_by_category.php")
+    suspend fun getAIPostsByCategory(
+        @Query("category_id") categoryId: Int,
+        @Query("limit") limit: Int,
+        @Query("offset") offset: Int,
+        @Query("api_key") apiKey: String?
+    ): Response<ApiResponse<List<AIPrompt>>>
+*/
+
     /**
      * 🔸 Trending posts (for Explore filter or HomeScreen horizontal list)
      */
