@@ -98,7 +98,7 @@ class AIPromptViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // First page load
-            loadAllPrompts(page = 1, forceRefresh = true)
+            //loadAllPrompts(page = 1, forceRefresh = true)
             loadFavoritePrompts()
             loadCategories()
         }
@@ -115,6 +115,15 @@ class AIPromptViewModel @Inject constructor(
 
 
     fun onCategorySelected(category: String) {
+
+        // 🛡 SAFETY GUARD — same category & data already loaded
+        if (
+            _uiState.value.selectedCategory == category &&
+            _uiState.value.allPrompts.isNotEmpty()
+        ) {
+            return
+        }
+
         selectedCategoryServer = if (category == "All") null else category
 
         // reset paging
@@ -135,6 +144,7 @@ class AIPromptViewModel @Inject constructor(
             forceRefresh = true
         )
     }
+
 
 
     /*
@@ -575,13 +585,29 @@ class AIPromptViewModel @Inject constructor(
 
     fun loadSimilarPrompts(category: String, currentPromptId: String) {
         viewModelScope.launch {
-            val similar = _uiState.value.allPrompts
-                .filter { it.category == category && it.id != currentPromptId }
-                .take(10)
-
-            _uiState.update { it.copy(similarPrompts = similar) }
+            repository
+                .getSimilarAiPrompts(
+                    category = category,
+                    excludePromptId = currentPromptId
+                )
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { list ->
+                            _uiState.update {
+                                it.copy(similarPrompts = list)
+                            }
+                        },
+                        onFailure = { e ->
+                            Log.e(TAG, "Similar prompts failed: ${e.message}")
+                            _uiState.update {
+                                it.copy(similarPrompts = emptyList())
+                            }
+                        }
+                    )
+                }
         }
     }
+
 
     fun onSimilarPromptClicked() {
         _similarPromptsClickCount.value++

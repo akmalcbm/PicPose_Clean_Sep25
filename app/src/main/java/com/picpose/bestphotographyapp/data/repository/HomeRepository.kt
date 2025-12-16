@@ -803,4 +803,42 @@ class HomeRepository(
     }.flowOn(Dispatchers.IO)
 
 
+
+    /**
+     * ✅ Fetch Similar AI posts in Horizonal Lists at the Bottom (Show on AIPromptDetailScreen.kt)
+     */
+    suspend fun getSimilarAiPrompts(
+        category: String,
+        excludePromptId: String,
+        limit: Int = 10
+    ): Flow<Result<List<AIPrompt>>> = flow {
+        try {
+            val response = apiService.getAiPosts(
+                apiKey = requestApiKey,
+                limit = limit + 1,          // extra for exclusion
+                offset = 0,
+                category = category,
+                status = "published"
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val body = response.body()!!
+                val data = body.data ?: emptyList()
+
+                val filtered = data
+                    .filter { it.id != excludePromptId }
+                    .take(limit)
+
+                emit(Result.success(filtered))
+            } else {
+                emit(Result.failure(Exception(response.body()?.message ?: "API error")))
+            }
+
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+
+
 }

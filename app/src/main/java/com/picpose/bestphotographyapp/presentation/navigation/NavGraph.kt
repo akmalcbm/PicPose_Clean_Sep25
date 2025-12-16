@@ -232,12 +232,18 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         // 📜 All AI Prompts
         composable(
             route = Screen.AllAIPrompts.route + "?category={category}",
-            arguments = listOf(navArgument("category") {
-                type = NavType.StringType
-                defaultValue = "All"
-            })
+            arguments = listOf(
+                navArgument("category") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) { backStackEntry ->
-            val initialCategory = backStackEntry.arguments?.getString("category") ?: "All"
+            val initialCategory = backStackEntry.arguments
+                ?.getString("category")
+                ?.let { Uri.decode(it) }
+
             val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
             AllAIPromptsScreen(

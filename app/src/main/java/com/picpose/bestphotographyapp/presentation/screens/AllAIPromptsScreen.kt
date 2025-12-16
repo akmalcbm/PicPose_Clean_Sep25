@@ -197,15 +197,21 @@ fun AllAIPromptsScreen(
         }
     }
 
-    // Initial data load
-    LaunchedEffect(Unit) {
-        if (!initialCategory.isNullOrBlank() && initialCategory != "All") {
-            viewModel.onCategorySelected(initialCategory)
+    LaunchedEffect(initialCategory) {
+
+        // 🧠 initialCategory already decoded in NavGraph
+        val category = initialCategory
+
+        if (!category.isNullOrBlank() && category != "All") {
+            viewModel.onCategorySelected(category)
         } else {
-            viewModel.loadAllPrompts(page = 1, forceRefresh = true)
+            viewModel.onCategorySelected("All")
         }
+
+        // Categories chips ke liye
         viewModel.loadCategories()
     }
+
 
 
     // Error handling
