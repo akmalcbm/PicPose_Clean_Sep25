@@ -659,8 +659,7 @@ fun AIPromptDetailScreen(
                                     title = { Text("Continue in Gemini") },
                                     text = {
                                         Text(
-                                            "Your prompt will be copied and opened in Gemini.\n\n" +
-                                                    "If the app is installed, tap “Try in app” to continue."
+                                            "Your prompt will be copied and opened in Gemini.\n\n"
                                         )
                                     },
                                     confirmButton = {
