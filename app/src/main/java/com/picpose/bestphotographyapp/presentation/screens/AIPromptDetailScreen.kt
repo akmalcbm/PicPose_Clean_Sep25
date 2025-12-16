@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -579,75 +580,75 @@ fun AIPromptDetailScreen(
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        // Copy button
+
+                                        // 🔥 PRIMARY — Open in Gemini
                                         Button(
+                                            onClick = { showGeminiDialog = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(14.dp),
+                                            contentPadding = PaddingValues(vertical = 16.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            )
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = android.R.drawable.ic_menu_search),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(22.dp),
+                                                tint = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(horizontalAlignment = Alignment.Start) {
+                                                Text(
+                                                    text = "Open in Gemini",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                                Text(
+                                                    text = "Best for generating results",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color.White.copy(alpha = 0.85f)
+                                                )
+                                            }
+                                        }
+
+                                        // ⚪ SECONDARY — Copy Prompt
+                                        OutlinedButton(
                                             onClick = {
                                                 val textToCopy = promptData.fullPrompt ?: ""
                                                 if (textToCopy.isNotBlank()) {
                                                     clipMgr.setText(AnnotatedString(textToCopy))
                                                     localHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    Toast
-                                                        .makeText(
-                                                            ctx,
-                                                            "✨ Prompt copied to clipboard!",
-                                                            Toast.LENGTH_SHORT
-                                                        )
-                                                        .show()
-                                                    promptData.id?.toIntOrNull()?.let { id ->
-                                                        viewModel.incrementCopyCount(id)
-                                                    }
-                                                } else {
                                                     Toast.makeText(
                                                         ctx,
-                                                        "⚠️ Nothing to copy!",
+                                                        "Prompt copied to clipboard",
                                                         Toast.LENGTH_SHORT
                                                     ).show()
+
+                                                    promptData.id?.toIntOrNull()?.let {
+                                                        viewModel.incrementCopyCount(it)
+                                                    }
                                                 }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            ),
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(14.dp),
                                             contentPadding = PaddingValues(vertical = 14.dp)
                                         ) {
                                             Icon(
                                                 Icons.Default.ContentCopy,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = "Copy Full Prompt",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        }
-
-                                        // Gemini button
-                                        OutlinedButton(
-                                            onClick = { showGeminiDialog = true },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(12.dp),
-                                            contentPadding = PaddingValues(vertical = 14.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(
-                                                    id = android.R.drawable.ic_menu_search
-                                                ),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Open in Gemini",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary
+                                                text = "Copy Prompt",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium
                                             )
                                         }
                                     }
+
                                 }
                             }
 
@@ -655,24 +656,34 @@ fun AIPromptDetailScreen(
                             if (showGeminiDialog) {
                                 AlertDialog(
                                     onDismissRequest = { showGeminiDialog = false },
-                                    title = { Text("Open in Gemini?") },
+                                    title = { Text("Continue in Gemini") },
                                     text = {
                                         Text(
-                                            "This will open the prompt in the Gemini app (if installed). " +
-                                                    "If not, you’ll be redirected to its Play Store page."
+                                            "Your prompt will be copied and opened in Gemini.\n\n" +
+                                                    "If the app is installed, tap “Try in app” to continue."
                                         )
                                     },
                                     confirmButton = {
-                                        TextButton(onClick = {
-                                            showGeminiDialog = false
-                                            openGeminiOrPlayStore(ctx, promptData.fullPrompt ?: "")
+                                        TextButton(
+                                            onClick = {
+                                                showGeminiDialog = false
 
-                                            promptData.id?.toIntOrNull()?.let { id ->
-                                                coroutineScope.launch {
-                                                    viewModel.incrementCopyCount(id)
+                                                openGemini(
+                                                    context = ctx,
+                                                    promptText = promptData.fullPrompt ?: ""
+                                                )
+
+                                                Toast.makeText(
+                                                    ctx,
+                                                    "Prompt copied. Opening Gemini… \nTap “Try in app” if shown.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+
+                                                promptData.id?.toIntOrNull()?.let {
+                                                    viewModel.incrementCopyCount(it)
                                                 }
                                             }
-                                        }) {
+                                        ) {
                                             Text("Continue")
                                         }
                                     },
@@ -999,54 +1010,6 @@ private fun StatPill(
     }
 }
 
-fun openGeminiOrPlayStore(context: Context, promptText: String) {
-    val geminiPackage = "com.google.android.apps.bard"
-    val pm = context.packageManager
-
-    // Always copy text to clipboard before any action
-    val clipboard = ContextCompat.getSystemService(context, ClipboardManager::class.java)
-    clipboard?.setPrimaryClip(ClipData.newPlainText("Prompt", promptText))
-    Toast.makeText(context, "✨ Prompt copied to clipboard", Toast.LENGTH_SHORT).show()
-
-    try {
-        pm.getPackageInfo(geminiPackage, 0)
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://gemini.google.com/app")
-            setPackage(geminiPackage)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        if (intent.resolveActivity(pm) != null) {
-            context.startActivity(intent)
-        } else {
-            val launchIntent = pm.getLaunchIntentForPackage(geminiPackage)
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(launchIntent)
-            } else {
-                openGeminiPlayStore(context)
-            }
-        }
-    } catch (e: PackageManager.NameNotFoundException) {
-        openGeminiPlayStore(context)
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(context, "Unable to open Gemini", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun openGeminiPlayStore(context: Context) {
-    val geminiPackage = "com.google.android.apps.bard"
-    val playStoreIntent = Intent(
-        Intent.ACTION_VIEW,
-        Uri.parse("https://play.google.com/store/apps/details?id=$geminiPackage")
-    ).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    context.startActivity(playStoreIntent)
-}
-
 @Composable
 private fun SimilarPromptCard(
     prompt: AIPrompt,
@@ -1303,6 +1266,154 @@ private fun DetailLoadingPlaceholder(innerPadding: PaddingValues) {
         }
     }
 }
+
+fun debugGeminiLaunch(context: Context) {
+    val pm = context.packageManager
+    val geminiPackage = "com.google.android.apps.bard"
+
+    android.util.Log.e("GEMINI_DEBUG", "====== GEMINI DEBUG START ======")
+
+    // 1️⃣ Check package installed
+    try {
+        val info = pm.getPackageInfo(geminiPackage, 0)
+        android.util.Log.e("GEMINI_DEBUG", "✅ Package installed: ${info.packageName}")
+    } catch (e: Exception) {
+        android.util.Log.e("GEMINI_DEBUG", "❌ Package NOT installed")
+    }
+
+    // 2️⃣ getLaunchIntentForPackage
+    val launchIntent = pm.getLaunchIntentForPackage(geminiPackage)
+    android.util.Log.e(
+        "GEMINI_DEBUG",
+        "LaunchIntent = ${launchIntent?.component}"
+    )
+
+    // 3️⃣ ACTION_MAIN + CATEGORY_LAUNCHER
+    val testIntent = Intent(Intent.ACTION_MAIN).apply {
+        addCategory(Intent.CATEGORY_LAUNCHER)
+        setPackage(geminiPackage)
+    }
+
+    val resolve = pm.resolveActivity(testIntent, 0)
+    android.util.Log.e(
+        "GEMINI_DEBUG",
+        "ResolveActivity = ${resolve?.activityInfo?.name}"
+    )
+
+    // 4️⃣ List ALL activities in Gemini package
+    val activities = pm.getPackageInfo(
+        geminiPackage,
+        PackageManager.GET_ACTIVITIES
+    ).activities
+
+    if (activities.isNullOrEmpty()) {
+        android.util.Log.e("GEMINI_DEBUG", "❌ No activities found")
+    } else {
+        activities.forEach {
+            android.util.Log.e(
+                "GEMINI_DEBUG",
+                "Activity: ${it.name}, exported=${it.exported}"
+            )
+        }
+    }
+
+    android.util.Log.e("GEMINI_DEBUG", "====== GEMINI DEBUG END ======")
+}
+
+
+/*fun openGeminiOrPlayStore(
+    context: Context,
+    promptText: String
+) {
+    val geminiPackage = "com.google.android.apps.bard"
+
+    // ✅ 1. Copy prompt FIRST
+    val clipboard =
+        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(
+        ClipData.newPlainText("AI Prompt", promptText)
+    )
+
+    val pm = context.packageManager
+
+    // 🔥 2. TRY: Explicit launcher intent (Samsung-safe)
+    try {
+        val launchIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setPackage(geminiPackage)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        if (launchIntent.resolveActivity(pm) != null) {
+            context.startActivity(launchIntent)
+            return // ✅ EXIT — APP OPENED
+        }
+    } catch (_: Exception) { }
+
+    // 🔥 3. TRY: Standard launch intent
+    try {
+        val fallbackLaunch = pm.getLaunchIntentForPackage(geminiPackage)
+        if (fallbackLaunch != null) {
+            fallbackLaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(fallbackLaunch)
+            return // ✅ EXIT — APP OPENED
+        }
+    } catch (_: Exception) { }
+
+    // ❌ 4. ONLY NOW → Play Store (FORCE GOOGLE PLAY)
+    try {
+        val playStoreIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("market://details?id=$geminiPackage")
+        ).apply {
+            setPackage("com.android.vending") // ❗ no Galaxy Store
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(playStoreIntent)
+    } catch (_: Exception) {
+        // 🌐 Final browser fallback
+        context.startActivity(
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://play.google.com/store/apps/details?id=$geminiPackage")
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+}*/
+
+fun openGemini(context: Context, promptText: String) {
+    try {
+        // 1️⃣ Copy prompt
+        val clipboard =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText("AI Prompt", promptText)
+        )
+
+        // 2️⃣ Open Google App (Gemini lives here)
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setPackage("com.google.android.googlequicksearchbox")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        context.startActivity(intent)
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+
+        // 3️⃣ LAST fallback → browser
+        val browserIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://gemini.google.com")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(browserIntent)
+    }
+}
+
+
 
 
 
