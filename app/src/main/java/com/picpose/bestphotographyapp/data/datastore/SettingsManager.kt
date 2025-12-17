@@ -20,6 +20,9 @@ class SettingsManager(private val context: Context) {
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")   // system | light | dark
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
+
+        // 🔥 NEW — Gemini dialog preference
+        private val SKIP_GEMINI_DIALOG_KEY = booleanPreferencesKey("skip_gemini_dialog")
     }
 
     /** Theme mode flow */
@@ -57,4 +60,27 @@ class SettingsManager(private val context: Context) {
             prefs[NOTIFICATIONS_ENABLED_KEY] = enabled
         }
     }
+
+    /** Gemini dialog skip flow */
+    val skipGeminiDialog: Flow<Boolean> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs ->
+            prefs[SKIP_GEMINI_DIALOG_KEY] ?: false
+        }
+
+    /** Save Gemini dialog preference */
+    suspend fun setSkipGeminiDialog(skip: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[SKIP_GEMINI_DIALOG_KEY] = skip
+        }
+    }
+
+    /** Reset Gemini preferences */
+    suspend fun resetGeminiDialogPreference() {
+        context.settingsDataStore.edit { prefs ->
+            prefs.remove(SKIP_GEMINI_DIALOG_KEY)
+        }
+    }
+
+
 }

@@ -79,6 +79,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -181,6 +182,8 @@ fun AIPromptDetailScreen(
     // Interstitial ad
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
     val similarClickCount by viewModel.similarPromptsClickCount.collectAsState()
+
+    val skipGeminiDialog by viewModel.skipGeminiDialog.collectAsState()
 
     // Load interstitial once
     LaunchedEffect(Unit) {
@@ -583,13 +586,30 @@ fun AIPromptDetailScreen(
 
                                         // 🔥 PRIMARY — Open in Gemini
                                         Button(
-                                            onClick = { showGeminiDialog = true },
+                                            onClick = {
+                                                if (skipGeminiDialog) {
+                                                    // 🚀 Direct open
+                                                    openGemini(
+                                                        context = ctx,
+                                                        promptText = promptData.fullPrompt ?: ""
+                                                    )
+
+                                                    Toast.makeText(
+                                                        ctx,
+                                                        "Prompt copied. Opening Gemini…",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+
+                                                    promptData.id?.toIntOrNull()?.let {
+                                                        viewModel.incrementCopyCount(it)
+                                                    }
+                                                } else {
+                                                    showGeminiDialog = true
+                                                }
+                                            },
                                             modifier = Modifier.fillMaxWidth(),
                                             shape = RoundedCornerShape(14.dp),
-                                            contentPadding = PaddingValues(vertical = 16.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            )
+                                            contentPadding = PaddingValues(vertical = 16.dp)
                                         ) {
                                             Icon(
                                                 painter = painterResource(id = android.R.drawable.ic_menu_search),
@@ -598,7 +618,7 @@ fun AIPromptDetailScreen(
                                                 tint = Color.White
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
-                                            Column(horizontalAlignment = Alignment.Start) {
+                                            Column {
                                                 Text(
                                                     text = "Open in Gemini",
                                                     style = MaterialTheme.typography.titleMedium,
@@ -612,6 +632,7 @@ fun AIPromptDetailScreen(
                                                 )
                                             }
                                         }
+
 
                                         // ⚪ SECONDARY — Copy Prompt
                                         OutlinedButton(
@@ -652,47 +673,78 @@ fun AIPromptDetailScreen(
                                 }
                             }
 
-                            // Gemini Dialog
+                            var dontAskAgain by rememberSaveable { mutableStateOf(false) }
+
                             if (showGeminiDialog) {
                                 AlertDialog(
-                                    onDismissRequest = { showGeminiDialog = false },
+                                    onDismissRequest = {
+                                        showGeminiDialog = false
+                                        dontAskAgain = false
+                                    },
                                     title = { Text("Continue in Gemini") },
                                     text = {
-                                        Text(
-                                            "Your prompt will be copied and opened in Gemini.\n\n"
-                                        )
+                                        Column {
+                                            Text(
+                                                "Your prompt will be copied and opened in Gemini.\n\n" +
+                                                        "If the app is installed, tap “Try in app”."
+                                            )
+
+                                            Spacer(modifier = Modifier.height(12.dp))
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { dontAskAgain = !dontAskAgain }
+                                            ) {
+                                                Checkbox(
+                                                    checked = dontAskAgain,
+                                                    onCheckedChange = { dontAskAgain = it }
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Don’t ask again")
+                                            }
+                                        }
                                     },
                                     confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                showGeminiDialog = false
+                                        TextButton(onClick = {
+                                            showGeminiDialog = false
 
-                                                openGemini(
-                                                    context = ctx,
-                                                    promptText = promptData.fullPrompt ?: ""
-                                                )
-
-                                                Toast.makeText(
-                                                    ctx,
-                                                    "Prompt copied. Opening Gemini… \nTap “Try in app” if shown.",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-
-                                                promptData.id?.toIntOrNull()?.let {
-                                                    viewModel.incrementCopyCount(it)
-                                                }
+                                            if (dontAskAgain) {
+                                                viewModel.setSkipGeminiDialog(true) // 💾 DataStore
                                             }
-                                        ) {
+
+                                            openGemini(
+                                                context = ctx,
+                                                promptText = promptData.fullPrompt ?: ""
+                                            )
+
+                                            Toast.makeText(
+                                                ctx,
+                                                "Prompt copied. Opening Gemini…",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+
+                                            promptData.id?.toIntOrNull()?.let {
+                                                viewModel.incrementCopyCount(it)
+                                            }
+
+                                            dontAskAgain = false
+                                        }) {
                                             Text("Continue")
                                         }
                                     },
                                     dismissButton = {
-                                        TextButton(onClick = { showGeminiDialog = false }) {
+                                        TextButton(onClick = {
+                                            showGeminiDialog = false
+                                            dontAskAgain = false
+                                        }) {
                                             Text("Cancel")
                                         }
                                     }
                                 )
                             }
+
                         }
 
                         // 📢 One-Time Large Native Ad with Shimmer Placeholder

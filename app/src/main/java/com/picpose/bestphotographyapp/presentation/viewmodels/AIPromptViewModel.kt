@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
@@ -50,7 +51,8 @@ data class AIPromptUiState(
 @HiltViewModel
 class AIPromptViewModel @Inject constructor(
     private val repository: HomeRepository,
-    private val api: ApiService
+    private val api: ApiService,
+    private val settingsManager: SettingsManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIPromptUiState())
@@ -83,6 +85,15 @@ class AIPromptViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    // 🔥 Gemini dialog preference (DataStore → UI)
+    val skipGeminiDialog: StateFlow<Boolean> =
+        settingsManager.skipGeminiDialog
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = false
+            )
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -103,6 +114,21 @@ class AIPromptViewModel @Inject constructor(
             loadCategories()
         }
     }
+
+    // 💾 Save "Don't ask again"
+    fun setSkipGeminiDialog(skip: Boolean) {
+        viewModelScope.launch {
+            settingsManager.setSkipGeminiDialog(skip)
+        }
+    }
+
+    // 🔁 Reset Gemini preference (Settings screen ke liye)
+    fun resetGeminiDialogPreference() {
+        viewModelScope.launch {
+            settingsManager.resetGeminiDialogPreference()
+        }
+    }
+
 
     // =========================================================================
     // 🔹 Search & Category

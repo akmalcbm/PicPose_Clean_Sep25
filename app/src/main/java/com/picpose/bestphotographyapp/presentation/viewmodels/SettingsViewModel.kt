@@ -31,6 +31,10 @@ class SettingsViewModel @Inject constructor(
     val notificationsEnabled: StateFlow<Boolean> = settingsManager.notificationsEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    //SKIP GEMINI DIALOG
+    val skipGeminiDialog = settingsManager.skipGeminiDialog
+
+
     // ----------------------------
     // UPDATE THEME MODE
     // ----------------------------
@@ -57,4 +61,16 @@ class SettingsViewModel @Inject constructor(
             settingsManager.setNotificationsEnabled(enabled)
         }
     }
+
+    // ----------------------------
+    // UPDATE Gemini Dialog Box
+    // ----------------------------
+    fun resetGeminiDialog() {
+        viewModelScope.launch {
+            settingsManager.setSkipGeminiDialog(false)
+        }
+    }
+
+
+
 }

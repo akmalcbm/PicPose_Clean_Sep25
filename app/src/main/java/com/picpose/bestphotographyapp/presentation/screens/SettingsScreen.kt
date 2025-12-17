@@ -3,17 +3,25 @@ package com.picpose.bestphotographyapp.presentation.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
@@ -39,12 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,87 +63,154 @@ fun SettingsScreen(
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val language by settingsViewModel.language.collectAsState()
     val notificationsEnabled by settingsViewModel.notificationsEnabled.collectAsState()
+    val skipGeminiDialog by settingsViewModel.skipGeminiDialog.collectAsState(initial = false)
 
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showResetGeminiDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { Text("Settings", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
-                }
+                },
+                modifier = Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                )
             )
-        }
-    ) { paddingValues ->
+        },
+        // 🔥 IMPORTANT — SAME AS ProfileScreen
+        contentWindowInsets = WindowInsets(0)
+    ) { innerPadding ->
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(
+                top = 12.dp,
+                bottom = 32.dp // ✅ small & predictable
+            )
         ) {
 
             // ---------------------
-            // APPEARANCE SECTION
+            // APPEARANCE
             // ---------------------
             item { SectionTitle("Appearance") }
 
-            // 🌙 Dark Mode Switch (ON = dark, OFF = light)
             item {
-                val isDarkChecked = themeMode == "dark"
-
                 SettingItem(
                     icon = Icons.Default.DarkMode,
                     title = "Dark Mode",
                     subtitle = "Enable or disable dark theme",
                     trailing = {
                         Switch(
-                            checked = isDarkChecked,
-                            onCheckedChange = { checked ->
-                                if (checked) settingsViewModel.setThemeMode("dark")
-                                else settingsViewModel.setThemeMode("light")
+                            checked = themeMode == "dark",
+                            onCheckedChange = {
+                                settingsViewModel.setThemeMode(
+                                    if (it) "dark" else "light"
+                                )
                             }
                         )
                     }
                 )
             }
 
-            // 🌐 Language Selector
             item {
                 SettingItem(
                     icon = Icons.Default.Language,
-                    title = stringResource(R.string.language),
+                    title = "Language",
                     subtitle = if (language == "hi") "Hindi" else "English",
                     onClick = { showLanguageDialog = true },
-                    trailing = { Icon(Icons.Default.ChevronRight, contentDescription = null) }
+                    trailing = {
+                        Icon(Icons.Default.ChevronRight, null)
+                    }
                 )
             }
 
             // ---------------------
-            // PREFERENCES SECTION
+            // PREFERENCES
             // ---------------------
             item { SectionTitle("Preferences") }
 
             item {
                 SettingItem(
                     icon = Icons.Default.Notifications,
-                    title = stringResource(R.string.notifications),
-                    subtitle = stringResource(R.string.enable_notifications),
+                    title = "Notifications",
+                    subtitle = "Enable notifications",
                     trailing = {
                         Switch(
                             checked = notificationsEnabled,
-                            onCheckedChange = { settingsViewModel.setNotificationsEnabled(it) }
+                            onCheckedChange = {
+                                settingsViewModel.setNotificationsEnabled(it)
+                            }
+                        )
+                    }
+                )
+            }
+
+            item {
+                SettingItem(
+                    icon = Icons.Default.AutoAwesome,
+                    title = "Gemini confirmation",
+                    subtitle = if (skipGeminiDialog)
+                        "Confirmation dialog disabled"
+                    else
+                        "Ask before opening Gemini",
+                    onClick = {
+                        if (skipGeminiDialog) showResetGeminiDialog = true
+                    },
+                    trailing = {
+                        Text(
+                            text = if (skipGeminiDialog) "Reset" else "Enabled",
+                            color = if (skipGeminiDialog)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 )
             }
         }
 
+        // ---------------------
+        // RESET GEMINI DIALOG
+        // ---------------------
+        if (showResetGeminiDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetGeminiDialog = false },
+                title = { Text("Reset Gemini confirmation?") },
+                text = {
+                    Text("You will be asked again before opening Gemini.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        settingsViewModel.resetGeminiDialog()
+                        showResetGeminiDialog = false
+                    }) {
+                        Text("Reset")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetGeminiDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // ---------------------
         // LANGUAGE DIALOG
+        // ---------------------
         if (showLanguageDialog) {
             AlertDialog(
                 onDismissRequest = { showLanguageDialog = false },
@@ -176,13 +249,15 @@ fun SettingsScreen(
 
 @Composable
 fun SectionTitle(title: String) {
+    Spacer(modifier = Modifier.height(8.dp))
     Text(
-        text = title,
-        fontSize = 16.sp,
+        text = title.uppercase(),
+        fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
     )
 }
+
 
 @Composable
 fun SettingItem(
