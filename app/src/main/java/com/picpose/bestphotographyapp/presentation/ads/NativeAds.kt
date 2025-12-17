@@ -76,6 +76,11 @@ fun LargeNativeAdCard(
     val sponsoredTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val sponsoredBackground = MaterialTheme.colorScheme.primary.toArgb()
 
+    // 🎨 Match app Primary Button
+    val ctaBgColor = MaterialTheme.colorScheme.primary.toArgb()
+    val ctaTextColor = MaterialTheme.colorScheme.onPrimary.toArgb()
+
+
     val fade = remember { Animatable(0f) }
     LaunchedEffect(nativeAd) { fade.animateTo(1f, tween(320)) }
 
@@ -134,8 +139,37 @@ fun LargeNativeAdCard(
                     setTextColor(advertiserColor)
                 }
 
-                /** CTA */
-                val cta = Button(context).apply { isAllCaps = false }
+                /** CTA (Clean, Flat, Compose-like) */
+                val cta = Button(context).apply {
+                    isAllCaps = false
+                    textSize = 14f
+                    typeface = Typeface.DEFAULT_BOLD
+
+                    // 🎯 App primary color
+                    backgroundTintList = ColorStateList.valueOf(ctaBgColor)
+                    setTextColor(ctaTextColor)
+
+                    // ❌ Remove default shadow / elevation
+                    elevation = 0f
+                    stateListAnimator = null
+
+                    // ❌ Remove default background inset & shadow
+                    setBackgroundColor(ctaBgColor)
+
+                    // ✨ Rounded corners
+                    clipToOutline = true
+                    outlineProvider = roundedOutline(14f, context)
+
+                    // 📐 Clean padding (Compose-like)
+                    setPadding(
+                        16.toPx(context),
+                        12.toPx(context),
+                        16.toPx(context),
+                        12.toPx(context)
+                    )
+                }
+
+
 
                 /** ⭐ Sponsored badge (TOP-LEFT) */
                 val badge = TextView(context).apply {
