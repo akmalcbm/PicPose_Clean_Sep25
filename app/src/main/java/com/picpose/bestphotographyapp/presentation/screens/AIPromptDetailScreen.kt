@@ -574,13 +574,19 @@ fun AIPromptDetailScreen(
                                     ) {
 
                                         // 🔥 PRIMARY — Open in Gemini
+                                        // 🔥 PRIMARY — Open in Gemini
                                         Button(
                                             onClick = {
+                                                // ✨ HAPTIC (Primary CTA)
+                                                localHaptic.performHapticFeedback(
+                                                    HapticFeedbackType.TextHandleMove
+                                                )
+
                                                 if (skipGeminiDialog) {
                                                     // 🚀 Direct open
                                                     openGemini(
                                                         context = ctx,
-                                                        promptText = promptData.fullPrompt ?: ""
+                                                        promptText = promptData.fullPrompt ?: "",
                                                     )
 
                                                     Toast.makeText(
@@ -638,10 +644,11 @@ fun AIPromptDetailScreen(
 
 
 
-                                        Divider(
+                                        HorizontalDivider(
                                             modifier = Modifier.padding(vertical = 4.dp),
                                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                                         )
+
 
                                         // ⚪ SECONDARY — Copy Prompt (Improved Contrast)
                                         Button(

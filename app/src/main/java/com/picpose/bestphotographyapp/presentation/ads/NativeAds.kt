@@ -139,6 +139,7 @@ fun LargeNativeAdCard(
                     setTextColor(advertiserColor)
                 }
 
+
                 /** CTA (Clean, Flat, Compose-like) */
                 val cta = Button(context).apply {
                     isAllCaps = false
@@ -153,9 +154,6 @@ fun LargeNativeAdCard(
                     elevation = 0f
                     stateListAnimator = null
 
-                    // ❌ Remove default background inset & shadow
-                    setBackgroundColor(ctaBgColor)
-
                     // ✨ Rounded corners
                     clipToOutline = true
                     outlineProvider = roundedOutline(14f, context)
@@ -169,6 +167,13 @@ fun LargeNativeAdCard(
                     )
                 }
 
+                /** ✅ ADD MARGIN TOP (6–8dp) */
+                cta.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = 6.toPx(context)   // 👈 6–8dp yahin
+                }
 
 
                 /** ⭐ Sponsored badge (TOP-LEFT) */
