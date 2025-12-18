@@ -20,8 +20,8 @@ data class AIPrompt(
     val isPopular: Boolean = false,
     val isFeatured: Boolean = false,
 
-    val isLiked: Boolean = false,
-    val isFavorited: Boolean = false,
+    var isFavouriteBookmarked: Boolean = false, // ⭐ Favorite Bookmarked
+    var isLiked: Boolean = false,      // 👍 Like
 
     val status: String? = "published",
     val priority: Int = 0,

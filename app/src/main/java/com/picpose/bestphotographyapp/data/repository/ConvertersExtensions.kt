@@ -35,7 +35,7 @@ fun FavoritePrompt.toAIPrompt(): AIPrompt {
         tags = this.tags ?: emptyList(),
         likes = this.likes ?: 0,
         isPopular = this.isPopular ?: false,
-        isBookmarked = true,
+        isFavouriteBookmarked = true,
         status = this.status ?: "published",
         priority = this.priority ?: 0,
         createdAt = this.dateAdded?.let { java.time.Instant.ofEpochMilli(it).toString() },

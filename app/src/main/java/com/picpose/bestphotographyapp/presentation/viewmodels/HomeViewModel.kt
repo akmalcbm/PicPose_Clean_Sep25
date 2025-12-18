@@ -12,6 +12,7 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,7 @@ data class HomeUiState(
 enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
 @HiltViewModel
-class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
+class HomeViewModel @Inject constructor (private val repository: HomeRepository, private val engagementRepository: EngagementRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -282,6 +283,16 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
             )
         }
 
+    fun toggleLike(prompt: AIPrompt) {
+        viewModelScope.launch {
+            try {
+                engagementRepository.toggleLike(prompt)
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "toggleLike failed: ${e.message}")
+            }
+        }
+    }
+
     // Clipboard helper
     fun copyPromptToClipboard(context: Context, prompt: String?) {
         try {
@@ -310,7 +321,7 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
 
                             // ✅ Update UI state on Main thread
                             val updatedPrompts = _uiState.value.aiPrompts.map { p ->
-                                if (p.id == prompt.id) p.copy(isBookmarked = isNowFavorite) else p
+                                if (p.id == prompt.id) p.copy(isFavouriteBookmarked = isNowFavorite) else p
                             }
 
                             // Update favorite count

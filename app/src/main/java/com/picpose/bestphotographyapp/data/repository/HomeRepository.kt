@@ -293,8 +293,8 @@ class HomeRepository(
                     val fav = favoriteDao.isBookmarked(p.id)
                     val liked = likedDao.isLiked(p.id)
                     p.copy(
-                        isBookmarked = fav,
-                        isLikes = liked
+                        isFavouriteBookmarked = fav,
+                        isLiked = liked
                     )
                 }
 
@@ -356,7 +356,7 @@ class HomeRepository(
                     favoriteDao.isBookmarked(prompt.id)
                 }
 
-                emit(Result.success(prompt.copy(isBookmarked = isFav)))
+                emit(Result.success(prompt.copy(isFavouriteBookmarked = isFav)))
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "Prompt not found")))
             }
@@ -610,7 +610,7 @@ class HomeRepository(
             }
 
             // return original prompt with updated bookmark state
-            val updated = prompt.copy(isBookmarked = !isFav)
+            val updated = prompt.copy(isFavouriteBookmarked = !isFav)
 
             emit(Result.success(updated))
 

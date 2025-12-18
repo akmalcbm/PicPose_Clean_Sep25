@@ -234,7 +234,7 @@ class AiPromptDetailsViewModel(
                             Log.d(TAG, "Favorite toggled: $isNowFavorite")
                             // Update current prompt's favorite status
                             _uiState.value = _uiState.value.copy(
-                                currentPrompt = prompt.copy(isBookmarked = isNowFavorite)
+                                currentPrompt = prompt.copy(isFavouriteBookmarked = isNowFavorite)
                             )
                         },
                         onFailure = { error ->

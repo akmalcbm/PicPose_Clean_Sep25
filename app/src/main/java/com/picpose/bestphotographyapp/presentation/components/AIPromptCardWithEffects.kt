@@ -56,13 +56,13 @@ fun AIPromptCardWithEffects(
     // ======================================================
     // Optimistic Local UI State
     // ======================================================
-    var localLiked by remember(prompt.id) { mutableStateOf(prompt.isLikes) }
+    var localLiked by remember(prompt.id) { mutableStateOf(prompt.isLiked) }
     var localLikesCount by remember(prompt.id) { mutableStateOf(prompt.likes) }
-    var localBookmarked by remember(prompt.id) { mutableStateOf(prompt.isBookmarked) }
+    var localBookmarked by remember(prompt.id) { mutableStateOf(prompt.isFavouriteBookmarked) }
 
-    LaunchedEffect(prompt.id, prompt.isLikes, prompt.isBookmarked, prompt.likes) {
-        localLiked = prompt.isLikes
-        localBookmarked = prompt.isBookmarked
+    LaunchedEffect(prompt.id, prompt.isLiked, prompt.isFavouriteBookmarked, prompt.likes) {
+        localLiked = prompt.isLiked
+        localBookmarked = prompt.isFavouriteBookmarked
         localLikesCount = prompt.likes
     }
 
@@ -112,7 +112,7 @@ fun AIPromptCardWithEffects(
 
         onLikeClick(
             prompt.copy(
-                isLikes = localLiked,
+                isLiked = localLiked,
                 likes = localLikesCount
             )
         )
@@ -128,7 +128,7 @@ fun AIPromptCardWithEffects(
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         vibrateCompat(context)
 
-        onBookmarkClick(prompt.copy(isBookmarked = localBookmarked))
+        onBookmarkClick(prompt.copy(isFavouriteBookmarked = localBookmarked))
     }
 
     // ======================================================

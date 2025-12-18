@@ -15,14 +15,13 @@ class EngagementRepository @Inject constructor(
     private val favoriteDao: FavoritePromptDao
 ) {
 
-    /* ---------------- LIKE ---------------- */
+    /* ---------------- 👍 LIKE ---------------- */
 
     suspend fun toggleLike(prompt: AIPrompt): AIPrompt {
         val alreadyLiked = likedDao.isLiked(prompt.id)
 
         return if (alreadyLiked) {
             likedDao.removeLiked(prompt.id)
-
             prompt.copy(
                 isLiked = false,
                 likes = (prompt.likes - 1).coerceAtLeast(0)
@@ -30,7 +29,6 @@ class EngagementRepository @Inject constructor(
         } else {
             likedDao.addLiked(LikedPrompt(prompt.id))
             api.incrementLike(prompt.id.toInt())
-
             prompt.copy(
                 isLiked = true,
                 likes = prompt.likes + 1
@@ -38,29 +36,29 @@ class EngagementRepository @Inject constructor(
         }
     }
 
-    /* ---------------- FAVORITE ---------------- */
+    /* ---------------- ⭐ FAVORITE ---------------- */
 
     suspend fun toggleFavorite(prompt: AIPrompt): AIPrompt {
         val alreadyFav = favoriteDao.isBookmarked(prompt.id)
 
         return if (alreadyFav) {
             favoriteDao.removeFromFavorites(prompt.id)
-            prompt.copy(isFavorited = false)
+            prompt.copy(isFavouriteBookmarked = false)
         } else {
             favoriteDao.addToFavorites(prompt.toFavoritePrompt())
             api.incrementFavorite(prompt.id.toInt())
-            prompt.copy(isFavorited = true)
+            prompt.copy(isFavouriteBookmarked = true)
         }
     }
 
-    /* ---------------- VIEW ---------------- */
+    /* ---------------- 👁 VIEW ---------------- */
 
     suspend fun incrementView(prompt: AIPrompt): AIPrompt {
         api.incrementView(prompt.id.toInt())
         return prompt.copy(views = prompt.views + 1)
     }
 
-    /* ---------------- SHARE ---------------- */
+    /* ---------------- 🔗 SHARE ---------------- */
 
     suspend fun incrementShare(promptId: Int) {
         api.incrementCopy(promptId)

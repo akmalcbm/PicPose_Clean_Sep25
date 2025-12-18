@@ -270,12 +270,19 @@ fun TagPromptsScreen(
                                     snackbarHostState.showSnackbar("Prompt copied to clipboard")
                                 }
                             },
-                            // You can adjust based on your global style
                             isCompact = false,
                             showFavoriteIcon = true,
-                            onFavoriteClick = {
-                                viewModel.toggleFavorite(prompt)
+
+                            // 👍 REQUIRED — LIKE
+                            onLikeClick = { clickedPrompt ->
+                                viewModel.toggleLike(clickedPrompt)
                             },
+
+                            // ⭐ FAVORITE
+                            onFavoriteClick = { clickedPrompt ->
+                                viewModel.toggleFavorite(clickedPrompt)
+                            },
+
                             modifier = Modifier.fillMaxWidth()
                         )
 

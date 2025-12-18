@@ -96,10 +96,21 @@ fun ViewAllPromptsScreen(
                         onCopy = {
                             Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                         },
-                        onFavoriteClick = { /* TODO: future favorite logic */ },
+
+                        // 👍 REQUIRED — LIKE
+                        onLikeClick = {
+                            viewModel.toggleLike(post.toAIPrompt())
+                        },
+
+                        // ⭐ FAVORITE (future logic)
+                        onFavoriteClick = {
+                            // TODO: future favorite logic
+                        },
+
                         showFavoriteIcon = true,
                         isCompact = false
                     )
+
                 }
             }
         }

@@ -37,7 +37,7 @@ class PromptRepository {
             tags = listOf("portrait", "sunset", "golden-hour", "professional"),
             likes = 245,
             isPopular = true,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "2",
@@ -49,7 +49,7 @@ class PromptRepository {
             tags = listOf("landscape", "mountain", "sunrise", "nature"),
             likes = 189,
             isPopular = true,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "3",
@@ -61,7 +61,7 @@ class PromptRepository {
             tags = listOf("architecture", "urban", "modern", "geometric"),
             likes = 167,
             isPopular = false,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "4",
@@ -73,7 +73,7 @@ class PromptRepository {
             tags = listOf("wildlife", "bird", "closeup", "nature"),
             likes = 312,
             isPopular = true,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "5",
@@ -85,7 +85,7 @@ class PromptRepository {
             tags = listOf("street", "candid", "urban", "documentary"),
             likes = 223,
             isPopular = false,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "6",
@@ -97,7 +97,7 @@ class PromptRepository {
             tags = listOf("product", "commercial", "studio", "macro"),
             likes = 145,
             isPopular = false,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "7",
@@ -109,7 +109,7 @@ class PromptRepository {
             tags = listOf("astrophotography", "milky-way", "night", "stars"),
             likes = 456,
             isPopular = true,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "8",
@@ -121,7 +121,7 @@ class PromptRepository {
             tags = listOf("fashion", "editorial", "studio", "model"),
             likes = 389,
             isPopular = true,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "9",
@@ -133,7 +133,7 @@ class PromptRepository {
             tags = listOf("food", "culinary", "overhead", "natural-light"),
             likes = 178,
             isPopular = false,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         ),
         AIPrompt(
             id = "10",
@@ -145,7 +145,7 @@ class PromptRepository {
             tags = listOf("macro", "nature", "flower", "water"),
             likes = 267,
             isPopular = false,
-            isBookmarked = false
+            isFavouriteBookmarked = false
         )
     )
     
@@ -263,7 +263,7 @@ class PromptRepository {
             delay(200)
             
             // For mock purposes, just return the opposite of current state
-            val newState = !prompt.isBookmarked
+            val newState = !prompt.isFavouriteBookmarked
             emit(Result.success(newState))
         } catch (e: Exception) {
             Log.e(TAG, "Error toggling favorite: ${e.message}")

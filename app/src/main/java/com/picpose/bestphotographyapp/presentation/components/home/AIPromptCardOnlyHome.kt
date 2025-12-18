@@ -211,25 +211,26 @@ fun AIPromptCardOnlyHome(
                                     IconButton(
                                         onClick = {
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                                            // ✅ Single source of truth
                                             onFavoriteClick(prompt)
-                                            // ✅ Increment favorite count in background (only if newly favorited)
-                                            if (!prompt.isBookmarked) {
-                                                prompt.id.toIntOrNull()?.let { id ->
-                                                    viewModel?.incrementFavoriteCount(id)
-                                                }
-                                            }
                                         },
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (prompt.isBookmarked) Icons.Filled.Favorite
-                                            else Icons.Filled.FavoriteBorder,
+                                            imageVector = if (prompt.isFavouriteBookmarked)
+                                                Icons.Filled.Favorite
+                                            else
+                                                Icons.Filled.FavoriteBorder,
                                             contentDescription = "Toggle Favorite",
-                                            tint = if (prompt.isBookmarked)
-                                                Color(0xFFE91E63) else Color(0xFF64748B),
+                                            tint = if (prompt.isFavouriteBookmarked)
+                                                Color(0xFFE91E63)
+                                            else
+                                                Color(0xFF64748B),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
+
                                 }
                             }
 

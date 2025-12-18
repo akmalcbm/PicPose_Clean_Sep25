@@ -32,8 +32,8 @@ fun AIPromptFavoritesScreen(
     onNavigateToAllPrompts: () -> Unit,
     viewModel: AIPromptViewModel = hiltViewModel()
 ) {
-    val favoritePrompts by viewModel.favoritePrompts.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsState()
+    val favoritePrompts = uiState.favoritePrompts
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -143,10 +143,21 @@ fun AIPromptFavoritesScreen(
                                     clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
                                     Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                                 },
-                                onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+
+                                // 👍 REQUIRED — LIKE
+                                onLikeClick = {
+                                    viewModel.toggleLike(prompt)
+                                },
+
+                                // ⭐ FAVORITE
+                                onFavoriteClick = {
+                                    viewModel.toggleFavorite(prompt)
+                                },
+
                                 showFavoriteIcon = true,
                                 isCompact = false
                             )
+
                         }
                     }
                 }

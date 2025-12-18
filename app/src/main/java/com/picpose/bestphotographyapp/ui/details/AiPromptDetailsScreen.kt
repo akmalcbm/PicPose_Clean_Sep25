@@ -143,7 +143,7 @@ fun AiPromptDetailsScreen(
                                     viewModel.toggleFavorite(prompt)
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar(
-                                            if (prompt.isBookmarked) "Removed from favorites"
+                                            if (prompt.isFavouriteBookmarked) "Removed from favorites"
                                             else "Added to favorites"
                                         )
                                     }
@@ -151,9 +151,9 @@ fun AiPromptDetailsScreen(
                             }
                         ) {
                             Icon(
-                                if (prompt.isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                if (prompt.isFavouriteBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (prompt.isBookmarked)
+                                tint = if (prompt.isFavouriteBookmarked)
                                     MaterialTheme.colorScheme.error 
                                 else 
                                     LocalContentColor.current

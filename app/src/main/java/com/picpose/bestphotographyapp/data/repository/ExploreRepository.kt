@@ -48,7 +48,7 @@ class ExploreRepository(
                 emit(
                     Result.success(
                         prompt.copy(
-                            isLikes = true,
+                            isLiked = true,
                             likes = prompt.likes + 1
                         )
                     )
@@ -63,7 +63,7 @@ class ExploreRepository(
                 emit(
                     Result.success(
                         prompt.copy(
-                            isLikes = false,
+                            isLiked = false,
                             likes = (prompt.likes - 1).coerceAtLeast(0)
                         )
                     )
@@ -105,7 +105,7 @@ class ExploreRepository(
                     apiService.incrementFavorite(prompt.id.toInt(), requestApiKey)
                 } catch (_: Exception) { }
 
-                emit(Result.success(prompt.copy(isBookmarked = true)))
+                emit(Result.success(prompt.copy(isFavouriteBookmarked = true)))
 
             } else {
                 // Remove local only
@@ -113,7 +113,7 @@ class ExploreRepository(
                     favoriteDao.removeFromFavorites(prompt.id)
                 }
 
-                emit(Result.success(prompt.copy(isBookmarked = false)))
+                emit(Result.success(prompt.copy(isFavouriteBookmarked = false)))
             }
 
         } catch (e: Exception) {

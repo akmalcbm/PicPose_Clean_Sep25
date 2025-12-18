@@ -248,7 +248,9 @@ fun AIPromptDetailScreen(
     LaunchedEffect(promptId) {
         val numericId = promptId.toIntOrNull()
         if (numericId != null && lastCountedPromptId != promptId) {
-            viewModel.incrementViewCount(numericId)
+            uiState.selectedPrompt?.let {
+                viewModel.onPromptViewed(it)
+            }
             lastCountedPromptId = promptId
         }
         // transition start
@@ -313,9 +315,9 @@ fun AIPromptDetailScreen(
                     effectivePrompt?.let { p ->
                         IconButton(onClick = { viewModel.toggleFavorite(p) }) {
                             Icon(
-                                if (p.isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                                if (p.isFavouriteBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                                 contentDescription = "Favorite Bookmarked AI Prompts",
-                                tint = if (p.isBookmarked)
+                                tint = if (p.isFavouriteBookmarked)
                                     MaterialTheme.colorScheme.surfaceTint
                                 else
                                     LocalContentColor.current
@@ -908,7 +910,6 @@ fun AIPromptDetailScreen(
                                                 onClick = {
                                                     val id = similarPrompt.id ?: return@SimilarPromptCard
                                                     isTransitionLoading = true
-                                                    viewModel.onSimilarPromptClicked()
 
                                                     // Interstitial after 1 click (test condition)
                                                     if (similarClickCount >= 1) {
@@ -917,7 +918,6 @@ fun AIPromptDetailScreen(
                                                                 object : FullScreenContentCallback() {
                                                                     override fun onAdDismissedFullScreenContent() {
                                                                         onPromptClick(id)
-                                                                        viewModel.resetSimilarPromptClickCount()
                                                                     }
 
                                                                     override fun onAdFailedToShowFullScreenContent(

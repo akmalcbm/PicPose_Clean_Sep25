@@ -281,7 +281,12 @@ fun AllAIPromptsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
+                    IconButton(onClick = {
+                        viewModel.loadAllPrompts(
+                            page = 1,
+                            forceRefresh = true
+                        )
+                    }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     IconButton(onClick = { showSearch = !showSearch }) {
@@ -523,7 +528,17 @@ fun AllAIPromptsScreen(
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         },
-                                        onFavoriteClick = { viewModel.toggleFavorite(prompt) },
+
+                                        // 👍 LIKE (NEW — REQUIRED)
+                                        onLikeClick = {
+                                            viewModel.toggleLike(prompt)
+                                        },
+
+                                        // ⭐ FAVORITE (BOOKMARK)
+                                        onFavoriteClick = {
+                                            viewModel.toggleFavorite(prompt)
+                                        },
+
                                         showFavoriteIcon = true,
                                         isCompact = false
                                     )
