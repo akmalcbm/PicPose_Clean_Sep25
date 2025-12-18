@@ -72,14 +72,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -103,7 +101,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -778,7 +775,6 @@ fun AIPromptDetailScreen(
 
 
 
-
                         // 🏷 Tags (expandable)
                         promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
@@ -1385,7 +1381,38 @@ fun debugGeminiLaunch(context: Context) {
 }
 
 
-/*fun openGeminiOrPlayStore(
+fun openGemini(context: Context, promptText: String) {
+    try {
+        // 1️⃣ Copy prompt
+        val clipboard =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText("AI Prompt", promptText)
+        )
+
+        // 2️⃣ Open Google App (Gemini lives here)
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setPackage("com.google.android.googlequicksearchbox")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        context.startActivity(intent)
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+
+        // 3️⃣ LAST fallback → browser
+        val browserIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://gemini.google.com")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(browserIntent)
+    }
+
+    /*fun openGeminiOrPlayStore(
     context: Context,
     promptText: String
 ) {
@@ -1445,34 +1472,4 @@ fun debugGeminiLaunch(context: Context) {
     }
 }*/
 
-fun openGemini(context: Context, promptText: String) {
-    try {
-        // 1️⃣ Copy prompt
-        val clipboard =
-            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(
-            ClipData.newPlainText("AI Prompt", promptText)
-        )
-
-        // 2️⃣ Open Google App (Gemini lives here)
-        val intent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            setPackage("com.google.android.googlequicksearchbox")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        context.startActivity(intent)
-
-    } catch (e: Exception) {
-        e.printStackTrace()
-
-        // 3️⃣ LAST fallback → browser
-        val browserIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://gemini.google.com")
-        ).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(browserIntent)
-    }
 }

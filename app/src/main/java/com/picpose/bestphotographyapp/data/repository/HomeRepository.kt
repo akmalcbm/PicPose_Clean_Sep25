@@ -234,6 +234,7 @@ class HomeRepository(
 
     suspend fun toggleFavoriteLocal(prompt: AIPrompt): AIPrompt {
         return withContext(Dispatchers.IO) {
+
             val isFav = favoriteDao.isBookmarked(prompt.id)
 
             if (isFav) {
@@ -242,9 +243,19 @@ class HomeRepository(
                 favoriteDao.addToFavorites(prompt.toFavoritePrompt())
             }
 
-            prompt.copy(isFavouriteBookmarked = !isFav)
+            val newFav = if (isFav) {
+                (prompt.favorites ?: 0) - 1
+            } else {
+                (prompt.favorites ?: 0) + 1
+            }
+
+            prompt.copy(
+                isFavouriteBookmarked = !isFav,
+                favorites = newFav.coerceAtLeast(0)
+            )
         }
     }
+
 
 
 
@@ -859,16 +870,24 @@ class HomeRepository(
             val isLiked = likedDao.isLiked(prompt.id)
 
             if (isLiked) {
-                likedDao.removeLiked(prompt.id)   // ✅ correct
+                likedDao.removeLiked(prompt.id)
             } else {
-                likedDao.addLiked(
-                    LikedPrompt(promptId = prompt.id) // ✅ correct
-                )
+                likedDao.addLiked(LikedPrompt(promptId = prompt.id))
             }
 
-            prompt.copy(isLiked = !isLiked)
+            val newLikes = if (isLiked) {
+                (prompt.likes ?: 0) - 1
+            } else {
+                (prompt.likes ?: 0) + 1
+            }
+
+            prompt.copy(
+                isLiked = !isLiked,
+                likes = newLikes.coerceAtLeast(0)
+            )
         }
     }
+
 
 
 
