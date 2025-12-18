@@ -123,33 +123,28 @@ class AIPromptViewModel @Inject constructor(
 
     fun toggleLike(prompt: AIPrompt) {
         viewModelScope.launch {
-            val updated = repository.toggleLikeLocal(prompt)
+            val updated = engagementRepository.toggleLike(prompt)
             updatePromptEverywhere(updated)
         }
     }
 
-
     fun toggleFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
-            try {
-                val updated = repository.toggleFavoriteLocal(prompt)
-                updatePromptEverywhere(updated)
-            } catch (e: Exception) {
-                Log.e(TAG, "toggleFavorite failed: ${e.message}")
-            }
+            val updated = engagementRepository.toggleFavorite(prompt)
+            updatePromptEverywhere(updated)
         }
     }
 
     fun onPromptViewed(prompt: AIPrompt) {
         viewModelScope.launch {
-            try {
-                val updated = engagementRepository.incrementView(prompt)
-                updatePromptEverywhere(updated)
-            } catch (e: Exception) {
-                Log.e(TAG, "incrementView failed: ${e.message}")
-            }
+            val updated = prompt.copy(
+                views = (prompt.views ?: 0) + 1
+            )
+            updatePromptEverywhere(updated)
         }
     }
+
+
 
     /* ---------------------------------------------------------------------- */
     /* COPY ANALYTICS (SAFE) */

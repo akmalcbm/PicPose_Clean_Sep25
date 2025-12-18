@@ -241,19 +241,18 @@ fun AIPromptDetailScreen(
         }
     }
 
-    // Increment view count once per promptId
-    LaunchedEffect(promptId) {
-        val numericId = promptId.toIntOrNull()
-        if (numericId != null && lastCountedPromptId != promptId) {
-            uiState.selectedPrompt?.let {
-                viewModel.onPromptViewed(it)
-            }
-            lastCountedPromptId = promptId
+
+    LaunchedEffect(effectivePrompt?.id) {
+        val id = effectivePrompt?.id ?: return@LaunchedEffect
+
+        if (lastCountedPromptId != id) {
+            viewModel.onPromptViewed(effectivePrompt)
+            lastCountedPromptId = id
         }
-        // transition start
-        isTransitionLoading = true
-        listState.scrollToItem(0)
     }
+
+
+
 
     // Stop transition overlay once loading settles
     LaunchedEffect(promptId, uiState.isLoading, effectivePrompt) {

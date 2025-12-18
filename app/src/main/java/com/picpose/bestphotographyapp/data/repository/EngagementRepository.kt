@@ -10,57 +10,43 @@ import javax.inject.Singleton
 
 @Singleton
 class EngagementRepository @Inject constructor(
-    private val api: ApiService,
     private val likedDao: LikedPromptDao,
     private val favoriteDao: FavoritePromptDao
 ) {
 
-    /* ---------------- 👍 LIKE ---------------- */
-
     suspend fun toggleLike(prompt: AIPrompt): AIPrompt {
-        val alreadyLiked = likedDao.isLiked(prompt.id)
+        val liked = likedDao.isLiked(prompt.id)
 
-        return if (alreadyLiked) {
+        if (liked) {
             likedDao.removeLiked(prompt.id)
-            prompt.copy(
-                isLiked = false,
-                likes = (prompt.likes - 1).coerceAtLeast(0)
-            )
         } else {
             likedDao.addLiked(LikedPrompt(prompt.id))
-            api.incrementLike(prompt.id.toInt())
-            prompt.copy(
-                isLiked = true,
-                likes = prompt.likes + 1
-            )
         }
-    }
 
-    /* ---------------- ⭐ FAVORITE ---------------- */
+        return prompt.copy(
+            isLiked = !liked,
+            likes = (prompt.likes ?: 0) + if (liked) -1 else 1
+        )
+    }
 
     suspend fun toggleFavorite(prompt: AIPrompt): AIPrompt {
-        val alreadyFav = favoriteDao.isBookmarked(prompt.id)
+        val fav = favoriteDao.isBookmarked(prompt.id)
 
-        return if (alreadyFav) {
+        if (fav) {
             favoriteDao.removeFromFavorites(prompt.id)
-            prompt.copy(isFavouriteBookmarked = false)
         } else {
             favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-            api.incrementFavorite(prompt.id.toInt())
-            prompt.copy(isFavouriteBookmarked = true)
         }
-    }
 
-    /* ---------------- 👁 VIEW ---------------- */
+        return prompt.copy(
+            isFavouriteBookmarked = !fav,
+            favorites = (prompt.favorites ?: 0) + if (fav) -1 else 1
+        )
+    }
 
     suspend fun incrementView(prompt: AIPrompt): AIPrompt {
-        api.incrementView(prompt.id.toInt())
-        return prompt.copy(views = prompt.views + 1)
-    }
-
-    /* ---------------- 🔗 SHARE ---------------- */
-
-    suspend fun incrementShare(promptId: Int) {
-        api.incrementCopy(promptId)
+        return prompt.copy(
+            views = (prompt.views ?: 0) + 1
+        )
     }
 }
