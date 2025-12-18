@@ -118,27 +118,36 @@ class AIPromptViewModel @Inject constructor(
     }
 
     /* ---------------------------------------------------------------------- */
-    /* LIKE / FAVORITE / VIEW — SINGLE SOURCE OF TRUTH */
+    /* LIKE / FAVORITE / VIEW — FINAL & CORRECT */
     /* ---------------------------------------------------------------------- */
 
     fun toggleLike(prompt: AIPrompt) {
         viewModelScope.launch {
-            val updated = engagementRepository.toggleLike(prompt)
+            val updated = repository.toggleLikeLocal(prompt)
             updatePromptEverywhere(updated)
         }
     }
 
+
     fun toggleFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
-            val updated = engagementRepository.toggleFavorite(prompt)
-            updatePromptEverywhere(updated)
+            try {
+                val updated = repository.toggleFavoriteLocal(prompt)
+                updatePromptEverywhere(updated)
+            } catch (e: Exception) {
+                Log.e(TAG, "toggleFavorite failed: ${e.message}")
+            }
         }
     }
 
     fun onPromptViewed(prompt: AIPrompt) {
         viewModelScope.launch {
-            val updated = engagementRepository.incrementView(prompt)
-            updatePromptEverywhere(updated)
+            try {
+                val updated = engagementRepository.incrementView(prompt)
+                updatePromptEverywhere(updated)
+            } catch (e: Exception) {
+                Log.e(TAG, "incrementView failed: ${e.message}")
+            }
         }
     }
 
@@ -159,7 +168,6 @@ class AIPromptViewModel @Inject constructor(
     /* ---------------------------------------------------------------------- */
     /* INTERNAL STATE UPDATE (MOST IMPORTANT) */
     /* ---------------------------------------------------------------------- */
-
     private fun updatePromptEverywhere(updated: AIPrompt) {
         _uiState.update { state ->
             state.copy(

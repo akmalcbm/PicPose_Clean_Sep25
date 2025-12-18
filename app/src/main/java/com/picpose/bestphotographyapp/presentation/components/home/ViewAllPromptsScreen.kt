@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +32,8 @@ fun ViewAllPromptsScreen(
     categoryType: String,
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    aiPromptViewModel: AIPromptViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -99,12 +101,12 @@ fun ViewAllPromptsScreen(
 
                         // 👍 REQUIRED — LIKE
                         onLikeClick = {
-                            viewModel.toggleLike(post.toAIPrompt())
+                            aiPromptViewModel.toggleLike(post.toAIPrompt())
                         },
 
                         // ⭐ FAVORITE (future logic)
                         onFavoriteClick = {
-                            // TODO: future favorite logic
+                            aiPromptViewModel.toggleFavorite(post.toAIPrompt())
                         },
 
                         showFavoriteIcon = true,

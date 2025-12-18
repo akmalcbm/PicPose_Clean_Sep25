@@ -2,17 +2,15 @@ package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
 import android.util.Log
-import com.google.gson.Gson
 import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.FavoritePrompt
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
+import com.picpose.bestphotographyapp.data.database.LikedPrompt
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.CategoryDto
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
-import com.picpose.bestphotographyapp.data.models.GuidePostDto
 import com.picpose.bestphotographyapp.data.models.MetaDto
 import com.picpose.bestphotographyapp.data.models.toCategory
 import com.picpose.bestphotographyapp.data.models.toGuidePost
@@ -52,9 +50,8 @@ class HomeRepository(
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
     private val likedDao = database.likedPromptDao()
 
-    private val gson = Gson()
     private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
-    
+
     // API key to use for all requests - null is acceptable per API definition
     private val requestApiKey: String? = apiKey ?: RetrofitClient.defaultApiKey
 
@@ -206,7 +203,12 @@ class HomeRepository(
                 val data = body.data ?: emptyList()
                 lastTotalPrompts = body.total ?: data.size      // ✅ save total
 
-                emit(Result.success(data))
+                emit(
+                    Result.success(
+                        enrichWithLocalState(data)
+                    )
+                )
+
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "Unknown API error")))
             }
@@ -216,32 +218,6 @@ class HomeRepository(
         }
     }.flowOn(Dispatchers.IO)
 
-
-    // Replace your current toggleFavorite function with this FIXED version:
-
-    fun toggleFavorite(prompt: com.picpose.bestphotographyapp.data.models.AIPrompt): kotlinx.coroutines.flow.Flow<Result<Boolean>> = flow {
-        try {
-            // ✅ FIXED: Ensure all database operations happen on IO dispatcher
-            val currentlyFavorite = withContext(Dispatchers.IO) {
-                favoriteDao.isBookmarked(prompt.id)
-            }
-
-            if (currentlyFavorite) {
-                withContext(Dispatchers.IO) {
-                    favoriteDao.removeFromFavorites(prompt.id)
-                }
-                emit(Result.success(false))
-            } else {
-                withContext(Dispatchers.IO) {
-                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-                }
-                emit(Result.success(true))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "toggleFavorite exception: ${e.message}")
-            emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO) // ✅ CRITICAL: Ensure entire flow runs on IO dispatcher
 
     // Also fix getFavoriteCount function:
     suspend fun getFavoriteCount(): Int {
@@ -255,6 +231,21 @@ class HomeRepository(
             0
         }
     }
+
+    suspend fun toggleFavoriteLocal(prompt: AIPrompt): AIPrompt {
+        return withContext(Dispatchers.IO) {
+            val isFav = favoriteDao.isBookmarked(prompt.id)
+
+            if (isFav) {
+                favoriteDao.removeFromFavorites(prompt.id)
+            } else {
+                favoriteDao.addToFavorites(prompt.toFavoritePrompt())
+            }
+
+            prompt.copy(isFavouriteBookmarked = !isFav)
+        }
+    }
+
 
 
     /**
@@ -324,7 +315,12 @@ class HomeRepository(
             // Map favorite entity to AIPrompt using extension function
             // This ensures proper field mapping including imageUrl and promptId
             val list = favEntities.map { fav ->
-                fav.toAIPrompt()
+                val liked = likedDao.isLiked(fav.promptId)
+                fav.toAIPrompt().copy(
+                    isFavouriteBookmarked = true,
+                    isLiked = liked
+                )
+
             }
 
             emit(Result.success(list))
@@ -356,7 +352,17 @@ class HomeRepository(
                     favoriteDao.isBookmarked(prompt.id)
                 }
 
-                emit(Result.success(prompt.copy(isFavouriteBookmarked = isFav)))
+                val isLiked = likedDao.isLiked(prompt.id)
+
+                emit(
+                    Result.success(
+                        prompt.copy(
+                            isFavouriteBookmarked = isFav,
+                            isLiked = isLiked
+                        )
+                    )
+                )
+
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "Prompt not found")))
             }
@@ -371,7 +377,7 @@ class HomeRepository(
     // -------------------------
     // GUIDE POSTS (paginated)
     // -------------------------
-    
+
     /**
      * Get guide posts with pagination and filtering
      */
@@ -410,19 +416,19 @@ class HomeRepository(
                     val dtos = wrapper.data ?: emptyList()
                     Log.d(TAG, "getGuidePosts: received ${dtos.size} DTOs from API")
                     Log.d(TAG, "getGuidePosts: first DTO sample: ${dtos.firstOrNull()}")
-                    
+
                     val guidePosts = dtos.mapNotNull { dto ->
-                        try { 
+                        try {
                             val guidePost = dto.toGuidePost("https://picpose.iamakmal.in/")
                             Log.d(TAG, "getGuidePosts: mapped DTO id=${dto.id} to GuidePost id=${guidePost.id}")
                             guidePost
-                        } catch (e: Exception) { 
+                        } catch (e: Exception) {
                             Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
-                            null 
+                            null
                         }
                     }
                     Log.d(TAG, "getGuidePosts: successfully mapped ${guidePosts.size} guide posts")
-                    
+
                     // Try to extract meta if present (wrapper may have page/limit/total) - build best-effort MetaDto
                     val meta = try {
                         // try wrapper.page/wrapper.limit/wrapper.total if present
@@ -457,7 +463,7 @@ class HomeRepository(
     // -------------------------
     // APP SETTINGS (AdMob)
     // -------------------------
-    
+
     /**
      * Fetch app settings from server for AdMob configuration
      * Uses cache-first strategy for offline support
@@ -465,7 +471,7 @@ class HomeRepository(
     suspend fun getAppSettings(forceRefresh: Boolean = false): Flow<Result<AppSettings>> = flow {
         try {
             Log.d(TAG, "Fetching app settings (forceRefresh=$forceRefresh)")
-            
+
             // Get cached settings once at the start to avoid multiple DataStore reads
             val cachedSettings = withContext(Dispatchers.IO) {
                 try {
@@ -475,20 +481,20 @@ class HomeRepository(
                     null
                 }
             }
-            
+
             // Use cache first if not forcing refresh and cache exists
             if (!forceRefresh && cachedSettings != null) {
                 Log.d(TAG, "Using cached app settings")
                 emit(Result.success(cachedSettings))
             }
-            
+
             // Fetch from API
             val apiResult = safeApiCall {
                 callWithRetries {
                     apiService.getAppSettings(apiKey = requestApiKey)
                 }
             }
-            
+
             apiResult.fold(
                 onSuccess = { response ->
                     if (response.success) {
@@ -520,7 +526,7 @@ class HomeRepository(
                     }
                 }
             )
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "getAppSettings exception: ${e.message}")
             // Final fallback to cache
@@ -541,7 +547,7 @@ class HomeRepository(
     // -------------------------
     // CATEGORIES
     // -------------------------
-    
+
     /**
      * Get all categories for filtering
      */
@@ -589,41 +595,11 @@ class HomeRepository(
         }
     }.flowOn(Dispatchers.IO)
 
-    // -------------------------
-    // FAVORITES - AI PROMPTS
-    // -------------------------
-    
-    /**
-     * Toggle AI prompt favorite status
-     */
-    suspend fun toggleAIPromptFavorite(prompt: AIPrompt): Flow<Result<AIPrompt>> = flow {
-        try {
-            val promptId = prompt.id
-            val isFav = withContext(Dispatchers.IO) { favoriteDao.isBookmarked(promptId) }
-
-            if (isFav) {
-                withContext(Dispatchers.IO) { favoriteDao.removeFromFavorites(promptId) }
-            } else {
-                withContext(Dispatchers.IO) {
-                    favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-                }
-            }
-
-            // return original prompt with updated bookmark state
-            val updated = prompt.copy(isFavouriteBookmarked = !isFav)
-
-            emit(Result.success(updated))
-
-        } catch (e: Exception) {
-            emit(Result.failure(e))
-        }
-    }.flowOn(Dispatchers.IO)
-
 
     // -------------------------
     // FAVORITES - GUIDE POSTS
     // -------------------------
-    
+
     /**
      * Toggle guide post favorite status
      */
@@ -631,7 +607,7 @@ class HomeRepository(
         try {
             // For guide posts, we'll use a simple in-memory approach since we don't have a dedicated DAO
             // In a real app, you'd have a GuidePostDao similar to FavoritePromptDao
-            
+
             // For now, just return a mock updated guide post
             val updatedPost = GuidePost(
                 id = postId,
@@ -639,7 +615,7 @@ class HomeRepository(
                 content = "Sample guide content",
                 isFavorited = true // fix: use isFavorited instead of isFavorited (it's correct now)
             )
-            
+
             Log.d(TAG, "Toggled guide post favorite: $postId")
             emit(Result.success(updatedPost))
         } catch (e: Exception) {
@@ -702,7 +678,12 @@ class HomeRepository(
         apiResult.fold(
             onSuccess = { wrapper ->
                 val list = wrapper.data ?: emptyList()
-                emit(Result.success(list))
+                emit(
+                    Result.success(
+                        enrichWithLocalState(list)
+                    )
+                )
+
             },
             onFailure = { err ->
                 emit(Result.failure(err))
@@ -730,8 +711,11 @@ class HomeRepository(
         }
 
         apiResult.fold(
-            onSuccess = { wrapper -> emit(Result.success(wrapper.data ?: emptyList())) },
-            onFailure = { err -> emit(Result.failure(err)) }
+            onSuccess = { wrapper ->
+                emit(Result.success(enrichWithLocalState(wrapper.data ?: emptyList()))) },
+
+            onFailure =
+                { err -> emit(Result.failure(err)) }
         )
     }.flowOn(Dispatchers.IO)
 
@@ -759,14 +743,18 @@ class HomeRepository(
 
         apiResult.fold(
             onSuccess = { wrapper ->
-                val list = wrapper.data ?: emptyList()
-                emit(Result.success(list))
+                emit(
+                    Result.success(
+                        enrichWithLocalState(wrapper.data ?: emptyList())
+                    )
+                )
             },
             onFailure = { err ->
                 Log.e(TAG, "getFeaturedAiPosts failed: ${err.message}")
                 emit(Result.failure(err))
             }
         )
+
     }.flowOn(Dispatchers.IO)
 
     /**
@@ -792,8 +780,11 @@ class HomeRepository(
 
         apiResult.fold(
             onSuccess = { wrapper ->
-                val list = wrapper.data ?: emptyList()
-                emit(Result.success(list))
+                emit(
+                    Result.success(
+                        enrichWithLocalState(wrapper.data ?: emptyList())
+                    )
+                )
             },
             onFailure = { err ->
                 Log.e(TAG, "getPopularAiPosts failed: ${err.message}")
@@ -829,7 +820,12 @@ class HomeRepository(
                     .filter { it.id != excludePromptId }
                     .take(limit)
 
-                emit(Result.success(filtered))
+                emit(
+                    Result.success(
+                        enrichWithLocalState(filtered)
+                    )
+                )
+
             } else {
                 emit(Result.failure(Exception(response.body()?.message ?: "API error")))
             }
@@ -838,6 +834,41 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+
+    // 🔥 SINGLE SOURCE OF TRUTH — Local Like + Favorite merge
+    private suspend fun enrichWithLocalState(
+        list: List<AIPrompt>
+    ): List<AIPrompt> {
+        return withContext(Dispatchers.IO) {
+            list.map { prompt ->
+                val fav = favoriteDao.isBookmarked(prompt.id)
+                val liked = likedDao.isLiked(prompt.id)
+
+                prompt.copy(
+                    isFavouriteBookmarked = fav,
+                    isLiked = liked
+                )
+            }
+        }
+    }
+
+    suspend fun toggleLikeLocal(prompt: AIPrompt): AIPrompt {
+        return withContext(Dispatchers.IO) {
+
+            val isLiked = likedDao.isLiked(prompt.id)
+
+            if (isLiked) {
+                likedDao.removeLiked(prompt.id)   // ✅ correct
+            } else {
+                likedDao.addLiked(
+                    LikedPrompt(promptId = prompt.id) // ✅ correct
+                )
+            }
+
+            prompt.copy(isLiked = !isLiked)
+        }
+    }
 
 
 

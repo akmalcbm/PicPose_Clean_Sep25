@@ -12,10 +12,8 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +46,7 @@ data class HomeUiState(
 enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
 @HiltViewModel
-class HomeViewModel @Inject constructor (private val repository: HomeRepository, private val engagementRepository: EngagementRepository) : ViewModel() {
+class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -283,15 +281,6 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository,
             )
         }
 
-    fun toggleLike(prompt: AIPrompt) {
-        viewModelScope.launch {
-            try {
-                engagementRepository.toggleLike(prompt)
-            } catch (e: Exception) {
-                Log.e("HomeViewModel", "toggleLike failed: ${e.message}")
-            }
-        }
-    }
 
     // Clipboard helper
     fun copyPromptToClipboard(context: Context, prompt: String?) {
@@ -306,54 +295,6 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository,
         }
     }
 
-    // Replace your togglePromptFavorite method with this FIXED version:
-
-    fun togglePromptFavorite(prompt: AIPrompt) {
-        viewModelScope.launch(Dispatchers.Main) { // ✅ FIXED: Explicit dispatcher
-            try {
-                Log.d(TAG, "togglePromptFavorite: starting for ${prompt.id}")
-
-                // ✅ FIXED: Collect on Main dispatcher, but flow operations happen on IO
-                repository.toggleFavorite(prompt).collect { result ->
-                    result.fold(
-                        onSuccess = { isNowFavorite ->
-                            Log.d(TAG, "togglePromptFavorite: ${prompt.id} -> $isNowFavorite")
-
-                            // ✅ Update UI state on Main thread
-                            val updatedPrompts = _uiState.value.aiPrompts.map { p ->
-                                if (p.id == prompt.id) p.copy(isFavouriteBookmarked = isNowFavorite) else p
-                            }
-
-                            // Update favorite count
-                            val newCount = if (isNowFavorite) {
-                                _uiState.value.favoritePromptsCount + 1
-                            } else {
-                                (_uiState.value.favoritePromptsCount - 1).coerceAtLeast(0)
-                            }
-
-                            _uiState.value = _uiState.value.copy(
-                                aiPrompts = updatedPrompts,
-                                favoritePromptsCount = newCount
-                            )
-
-                            Log.d(TAG, "togglePromptFavorite: UI updated successfully")
-                        },
-                        onFailure = { throwable ->
-                            Log.w(TAG, "togglePromptFavorite failed: ${throwable.message}")
-                            _uiState.value = _uiState.value.copy(
-                                error = "Failed to update favorite: ${throwable.message}"
-                            )
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "togglePromptFavorite exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    error = "Error updating favorite: ${e.message}"
-                )
-            }
-        }
-    }
 
     // Simple helper to get a prompt by id from current cache
     fun getPromptById(promptId: String): AIPrompt? {
@@ -861,9 +802,5 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository,
             isPopular  = this.isPopular ?: false,
             isFeatured = this.isFeatured ?: false
         )
-
-
-
-
 
 }

@@ -249,13 +249,22 @@ fun AIPromptCardWithEffects(
                                 .padding(4.dp)
                         ) {
                             Icon(
-                                if (localLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                null,
-                                tint = if (localLiked) Color.Red else colors.onSurfaceVariant,
+                                imageVector =
+                                    if (localLiked)
+                                        Icons.Default.ThumbUp
+                                    else
+                                        Icons.Default.ThumbUpOffAlt,
+                                contentDescription = "Like",
+                                tint =
+                                    if (localLiked)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        colors.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(22.dp)
                                     .scale(likeScale.value)
                             )
+
 
                             Spacer(Modifier.width(4.dp))
 

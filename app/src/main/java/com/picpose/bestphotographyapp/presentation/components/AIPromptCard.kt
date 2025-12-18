@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -213,18 +214,21 @@ fun AIPromptCard(
                             // ⭐ FAVORITE / BOOKMARK
                             Icon(
                                 imageVector =
-                                    if (prompt.isFavouriteBookmarked) Icons.Default.Favorite
-                                    else Icons.Default.FavoriteBorder,
+                                    if (prompt.isFavouriteBookmarked)
+                                        Icons.Default.Star
+                                    else
+                                        Icons.Default.StarBorder,
                                 contentDescription = "Favorite",
                                 tint =
-                                    if (prompt.isFavouriteBookmarked) colors.error
-                                    else colors.onSurfaceVariant,
+                                    if (prompt.isFavouriteBookmarked)
+                                        Color(0xFFFFC107) // gold star
+                                    else
+                                        colors.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(20.dp)
-                                    .clickable {
-                                        onFavoriteClick(prompt)
-                                    }
+                                    .clickable { onFavoriteClick(prompt) }
                             )
+
                         }
 
                         Spacer(Modifier.width(16.dp))

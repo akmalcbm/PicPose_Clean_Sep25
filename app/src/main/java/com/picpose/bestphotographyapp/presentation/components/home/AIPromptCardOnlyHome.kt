@@ -218,17 +218,20 @@ fun AIPromptCardOnlyHome(
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (prompt.isFavouriteBookmarked)
-                                                Icons.Filled.Favorite
-                                            else
-                                                Icons.Filled.FavoriteBorder,
-                                            contentDescription = "Toggle Favorite",
-                                            tint = if (prompt.isFavouriteBookmarked)
-                                                Color(0xFFE91E63)
-                                            else
-                                                Color(0xFF64748B),
+                                            imageVector =
+                                                if (prompt.isFavouriteBookmarked)
+                                                    Icons.Default.Star
+                                                else
+                                                    Icons.Default.StarBorder,
+                                            contentDescription = "Favorite",
+                                            tint =
+                                                if (prompt.isFavouriteBookmarked)
+                                                    Color(0xFFFFC107)
+                                                else
+                                                    Color(0xFF64748B),
                                             modifier = Modifier.size(18.dp)
                                         )
+
                                     }
 
                                 }
@@ -451,18 +454,27 @@ fun AIPromptCardOnlyHome(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Likes
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { // ✨ Made clickable
+                            modifier = Modifier.clickable {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onFavoriteClick?.invoke(prompt)
+                                viewModel?.toggleLike(prompt)
                             }
                         ) {
                             Icon(
-                                Icons.Default.FavoriteBorder,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = Color(0xFF64748B)
+                                imageVector =
+                                    if (prompt.isLiked)
+                                        Icons.Default.ThumbUp
+                                    else
+                                        Icons.Default.ThumbUpOffAlt,
+                                contentDescription = "Like",
+                                tint =
+                                    if (prompt.isLiked)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        Color(0xFF64748B),
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
