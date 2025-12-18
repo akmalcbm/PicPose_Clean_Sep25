@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.di
 import android.content.Context
 import androidx.room.Room
 import com.picpose.bestphotographyapp.data.database.AppDatabase
+import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.database.LikedPromptDao
 import com.picpose.bestphotographyapp.data.database.StatsDao
 import com.picpose.bestphotographyapp.data.network.ApiService
@@ -58,5 +59,9 @@ object RepositoryModule {
         @ApplicationContext context: Context
     ): ExploreRepository = ExploreRepository(context)
 
+    @Provides
+    fun provideFavoritePromptDao(
+        db: AppDatabase
+    ): FavoritePromptDao = db.favoriteDao()
 
 }
