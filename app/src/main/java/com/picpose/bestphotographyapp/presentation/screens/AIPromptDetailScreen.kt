@@ -13,6 +13,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -60,11 +61,12 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -163,7 +165,7 @@ fun AIPromptDetailScreen(
     var isTransitionLoading by rememberSaveable { mutableStateOf(false) }
 
     // To avoid multiple view-count increments
-    var lastCountedPromptId by rememberSaveable { mutableStateOf<String?>(null) }
+    //var lastCountedPromptId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Interstitial ad
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
@@ -233,7 +235,7 @@ fun AIPromptDetailScreen(
 
         if (match != null) {
             localPrompt = match
-            viewModel.selectPromptForDetail(match)
+            viewModel.loadPromptById(promptId)
         } else if (!hasRequestedFromApi) {
             hasRequestedFromApi = true
             android.util.Log.w(TAG_DETAIL, "⚠️ Not found in memory → Fetching from API")
@@ -242,15 +244,9 @@ fun AIPromptDetailScreen(
     }
 
 
-    LaunchedEffect(effectivePrompt?.id) {
-        val id = effectivePrompt?.id ?: return@LaunchedEffect
-
-        if (lastCountedPromptId != id) {
-            viewModel.onPromptViewed(effectivePrompt)
-            lastCountedPromptId = id
-        }
+    LaunchedEffect(promptId) {
+        viewModel.registerView(promptId)
     }
-
 
 
 
@@ -309,7 +305,7 @@ fun AIPromptDetailScreen(
                     }
 
                     effectivePrompt?.let { p ->
-                        IconButton(onClick = { viewModel.toggleFavorite(p) }) {
+                        IconButton(onClick = { viewModel.onFavoriteClicked(p) }) {
                             Icon(
                                 if (p.isFavouriteBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                                 contentDescription = "Favorite Bookmarked AI Prompts",
@@ -446,6 +442,7 @@ fun AIPromptDetailScreen(
                                     .padding(horizontal = 16.dp, vertical = 10.dp)
                             )
                         }
+
 
                         // 🧾 Title + short description card
                         item {
@@ -1027,7 +1024,7 @@ private fun StatsRow(
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        StatPill(icon = Icons.Default.Favorite, value = likes, tint = MaterialTheme.colorScheme.error)
+        StatPill(icon = Icons.Default.ThumbUp, value = likes, tint = MaterialTheme.colorScheme.error)
         StatPill(icon = Icons.Default.Visibility, value = views, tint = MaterialTheme.colorScheme.primary)
         StatPill(
             icon = Icons.Default.BookmarkBorder,
@@ -1068,6 +1065,7 @@ private fun StatPill(
         }
     }
 }
+
 
 @Composable
 private fun SimilarPromptCard(

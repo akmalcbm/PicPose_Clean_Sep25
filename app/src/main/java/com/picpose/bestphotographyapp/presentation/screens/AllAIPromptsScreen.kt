@@ -470,8 +470,7 @@ fun AllAIPromptsScreen(
                                             onClick = {
                                                 val id = prompt.id
                                                 if (id != null) {
-                                                    viewModel.selectPromptForDetail(prompt)
-                                                    onPromptClick(id)
+                                                    onPromptClick(prompt.id)
                                                 } else {
                                                     Toast.makeText(
                                                         context,
@@ -508,7 +507,7 @@ fun AllAIPromptsScreen(
                                         onClick = {
                                             val id = prompt.id
                                             if (id != null) {
-                                                viewModel.selectPromptForDetail(prompt)
+                                                viewModel.loadPromptById(id)
                                                 onPromptClick(id)
                                             } else {
                                                 Toast.makeText(
@@ -531,12 +530,12 @@ fun AllAIPromptsScreen(
 
                                         // 👍 LIKE (NEW — REQUIRED)
                                         onLikeClick = {
-                                            viewModel.toggleLike(prompt)
+                                            viewModel.onLikeClicked(prompt)
                                         },
 
                                         // ⭐ FAVORITE (BOOKMARK)
                                         onFavoriteClick = {
-                                            viewModel.toggleFavorite(prompt)
+                                            viewModel.onFavoriteClicked(prompt)
                                         },
 
                                         showFavoriteIcon = true,

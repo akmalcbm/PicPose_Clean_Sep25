@@ -454,12 +454,11 @@ fun AIPromptCardOnlyHome(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Likes
-
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel?.toggleLike(prompt)
+                                viewModel?.onLikeClicked(prompt)
                             }
                         ) {
                             Icon(

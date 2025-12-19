@@ -8,18 +8,18 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [
-        FavoritePrompt::class,  // existing
-        LikedPrompt::class,   // ⬅ NEW
-        StatsEntity::class      // ✅ add this new entity
+        FavoritePrompt::class,
+        LikedPrompt::class,
+        StatsEntity::class
     ],
-    version = 1, // ✅ increment version
+    version = 2, // 🔥 VERY IMPORTANT — incremented
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun favoriteDao(): FavoritePromptDao
-    abstract fun likedPromptDao(): LikedPromptDao    // ⬅ NEW
+    abstract fun likedPromptDao(): LikedPromptDao
     abstract fun statsDao(): StatsDao
 
     companion object {
@@ -33,8 +33,10 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picpose_db"
                 )
-                    .fallbackToDestructiveMigration() // ✅ wipes and rebuilds clean DB automatically
+                    // ✅ DEV SAFE: wipes old DB automatically
+                    .fallbackToDestructiveMigration()
                     .build()
+
                 INSTANCE = instance
                 instance
             }

@@ -2,6 +2,10 @@ package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.data.remote.ApiResponse
+import com.picpose.bestphotographyapp.data.remote.CopyResponse
+import com.picpose.bestphotographyapp.data.remote.FavoriteResponse
+import com.picpose.bestphotographyapp.data.remote.LikeResponse
+import com.picpose.bestphotographyapp.data.remote.ViewResponse
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -149,6 +153,7 @@ interface ApiService {
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<StatsResponse>>
 
+
     // -----------------------------------------------------------------------------------------
     // 🔹 Increment Endpoints
     // -----------------------------------------------------------------------------------------
@@ -157,28 +162,29 @@ interface ApiService {
     suspend fun incrementLike(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
-    ): Response<ApiResponse<Unit>>
-
-    @FormUrlEncoded
-    @POST("api/ai_posts/increment_view.php")
-    suspend fun incrementView(
-        @Field("id") id: Int,
-        @Field("api_key") apiKey: String? = null
-    ): Response<ApiResponse<Unit>>
-
-    @FormUrlEncoded
-    @POST("api/ai_posts/increment_copy.php")
-    suspend fun incrementCopy(
-        @Field("id") id: Int,
-        @Field("api_key") apiKey: String? = null
-    ): Response<ApiResponse<Unit>>
+    ): Response<LikeResponse>
 
     @FormUrlEncoded
     @POST("api/ai_posts/increment_favorite.php")
     suspend fun incrementFavorite(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
-    ): Response<ApiResponse<Unit>>
+    ): Response<FavoriteResponse>
+
+    @FormUrlEncoded
+    @POST("api/ai_posts/increment_view.php")
+    suspend fun incrementView(
+        @Field("id") id: Int,
+        @Field("api_key") apiKey: String? = null
+    ): Response<ViewResponse>
+
+    @FormUrlEncoded
+    @POST("api/ai_posts/increment_copy.php")
+    suspend fun incrementCopy(
+        @Field("id") id: Int,
+        @Field("api_key") apiKey: String? = null
+    ): Response<CopyResponse>
+
 
     // -----------------------------------------------------------------------------------------
     // 🔹 Support Query

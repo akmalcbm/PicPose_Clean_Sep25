@@ -219,45 +219,6 @@ class HomeRepository(
     }.flowOn(Dispatchers.IO)
 
 
-    // Also fix getFavoriteCount function:
-    suspend fun getFavoriteCount(): Int {
-        return try {
-            // Already has withContext(Dispatchers.IO) - good!
-            withContext(Dispatchers.IO) {
-                favoriteDao.getFavoriteCount()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "getFavoriteCount exception: ${e.message}")
-            0
-        }
-    }
-
-    suspend fun toggleFavoriteLocal(prompt: AIPrompt): AIPrompt {
-        return withContext(Dispatchers.IO) {
-
-            val isFav = favoriteDao.isBookmarked(prompt.id)
-
-            if (isFav) {
-                favoriteDao.removeFromFavorites(prompt.id)
-            } else {
-                favoriteDao.addToFavorites(prompt.toFavoritePrompt())
-            }
-
-            val newFav = if (isFav) {
-                (prompt.favorites ?: 0) - 1
-            } else {
-                (prompt.favorites ?: 0) + 1
-            }
-
-            prompt.copy(
-                isFavouriteBookmarked = !isFav,
-                favorites = newFav.coerceAtLeast(0)
-            )
-        }
-    }
-
-
-
 
     /**
      * Paginated fetch of AI Prompts (Typed)
@@ -312,37 +273,50 @@ class HomeRepository(
     }.flowOn(Dispatchers.IO)
 
 
+
     /**
      * Returns favorite prompts stored in Room as AIPrompt objects.
      * Uses the toAIPrompt() extension function for proper mapping.
      */
     suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
         try {
-            // Fetch favorites from Room database
-            val favEntities = withContext(Dispatchers.IO) {
-                favoriteDao.getAllFavorites()
-            }
+            val userId = appSettingsCache.getOrCreateUserId()
 
-            // Map favorite entity to AIPrompt using extension function
-            // This ensures proper field mapping including imageUrl and promptId
-            val list = favEntities.map { fav ->
-                val liked = likedDao.isLiked(fav.promptId)
-                fav.toAIPrompt().copy(
-                    isFavouriteBookmarked = true,
-                    isLiked = liked
+            val response = apiService.getFavoriteAiPosts(
+                userId = userId,
+                apiKey = requestApiKey
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val list = response.body()!!.data ?: emptyList()
+
+                emit(
+                    Result.success(
+                        enrichWithLocalState(list)
+                    )
                 )
-
+            } else {
+                emit(Result.failure(Exception("Failed to load favorites")))
             }
 
-            emit(Result.success(list))
         } catch (e: Exception) {
-            Log.e(TAG, "getFavoritePrompts failed: ${e.message}")
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO).catch { e ->
-        Log.e(TAG, "getFavoritePrompts flow exception: ${e.message}")
-        emit(Result.failure(e))
+    }.flowOn(Dispatchers.IO)
+
+
+
+    suspend fun getFavoriteCount(): Int {
+        return withContext(Dispatchers.IO) {
+            favoriteDao.getFavoriteCount()
+        }
     }
+
+
+    fun observeFavoriteCount(): Flow<Int> {
+        return favoriteDao.observeFavoriteCount()
+    }
+
 
     /**
      * Get single prompt by ID - EFFICIENT VERSION
@@ -864,31 +838,38 @@ class HomeRepository(
         }
     }
 
-    suspend fun toggleLikeLocal(prompt: AIPrompt): AIPrompt {
-        return withContext(Dispatchers.IO) {
 
-            val isLiked = likedDao.isLiked(prompt.id)
-
-            if (isLiked) {
-                likedDao.removeLiked(prompt.id)
-            } else {
-                likedDao.addLiked(LikedPrompt(promptId = prompt.id))
-            }
-
-            val newLikes = if (isLiked) {
-                (prompt.likes ?: 0) - 1
-            } else {
-                (prompt.likes ?: 0) + 1
-            }
-
-            prompt.copy(
-                isLiked = !isLiked,
-                likes = newLikes.coerceAtLeast(0)
-            )
+    suspend fun incrementLike(promptId: Int): Int {
+        val response = apiService.incrementLike(promptId, requestApiKey)
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.likes
         }
+        throw Exception("Like increment failed")
     }
 
+    suspend fun incrementFavorite(promptId: Int): Int {
+        val response = apiService.incrementFavorite(promptId, requestApiKey)
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.favorites
+        }
+        throw Exception("Favorite increment failed")
+    }
 
+    suspend fun incrementView(promptId: Int): Int {
+        val response = apiService.incrementView(promptId, requestApiKey)
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.views
+        }
+        throw Exception("View increment failed")
+    }
+
+    suspend fun incrementCopy(promptId: Int): Int {
+        val response = apiService.incrementCopy(promptId, requestApiKey)
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.copies
+        }
+        throw Exception("Copy increment failed")
+    }
 
 
 }

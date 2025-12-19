@@ -7,7 +7,7 @@ import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
-import com.picpose.bestphotographyapp.data.repository.EngagementRepository
+import com.picpose.bestphotographyapp.data.repository.EngagementLocalRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
@@ -47,8 +47,8 @@ data class AIPromptUiState(
 
 @HiltViewModel
 class AIPromptViewModel @Inject constructor(
-    private val repository: HomeRepository,
-    private val engagementRepository: EngagementRepository,
+    private val homeRepository: HomeRepository,
+    private val engagementLocalRepo: EngagementLocalRepository,
     private val api: ApiService,
     private val settingsManager: SettingsManager
 
@@ -121,28 +121,96 @@ class AIPromptViewModel @Inject constructor(
     /* LIKE / FAVORITE / VIEW — FINAL & CORRECT */
     /* ---------------------------------------------------------------------- */
 
-    fun toggleLike(prompt: AIPrompt) {
-        viewModelScope.launch {
-            val updated = engagementRepository.toggleLike(prompt)
-            updatePromptEverywhere(updated)
-        }
-    }
+    /* ---------------- LIKE ---------------- */
 
-    fun toggleFavorite(prompt: AIPrompt) {
+    fun onLikeClicked(prompt: AIPrompt) {
         viewModelScope.launch {
-            val updated = engagementRepository.toggleFavorite(prompt)
-            updatePromptEverywhere(updated)
-        }
-    }
+            val newIsLiked = engagementLocalRepo.toggleLikeLocal(prompt.id)
+            val updatedLikes = homeRepository.incrementLike(prompt.id.toInt())
 
-    fun onPromptViewed(prompt: AIPrompt) {
-        viewModelScope.launch {
-            val updated = prompt.copy(
-                views = (prompt.views ?: 0) + 1
+            updatePrompt(
+                prompt.id,
+                isLiked = newIsLiked,
+                likes = updatedLikes
             )
-            updatePromptEverywhere(updated)
         }
     }
+
+    /* ---------------- FAVORITE ---------------- */
+
+    fun onFavoriteClicked(prompt: AIPrompt) {
+        viewModelScope.launch {
+            val newFav = engagementLocalRepo.toggleFavoriteLocal(prompt.id)
+            val updatedFavs = homeRepository.incrementFavorite(prompt.id.toInt())
+
+            updatePrompt(
+                prompt.id,
+                isFavouriteBookmarked = newFav,
+                favorites = updatedFavs
+            )
+        }
+    }
+
+    /* ---------------- VIEW ---------------- */
+
+    fun registerView(promptId: String) {
+        viewModelScope.launch {
+            val updatedViews = homeRepository.incrementView(promptId.toInt())
+            updatePrompt(promptId, views = updatedViews)
+        }
+    }
+
+    fun onCopy(promptId: String) {
+        viewModelScope.launch {
+            homeRepository.incrementCopy(promptId.toInt())
+        }
+    }
+
+    /* ---------------- SINGLE UPDATE ---------------- */
+
+    private fun updatePrompt(
+        id: String,
+        likes: Int? = null,
+        views: Int? = null,
+        favorites: Int? = null,
+        isLiked: Boolean? = null,
+        isFavouriteBookmarked: Boolean? = null
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                allPrompts = state.allPrompts.map { prompt ->
+                    if (prompt.id == id) {
+                        prompt.copy(
+                            likes = likes ?: prompt.likes,
+                            views = views ?: prompt.views,
+                            favorites = favorites ?: prompt.favorites,
+                            isLiked = isLiked ?: prompt.isLiked,
+                            isFavouriteBookmarked =
+                                isFavouriteBookmarked ?: prompt.isFavouriteBookmarked
+                        )
+                    } else {
+                        prompt
+                    }
+                },
+
+                selectedPrompt = state.selectedPrompt?.let { current ->
+                    if (current.id == id) {
+                        current.copy(
+                            likes = likes ?: current.likes,
+                            views = views ?: current.views,
+                            favorites = favorites ?: current.favorites,
+                            isLiked = isLiked ?: current.isLiked,
+                            isFavouriteBookmarked =
+                                isFavouriteBookmarked ?: current.isFavouriteBookmarked
+                        )
+                    } else {
+                        current
+                    }
+                }
+            )
+        }
+    }
+
 
 
 
@@ -160,24 +228,6 @@ class AIPromptViewModel @Inject constructor(
         }
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* INTERNAL STATE UPDATE (MOST IMPORTANT) */
-    /* ---------------------------------------------------------------------- */
-    private fun updatePromptEverywhere(updated: AIPrompt) {
-        _uiState.update { state ->
-            state.copy(
-                allPrompts = state.allPrompts.map {
-                    if (it.id == updated.id) updated else it
-                },
-                favoritePrompts = state.favoritePrompts.map {
-                    if (it.id == updated.id) updated else it
-                },
-                selectedPrompt =
-                    if (state.selectedPrompt?.id == updated.id) updated
-                    else state.selectedPrompt
-            )
-        }
-    }
 
     /* ---------------------------------------------------------------------- */
     /* CATEGORY + SEARCH */
@@ -249,7 +299,7 @@ class AIPromptViewModel @Inject constructor(
                 }
 
                 try {
-                    repository.getAllAIPromptsTyped(
+                    homeRepository.getAllAIPromptsTyped(
                         page = page,
                         limit = pageSize,
                         category = category,
@@ -311,16 +361,12 @@ class AIPromptViewModel @Inject constructor(
     /* DETAIL + SIMILAR */
     /* ---------------------------------------------------------------------- */
 
-    fun selectPromptForDetail(prompt: AIPrompt) {
-        _uiState.update { it.copy(selectedPrompt = prompt) }
-    }
-
     fun loadPromptById(promptId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                repository.getPromptById(promptId).collect { result ->
+                homeRepository.getPromptById(promptId).collect { result ->
                     result.fold(
                         onSuccess = { prompt ->
                             _uiState.update { state ->
@@ -353,7 +399,7 @@ class AIPromptViewModel @Inject constructor(
 
     fun loadSimilarPrompts(category: String, currentPromptId: String) {
         viewModelScope.launch {
-            repository.getSimilarAiPrompts(category, currentPromptId).collect { result ->
+            homeRepository.getSimilarAiPrompts(category, currentPromptId).collect { result ->
                 result.fold(
                     onSuccess = { list ->
                         _uiState.update { it.copy(similarPrompts = list) }
@@ -374,7 +420,7 @@ class AIPromptViewModel @Inject constructor(
         loadFavoritesJob?.cancel()
         loadFavoritesJob = viewModelScope.launch(errorHandler) {
             try {
-                repository.getFavoritePrompts().collect { result ->
+                homeRepository.getFavoritePrompts().collect { result ->
                     result.fold(
                         onSuccess = { favs ->
                             _uiState.update { state ->
@@ -404,7 +450,7 @@ class AIPromptViewModel @Inject constructor(
         if (categoriesLoaded) return
 
         viewModelScope.launch(errorHandler) {
-            repository.getCategories().collect { result ->
+            homeRepository.getCategories().collect { result ->
                 result.fold(
                     onSuccess = { categories ->
                         val names = categories.mapNotNull { it.name }.distinct().sorted()

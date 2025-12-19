@@ -1,6 +1,5 @@
 package com.picpose.bestphotographyapp.data.models
 
-import com.google.gson.annotations.SerializedName
 
 data class AIPrompt(
     val id: String,

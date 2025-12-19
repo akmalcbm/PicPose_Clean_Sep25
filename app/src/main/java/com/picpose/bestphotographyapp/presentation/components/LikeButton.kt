@@ -19,11 +19,11 @@ import androidx.compose.ui.unit.dp
 fun LikeButton(
     isLiked: Boolean,
     likeCount: Int,
-    onClick: () -> Unit
+    onLikeClick: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier.clickable(onClick = onLikeClick)
     ) {
         Icon(
             imageVector =

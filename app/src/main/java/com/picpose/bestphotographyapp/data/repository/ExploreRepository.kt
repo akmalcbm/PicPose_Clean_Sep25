@@ -76,8 +76,8 @@ class ExploreRepository(
     }.flowOn(Dispatchers.IO)
 
     // -------------------------------------------------
-    // 🔖 BOOKMARK SYSTEM (Server ++ ONLY when adding)
-    // -------------------------------------------------
+// 🔖 BOOKMARK SYSTEM (Server ++ ONLY when adding)
+// -------------------------------------------------
     fun togglePromptBookmark(prompt: AIPrompt): Flow<Result<AIPrompt>> = flow {
         try {
             val isFav = withContext(Dispatchers.IO) {
@@ -85,39 +85,40 @@ class ExploreRepository(
             }
 
             if (!isFav) {
-                // Save locally
+                // ✅ Save only intent locally
                 withContext(Dispatchers.IO) {
                     favoriteDao.addToFavorites(
-                        FavoritePrompt(
-                            promptId = prompt.id,
-                            title = prompt.title,
-                            shortPrompt = prompt.shortPrompt,
-                            fullPrompt = prompt.fullPrompt,
-                            imageUrl = prompt.imageUrl,
-                            category = prompt.category,
-                            favoritedAt = System.currentTimeMillis()
-                        )
+                        FavoritePrompt(promptId = prompt.id)
                     )
                 }
 
-                // Server favorite++
+                // ✅ Server favorite++
                 try {
                     apiService.incrementFavorite(prompt.id.toInt(), requestApiKey)
                 } catch (_: Exception) { }
 
-                emit(Result.success(prompt.copy(isFavouriteBookmarked = true)))
+                emit(
+                    Result.success(
+                        prompt.copy(isFavouriteBookmarked = true)
+                    )
+                )
 
             } else {
-                // Remove local only
+                // ❌ Remove local only
                 withContext(Dispatchers.IO) {
                     favoriteDao.removeFromFavorites(prompt.id)
                 }
 
-                emit(Result.success(prompt.copy(isFavouriteBookmarked = false)))
+                emit(
+                    Result.success(
+                        prompt.copy(isFavouriteBookmarked = false)
+                    )
+                )
             }
 
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
 }

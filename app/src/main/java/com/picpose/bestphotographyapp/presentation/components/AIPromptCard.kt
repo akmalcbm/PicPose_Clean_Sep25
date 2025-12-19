@@ -36,11 +36,11 @@ fun AIPromptCard(
     onClick: () -> Unit,
     onCopy: () -> Unit,
 
-    // 👍 LIKE
-    onLikeClick: (AIPrompt) -> Unit,
+    // 👍 LIKE — ID based
+    onLikeClick: (String) -> Unit,
 
-    // ⭐ FAVORITE (BOOKMARK)
-    onFavoriteClick: (AIPrompt) -> Unit,
+    // ⭐ FAVORITE — ID based
+    onFavoriteClick: (String) -> Unit,
 
     isCompact: Boolean = false,
     showFavoriteIcon: Boolean = true,
@@ -143,7 +143,7 @@ fun AIPromptCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = prompt.shortPrompt ?: "",
@@ -154,7 +154,7 @@ fun AIPromptCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // ================= BOTTOM ROW =================
                 Row(
@@ -176,7 +176,7 @@ fun AIPromptCard(
                             )
                         }
 
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         if (prompt.isPopular) {
                             Row(
@@ -201,17 +201,22 @@ fun AIPromptCard(
                     // ---------- RIGHT ----------
                     Row(verticalAlignment = Alignment.CenterVertically) {
 
-                        // 👍 FACEBOOK STYLE LIKE
+                        // 👍 LIKE (ID SAFE)
                         LikeButton(
                             isLiked = prompt.isLiked,
                             likeCount = prompt.likes,
-                            onClick = { onLikeClick(prompt) }
+                            onLikeClick = {
+                                prompt.id?.let { id ->
+                                    onLikeClick(id)
+                                }
+                            }
                         )
 
-                        if (showFavoriteIcon) {
-                            Spacer(Modifier.width(12.dp))
 
-                            // ⭐ FAVORITE / BOOKMARK
+                        if (showFavoriteIcon) {
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // ⭐ FAVORITE (ID SAFE)
                             Icon(
                                 imageVector =
                                     if (prompt.isFavouriteBookmarked)
@@ -221,17 +226,20 @@ fun AIPromptCard(
                                 contentDescription = "Favorite",
                                 tint =
                                     if (prompt.isFavouriteBookmarked)
-                                        Color(0xFFFFC107) // gold star
+                                        Color(0xFFFFC107)
                                     else
                                         colors.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(20.dp)
-                                    .clickable { onFavoriteClick(prompt) }
+                                    .clickable {
+                                        prompt.id?.let { id ->
+                                            onFavoriteClick(id)
+                                        }
+                                    }
                             )
-
                         }
 
-                        Spacer(Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
                         // 👁 VIEWS
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -241,7 +249,7 @@ fun AIPromptCard(
                                 tint = colors.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = prompt.views.toString(),
                                 style = MaterialTheme.typography.labelSmall,

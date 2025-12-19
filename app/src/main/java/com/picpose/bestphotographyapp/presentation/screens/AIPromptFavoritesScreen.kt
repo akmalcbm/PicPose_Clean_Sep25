@@ -146,12 +146,12 @@ fun AIPromptFavoritesScreen(
 
                                 // 👍 REQUIRED — LIKE
                                 onLikeClick = {
-                                    viewModel.toggleLike(prompt)
+                                    viewModel.onLikeClicked(prompt)
                                 },
 
                                 // ⭐ FAVORITE
                                 onFavoriteClick = {
-                                    viewModel.toggleFavorite(prompt)
+                                    viewModel.onFavoriteClicked(prompt)
                                 },
 
                                 showFavoriteIcon = true,

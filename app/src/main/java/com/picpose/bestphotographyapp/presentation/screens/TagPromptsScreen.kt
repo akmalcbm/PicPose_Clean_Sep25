@@ -273,14 +273,18 @@ fun TagPromptsScreen(
                             isCompact = false,
                             showFavoriteIcon = true,
 
-                            // 👍 REQUIRED — LIKE
-                            onLikeClick = { clickedPrompt ->
-                                viewModel.toggleLike(clickedPrompt)
+                            // 👍 LIKE — ID SAFE
+                            onLikeClick = { promptId ->
+                                viewModel.onLikeClicked(
+                                    prompt.copy(id = promptId)
+                                )
                             },
 
-                            // ⭐ FAVORITE
-                            onFavoriteClick = { clickedPrompt ->
-                                viewModel.toggleFavorite(clickedPrompt)
+                            // ⭐ FAVORITE — ID SAFE
+                            onFavoriteClick = { promptId ->
+                                viewModel.onFavoriteClicked(
+                                    prompt.copy(id = promptId)
+                                )
                             },
 
                             modifier = Modifier.fillMaxWidth()

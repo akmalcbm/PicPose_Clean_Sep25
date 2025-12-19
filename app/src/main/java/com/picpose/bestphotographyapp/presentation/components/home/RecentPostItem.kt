@@ -40,12 +40,10 @@ fun RecentPostItem(
     onShareClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLiked by remember { mutableStateOf(post.isLiked) }
     var showHeartBurst by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
-    // Smooth bounce when heart appears
     val heartScale by animateFloatAsState(
         targetValue = if (showHeartBurst) 1.4f else 1f,
         animationSpec = spring(dampingRatio = 0.4f),
@@ -65,7 +63,8 @@ fun RecentPostItem(
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 🖼 Thumbnail Image
+
+            // 🖼 Image
             AsyncImage(
                 model = post.image,
                 contentDescription = post.title,
@@ -78,46 +77,36 @@ fun RecentPostItem(
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
-                // 🏷 Title
+
                 Text(
                     text = post.title,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1
                 )
 
-                // 📝 Description
                 if (post.description.isNotBlank()) {
                     Text(
                         text = post.description,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
+                        style = MaterialTheme.typography.bodySmall,
                         maxLines = 2
                     )
                 }
 
                 Spacer(Modifier.height(6.dp))
 
-                // ❤️ Like / ⭐ Favorite / 👁 Views / 📤 Share
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // ❤️ Like Button with Haptic Feedback + Burst Animation
+
+                    // ❤️ LIKE
                     Box(contentAlignment = Alignment.Center) {
                         IconButton(
                             onClick = {
-                                // 🎯 Trigger subtle vibration
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                // ❤️ Like + animation
-                                isLiked = !isLiked
                                 showHeartBurst = true
                                 onLikeClick()
 
-                                // Hide burst after animation delay
                                 scope.launch {
                                     delay(400)
                                     showHeartBurst = false
@@ -126,7 +115,7 @@ fun RecentPostItem(
                             modifier = Modifier.size(30.dp)
                         ) {
                             AnimatedContent(
-                                targetState = isLiked,
+                                targetState = post.isLiked,
                                 transitionSpec = {
                                     scaleIn(spring(dampingRatio = 0.5f)) togetherWith
                                             scaleOut(spring(dampingRatio = 0.7f))
@@ -135,14 +124,14 @@ fun RecentPostItem(
                             ) { liked ->
                                 if (liked) {
                                     Icon(
-                                        imageVector = Icons.Filled.Favorite,
+                                        Icons.Filled.Favorite,
                                         contentDescription = "Liked",
                                         tint = Color(0xFFE91E63),
                                         modifier = Modifier.scale(heartScale)
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.Outlined.FavoriteBorder,
+                                        Icons.Outlined.FavoriteBorder,
                                         contentDescription = "Like",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -150,10 +139,12 @@ fun RecentPostItem(
                             }
                         }
 
-                        // 💥 Heart Burst Overlay Animation
+                        // 💥 HEART BURST (🔥 FIXED)
                         androidx.compose.animation.AnimatedVisibility(
                             visible = showHeartBurst,
-                            enter = scaleIn(animationSpec = spring(dampingRatio = 0.3f)) + fadeIn(),
+                            enter = scaleIn(
+                                animationSpec = spring(dampingRatio = 0.3f)
+                            ) + fadeIn(),
                             exit = fadeOut(animationSpec = tween(300))
                         ) {
                             Box(
@@ -181,15 +172,11 @@ fun RecentPostItem(
 
                     Spacer(Modifier.weight(1f))
 
-                    // 📤 Share Button
-                    IconButton(
-                        onClick = onShareClick,
-                        modifier = Modifier.size(28.dp)
-                    ) {
+                    // 📤 Share
+                    IconButton(onClick = onShareClick) {
                         Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.primary
+                            Icons.Default.Share,
+                            contentDescription = "Share"
                         )
                     }
                 }
@@ -205,18 +192,8 @@ private fun IconWithText(
     tint: Color
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(14.dp)
-        )
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(4.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
+        Text(text, style = MaterialTheme.typography.labelSmall)
     }
 }

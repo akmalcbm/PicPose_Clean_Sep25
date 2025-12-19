@@ -1,5 +1,20 @@
 package com.picpose.bestphotographyapp.data.database
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "favorite_prompts")
+data class FavoritePrompt(
+    @PrimaryKey
+    val promptId: String,              // server id (唯一)
+    val favoritedAt: Long = System.currentTimeMillis()
+)
+
+
+
+/*
+package com.picpose.bestphotographyapp.data.database
+
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -23,3 +38,4 @@ data class FavoritePrompt(
     val dateAdded: Long? = null,
     val favoritedAt: Long? = null
 )
+*/

@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import kotlinx.coroutines.flow.first
+
 
 /**
  * DataStore cache for AppSettings
@@ -21,6 +23,8 @@ class AppSettingsCache(private val context: Context) {
         private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore("app_settings_cache")
         private val APP_SETTINGS_JSON_KEY = stringPreferencesKey("app_settings_json")
         private val LAST_UPDATED_KEY = longPreferencesKey("last_updated")
+        private val USER_ID_KEY = stringPreferencesKey("user_id")
+
     }
 
     private val gson = Gson()
@@ -80,6 +84,25 @@ class AppSettingsCache(private val context: Context) {
         }
     }
 
+    suspend fun getOrCreateUserId(): String {
+        val prefs = context.appSettingsDataStore.data.first()
+
+        val existing = prefs[USER_ID_KEY]
+        if (!existing.isNullOrBlank()) {
+            return existing
+        }
+
+        // Generate anonymous stable user id
+        val newUserId = "guest_" + java.util.UUID.randomUUID().toString()
+
+        context.appSettingsDataStore.edit { preferences ->
+            preferences[USER_ID_KEY] = newUserId
+        }
+
+        return newUserId
+    }
+
+
     /**
      * Clear cached settings
      */
@@ -89,4 +112,6 @@ class AppSettingsCache(private val context: Context) {
             preferences.remove(LAST_UPDATED_KEY)
         }
     }
+
+
 }

@@ -101,12 +101,12 @@ fun ViewAllPromptsScreen(
 
                         // 👍 REQUIRED — LIKE
                         onLikeClick = {
-                            aiPromptViewModel.toggleLike(post.toAIPrompt())
+                            aiPromptViewModel.onLikeClicked(post.toAIPrompt())
                         },
 
                         // ⭐ FAVORITE (future logic)
                         onFavoriteClick = {
-                            aiPromptViewModel.toggleFavorite(post.toAIPrompt())
+                            aiPromptViewModel.onFavoriteClicked(post.toAIPrompt())
                         },
 
                         showFavoriteIcon = true,
