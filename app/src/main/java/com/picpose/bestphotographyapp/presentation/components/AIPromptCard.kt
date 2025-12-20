@@ -28,11 +28,15 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.utils.displayViews
 
 @Composable
 fun AIPromptCard(
     prompt: AIPrompt,
+    localEngagement: EngagementEntity?, // 🔥 NEW (STEP-4)
+
     onClick: () -> Unit,
     onCopy: () -> Unit,
 
@@ -201,7 +205,7 @@ fun AIPromptCard(
                     // ---------- RIGHT ----------
                     Row(verticalAlignment = Alignment.CenterVertically) {
 
-                        // 👍 LIKE (ID SAFE)
+                        // 👍 LIKE
                         LikeButton(
                             isLiked = prompt.isLiked,
                             likeCount = prompt.likes,
@@ -212,11 +216,10 @@ fun AIPromptCard(
                             }
                         )
 
-
                         if (showFavoriteIcon) {
                             Spacer(modifier = Modifier.width(12.dp))
 
-                            // ⭐ FAVORITE (ID SAFE)
+                            // ⭐ FAVORITE
                             Icon(
                                 imageVector =
                                     if (prompt.isFavouriteBookmarked)
@@ -241,7 +244,7 @@ fun AIPromptCard(
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // 👁 VIEWS
+                        // 👁 VIEWS (🔥 SINGLE SOURCE OF TRUTH)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Visibility,
@@ -251,7 +254,7 @@ fun AIPromptCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = prompt.views.toString(),
+                                text = prompt.displayViews(localEngagement).toString(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.onSurfaceVariant
                             )

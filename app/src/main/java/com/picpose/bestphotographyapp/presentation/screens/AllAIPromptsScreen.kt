@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -77,12 +78,14 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import com.picpose.bestphotographyapp.utils.displayViews
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -138,6 +141,7 @@ fun AllAIPromptsScreen(
     initialCategory: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val localStates by viewModel.localEngagementStates.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
     val clipboardManager = LocalClipboardManager.current
@@ -465,12 +469,17 @@ fun AllAIPromptsScreen(
                                             }
                                         }
                                     } else {
+
+                                        // 🔥 STEP-4.3: get local engagement for THIS prompt
+                                        val local = localStates[prompt.id]
+
                                         GridPromptItem(
                                             prompt = prompt,
+                                            localEngagement = local, // 🔥 NEW (CENTRAL SOURCE)
                                             onClick = {
                                                 val id = prompt.id
                                                 if (id != null) {
-                                                    onPromptClick(prompt.id)
+                                                    onPromptClick(id)
                                                 } else {
                                                     Toast.makeText(
                                                         context,
@@ -481,6 +490,7 @@ fun AllAIPromptsScreen(
                                             }
                                         )
                                     }
+
                                 }
                             }
                         }
@@ -502,8 +512,12 @@ fun AllAIPromptsScreen(
                                     key = { index, item -> item.id ?: index.toString() }
                                 ) { index, prompt ->
 
+                                    val local = localStates[prompt.id]
+
                                     AIPromptCard(
                                         prompt = prompt,
+                                        localEngagement = local, // 🔥 STEP-4: CENTRAL VIEW SOURCE
+
                                         onClick = {
                                             val id = prompt.id
                                             if (id != null) {
@@ -517,6 +531,7 @@ fun AllAIPromptsScreen(
                                                 ).show()
                                             }
                                         },
+
                                         onCopy = {
                                             val textToCopy =
                                                 prompt.shortPrompt ?: prompt.fullPrompt ?: ""
@@ -528,19 +543,20 @@ fun AllAIPromptsScreen(
                                             ).show()
                                         },
 
-                                        // 👍 LIKE (NEW — REQUIRED)
-                                        onLikeClick = {
+                                        // 👍 LIKE (ID based)
+                                        onLikeClick = { id ->
                                             viewModel.onLikeClicked(prompt)
                                         },
 
                                         // ⭐ FAVORITE (BOOKMARK)
-                                        onFavoriteClick = {
+                                        onFavoriteClick = { id ->
                                             viewModel.onFavoriteClicked(prompt)
                                         },
 
                                         showFavoriteIcon = true,
                                         isCompact = false
                                     )
+
 
                                     val gap = dynamicGap(index)
                                     val adToShow = if (nativeAds.isNotEmpty()) {
@@ -618,6 +634,7 @@ private fun chooseMixedAdStyle(
 @Composable
 private fun GridPromptItem(
     prompt: AIPrompt,
+    localEngagement: EngagementEntity?,
     onClick: () -> Unit
 ) {
     Card(
@@ -629,21 +646,31 @@ private fun GridPromptItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+
+            // IMAGE
             SubcomposeAsyncImage(
                 model = prompt.imageUrl,
                 contentDescription = prompt.title,
                 modifier = Modifier
                     .height(195.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 14.dp,
+                            topEnd = 14.dp
+                        )
+                    ),
                 contentScale = ContentScale.Crop
             )
 
+            // CONTENT
             Column(
                 modifier = Modifier
                     .padding(12.dp)
                     .fillMaxWidth()
             ) {
+
+                // TITLE
                 Text(
                     text = prompt.title ?: "",
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -652,7 +679,10 @@ private fun GridPromptItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
+                // SHORT PROMPT
                 Text(
                     text = prompt.shortPrompt ?: "",
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -661,10 +691,33 @@ private fun GridPromptItem(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // 👁 VIEWS — SINGLE SOURCE OF TRUTH
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "Views",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = prompt.displayViews(localEngagement).toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
+
 
 /* ------------------------
    Empty State

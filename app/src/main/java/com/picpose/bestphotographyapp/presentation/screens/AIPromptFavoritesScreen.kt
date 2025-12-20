@@ -136,27 +136,44 @@ fun AIPromptFavoritesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(favoritePrompts, key = { it.id ?: it.hashCode() }) { prompt ->
+                            // 🔥 STEP 1: is prompt ka local engagement nikaalo
+                            val local = viewModel.localEngagementStates
+                                .collectAsState().value[prompt.id]
+
+                            // 🔥 STEP 2: UPDATED AIPromptCard
                             AIPromptCard(
                                 prompt = prompt,
-                                onClick = { prompt.id?.let(onPromptClick) },
-                                onCopy = {
-                                    clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
-                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                localEngagement = local, // ✅ REQUIRED FIX
+
+                                onClick = {
+                                    prompt.id?.let(onPromptClick)
                                 },
 
-                                // 👍 REQUIRED — LIKE
-                                onLikeClick = {
+                                onCopy = {
+                                    clipboardManager.setText(
+                                        AnnotatedString(prompt.fullPrompt ?: "")
+                                    )
+                                    Toast.makeText(
+                                        context,
+                                        "Prompt copied!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+
+                                // 👍 LIKE
+                                onLikeClick = { id ->
                                     viewModel.onLikeClicked(prompt)
                                 },
 
                                 // ⭐ FAVORITE
-                                onFavoriteClick = {
+                                onFavoriteClick = { id ->
                                     viewModel.onFavoriteClicked(prompt)
                                 },
 
                                 showFavoriteIcon = true,
                                 isCompact = false
                             )
+
 
                         }
                     }

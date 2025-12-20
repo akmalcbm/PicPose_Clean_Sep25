@@ -1,16 +1,12 @@
 package com.picpose.bestphotographyapp.di
 
 import android.content.Context
-import androidx.room.Room
-import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
-import com.picpose.bestphotographyapp.data.database.LikedPromptDao
-import com.picpose.bestphotographyapp.data.database.StatsDao
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.repository.ExploreRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import com.picpose.bestphotographyapp.data.repository.StatsRepository
+import com.picpose.bestphotographyapp.data.database.StatsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,46 +18,41 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
 
-    // ✅ Provide Retrofit ApiService
+    // ✅ Retrofit API
     @Provides
     @Singleton
-    fun provideApiService(): ApiService = RetrofitClient.apiService
+    fun provideApiService(): ApiService =
+        RetrofitClient.apiService
 
-    // ✅ Provide Room Database
+    // ✅ Stats Repository
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "picpose_database")
-            .fallbackToDestructiveMigration()
-            .build()
+    fun provideStatsRepository(
+        api: ApiService,
+        dao: StatsDao
+    ): StatsRepository {
+        return StatsRepository(api, dao)
+    }
 
-    // ✅ Provide DAO
-    @Provides
-    fun provideStatsDao(db: AppDatabase): StatsDao = db.statsDao()
-
-    // ✅ Provide Repositories
+    // ✅ Home Repository
     @Provides
     @Singleton
-    fun provideStatsRepository(api: ApiService, dao: StatsDao): StatsRepository =
-        StatsRepository(api, dao)
+    fun provideHomeRepository(
+        @ApplicationContext context: Context
+    ): HomeRepository {
+        return HomeRepository(
+            context = context
+        )
+    }
 
-    @Provides
-    @Singleton
-    fun provideHomeRepository(@ApplicationContext context: Context): HomeRepository =
-        HomeRepository(context)
 
-    @Provides
-    fun provideLikedPromptDao(db: AppDatabase): LikedPromptDao = db.likedPromptDao()
-
+    // ✅ Explore Repository
     @Provides
     @Singleton
     fun provideExploreRepository(
         @ApplicationContext context: Context
-    ): ExploreRepository = ExploreRepository(context)
-
-    @Provides
-    fun provideFavoritePromptDao(
-        db: AppDatabase
-    ): FavoritePromptDao = db.favoriteDao()
-
+    ): ExploreRepository {
+        return ExploreRepository(
+            context = context)
+    }
 }

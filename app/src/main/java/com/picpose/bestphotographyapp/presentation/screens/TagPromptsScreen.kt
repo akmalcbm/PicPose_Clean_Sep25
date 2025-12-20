@@ -264,6 +264,7 @@ fun TagPromptsScreen(
                     itemsIndexed(taggedPrompts) { index, prompt ->
                         AIPromptCard(
                             prompt = prompt,
+                            localEngagement = null, // ✅ REQUIRED FIX (central system rule)
                             onClick = { onPromptClick(prompt.id) },
                             onCopy = {
                                 coroutineScope.launch {

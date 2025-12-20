@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.network.ApiService
@@ -125,40 +126,70 @@ class AIPromptViewModel @Inject constructor(
 
     fun onLikeClicked(prompt: AIPrompt) {
         viewModelScope.launch {
-            val newIsLiked = engagementLocalRepo.toggleLikeLocal(prompt.id)
-            val updatedLikes = homeRepository.incrementLike(prompt.id.toInt())
+
+            val newLike = engagementLocalRepo.toggleLike(prompt.id)
 
             updatePrompt(
-                prompt.id,
-                isLiked = newIsLiked,
-                likes = updatedLikes
+                id = prompt.id,
+                isLiked = newLike,
+                likes = prompt.likes + if (newLike) 1 else -1
             )
+
+            // 🔁 API fire & forget
+            homeRepository.incrementLike(prompt.id.toInt())
         }
     }
+
 
     /* ---------------- FAVORITE ---------------- */
 
     fun onFavoriteClicked(prompt: AIPrompt) {
         viewModelScope.launch {
-            val newFav = engagementLocalRepo.toggleFavoriteLocal(prompt.id)
-            val updatedFavs = homeRepository.incrementFavorite(prompt.id.toInt())
+
+            val newFav = engagementLocalRepo.toggleFavorite(prompt.id)
 
             updatePrompt(
-                prompt.id,
+                id = prompt.id,
                 isFavouriteBookmarked = newFav,
-                favorites = updatedFavs
+                favorites = prompt.favorites + if (newFav) 1 else -1
             )
+
+            homeRepository.incrementFavorite(prompt.id.toInt())
         }
     }
+
 
     /* ---------------- VIEW ---------------- */
 
     fun registerView(promptId: String) {
         viewModelScope.launch {
-            val updatedViews = homeRepository.incrementView(promptId.toInt())
-            updatePrompt(promptId, views = updatedViews)
+
+            engagementLocalRepo.incrementView(promptId)
+
+            homeRepository.incrementView(promptId.toInt())
         }
     }
+
+    private var lastViewedPromptId: String? = null
+
+    fun registerViewIfNeeded(promptId: String) {
+        if (lastViewedPromptId == promptId) return
+        lastViewedPromptId = promptId
+
+        viewModelScope.launch {
+            engagementLocalRepo.incrementView(promptId)
+        }
+    }
+
+    val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
+        engagementLocalRepo.observeAllStates()   // Flow<List<EngagementEntity>>
+            .map { list -> list.associateBy { it.promptId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyMap()
+            )
+
 
     fun onCopy(promptId: String) {
         viewModelScope.launch {
@@ -171,7 +202,7 @@ class AIPromptViewModel @Inject constructor(
     private fun updatePrompt(
         id: String,
         likes: Int? = null,
-        views: Int? = null,
+        //views: Int? = null,
         favorites: Int? = null,
         isLiked: Boolean? = null,
         isFavouriteBookmarked: Boolean? = null
@@ -182,7 +213,7 @@ class AIPromptViewModel @Inject constructor(
                     if (prompt.id == id) {
                         prompt.copy(
                             likes = likes ?: prompt.likes,
-                            views = views ?: prompt.views,
+                            //views = views ?: prompt.views,
                             favorites = favorites ?: prompt.favorites,
                             isLiked = isLiked ?: prompt.isLiked,
                             isFavouriteBookmarked =
@@ -197,7 +228,7 @@ class AIPromptViewModel @Inject constructor(
                     if (current.id == id) {
                         current.copy(
                             likes = likes ?: current.likes,
-                            views = views ?: current.views,
+                            //views = views ?: current.views,
                             favorites = favorites ?: current.favorites,
                             isLiked = isLiked ?: current.isLiked,
                             isFavouriteBookmarked =
@@ -307,19 +338,26 @@ class AIPromptViewModel @Inject constructor(
                     ).collect { result ->
                         result.fold(
                             onSuccess = { prompts ->
+
                                 val total = HomeRepository.getLastTotalPrompts()
 
-                                val merged =
+                                // 1️⃣ Merge API pages
+                                val mergedApi =
                                     if (page == 1) prompts
                                     else (_uiState.value.allPrompts + prompts)
                                         .distinctBy { it.id }
 
-                                cachedPrompts = merged
+                                // 2️⃣ 🔥 APPLY LOCAL ENGAGEMENT STATE
+                                val mergedFinal = mergeWithLocalEngagement(mergedApi)
+
+                                // 3️⃣ Cache FINAL merged list
+                                cachedPrompts = mergedFinal
                                 lastCacheTime = now
 
+                                // 4️⃣ Update UI
                                 _uiState.update {
                                     it.copy(
-                                        allPrompts = merged,
+                                        allPrompts = mergedFinal,
                                         totalPrompts = total,
                                         isLoading = false
                                     )
@@ -327,7 +365,7 @@ class AIPromptViewModel @Inject constructor(
 
                                 currentPage = page
                                 canLoadMore =
-                                    merged.size < total && prompts.isNotEmpty()
+                                    mergedFinal.size < total && prompts.isNotEmpty()
                             },
                             onFailure = { ex ->
                                 _uiState.update {
@@ -357,6 +395,7 @@ class AIPromptViewModel @Inject constructor(
         )
     }
 
+
     /* ---------------------------------------------------------------------- */
     /* DETAIL + SIMILAR */
     /* ---------------------------------------------------------------------- */
@@ -368,18 +407,32 @@ class AIPromptViewModel @Inject constructor(
             try {
                 homeRepository.getPromptById(promptId).collect { result ->
                     result.fold(
+
+                        // ✅ SUCCESS
                         onSuccess = { prompt ->
+
+                            // 🔥 APPLY LOCAL ENGAGEMENT MERGE
+                            val mergedPrompt =
+                                mergeWithLocalEngagement(listOf(prompt)).first()
+
                             _uiState.update { state ->
                                 state.copy(
-                                    allPrompts = (state.allPrompts + prompt).distinctBy { it.id },
-                                    selectedPrompt = prompt,
+                                    allPrompts = (state.allPrompts + mergedPrompt)
+                                        .distinctBy { it.id },
+
+                                    // ✅ IMPORTANT
+                                    selectedPrompt = mergedPrompt,
                                     isLoading = false
                                 )
                             }
-                            prompt.category?.let {
-                                loadSimilarPrompts(it, prompt.id)
+
+                            // Similar prompts
+                            mergedPrompt.category?.let {
+                                loadSimilarPrompts(it, mergedPrompt.id)
                             }
                         },
+
+                        // ❌ FAILURE
                         onFailure = { ex ->
                             _uiState.update {
                                 it.copy(
@@ -388,14 +441,19 @@ class AIPromptViewModel @Inject constructor(
                                 )
                             }
                         }
-
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        error = e.message,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
+
 
     fun loadSimilarPrompts(category: String, currentPromptId: String) {
         viewModelScope.launch {
@@ -504,6 +562,32 @@ class AIPromptViewModel @Inject constructor(
             )
         }
     }
+
+
+    private suspend fun mergeWithLocalEngagement(
+        prompts: List<AIPrompt>
+    ): List<AIPrompt> {
+
+        val localStates = engagementLocalRepo.getAllStates()
+            .associateBy { it.promptId }
+
+        return prompts.map { prompt ->
+            val local = localStates[prompt.id]
+
+            if (local == null) {
+                prompt
+            } else {
+                prompt.copy(
+                    isLiked = local.isLiked,
+                    isFavouriteBookmarked = local.isFavorited,
+
+                    // 🔥 VERY IMPORTANT
+                    //views = prompt.views + local.localViewCount
+                )
+            }
+        }
+    }
+
 
 
 }

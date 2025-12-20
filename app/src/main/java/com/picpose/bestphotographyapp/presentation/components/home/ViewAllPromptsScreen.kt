@@ -20,11 +20,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,26 +94,33 @@ fun ViewAllPromptsScreen(
                         NativeAdPlaceholder()
                     }
 
+                    // 🔥 STEP 1: local engagement nikalo (agar ViewAll me nahi hai to null pass karo)
+                    val local: EngagementEntity? =
+                        aiPromptViewModel.localEngagementStates.collectAsState().value[post.id]
+
+                    // 🔥 STEP 2: AIPromptCard ko pass karo
                     AIPromptCard(
                         prompt = post.toAIPrompt(),
+                        localEngagement = local, // ✅ REQUIRED PARAMETER
                         onClick = { onPromptClick(post.id) },
                         onCopy = {
                             Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
                         },
 
-                        // 👍 REQUIRED — LIKE
-                        onLikeClick = {
+                        // 👍 LIKE
+                        onLikeClick = { id ->
                             aiPromptViewModel.onLikeClicked(post.toAIPrompt())
                         },
 
-                        // ⭐ FAVORITE (future logic)
-                        onFavoriteClick = {
+                        // ⭐ FAVORITE
+                        onFavoriteClick = { id ->
                             aiPromptViewModel.onFavoriteClicked(post.toAIPrompt())
                         },
 
                         showFavoriteIcon = true,
                         isCompact = false
                     )
+
 
                 }
             }

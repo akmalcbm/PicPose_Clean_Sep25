@@ -5,12 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.picpose.bestphotographyapp.data.database.dao.EngagementDao
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 
 @Database(
     entities = [
         FavoritePrompt::class,
         LikedPrompt::class,
-        StatsEntity::class
+        StatsEntity::class,
+        EngagementEntity::class // ✅ ADD THIS
     ],
     version = 2, // 🔥 VERY IMPORTANT — incremented
     exportSchema = false
@@ -21,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoritePromptDao
     abstract fun likedPromptDao(): LikedPromptDao
     abstract fun statsDao(): StatsDao
+    abstract fun engagementDao(): EngagementDao
 
     companion object {
         @Volatile

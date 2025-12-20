@@ -132,6 +132,7 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import com.picpose.bestphotographyapp.utils.displayViews
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -147,6 +148,9 @@ fun AIPromptDetailScreen(
     onTagClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val localEngagementStates by viewModel.localEngagementStates.collectAsState()
+
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -245,7 +249,7 @@ fun AIPromptDetailScreen(
 
 
     LaunchedEffect(promptId) {
-        viewModel.registerView(promptId)
+        viewModel.registerViewIfNeeded(promptId)
     }
 
 
@@ -429,10 +433,12 @@ fun AIPromptDetailScreen(
                                 )
                             }
 
+                            val localEngagement = localEngagementStates[promptData.id]
+
                             // 🧮 Stats Row directly under image
                             StatsRow(
                                 likes = promptData.likes,
-                                views = promptData.views,
+                                views = promptData.displayViews(localEngagement),
                                 favorites = promptData.favorites,
                                 modifier = Modifier
                                     .fillMaxWidth()

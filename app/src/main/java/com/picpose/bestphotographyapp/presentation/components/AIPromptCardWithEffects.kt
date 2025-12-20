@@ -32,12 +32,14 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import kotlinx.coroutines.launch
 
 @Composable
 fun AIPromptCardWithEffects(
     prompt: AIPrompt,
+    localEngagement: EngagementEntity?,
     onClick: () -> Unit,
     onCopy: () -> Unit,
     showFavoriteIcon: Boolean = true,
@@ -142,6 +144,10 @@ fun AIPromptCardWithEffects(
             .build(),
         filterQuality = FilterQuality.None
     )
+
+    val displayViews = remember(prompt.views, localEngagement?.localViewCount) {
+        prompt.views + (localEngagement?.localViewCount ?: 0)
+    }
 
     Card(
         modifier = modifier
@@ -295,7 +301,7 @@ fun AIPromptCardWithEffects(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text("${prompt.views}")
+                            Text("$displayViews")
                         }
                     }
                 }
