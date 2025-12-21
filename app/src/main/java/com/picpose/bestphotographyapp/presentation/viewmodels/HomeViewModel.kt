@@ -449,8 +449,6 @@ class HomeViewModel @Inject constructor (
         }
     }
 
-
-
     /**
      * Share a post: copy text to clipboard and show a toast.
      */
