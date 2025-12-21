@@ -7,19 +7,27 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.data.repository.EngagementLocalRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -46,7 +54,10 @@ data class HomeUiState(
 enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
 @HiltViewModel
-class HomeViewModel @Inject constructor (private val repository: HomeRepository) : ViewModel() {
+class HomeViewModel @Inject constructor (
+    private val repository: HomeRepository,
+    private val engagementLocalRepo: EngagementLocalRepository
+    ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -109,7 +120,7 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
         loadCategories()
         loadRecentPosts()
 
-        loadTrendingFeaturedAndPopularPosts() // ✅ Add this line here
+        loadTrendingFeaturedAndPopularPosts()
         
         // Load AI prompts only after a brief delay to avoid conflict with search debouncing
         viewModelScope.launch {
@@ -413,36 +424,32 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
         }
     }
 
-    /**
-     * Toggle like for a post (local UI update). If you add server API later, call it here.
-     */
-    fun togglePostLike(postId: String) {
+    fun onPostLikeClicked(postId: String) {
         viewModelScope.launch {
-            try {
-                // Update featured posts list
-                val updatedFeatured = _uiState.value.featuredPosts.map { post ->
-                    if (post.id == postId) post.copy(likes = post.likes + 1) else post
-                }
 
-                // Update recent posts list
-                val updatedRecent = _uiState.value.recentPosts.map { post ->
-                    if (post.id == postId) post.copy(likes = post.likes + 1) else post
-                }
+            val isNowLiked = engagementLocalRepo.toggleLike(postId)
 
-                _uiState.value = _uiState.value.copy(
-                    featuredPosts = updatedFeatured,
-                    recentPosts = updatedRecent
+            _uiState.update { state ->
+                state.copy(
+                    recentPosts = state.recentPosts.map { post ->
+                        if (post.id == postId) {
+                            post.copy(
+                                likes = if (isNowLiked)
+                                    post.likes + 1
+                                else
+                                    (post.likes - 1).coerceAtLeast(0)
+                            )
+                        } else post
+                    }
                 )
-
-                // Optional: send to server
-                // repository.incrementLike(postId)
-
-            } catch (e: Exception) {
-                Log.w(TAG, "togglePostLike failed: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
             }
+
+            // fire & forget
+            repository.incrementLike(postId.toInt())
         }
     }
+
+
 
     /**
      * Share a post: copy text to clipboard and show a toast.
@@ -590,41 +597,36 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
 
     fun loadRecentPosts(limit: Int = 5) {
         viewModelScope.launch {
-            try {
-                Log.d(TAG, "loadRecentPosts: fetching latest $limit posts by createdAt DESC...")
-                repository.getLatestRecent5AiPosts(limit).collect { result ->
-                    result.fold(
-                        onSuccess = { aiPrompts ->
-                            val posts = aiPrompts.map { aiPrompt ->
-                                Post(
-                                    id = aiPrompt.id ?: "",
-                                    title = aiPrompt.title ?: "Untitled",
-                                    description = aiPrompt.shortPrompt ?: aiPrompt.fullPrompt ?: "",
-                                    image = aiPrompt.imageUrl ?: "",
-                                    category = aiPrompt.category ?: "",
-                                    createdAt = aiPrompt.createdAt ?: "",
-                                    likes = aiPrompt.likes ?: 0,
-                                    favorites = aiPrompt.favorites ?: 0,
-                                    views = aiPrompt.views ?: 0,
-                                    isPopular = aiPrompt.isPopular ?: false,
-                                    isFeatured = aiPrompt.isFeatured ?: false
-                                )
-                            }
-                            Log.d(TAG, "loadRecentPosts: received ${posts.size} posts")
-                            _uiState.value = _uiState.value.copy(recentPosts = posts)
-                        },
-                        onFailure = { err ->
-                            Log.e(TAG, "loadRecentPosts failed: ${err.message}")
-                            _uiState.value = _uiState.value.copy(error = err.message)
-                        }
-                    )
+
+            repository.getLatestRecent5AiPosts(limit).collect { result ->
+                result.onSuccess { aiPrompts ->
+
+                    val posts = aiPrompts.map { aiPrompt ->
+                        Post(
+                            id = aiPrompt.id ?: "",
+                            title = aiPrompt.title ?: "Untitled",
+                            description = aiPrompt.shortPrompt
+                                ?: aiPrompt.fullPrompt
+                                ?: "",
+                            image = aiPrompt.imageUrl ?: "",
+                            category = aiPrompt.category ?: "",
+                            createdAt = aiPrompt.createdAt ?: "",
+                            likes = aiPrompt.likes ?: 0,
+                            favorites = aiPrompt.favorites ?: 0,
+                            views = aiPrompt.views ?: 0,
+                            isPopular = aiPrompt.isPopular ?: false,
+                            isFeatured = aiPrompt.isFeatured ?: false
+                        )
+                    }
+
+                    _uiState.update {
+                        it.copy(recentPosts = posts)
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "loadRecentPosts exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
+
 
 
     /**
@@ -739,6 +741,20 @@ class HomeViewModel @Inject constructor (private val repository: HomeRepository)
             }
         }
     }
+
+    val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
+        engagementLocalRepo
+            .observeAllStates()              // 🔥 LIVE FLOW
+            .map { list ->
+                list.associateBy { it.promptId }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyMap()
+            )
+
+
 
 
     /**

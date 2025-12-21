@@ -34,7 +34,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
 import com.picpose.bestphotographyapp.presentation.components.home.*
-import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
@@ -58,6 +57,7 @@ fun HomeScreen(
     val activity = context as? Activity
 
     val uiState by viewModel.uiState.collectAsState()
+    val localEngagementStates by viewModel.localEngagementStates.collectAsState()
     val statsViewModel: StatsViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
 
@@ -179,7 +179,7 @@ fun HomeScreen(
                                 featuredPosts = uiState.featuredPosts,
                                 popularPosts = uiState.popularPosts,
                                 onPostClick = onNavigateToPostDetail,
-                                onLikeClick = { viewModel.togglePostLike(it.id) },
+                                onLikeClick = { viewModel.onPostLikeClicked(it.id) },
                                 onShareClick = { viewModel.sharePost(context, it) },
                                 onViewAllClick = { category ->
                                     onNavigateToViewAll(category)
@@ -228,8 +228,10 @@ fun HomeScreen(
                         }
 
                         items(uiState.recentPosts.take(5)) { post ->
+                            val local = localEngagementStates[post.id]
                             RecentPostItem(
                                 post = post,
+                                localEngagement = local,
                                 onClick = {
                                     val match = uiState.aiPrompts.find { it.id.trim() == post.id.trim() }
                                     if (match != null)
@@ -237,7 +239,7 @@ fun HomeScreen(
                                     else
                                         onNavigateToPostDetail(post)
                                 },
-                                onLikeClick = { viewModel.togglePostLike(post.id) },
+                                onLikeClick = { viewModel.onPostLikeClicked(post.id) },
                                 onShareClick = { viewModel.sharePost(context, post) },
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
