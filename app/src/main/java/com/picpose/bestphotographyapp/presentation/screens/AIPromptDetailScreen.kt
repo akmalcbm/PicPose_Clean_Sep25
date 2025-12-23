@@ -314,7 +314,7 @@ fun AIPromptDetailScreen(
                                 if (p.isFavouriteBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                                 contentDescription = "Favorite Bookmarked AI Prompts",
                                 tint = if (p.isFavouriteBookmarked)
-                                    MaterialTheme.colorScheme.surfaceTint
+                                    Color(0xFFFFC107)
                                 else
                                     LocalContentColor.current
                             )
@@ -574,7 +574,6 @@ fun AIPromptDetailScreen(
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
 
-                                        // 🔥 PRIMARY — Open in Gemini
                                         // 🔥 PRIMARY — Open in Gemini
                                         Button(
                                             onClick = {

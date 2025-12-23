@@ -6,9 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BookmarkAdded
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
@@ -53,6 +53,10 @@ fun AIPromptCard(
 
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+
+    val isBookmarked =
+        localEngagement?.isFavorited ?: prompt.isFavouriteBookmarked
+
 
     // ------------------------------------------------------------
     // Prevent image flicker on recomposition
@@ -216,32 +220,6 @@ fun AIPromptCard(
                             }
                         )
 
-                        if (showFavoriteIcon) {
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            // ⭐ FAVORITE
-                            Icon(
-                                imageVector =
-                                    if (prompt.isFavouriteBookmarked)
-                                        Icons.Default.Star
-                                    else
-                                        Icons.Default.StarBorder,
-                                contentDescription = "Favorite",
-                                tint =
-                                    if (prompt.isFavouriteBookmarked)
-                                        Color(0xFFFFC107)
-                                    else
-                                        colors.onSurfaceVariant,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable {
-                                        prompt.id?.let { id ->
-                                            onFavoriteClick(id)
-                                        }
-                                    }
-                            )
-                        }
-
                         Spacer(modifier = Modifier.width(16.dp))
 
                         // 👁 VIEWS (🔥 SINGLE SOURCE OF TRUTH)
@@ -259,6 +237,35 @@ fun AIPromptCard(
                                 color = colors.onSurfaceVariant
                             )
                         }
+
+                        if (showFavoriteIcon) {
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // ⭐ FAVORITE
+                            Icon(
+                                imageVector =
+                                    if (isBookmarked)
+                                        Icons.Default.BookmarkAdded
+                                    else
+                                        Icons.Default.BookmarkBorder,
+                                contentDescription = "Favorite",
+                                tint =
+                                    if (isBookmarked)
+                                        Color(0xFFFFC107)
+                                    else
+                                        colors.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable {
+                                        prompt.id?.let { id ->
+                                            onFavoriteClick(id)
+                                        }
+                                    }
+                            )
+
+                        }
+
+
                     }
                 }
             }

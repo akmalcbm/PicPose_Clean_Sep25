@@ -278,7 +278,7 @@ class HomeRepository(
      * Returns favorite prompts stored in Room as AIPrompt objects.
      * Uses the toAIPrompt() extension function for proper mapping.
      */
-    suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
+    /*suspend fun getFavoritePrompts(): Flow<Result<List<AIPrompt>>> = flow {
         try {
             val userId = appSettingsCache.getOrCreateUserId()
 
@@ -302,7 +302,7 @@ class HomeRepository(
         } catch (e: Exception) {
             emit(Result.failure(e))
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO)*/
 
 
 
@@ -319,7 +319,7 @@ class HomeRepository(
 
 
     /**
-     * Get single prompt by ID - EFFICIENT VERSION
+     * Get single prompt by ID - EFFICIENT VERSION for Detailed Screen
      */
     suspend fun getPromptById(promptId: String): Flow<Result<AIPrompt>> = flow {
         try {
@@ -354,6 +354,30 @@ class HomeRepository(
 
         } catch (e: Exception) {
             emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+
+
+    /**
+     * Get  prompt by ID - for Favourite List Items etc
+     */
+    fun getPromptsByIds(ids: List<String>): Flow<List<AIPrompt>> = flow {
+
+        if (ids.isEmpty()) {
+            emit(emptyList())
+            return@flow
+        }
+
+        val response = apiService.getPromptsByIds(
+            ids = ids.joinToString(","),
+            apiKey = requestApiKey
+        )
+
+        if (response.isSuccessful && response.body()?.success == true) {
+            emit(response.body()?.data ?: emptyList())
+        } else {
+            emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
 
@@ -847,6 +871,17 @@ class HomeRepository(
         throw Exception("Like increment failed")
     }
 
+    suspend fun decrementLike(promptId: Int): Int {
+        val response = apiService.decrementLike(promptId, requestApiKey)
+
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.likes
+        }
+
+        throw Exception("Like decrement failed")
+    }
+
+
     suspend fun incrementFavorite(promptId: Int): Int {
         val response = apiService.incrementFavorite(promptId, requestApiKey)
         if (response.isSuccessful && response.body()?.success == true) {
@@ -854,6 +889,16 @@ class HomeRepository(
         }
         throw Exception("Favorite increment failed")
     }
+
+    suspend fun decrementFavorite(promptId: Int): Int {
+        val response = apiService.decrementFavorite(promptId, requestApiKey)
+
+        if (response.isSuccessful && response.body()?.success == true) {
+            return response.body()!!.favorites
+        }
+        throw Exception("Favorite decrement failed")
+    }
+
 
     suspend fun incrementView(promptId: Int): Int {
         val response = apiService.incrementView(promptId, requestApiKey)

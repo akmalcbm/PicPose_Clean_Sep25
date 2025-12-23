@@ -60,6 +60,16 @@ class EngagementLocalRepository @Inject constructor(
         return newState.isFavorited
     }
 
+    //to fetch on Favourite Bookmarked List Items
+    suspend fun getFavoritedPromptIds(): Set<String> {
+        return dao.getAll()
+            .filter { it.isFavorited }
+            .map { it.promptId }
+            .toSet()
+    }
+
+
+
     /* ------------------------------------ */
     /* VIEW */
     /* ------------------------------------ */

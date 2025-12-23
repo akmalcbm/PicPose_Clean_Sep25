@@ -95,7 +95,7 @@ class AIPromptViewModel @Inject constructor(
 
     private var selectedCategoryServer: String? = null
     private var loadAllJob: Job? = null
-    private var loadFavoritesJob: Job? = null
+    //private var loadFavoritesJob: Job? = null
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -113,7 +113,7 @@ class AIPromptViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            loadFavoritePrompts()
+            //loadFavoritePrompts()
             loadCategories()
         }
     }
@@ -123,40 +123,118 @@ class AIPromptViewModel @Inject constructor(
     /* ---------------------------------------------------------------------- */
 
     /* ---------------- LIKE ---------------- */
-
     fun onLikeClicked(prompt: AIPrompt) {
         viewModelScope.launch {
+            val promptId = prompt.id ?: return@launch
 
-            val newLike = engagementLocalRepo.toggleLike(prompt.id)
+            // 🔁 toggle local like state (Room = source of truth)
+            val isNowLiked = engagementLocalRepo.toggleLike(promptId)
 
-            updatePrompt(
-                id = prompt.id,
-                isLiked = newLike,
-                likes = prompt.likes + if (newLike) 1 else -1
-            )
+            // 🔥 UI optimistic update
+            _uiState.update { state ->
+                state.copy(
+                    allPrompts = state.allPrompts.map {
+                        if (it.id == promptId) {
+                            it.copy(
+                                isLiked = isNowLiked,
+                                likes =
+                                    if (isNowLiked)
+                                        it.likes + 1
+                                    else
+                                        (it.likes - 1).coerceAtLeast(0)
+                            )
+                        } else it
+                    },
+                    selectedPrompt =
+                        if (state.selectedPrompt?.id == promptId)
+                            state.selectedPrompt.copy(
+                                isLiked = isNowLiked,
+                                likes =
+                                    if (isNowLiked)
+                                        state.selectedPrompt.likes + 1
+                                    else
+                                        (state.selectedPrompt.likes - 1).coerceAtLeast(0)
+                            )
+                        else state.selectedPrompt
+                )
+            }
 
-            // 🔁 API fire & forget
-            homeRepository.incrementLike(prompt.id.toInt())
+            // 🌐 server sync (fire & forget)
+            if (isNowLiked)
+                homeRepository.incrementLike(promptId.toInt())
+            else
+                homeRepository.decrementLike(promptId.toInt())
         }
     }
 
 
-    /* ---------------- FAVORITE ---------------- */
-
+    /* ---------------- FAVORITE BOOKMARKED---------------- */
     fun onFavoriteClicked(prompt: AIPrompt) {
         viewModelScope.launch {
 
-            val newFav = engagementLocalRepo.toggleFavorite(prompt.id)
+            val promptId = prompt.id ?: return@launch
 
-            updatePrompt(
-                id = prompt.id,
-                isFavouriteBookmarked = newFav,
-                favorites = prompt.favorites + if (newFav) 1 else -1
-            )
+            // 🔁 toggle local favorite state (Room = source of truth)
+            val isNowFavorited =
+                engagementLocalRepo.toggleFavorite(promptId)
 
-            homeRepository.incrementFavorite(prompt.id.toInt())
+            _uiState.update { state ->
+
+                // 🔥 STEP-2 FIX (MOST IMPORTANT)
+                // ensure prompt exists in allPrompts when favorited
+                val baseAllPrompts =
+                    if (isNowFavorited && state.allPrompts.none { it.id == promptId }) {
+                        state.allPrompts + prompt
+                    } else {
+                        state.allPrompts
+                    }
+
+                // 🔁 update allPrompts
+                val updatedAllPrompts = baseAllPrompts.map {
+                    if (it.id == promptId) {
+                        it.copy(
+                            isFavouriteBookmarked = isNowFavorited,
+                            favorites =
+                                if (isNowFavorited)
+                                    it.favorites + 1
+                                else
+                                    (it.favorites - 1).coerceAtLeast(0)
+                        )
+                    } else it
+                }
+
+                // 🔁 update selectedPrompt (detail screen safe)
+                val updatedSelectedPrompt =
+                    if (state.selectedPrompt?.id == promptId)
+                        state.selectedPrompt.copy(
+                            isFavouriteBookmarked = isNowFavorited,
+                            favorites =
+                                if (isNowFavorited)
+                                    state.selectedPrompt.favorites + 1
+                                else
+                                    (state.selectedPrompt.favorites - 1).coerceAtLeast(0)
+                        )
+                    else state.selectedPrompt
+
+                // ❌ DO NOT manage favorites list manually anymore
+                // favorites screen is driven by favoritePromptsFlow
+
+                state.copy(
+                    allPrompts = updatedAllPrompts,
+                    selectedPrompt = updatedSelectedPrompt
+                )
+            }
+
+            // 🌐 server sync (fire & forget)
+            if (isNowFavorited)
+                homeRepository.incrementFavorite(promptId.toInt())
+            else
+                homeRepository.decrementFavorite(promptId.toInt())
         }
     }
+
+
+
 
 
     /* ---------------- VIEW ---------------- */
@@ -180,16 +258,6 @@ class AIPromptViewModel @Inject constructor(
             engagementLocalRepo.incrementView(promptId)
         }
     }
-
-    val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
-        engagementLocalRepo.observeAllStates()   // Flow<List<EngagementEntity>>
-            .map { list -> list.associateBy { it.promptId } }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyMap()
-            )
-
 
     fun onCopy(promptId: String) {
         viewModelScope.launch {
@@ -258,6 +326,45 @@ class AIPromptViewModel @Inject constructor(
             }
         }
     }
+
+
+
+    val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
+        engagementLocalRepo.observeAllStates()   // Flow<List<EngagementEntity>>
+            .map { list -> list.associateBy { it.promptId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyMap()
+            )
+
+
+    /* ---------------------------------------------------------------------- */
+    /* 🔥 FAVORITES FLOW (FINAL FIX) to fetch items on favourite list */
+    /* ---------------------------------------------------------------------- */
+    val favoritePromptsFlow: StateFlow<List<AIPrompt>> =
+        localEngagementStates
+            .map { localMap ->
+                localMap
+                    .filter { it.value.isFavorited }
+                    .keys
+                    .toList()
+            }
+            .flatMapLatest { favoriteIds ->
+
+                if (favoriteIds.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    homeRepository.getPromptsByIds(favoriteIds)
+                }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
+
 
 
     /* ---------------------------------------------------------------------- */
@@ -473,8 +580,7 @@ class AIPromptViewModel @Inject constructor(
     /* ---------------------------------------------------------------------- */
     /* FAVORITES */
     /* ---------------------------------------------------------------------- */
-
-    fun loadFavoritePrompts() {
+    /*fun loadFavoritePrompts() {
         loadFavoritesJob?.cancel()
         loadFavoritesJob = viewModelScope.launch(errorHandler) {
             try {
@@ -496,7 +602,7 @@ class AIPromptViewModel @Inject constructor(
                 _uiState.update { it.copy(error = e.message) }
             }
         }
-    }
+    }*/
 
     /* ---------------------------------------------------------------------- */
     /* CATEGORIES */
@@ -581,14 +687,11 @@ class AIPromptViewModel @Inject constructor(
                     isLiked = local.isLiked,
                     isFavouriteBookmarked = local.isFavorited,
 
-                    // 🔥 VERY IMPORTANT
                     //views = prompt.views + local.localViewCount
                 )
             }
         }
     }
-
-
 
 }
 

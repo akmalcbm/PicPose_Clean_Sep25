@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 
@@ -33,7 +32,7 @@ fun AIPromptFavoritesScreen(
     viewModel: AIPromptViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val favoritePrompts = uiState.favoritePrompts
+    val favoritePrompts by viewModel.favoritePromptsFlow.collectAsState()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }

@@ -25,13 +25,23 @@ interface ApiService {
     ): Response<ApiResponse<List<DailyTip>>>
 
     // -----------------------------------------------------------------------------------------
-    // 🔹 AI Prompts / AI Posts
+    // 🔹 AI Prompts / AI Posts for Details Screen
     // -----------------------------------------------------------------------------------------
     @GET("api/ai_posts/get_ai_post.php")
     suspend fun getPromptById(
         @Query("id") promptId: String,
         @Query("api_key") apiKey: String?
     ): Response<ApiResponse<AIPrompt>>
+
+    // -----------------------------------------------------------------------------------------
+    // 🔹 AI Prompts / AI Posts for Favourites Bookmarked Screen
+    // -----------------------------------------------------------------------------------------
+    @FormUrlEncoded
+    @POST("api/ai_posts/get_ai_post_by_id.php")
+    suspend fun getPromptsByIds(
+        @Field("ids") ids: String,   // comma separated ids
+        @Field("api_key") apiKey: String? = null
+    ): Response<ApiResponse<List<AIPrompt>>>
 
 
     /**
@@ -165,11 +175,28 @@ interface ApiService {
     ): Response<LikeResponse>
 
     @FormUrlEncoded
+    @POST("api/ai_posts/decrement_like.php")
+    suspend fun decrementLike(
+        @Field("id") id: Int,
+        @Field("api_key") apiKey: String? = null
+    ): Response<LikeResponse>
+
+
+    @FormUrlEncoded
     @POST("api/ai_posts/increment_favorite.php")
     suspend fun incrementFavorite(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
     ): Response<FavoriteResponse>
+
+    @FormUrlEncoded
+    @POST("api/ai_posts/decrement_favorite.php")
+    suspend fun decrementFavorite(
+        @Field("id") id: Int,
+        @Field("api_key") apiKey: String? = null
+    ): Response<FavoriteResponse>
+
+
 
     @FormUrlEncoded
     @POST("api/ai_posts/increment_view.php")
