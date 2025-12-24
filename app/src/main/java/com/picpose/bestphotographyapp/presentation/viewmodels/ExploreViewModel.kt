@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
-import com.picpose.bestphotographyapp.data.repository.EngagementLocalRepository
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.ExploreRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -87,7 +87,7 @@ enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 class ExploreViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
     private val exploreRepository: ExploreRepository,
-    private val engagementLocalRepo: EngagementLocalRepository
+    private val engagementRepository: EngagementRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExploreUiState())
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
@@ -418,7 +418,7 @@ class ExploreViewModel @Inject constructor(
         val id = prompt.id ?: return
 
         viewModelScope.launch {
-            engagementLocalRepo.toggleLike(id)
+            engagementRepository.toggleLike(id)
 
             // 🔁 Server sync already happens inside ExploreRepository
             exploreRepository.togglePromptLike(prompt).collect()
@@ -433,7 +433,7 @@ class ExploreViewModel @Inject constructor(
         val id = prompt.id ?: return
 
         viewModelScope.launch {
-            engagementLocalRepo.toggleFavorite(id)
+            engagementRepository.toggleFavorite(id)
 
             exploreRepository.togglePromptBookmark(prompt).collect()
 
@@ -442,7 +442,7 @@ class ExploreViewModel @Inject constructor(
     }
 
     val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
-        engagementLocalRepo.observeAllStates()   // Flow<List<EngagementEntity>>
+        engagementRepository.observeAllStates()   // Flow<List<EngagementEntity>>
             .map { list -> list.associateBy { it.promptId } }
             .stateIn(
                 scope = viewModelScope,
@@ -460,7 +460,7 @@ class ExploreViewModel @Inject constructor(
             when (item) {
                 is ExploreContent.AIPromptContent -> {
                     val merged =
-                        engagementLocalRepo
+                        engagementRepository
                             .mergeWithLocalEngagement(listOf(item.prompt))
                             .first()
 
@@ -475,11 +475,9 @@ class ExploreViewModel @Inject constructor(
 
     fun onPromptViewed(promptId: String) {
         viewModelScope.launch {
-            engagementLocalRepo.incrementView(promptId)
+            engagementRepository.incrementView(promptId)
         }
     }
-
-
 
 
 }

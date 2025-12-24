@@ -248,10 +248,11 @@ fun AIPromptDetailScreen(
     }
 
 
-    LaunchedEffect(promptId) {
-        viewModel.registerViewIfNeeded(promptId)
+    LaunchedEffect(effectivePrompt?.id) {
+        effectivePrompt?.id?.let {
+            viewModel.registerView(it)
+        }
     }
-
 
 
     // Stop transition overlay once loading settles
@@ -1413,6 +1414,7 @@ fun openGemini(context: Context, promptText: String) {
         }
         context.startActivity(browserIntent)
     }
+}
 
     /*fun openGeminiOrPlayStore(
     context: Context,
@@ -1473,5 +1475,3 @@ fun openGemini(context: Context, promptText: String) {
         )
     }
 }*/
-
-}

@@ -5,14 +5,11 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "engagement_state")
 data class EngagementEntity(
-
-    @PrimaryKey
-    val promptId: String,
+    @PrimaryKey val promptId: String,
 
     val isLiked: Boolean = false,
-
     val isFavorited: Boolean = false,
+    val localViewCount: Int = 0,
 
-    // 🔥 Local-only views (guest / offline support)
-    val localViewCount: Int = 0
+    val updatedAt: Long = System.currentTimeMillis()
 )

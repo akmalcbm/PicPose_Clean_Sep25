@@ -13,7 +13,7 @@ import com.picpose.bestphotographyapp.data.models.Category
 import com.picpose.bestphotographyapp.data.models.DailyTip
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.data.repository.EngagementLocalRepository
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -56,7 +56,7 @@ enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 @HiltViewModel
 class HomeViewModel @Inject constructor (
     private val repository: HomeRepository,
-    private val engagementLocalRepo: EngagementLocalRepository
+    private val engagementRepository: EngagementRepository
     ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -427,7 +427,7 @@ class HomeViewModel @Inject constructor (
     fun onPostLikeClicked(postId: String) {
         viewModelScope.launch {
 
-            val isNowLiked = engagementLocalRepo.toggleLike(postId)
+            val isNowLiked = engagementRepository.toggleLike(postId)
 
             _uiState.update { state ->
                 state.copy(
@@ -741,7 +741,7 @@ class HomeViewModel @Inject constructor (
     }
 
     val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
-        engagementLocalRepo
+        engagementRepository
             .observeAllStates()              // 🔥 LIVE FLOW
             .map { list ->
                 list.associateBy { it.promptId }

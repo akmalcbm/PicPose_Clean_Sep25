@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -7,7 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,11 +35,16 @@ fun AIPromptFavoritesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoritePrompts by viewModel.favoritePromptsFlow.collectAsState()
+
+    // 🔥 COLLECT ONCE — SCREEN LEVEL (IMPORTANT)
+    val localEngagementMap by viewModel.localEngagementStates.collectAsState()
+
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
 
-
+    LaunchedEffect(Unit) {
+        Log.e("FAV_DEBUG", "FavoritesScreen OPENED")
+    }
 
     // ✅ Show error only once
     LaunchedEffect(uiState.error) {
@@ -47,7 +54,6 @@ fun AIPromptFavoritesScreen(
         }
     }
 
-    // ✅ Proper Material3 Scaffold with edge-to-edge layout
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,10 +76,14 @@ fun AIPromptFavoritesScreen(
                         IconButton(
                             onClick = {
                                 val allPrompts = favoritePrompts.joinToString("\n\n") { prompt ->
-                                    "${prompt.title}\n${prompt.fullPrompt ?: ""}"
+                                    "${prompt.title}\n${prompt.fullPrompt.orEmpty()}"
                                 }
                                 clipboardManager.setText(AnnotatedString(allPrompts))
-                                Toast.makeText(context, "All favorites copied!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "All favorites copied!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         ) {
                             Icon(Icons.Default.Share, contentDescription = "Share All")
@@ -84,14 +94,12 @@ fun AIPromptFavoritesScreen(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                // ✅ Handles status bar correctly
                 modifier = Modifier.windowInsetsPadding(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0) // 🚫 disable auto inset to avoid double spacing
+        contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
 
         Box(
@@ -99,23 +107,25 @@ fun AIPromptFavoritesScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                // ✅ only horizontal safe area, prevents top/bottom white bars
                 .padding(
                     WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal)
                         .asPaddingValues()
                 )
         ) {
+
             when {
-                uiState.isLoading -> {
+                // ✅ Loader only when nothing loaded yet
+                uiState.isLoading && favoritePrompts.isEmpty() -> {
                     Box(
-                        Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
                 }
 
+                // ✅ Empty state
                 favoritePrompts.isEmpty() -> {
                     EmptyFavoritesState(
                         onNavigateToAllPrompts = onNavigateToAllPrompts,
@@ -123,26 +133,29 @@ fun AIPromptFavoritesScreen(
                     )
                 }
 
+                // ✅ Favorites list
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             top = 12.dp,
-                            bottom = 90.dp, // ✅ keeps space for bottom nav safely
+                            bottom = 90.dp,
                             start = 16.dp,
                             end = 16.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(favoritePrompts, key = { it.id ?: it.hashCode() }) { prompt ->
-                            // 🔥 STEP 1: is prompt ka local engagement nikaalo
-                            val local = viewModel.localEngagementStates
-                                .collectAsState().value[prompt.id]
+                        items(
+                            items = favoritePrompts,
+                            key = { it.id ?: it.hashCode() }
+                        ) { prompt ->
 
-                            // 🔥 STEP 2: UPDATED AIPromptCard
+                            // 🔥 MAP LOOKUP ONLY (NO FLOW HERE)
+                            val local = localEngagementMap[prompt.id]
+
                             AIPromptCard(
                                 prompt = prompt,
-                                localEngagement = local, // ✅ REQUIRED FIX
+                                localEngagement = local,
 
                                 onClick = {
                                     prompt.id?.let(onPromptClick)
@@ -150,7 +163,7 @@ fun AIPromptFavoritesScreen(
 
                                 onCopy = {
                                     clipboardManager.setText(
-                                        AnnotatedString(prompt.fullPrompt ?: "")
+                                        AnnotatedString(prompt.fullPrompt.orEmpty())
                                     )
                                     Toast.makeText(
                                         context,
@@ -159,21 +172,17 @@ fun AIPromptFavoritesScreen(
                                     ).show()
                                 },
 
-                                // 👍 LIKE
-                                onLikeClick = { id ->
+                                onLikeClick = {
                                     viewModel.onLikeClicked(prompt)
                                 },
 
-                                // ⭐ FAVORITE
-                                onFavoriteClick = { id ->
+                                onFavoriteClick = {
                                     viewModel.onFavoriteClicked(prompt)
                                 },
 
                                 showFavoriteIcon = true,
                                 isCompact = false
                             )
-
-
                         }
                     }
                 }
@@ -193,14 +202,18 @@ private fun EmptyFavoritesState(
         verticalArrangement = Arrangement.Center
     ) {
         Text("💔", style = MaterialTheme.typography.displayLarge)
+
         Spacer(modifier = Modifier.height(12.dp))
+
         Text(
             text = "No Favorite Prompts",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = "Start adding your favorite prompts to see them here!",
             style = MaterialTheme.typography.bodyMedium,
@@ -208,10 +221,14 @@ private fun EmptyFavoritesState(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Button(
             onClick = onNavigateToAllPrompts,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF6366F1)
+            )
         ) {
             Icon(Icons.Default.Explore, contentDescription = null)
             Spacer(modifier = Modifier.width(6.dp))

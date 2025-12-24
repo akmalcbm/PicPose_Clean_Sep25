@@ -8,6 +8,7 @@ import com.picpose.bestphotographyapp.data.AdManager
 import com.picpose.bestphotographyapp.data.PromptRepository
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +38,8 @@ data class PromptUiState(
  * - Provide state for UI
  */
 class AiPromptDetailsViewModel(
-    private val repository: PromptRepository = PromptRepository(),
+    private val promptRepository: PromptRepository,
+    private val engagementRepository: EngagementRepository,
     private val adManager: AdManager = AdManager.getInstance()
 ) : ViewModel() {
     
@@ -63,7 +65,7 @@ class AiPromptDetailsViewModel(
     private fun loadAppSettings() {
         viewModelScope.launch {
             try {
-                repository.getAppSettings().collect { result ->
+                promptRepository.getAppSettings().collect { result ->
                     result.fold(
                         onSuccess = { settings ->
                             Log.d(TAG, "App settings loaded successfully")
@@ -92,26 +94,32 @@ class AiPromptDetailsViewModel(
     }
     
     /**
-     * Load prompt by ID
+     * Load prompt by ID on AiPromptDetailsScreen through AiPromptDetailsViewModel.kt
      */
     fun loadPromptById(promptId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
             try {
-                repository.getPromptById(promptId).collect { result ->
+                promptRepository.getPromptById(promptId).collect { result ->
                     result.fold(
                         onSuccess = { prompt ->
                             Log.d(TAG, "Prompt loaded successfully: ${prompt.title}")
+
+                            // 🔥 UPDATE PROMPT CACHE (DETAIL SCREEN FIX)
+                            promptRepository.syncPromptCache(
+                                (listOf(prompt) + promptRepository.observeAllPrompts().value)
+                                    .distinctBy { it.id }
+                            )
+
                             _uiState.value = _uiState.value.copy(
                                 currentPrompt = prompt,
                                 isLoading = false,
                                 error = null
                             )
-                            
-                            // Load similar prompts
+
                             prompt.category?.let { category ->
-                                loadSimilarPrompts(category, promptId)
+                                loadSimilarPrompts(category, prompt.id)
                             }
                         },
                         onFailure = { error ->
@@ -140,7 +148,7 @@ class AiPromptDetailsViewModel(
         viewModelScope.launch {
             try {
                 val limit = currentPage * SIMILAR_PROMPTS_PAGE_SIZE
-                repository.getSimilarPrompts(category, excludeId, limit).collect { result ->
+                promptRepository.getSimilarPrompts(category, excludeId, limit).collect { result ->
                     result.fold(
                         onSuccess = { prompts ->
                             Log.d(TAG, "Loaded ${prompts.size} similar prompts")
@@ -228,32 +236,31 @@ class AiPromptDetailsViewModel(
     fun toggleFavorite(prompt: AIPrompt) {
         viewModelScope.launch {
             try {
-                repository.toggleFavorite(prompt).collect { result ->
-                    result.fold(
-                        onSuccess = { isNowFavorite ->
-                            Log.d(TAG, "Favorite toggled: $isNowFavorite")
-                            // Update current prompt's favorite status
-                            _uiState.value = _uiState.value.copy(
-                                currentPrompt = prompt.copy(isFavouriteBookmarked = isNowFavorite)
-                            )
-                        },
-                        onFailure = { error ->
-                            Log.e(TAG, "Failed to toggle favorite: ${error.message}")
-                            _uiState.value = _uiState.value.copy(
-                                error = error.message ?: "Failed to toggle favorite"
-                            )
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception toggling favorite: ${e.message}")
+                val promptId = prompt.id ?: return@launch
+
+                Log.e("FAV_DEBUG", "VM toggle clicked for promptId = $promptId")
+
+                val isNowFavorited =
+                    engagementRepository.toggleFavorite(promptId)
+
+                Log.e("FAV_DEBUG", "VM received isNowFavorited = $isNowFavorited")
+
                 _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "An error occurred"
+                    currentPrompt = _uiState.value.currentPrompt?.copy(
+                        isFavouriteBookmarked = isNowFavorited
+                    )
+                )
+
+            } catch (e: Exception) {
+                Log.e("FAV_DEBUG", "VM toggle failed: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Failed to toggle favorite"
                 )
             }
         }
     }
-    
+
+
     override fun onCleared() {
         super.onCleared()
         Log.d(TAG, "ViewModel cleared")
