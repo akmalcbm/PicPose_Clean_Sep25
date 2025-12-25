@@ -270,6 +270,4 @@ class EngagementRepository @Inject constructor(
         return engagementDao.getAllFavoritedPromptIds()
     }
 
-
-
 }

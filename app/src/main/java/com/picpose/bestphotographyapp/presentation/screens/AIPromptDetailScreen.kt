@@ -96,6 +96,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -135,6 +136,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 private const val TAG_DETAIL = "PromptDetail"
@@ -249,13 +251,12 @@ fun AIPromptDetailScreen(
     }
 
 
-    LaunchedEffect(effectivePrompt?.id) {
-        val id = effectivePrompt?.id ?: return@LaunchedEffect
-
-        if (lastCountedPromptId != id) {
-            lastCountedPromptId = id
-            viewModel.registerView(id)
-        }
+    LaunchedEffect(Unit) {
+        snapshotFlow { effectivePrompt?.id }
+            .distinctUntilChanged()
+            .collect { id ->
+                id?.let { viewModel.registerView(it) }
+            }
     }
 
 
