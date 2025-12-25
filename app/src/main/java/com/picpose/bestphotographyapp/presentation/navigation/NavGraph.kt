@@ -309,7 +309,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
             } else {
                 AIPromptDetailScreen(
                     promptId = promptId,
-                    viewModel = aiPromptVM,
+                    aiPromptViewModel = aiPromptVM,
                     onBack = { navController.popBackStack() },
                     onPromptClick = { newPromptId ->
                         navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) { launchSingleTop = true }

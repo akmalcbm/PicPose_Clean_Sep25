@@ -145,14 +145,14 @@ private const val TAG_DETAIL = "PromptDetail"
 @Composable
 fun AIPromptDetailScreen(
     promptId: String,
-    viewModel: AIPromptViewModel = hiltViewModel(),
+    aiPromptViewModel: AIPromptViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit,
     onTagClick: (String) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by aiPromptViewModel.uiState.collectAsState()
 
-    val localEngagementStates by viewModel.localEngagementStates.collectAsState()
+    val localEngagementStates by aiPromptViewModel.localEngagementStates.collectAsState()
 
 
     val context = LocalContext.current
@@ -171,14 +171,27 @@ fun AIPromptDetailScreen(
     // Transition overlay
     var isTransitionLoading by rememberSaveable { mutableStateOf(false) }
 
+
     // To avoid multiple view-count increments
-    var lastCountedPromptId by rememberSaveable { mutableStateOf<String?>(null) }
+    val viewTracked = rememberSaveable(promptId) { mutableStateOf(false) }
+
+    // ⚠️ IMPORTANT:
+    // View count MUST be incremented ONLY here (Ai Prompts Detail Screen)
+    // Do NOT call registerView() from any ViewModel load/fetch function
+
+    LaunchedEffect(promptId) {
+        if (!viewTracked.value) {
+            aiPromptViewModel.registerView(promptId)
+            viewTracked.value = true
+        }
+    }
+
 
     // Interstitial ad
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
-    val similarClickCount by viewModel.similarPromptsClickCount.collectAsState()
+    val similarClickCount by aiPromptViewModel.similarPromptsClickCount.collectAsState()
 
-    val skipGeminiDialog by viewModel.skipGeminiDialog.collectAsState()
+    val skipGeminiDialog by aiPromptViewModel.skipGeminiDialog.collectAsState()
 
     // Load interstitial once
     LaunchedEffect(Unit) {
@@ -242,23 +255,13 @@ fun AIPromptDetailScreen(
 
         if (match != null) {
             localPrompt = match
-            viewModel.loadPromptById(promptId)
+            aiPromptViewModel.loadPromptById(promptId)
         } else if (!hasRequestedFromApi) {
             hasRequestedFromApi = true
             android.util.Log.w(TAG_DETAIL, "⚠️ Not found in memory → Fetching from API")
-            viewModel.loadPromptById(promptId)
+            aiPromptViewModel.loadPromptById(promptId)
         }
     }
-
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { effectivePrompt?.id }
-            .distinctUntilChanged()
-            .collect { id ->
-                id?.let { viewModel.registerView(it) }
-            }
-    }
-
 
     // Stop transition overlay once loading settles
     LaunchedEffect(promptId, uiState.isLoading, effectivePrompt) {
@@ -275,7 +278,7 @@ fun AIPromptDetailScreen(
         val cat = effectivePrompt?.category
         val id = effectivePrompt?.id
         if (!cat.isNullOrBlank() && !id.isNullOrBlank()) {
-            viewModel.loadSimilarPrompts(cat, id)
+            aiPromptViewModel.loadSimilarPrompts(cat, id)
         }
     }
 
@@ -284,7 +287,7 @@ fun AIPromptDetailScreen(
         uiState.error?.let { msg ->
             coroutineScope.launch {
                 snackbarHostState.showSnackbar(msg)
-                viewModel.clearError()
+                aiPromptViewModel.clearError()
             }
         }
     }
@@ -315,7 +318,7 @@ fun AIPromptDetailScreen(
                     }
 
                     effectivePrompt?.let { p ->
-                        IconButton(onClick = { viewModel.onFavoriteClicked(p) }) {
+                        IconButton(onClick = { aiPromptViewModel.onFavoriteClicked(p) }) {
                             Icon(
                                 if (p.isFavouriteBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                                 contentDescription = "Favorite Bookmarked AI Prompts",
@@ -338,7 +341,7 @@ fun AIPromptDetailScreen(
         snackbarHostState = snackbarHostState
     ) { innerPadding ->
 
-    when {
+        when {
             // Initial / hard loading with no prompt yet → shimmer screen
             uiState.isLoading && effectivePrompt == null -> {
                 DetailLoadingPlaceholder(innerPadding = innerPadding)
@@ -602,7 +605,7 @@ fun AIPromptDetailScreen(
                                                     ).show()
 
                                                     promptData.id?.toIntOrNull()?.let {
-                                                        viewModel.incrementCopyCount(it)
+                                                        aiPromptViewModel.incrementCopyCount(it)
                                                     }
                                                 } else {
                                                     showGeminiDialog = true
@@ -636,17 +639,17 @@ fun AIPromptDetailScreen(
 
 
                                         // 📢 One-Time Large Native Ad with Shimmer Placeholder
-                                            if (nativeAd == null) {
-                                                // ⏳ Shimmer while ad loads
-                                                LargeAdShimmerPlaceholder()
-                                            } else {
-                                                // 🎉 Real Large Ad
-                                                LargeNativeAdCard(
-                                                    nativeAd = nativeAd,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                )
-                                            }
+                                        if (nativeAd == null) {
+                                            // ⏳ Shimmer while ad loads
+                                            LargeAdShimmerPlaceholder()
+                                        } else {
+                                            // 🎉 Real Large Ad
+                                            LargeNativeAdCard(
+                                                nativeAd = nativeAd,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                            )
+                                        }
 
 
 
@@ -671,7 +674,7 @@ fun AIPromptDetailScreen(
                                                     ).show()
 
                                                     promptData.id?.toIntOrNull()?.let {
-                                                        viewModel.incrementCopyCount(it)
+                                                        aiPromptViewModel.incrementCopyCount(it)
                                                     }
                                                 }
                                             },
@@ -744,7 +747,7 @@ fun AIPromptDetailScreen(
                                             showGeminiDialog = false
 
                                             if (dontAskAgain) {
-                                                viewModel.setSkipGeminiDialog(true) // 💾 DataStore
+                                                aiPromptViewModel.setSkipGeminiDialog(true) // 💾 DataStore
                                             }
 
                                             openGemini(
@@ -759,7 +762,7 @@ fun AIPromptDetailScreen(
                                             ).show()
 
                                             promptData.id?.toIntOrNull()?.let {
-                                                viewModel.incrementCopyCount(it)
+                                                aiPromptViewModel.incrementCopyCount(it)
                                             }
 
                                             dontAskAgain = false
@@ -1421,62 +1424,62 @@ fun openGemini(context: Context, promptText: String) {
     }
 }
 
-    /*fun openGeminiOrPlayStore(
-    context: Context,
-    promptText: String
+/*fun openGeminiOrPlayStore(
+context: Context,
+promptText: String
 ) {
-    val geminiPackage = "com.google.android.apps.bard"
+val geminiPackage = "com.google.android.apps.bard"
 
-    // ✅ 1. Copy prompt FIRST
-    val clipboard =
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(
-        ClipData.newPlainText("AI Prompt", promptText)
-    )
+// ✅ 1. Copy prompt FIRST
+val clipboard =
+    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+clipboard.setPrimaryClip(
+    ClipData.newPlainText("AI Prompt", promptText)
+)
 
-    val pm = context.packageManager
+val pm = context.packageManager
 
-    // 🔥 2. TRY: Explicit launcher intent (Samsung-safe)
-    try {
-        val launchIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            setPackage(geminiPackage)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        if (launchIntent.resolveActivity(pm) != null) {
-            context.startActivity(launchIntent)
-            return // ✅ EXIT — APP OPENED
-        }
-    } catch (_: Exception) { }
-
-    // 🔥 3. TRY: Standard launch intent
-    try {
-        val fallbackLaunch = pm.getLaunchIntentForPackage(geminiPackage)
-        if (fallbackLaunch != null) {
-            fallbackLaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(fallbackLaunch)
-            return // ✅ EXIT — APP OPENED
-        }
-    } catch (_: Exception) { }
-
-    // ❌ 4. ONLY NOW → Play Store (FORCE GOOGLE PLAY)
-    try {
-        val playStoreIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("market://details?id=$geminiPackage")
-        ).apply {
-            setPackage("com.android.vending") // ❗ no Galaxy Store
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(playStoreIntent)
-    } catch (_: Exception) {
-        // 🌐 Final browser fallback
-        context.startActivity(
-            Intent(
-                Intent.ACTION_VIEW,
-                Uri.parse("https://play.google.com/store/apps/details?id=$geminiPackage")
-            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
+// 🔥 2. TRY: Explicit launcher intent (Samsung-safe)
+try {
+    val launchIntent = Intent(Intent.ACTION_MAIN).apply {
+        addCategory(Intent.CATEGORY_LAUNCHER)
+        setPackage(geminiPackage)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
+
+    if (launchIntent.resolveActivity(pm) != null) {
+        context.startActivity(launchIntent)
+        return // ✅ EXIT — APP OPENED
+    }
+} catch (_: Exception) { }
+
+// 🔥 3. TRY: Standard launch intent
+try {
+    val fallbackLaunch = pm.getLaunchIntentForPackage(geminiPackage)
+    if (fallbackLaunch != null) {
+        fallbackLaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(fallbackLaunch)
+        return // ✅ EXIT — APP OPENED
+    }
+} catch (_: Exception) { }
+
+// ❌ 4. ONLY NOW → Play Store (FORCE GOOGLE PLAY)
+try {
+    val playStoreIntent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse("market://details?id=$geminiPackage")
+    ).apply {
+        setPackage("com.android.vending") // ❗ no Galaxy Store
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(playStoreIntent)
+} catch (_: Exception) {
+    // 🌐 Final browser fallback
+    context.startActivity(
+        Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=$geminiPackage")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+}
 }*/

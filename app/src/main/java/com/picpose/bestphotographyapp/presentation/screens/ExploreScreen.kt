@@ -68,13 +68,11 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
-import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
 import com.picpose.bestphotographyapp.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
-import kotlinx.coroutines.launch
 
 /** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
 /** ⚡ Enhanced adaptive frequency for best UX + Revenue */
@@ -116,10 +114,10 @@ private fun dynamicGap(
 fun ExploreScreen(
     onNavigateToPromptDetail: (AIPrompt) -> Unit = {},
     onNavigateToGuidePostDetail: (GuidePost) -> Unit = {},
-    viewModel: ExploreViewModel = hiltViewModel()
+    exploreViewModel: ExploreViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val localStates by viewModel.localEngagementStates.collectAsStateWithLifecycle()
+    val uiState by exploreViewModel.uiState.collectAsStateWithLifecycle()
+    val localStates by exploreViewModel.localEngagementStates.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -180,7 +178,7 @@ fun ExploreScreen(
                     uiState.hasMore &&
                     !uiState.isLoading
                 ) {
-                    viewModel.loadMore()
+                    exploreViewModel.loadMore()
                 }
             }
     }
@@ -192,20 +190,20 @@ fun ExploreScreen(
         topBar = {
             ExploreTopBar(
                 searchQuery = uiState.searchQuery,
-                onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+                onSearchQueryChange = { exploreViewModel.updateSearchQuery(it) },
                 onRefresh = {
                     // request a full reset + refresh (atomic; UI content remains visible)
                     manualRefreshInFlight = true
-                    viewModel.refresh(resetFilters = true)
+                    exploreViewModel.refresh(resetFilters = true)
                 },
                 onToggleFilters = { showFilters = !showFilters },
                 categories = uiState.categories,
                 selectedCategory = uiState.selectedCategory,
                 selectedContentFilter = uiState.selectedContentFilter,
                 selectedSortOption = uiState.selectedSortOption,
-                onCategorySelected = { viewModel.updateCategory(it) },
-                onContentFilterSelected = { viewModel.updateContentFilter(it) },
-                onSortOptionSelected = { viewModel.updateSortOption(it) },
+                onCategorySelected = { exploreViewModel.updateCategory(it) },
+                onContentFilterSelected = { exploreViewModel.updateContentFilter(it) },
+                onSortOptionSelected = { exploreViewModel.updateSortOption(it) },
                 isManualRefreshLoading = manualRefreshInFlight
             )
         },
@@ -227,7 +225,7 @@ fun ExploreScreen(
 
         // No internet
         if (networkStatus != ConnectivityObserver.Status.Available && uiState.content.isEmpty() && !uiState.isLoading) {
-            NoInternetSection(onRetry = { viewModel.refresh() })
+            NoInternetSection(onRetry = { exploreViewModel.refresh() })
         } else {
             when (uiState.loadState) {
                 ExploreLoadState.INITIAL -> {
@@ -243,10 +241,10 @@ fun ExploreScreen(
                         searchQuery = uiState.searchQuery,
                         selectedCategory = uiState.selectedCategory,
                         onClearFilters = {
-                            viewModel.updateSearchQuery("")
-                            viewModel.updateCategory("All")
-                            viewModel.updateContentFilter(ContentFilter.ALL)
-                            viewModel.refresh(resetFilters = true)
+                            exploreViewModel.updateSearchQuery("")
+                            exploreViewModel.updateCategory("All")
+                            exploreViewModel.updateContentFilter(ContentFilter.ALL)
+                            exploreViewModel.refresh(resetFilters = true)
                         },
                         modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 60.dp)
                     )
@@ -255,7 +253,7 @@ fun ExploreScreen(
                     EmptyStateSection(
                         searchQuery = uiState.searchQuery,
                         selectedCategory = uiState.selectedCategory,
-                        onClearFilters = { viewModel.refresh(resetFilters = true) },
+                        onClearFilters = { exploreViewModel.refresh(resetFilters = true) },
                         modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 60.dp)
                     )
                 }
@@ -287,7 +285,7 @@ fun ExploreScreen(
                     ) {
                         if (uiState.content.isNotEmpty() && showFilters) {
                             stickyHeader {
-                                FrostedFiltersStickyHeader(uiState = uiState, viewModel = viewModel)
+                                FrostedFiltersStickyHeader(uiState = uiState, viewModel = exploreViewModel)
                             }
                         }
 
@@ -341,10 +339,10 @@ fun ExploreScreen(
                                         },
                                         showFavoriteIcon = true,
                                         onLikeClick = { updatedPrompt ->
-                                            viewModel.togglePromptLike(updatedPrompt)
+                                            exploreViewModel.togglePromptLike(updatedPrompt)
                                         },
                                         onBookmarkClick = { updatedPrompt ->
-                                            viewModel.togglePromptBookmark(updatedPrompt)
+                                            exploreViewModel.togglePromptBookmark(updatedPrompt)
                                         },
                                         modifier = Modifier.animateItem()
                                     )
@@ -354,7 +352,7 @@ fun ExploreScreen(
                                     GuidePostCard(
                                         guidePost = content.guidePost,
                                         onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                        onFavoriteClick = { viewModel.toggleGuidePostFavorite(it) },
+                                        onFavoriteClick = { exploreViewModel.toggleGuidePostFavorite(it) },
                                         modifier = Modifier.animateItem()
                                     )
                                 }
