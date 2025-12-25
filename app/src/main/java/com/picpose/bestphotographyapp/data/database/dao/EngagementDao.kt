@@ -24,11 +24,13 @@ interface EngagementDao {
      * 🔥 REQUIRED FOR APP RESTART FIX
      * Used to preload PromptRepository cache
      */
-    @Query("""
+    @Query(
+        """
         SELECT promptId
         FROM engagement_state
         WHERE isFavorited = 1
-    """)
+    """
+    )
     suspend fun getAllFavoritedPromptIds(): List<String>
 
     /* ---------------------------------------------------- */
@@ -42,24 +44,28 @@ interface EngagementDao {
     /* LIKE / FAVORITE ACTIONS */
     /* ---------------------------------------------------- */
 
-    @Query("""
+    @Query(
+        """
         UPDATE engagement_state
         SET isLiked = :liked,
             updatedAt = :updatedAt
         WHERE promptId = :id
-    """)
+    """
+    )
     suspend fun updateLike(
         id: String,
         liked: Boolean,
         updatedAt: Long
     )
 
-    @Query("""
+    @Query(
+        """
         UPDATE engagement_state
         SET isFavorited = :fav,
             updatedAt = :updatedAt
         WHERE promptId = :id
-    """)
+    """
+    )
     suspend fun updateFavorite(
         id: String,
         fav: Boolean,
@@ -70,16 +76,17 @@ interface EngagementDao {
     /* VIEW COUNT (Local, atomic increment) */
     /* ---------------------------------------------------- */
 
-    @Query("""
-        UPDATE engagement_state
-        SET localViewCount = localViewCount + 1,
-            updatedAt = :updatedAt
-        WHERE promptId = :id
-    """)
-    suspend fun incrementView(
-        id: String,
-        updatedAt: Long
+    @Query(
+        """
+    UPDATE engagement_state
+    SET localViewCount = localViewCount + 1,
+    pendingViewSync = pendingViewSync + 1,
+    updatedAt = :updatedAt
+    WHERE promptId = :id
+    """
     )
+    suspend fun incrementView(id: String, updatedAt: Long)
+
 
     /* ---------------------------------------------------- */
     /* 🔥 REACTIVE STREAMS (CRITICAL FOR UI) */
@@ -101,10 +108,12 @@ interface EngagementDao {
      * - Favorites Screen
      * - Bookmarked lists
      */
-    @Query("""
+    @Query(
+        """
         SELECT * FROM engagement_state
         WHERE isFavorited = 1
         ORDER BY updatedAt DESC
-    """)
+    """
+    )
     fun observeFavorites(): Flow<List<EngagementEntity>>
 }

@@ -900,7 +900,7 @@ class HomeRepository(
     }
 
 
-    suspend fun incrementView(promptId: Int): Int {
+    /*suspend fun incrementView(promptId: Int): Int {
         val response = apiService.incrementView(promptId, requestApiKey)
         if (response.isSuccessful && response.body()?.success == true) {
             return response.body()!!.views
@@ -914,7 +914,7 @@ class HomeRepository(
             return response.body()!!.copies
         }
         throw Exception("Copy increment failed")
-    }
+    }*/
 
 
 }

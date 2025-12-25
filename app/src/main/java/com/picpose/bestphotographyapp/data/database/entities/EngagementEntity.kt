@@ -9,7 +9,9 @@ data class EngagementEntity(
 
     val isLiked: Boolean = false,
     val isFavorited: Boolean = false,
+
     val localViewCount: Int = 0,
+    val pendingViewSync: Int = 0,
 
     val updatedAt: Long = System.currentTimeMillis()
 )

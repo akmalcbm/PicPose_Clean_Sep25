@@ -132,6 +132,7 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -169,7 +170,7 @@ fun AIPromptDetailScreen(
     var isTransitionLoading by rememberSaveable { mutableStateOf(false) }
 
     // To avoid multiple view-count increments
-    //var lastCountedPromptId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastCountedPromptId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Interstitial ad
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
@@ -249,8 +250,11 @@ fun AIPromptDetailScreen(
 
 
     LaunchedEffect(effectivePrompt?.id) {
-        effectivePrompt?.id?.let {
-            viewModel.registerView(it)
+        val id = effectivePrompt?.id ?: return@LaunchedEffect
+
+        if (lastCountedPromptId != id) {
+            lastCountedPromptId = id
+            viewModel.registerView(id)
         }
     }
 
@@ -438,7 +442,7 @@ fun AIPromptDetailScreen(
 
                             // 🧮 Stats Row directly under image
                             StatsRow(
-                                likes = promptData.likes,
+                                likes = promptData.displayLikes(localEngagement),
                                 views = promptData.displayViews(localEngagement),
                                 favorites = promptData.favorites,
                                 modifier = Modifier

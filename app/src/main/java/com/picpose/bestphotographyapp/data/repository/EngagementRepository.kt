@@ -1,11 +1,12 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
-import androidx.room.Query
 import com.picpose.bestphotographyapp.data.PromptRepository
 import com.picpose.bestphotographyapp.data.database.dao.EngagementDao
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.network.ApiService
+import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -14,7 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class EngagementRepository @Inject constructor(
     private val engagementDao: EngagementDao,
-    private val promptRepository: PromptRepository
+    private val promptRepository: PromptRepository,
+    private val api: ApiService
 ) {
 
     /* ---------------------------------------------------- */
@@ -92,7 +94,7 @@ class EngagementRepository @Inject constructor(
     /* VIEW */
     /* ---------------------------------------------------- */
 
-    suspend fun incrementView(promptId: String) {
+    /*suspend fun incrementView(promptId: String) {
         val now = System.currentTimeMillis()
         val current = engagementDao.getById(promptId)
 
@@ -114,7 +116,47 @@ class EngagementRepository @Inject constructor(
                 updatedAt = now
             )
         }
+    }*/
+
+    suspend fun registerView(promptId: String) {
+        val now = System.currentTimeMillis()
+        val current = engagementDao.getById(promptId)
+
+        if (current == null) {
+            engagementDao.upsert(
+                EngagementEntity(
+                    promptId = promptId,
+                    localViewCount = 1,
+                    pendingViewSync = 1,
+                    updatedAt = now
+                )
+            )
+        } else {
+            engagementDao.incrementView(promptId, now)
+        }
+
+        syncViewWithServer(promptId)
     }
+
+
+    private suspend fun syncViewWithServer(promptId: String) {
+        val state = engagementDao.getById(promptId) ?: return
+        val pending = state.pendingViewSync
+        if (pending <= 0) return
+
+        runCatching {
+            repeat(pending) {
+                api.incrementView(promptId.toInt(), RetrofitClient.defaultApiKey)
+            }
+            engagementDao.upsert(
+                state.copy(pendingViewSync = 0)
+            )
+        }
+    }
+
+
+
+
 
 
     /* ---------------------------------------------------- */
@@ -149,7 +191,8 @@ class EngagementRepository @Inject constructor(
             } else {
                 prompt.copy(
                     isLiked = local.isLiked,
-                    isFavouriteBookmarked = local.isFavorited
+                    isFavouriteBookmarked = local.isFavorited,
+                    views = local.localViewCount
                 )
             }
         }
@@ -225,25 +268,6 @@ class EngagementRepository @Inject constructor(
 
     suspend fun getAllFavoritedPromptIds(): List<String> {
         return engagementDao.getAllFavoritedPromptIds()
-    }
-
-
-
-
-    private val viewedInSession = mutableSetOf<String>()
-
-    suspend fun registerView(promptId: String) {
-        Log.e("VIEW_DEBUG", "registerView() called for promptId=$promptId")
-
-        if (viewedInSession.contains(promptId)) {
-            Log.e("VIEW_DEBUG", "⏭️ View already counted in this session for $promptId")
-            return
-        }
-
-        viewedInSession.add(promptId)
-        Log.e("VIEW_DEBUG", "✅ View counted FIRST TIME for $promptId")
-
-        incrementView(promptId)
     }
 
 

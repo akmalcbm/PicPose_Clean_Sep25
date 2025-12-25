@@ -15,7 +15,7 @@ import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
         StatsEntity::class,
         EngagementEntity::class // ✅ ADD THIS
     ],
-    version = 3, // 🔥 VERY IMPORTANT — incremented
+    version = 4, // 🔥 VERY IMPORTANT — incremented
     exportSchema = false
 )
 @TypeConverters(Converters::class)

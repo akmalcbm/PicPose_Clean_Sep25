@@ -197,13 +197,13 @@ interface ApiService {
     ): Response<FavoriteResponse>
 
 
-
     @FormUrlEncoded
     @POST("api/ai_posts/increment_view.php")
     suspend fun incrementView(
         @Field("id") id: Int,
         @Field("api_key") apiKey: String? = null
     ): Response<ViewResponse>
+
 
     @FormUrlEncoded
     @POST("api/ai_posts/increment_copy.php")

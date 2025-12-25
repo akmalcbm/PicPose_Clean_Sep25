@@ -30,6 +30,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
 
 @Composable
@@ -211,14 +212,15 @@ fun AIPromptCard(
 
                         // 👍 LIKE
                         LikeButton(
-                            isLiked = prompt.isLiked,
-                            likeCount = prompt.likes,
+                            isLiked = localEngagement?.isLiked ?: prompt.isLiked,
+                            likeCount = prompt.displayLikes(localEngagement),
                             onLikeClick = {
                                 prompt.id?.let { id ->
                                     onLikeClick(id)
                                 }
                             }
                         )
+
 
                         Spacer(modifier = Modifier.width(16.dp))
 

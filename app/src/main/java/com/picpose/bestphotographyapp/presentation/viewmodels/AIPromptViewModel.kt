@@ -126,31 +126,26 @@ class AIPromptViewModel @Inject constructor(
     fun onLikeClicked(prompt: AIPrompt) {
         viewModelScope.launch {
             val id = prompt.id ?: return@launch
+
+            // 🔥 ONLY toggle local engagement (single source)
             val liked = engagementRepository.toggleLike(id)
 
+            // 🔥 UIState me sirf isLiked update hoga
             _uiState.update { state ->
                 state.copy(
                     allPrompts = state.allPrompts.map {
                         if (it.id == id)
-                            it.copy(
-                                isLiked = liked,
-                                likes = if (liked) it.likes + 1 else (it.likes - 1).coerceAtLeast(0)
-                            )
+                            it.copy(isLiked = liked)
                         else it
                     },
                     selectedPrompt =
                         if (state.selectedPrompt?.id == id)
-                            state.selectedPrompt.copy(
-                                isLiked = liked,
-                                likes = if (liked)
-                                    state.selectedPrompt.likes + 1
-                                else
-                                    (state.selectedPrompt.likes - 1).coerceAtLeast(0)
-                            )
+                            state.selectedPrompt.copy(isLiked = liked)
                         else state.selectedPrompt
                 )
             }
 
+            // 🔥 Server sync (background)
             launch(Dispatchers.IO) {
                 runCatching {
                     if (liked)
@@ -169,30 +164,19 @@ class AIPromptViewModel @Inject constructor(
     fun onFavoriteClicked(prompt: AIPrompt) {
         viewModelScope.launch {
             val id = prompt.id ?: return@launch
+
             val fav = engagementRepository.toggleFavorite(id)
 
             _uiState.update { state ->
                 state.copy(
                     allPrompts = state.allPrompts.map {
                         if (it.id == id)
-                            it.copy(
-                                isFavouriteBookmarked = fav,
-                                favorites =
-                                    if (fav) it.favorites + 1
-                                    else (it.favorites - 1).coerceAtLeast(0)
-                            )
+                            it.copy(isFavouriteBookmarked = fav)
                         else it
                     },
                     selectedPrompt =
                         if (state.selectedPrompt?.id == id)
-                            state.selectedPrompt.copy(
-                                isFavouriteBookmarked = fav,
-                                favorites =
-                                    if (fav)
-                                        state.selectedPrompt.favorites + 1
-                                    else
-                                        (state.selectedPrompt.favorites - 1).coerceAtLeast(0)
-                            )
+                            state.selectedPrompt.copy(isFavouriteBookmarked = fav)
                         else state.selectedPrompt
                 )
             }
@@ -550,7 +534,7 @@ class AIPromptViewModel @Inject constructor(
             else prompt.copy(
                 isLiked = local.isLiked,
                 isFavouriteBookmarked = local.isFavorited,
-                views = prompt.views + local.localViewCount
+                views = local.localViewCount
             )
         }
     }

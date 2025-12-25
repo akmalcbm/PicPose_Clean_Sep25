@@ -451,8 +451,6 @@ class ExploreViewModel @Inject constructor(
             )
 
 
-
-
     private suspend fun remergeExploreList() {
         val current = _uiState.value.content
 
@@ -471,12 +469,6 @@ class ExploreViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(content = updated) }
-    }
-
-    fun onPromptViewed(promptId: String) {
-        viewModelScope.launch {
-            engagementRepository.incrementView(promptId)
-        }
     }
 
 
