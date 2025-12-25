@@ -176,9 +176,8 @@ fun AIPromptDetailScreen(
     val viewTracked = rememberSaveable(promptId) { mutableStateOf(false) }
 
     // ⚠️ IMPORTANT:
-    // View count MUST be incremented ONLY here (Ai Prompts Detail Screen)
+    // View count MUST be incremented ONLY here with Server Stored total Views +1 (Ai Prompts Detail Screen)
     // Do NOT call registerView() from any ViewModel load/fetch function
-
     LaunchedEffect(promptId) {
         if (!viewTracked.value) {
             aiPromptViewModel.registerView(promptId)
