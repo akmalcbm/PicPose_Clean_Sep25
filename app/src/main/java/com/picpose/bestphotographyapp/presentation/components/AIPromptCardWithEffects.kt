@@ -1,11 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.components
 
-import android.Manifest
-import android.content.Context
-import android.os.VibrationEffect
-import android.os.Vibrator
-import androidx.annotation.RequiresPermission
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,13 +23,13 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.utils.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -53,84 +49,65 @@ fun AIPromptCardWithEffects(
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
     // ======================================================
-    // Optimistic Local UI State
+    // 🔥 FIXED: Use Utils functions for ALL display values
     // ======================================================
-    var localLiked by remember(prompt.id) { mutableStateOf(prompt.isLiked) }
-    var localLikesCount by remember(prompt.id) { mutableStateOf(prompt.likes) }
-    var localBookmarked by remember(prompt.id) { mutableStateOf(prompt.isFavouriteBookmarked) }
+    val displayLikes = remember(prompt, localEngagement) {
+        prompt.displayLikes(localEngagement)
+    }
 
-    LaunchedEffect(prompt.id, prompt.isLiked, prompt.isFavouriteBookmarked, prompt.likes) {
-        localLiked = prompt.isLiked
-        localBookmarked = prompt.isFavouriteBookmarked
-        localLikesCount = prompt.likes
+    val displayFavorites = remember(prompt, localEngagement) {
+        prompt.displayFavorites(localEngagement)
+    }
+
+    val displayViews = remember(prompt, localEngagement) {
+        prompt.displayViews(localEngagement)
+    }
+
+    // Get icon states from single source
+    val isLiked = remember(prompt, localEngagement) {
+        prompt.getLikeIconState(localEngagement)
+    }
+    val isBookmarked = remember(prompt, localEngagement) {
+        prompt.getBookmarkIconState(localEngagement)
     }
 
     // ======================================================
     // Animations
     // ======================================================
     val likeScale = remember { Animatable(1f) }
-    val bookmarkPulse = remember { Animatable(1f) }
-
-    suspend fun playLikeBounce() {
-        likeScale.animateTo(1.3f, tween(130))
-        likeScale.animateTo(1f, tween(160))
-    }
-
-    suspend fun playBookmarkPulse() {
-        bookmarkPulse.animateTo(0.6f, tween(140))
-        bookmarkPulse.animateTo(1f, tween(180))
-    }
+    val bookmarkScale = remember { Animatable(1f) }
 
     // ======================================================
-    // Modern Vibration Helper (NO Deprecated API)
-    // ======================================================
-    @RequiresPermission(Manifest.permission.VIBRATE)
-    fun vibrateCompat(context: Context) {
-        try {
-            val vib = ContextCompat.getSystemService(context, Vibrator::class.java)
-            vib?.vibrate(
-                VibrationEffect.createOneShot(
-                    25,
-                    VibrationEffect.DEFAULT_AMPLITUDE
-                )
-            )
-        } catch (_: Exception) {}
-    }
-
-    // ======================================================
-    // LIKE handler
+    // ✅ FIXED: SIMPLIFIED HANDLERS - NO LOCAL CALCULATIONS
     // ======================================================
     fun handleLike() {
-        val now = !localLiked
-        localLiked = now
-        localLikesCount = if (now) localLikesCount + 1 else maxOf(0, localLikesCount - 1)
-
-        scope.launch { playLikeBounce() }
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        vibrateCompat(context)
 
-        onLikeClick(
-            prompt.copy(
-                isLiked = localLiked,
-                likes = localLikesCount
-            )
-        )
+        // ✅ ONLY ANIMATION, NO CALCULATION
+        coroutineScope.launch {
+            likeScale.animateTo(1.3f, tween(130))
+            likeScale.animateTo(1f, tween(160))
+        }
+
+        // ✅ Pass current prompt AS-IS
+        // Let ViewModel handle everything through EngagementRepository
+        onLikeClick(prompt)
     }
 
-    // ======================================================
-    // BOOKMARK handler
-    // ======================================================
     fun handleBookmark() {
-        localBookmarked = !localBookmarked
-
-        scope.launch { playBookmarkPulse() }
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        vibrateCompat(context)
 
-        onBookmarkClick(prompt.copy(isFavouriteBookmarked = localBookmarked))
+        // ✅ ONLY ANIMATION, NO CALCULATION
+        coroutineScope.launch {
+            bookmarkScale.animateTo(0.8f, tween(140))
+            bookmarkScale.animateTo(1f, tween(180))
+        }
+
+        // ✅ Pass current prompt AS-IS
+        onBookmarkClick(prompt)
     }
 
     // ======================================================
@@ -144,10 +121,6 @@ fun AIPromptCardWithEffects(
             .build(),
         filterQuality = FilterQuality.None
     )
-
-    val displayViews = remember(prompt.views, localEngagement?.localViewCount) {
-        prompt.views + (localEngagement?.localViewCount ?: 0)
-    }
 
     Card(
         modifier = modifier
@@ -255,44 +228,35 @@ fun AIPromptCardWithEffects(
                                 .padding(4.dp)
                         ) {
                             Icon(
-                                imageVector =
-                                    if (localLiked)
-                                        Icons.Default.ThumbUp
-                                    else
-                                        Icons.Default.ThumbUpOffAlt,
-                                contentDescription = "Like",
-                                tint =
-                                    if (localLiked)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        colors.onSurfaceVariant,
+                                imageVector = if (isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
+                                contentDescription = if (isLiked) "Unlike" else "Like",
+                                tint = if (isLiked) MaterialTheme.colorScheme.primary else colors.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(22.dp)
                                     .scale(likeScale.value)
                             )
 
-
                             Spacer(Modifier.width(4.dp))
 
-                            Text("$localLikesCount")
+                            Text("$displayLikes")
                         }
 
                         Spacer(Modifier.width(14.dp))
 
-                        // 🔖 BOOKMARK BUTTON (blue when selected, grey when not)
+                        // 🔖 BOOKMARK BUTTON
                         Icon(
-                            if (localBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                            if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
                             null,
-                            tint = if (localBookmarked) colors.primary else colors.onSurfaceVariant,
+                            tint = if (isBookmarked) colors.primary else colors.onSurfaceVariant,
                             modifier = Modifier
                                 .size(22.dp)
-                                .scale(bookmarkPulse.value)
+                                .scale(bookmarkScale.value)
                                 .clickable { handleBookmark() }
                         )
 
                         Spacer(Modifier.width(14.dp))
 
-                        // 👁 VIEWS
+                        // 👁 VIEWS (Server only)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Visibility,

@@ -29,8 +29,8 @@ class EngagementRepository @Inject constructor(
     /**
      * Central like handler for ALL screens
      */
-    suspend fun handleLike(promptId: String): LikeResult {
-        Log.d(TAG, "🔄 handleLike called for: $promptId")
+    suspend fun handleLike(promptId: String, currentLikes: Int = 0): LikeResult {
+        Log.d(TAG, "🔄 handleLike called for: $promptId, currentLikes: $currentLikes")
 
         // 1. Get current state
         val current = engagementDao.getById(promptId)
@@ -50,7 +50,14 @@ class EngagementRepository @Inject constructor(
 
         engagementDao.upsert(newState)
 
-        // 3. Sync with server
+        // 3. Calculate new like count BEFORE server sync
+        val newLikes = calculateNewLikes(
+            wasLiked = currentLiked,
+            nowLiked = newLiked,
+            currentLikes = currentLikes
+        )
+
+        // 4. Sync with server
         try {
             if (newLiked) {
                 api.incrementLike(promptId.toInt(), RetrofitClient.defaultApiKey)
@@ -68,15 +75,15 @@ class EngagementRepository @Inject constructor(
         return LikeResult(
             promptId = promptId,
             isLiked = newLiked,
-            newLikes = calculateNewLikes(currentLiked, newLiked)
+            newLikes = newLikes
         )
     }
 
     /**
      * Central bookmark handler for ALL screens
      */
-    suspend fun handleBookmark(promptId: String): BookmarkResult {
-        Log.d(TAG, "🔄 handleBookmark called for: $promptId")
+    suspend fun handleBookmark(promptId: String, currentFavorites: Int = 0): BookmarkResult {
+        Log.d(TAG, "🔄 handleBookmark called for: $promptId, currentFavorites: $currentFavorites")
 
         // 1. Get current state
         val current = engagementDao.getById(promptId)
@@ -96,7 +103,14 @@ class EngagementRepository @Inject constructor(
 
         engagementDao.upsert(newState)
 
-        // 3. Sync with server
+        // 3. Calculate new favorite count
+        val newFavorites = calculateNewFavorites(
+            wasBookmarked = currentBookmarked,
+            nowBookmarked = newBookmarked,
+            currentFavorites = currentFavorites
+        )
+
+        // 4. Sync with server
         try {
             if (newBookmarked) {
                 api.incrementFavorite(promptId.toInt(), RetrofitClient.defaultApiKey)
@@ -112,9 +126,36 @@ class EngagementRepository @Inject constructor(
         return BookmarkResult(
             promptId = promptId,
             isBookmarked = newBookmarked,
-            newFavorites = calculateNewFavorites(currentBookmarked, newBookmarked)
+            newFavorites = newFavorites
         )
     }
+
+    /* ---------------------------------------------------- */
+    /* MERGE LOCAL ENGAGEMENT INTO PROMPTS - FIXED */
+    /* ---------------------------------------------------- */
+
+    suspend fun mergeWithLocalEngagement(
+        prompts: List<AIPrompt>
+    ): List<AIPrompt> {
+        val localStates = engagementDao.getAll()
+            .associateBy { it.promptId }
+
+        return prompts.map { prompt ->
+            val local = localStates[prompt.id]
+
+            if (local == null) {
+                prompt
+            } else {
+                prompt.copy(
+                    isLiked = local.isLiked,
+                    isFavouriteBookmarked = local.isFavorited
+                    // 🔥 IMPORTANT: views नहीं add करें
+                    // Server views ही show करें
+                )
+            }
+        }
+    }
+
 
     private fun calculateNewLikes(
         wasLiked: Boolean,
@@ -314,31 +355,6 @@ class EngagementRepository @Inject constructor(
     suspend fun resetPendingSync(promptId: String) {
         val state = engagementDao.getById(promptId) ?: return
         engagementDao.upsert(state.copy(pendingViewSync = 0))
-    }
-
-    /* ---------------------------------------------------- */
-    /* MERGE LOCAL ENGAGEMENT INTO PROMPTS (SNAPSHOT) */
-    /* ---------------------------------------------------- */
-
-    suspend fun mergeWithLocalEngagement(
-        prompts: List<AIPrompt>
-    ): List<AIPrompt> {
-        val localStates = engagementDao.getAll()
-            .associateBy { it.promptId }
-
-        return prompts.map { prompt ->
-            val local = localStates[prompt.id]
-
-            if (local == null) {
-                prompt
-            } else {
-                prompt.copy(
-                    isLiked = local.isLiked,
-                    isFavouriteBookmarked = local.isFavorited
-                    //views = prompt.views + local.localViewCount
-                )
-            }
-        }
     }
 
     /* ---------------------------------------------------- */

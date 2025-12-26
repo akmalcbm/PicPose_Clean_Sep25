@@ -7,7 +7,6 @@ import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
-import com.picpose.bestphotographyapp.data.repository.ExploreRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -86,7 +85,6 @@ enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
-    private val exploreRepository: ExploreRepository,
     private val engagementRepository: EngagementRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExploreUiState())
@@ -413,7 +411,6 @@ class ExploreViewModel @Inject constructor(
         }
     }
 
-
     /* ---------------------------------------------------- */
     /* SIMPLIFIED ENGAGEMENT HANDLERS */
     /* ---------------------------------------------------- */
@@ -423,8 +420,8 @@ class ExploreViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Use centralized handler
-                val result = engagementRepository.handleLike(promptId)
+                // Use centralized handler with current like count
+                val result = engagementRepository.handleLike(promptId, prompt.likes)
 
                 // Update UI state
                 updatePromptInState(promptId) { currentPrompt ->
@@ -434,7 +431,7 @@ class ExploreViewModel @Inject constructor(
                     )
                 }
 
-                Log.d(TAG, "✅ Like toggled: ${promptId}, liked: ${result.isLiked}")
+                Log.d(TAG, "✅ Like toggled: $promptId, liked: ${result.isLiked}, newLikes: ${result.newLikes}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Failed to toggle like: ${e.message}")
@@ -447,8 +444,8 @@ class ExploreViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Use centralized handler
-                val result = engagementRepository.handleBookmark(promptId)
+                // Use centralized handler with current favorite count
+                val result = engagementRepository.handleBookmark(promptId, prompt.favorites)
 
                 // Update UI state
                 updatePromptInState(promptId) { currentPrompt ->
@@ -458,7 +455,7 @@ class ExploreViewModel @Inject constructor(
                     )
                 }
 
-                Log.d(TAG, "✅ Bookmark toggled: ${promptId}, bookmarked: ${result.isBookmarked}")
+                Log.d(TAG, "✅ Bookmark toggled: $promptId, bookmarked: ${result.isBookmarked}, newFavorites: ${result.newFavorites}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Failed to toggle bookmark: ${e.message}")
@@ -502,7 +499,5 @@ class ExploreViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptyMap()
             )
-
-
 
 }

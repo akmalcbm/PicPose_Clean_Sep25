@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.utils
 
+import android.util.Log
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import kotlin.math.max
@@ -46,4 +47,17 @@ fun AIPrompt.getLikeIconState(local: EngagementEntity?): Boolean {
 
 fun AIPrompt.getBookmarkIconState(local: EngagementEntity?): Boolean {
     return local?.isFavorited ?: this.isFavouriteBookmarked
+}
+
+/**
+ * For debug logging
+ */
+fun AIPrompt.logEngagementState(local: EngagementEntity?, tag: String) {
+    Log.d(tag, "📊 Prompt: ${this.id}")
+    Log.d(tag, "  Server - Liked: ${this.isLiked}, Likes: ${this.likes}")
+    Log.d(tag, "  Server - Bookmarked: ${this.isFavouriteBookmarked}, Favorites: ${this.favorites}")
+    Log.d(tag, "  Server - Views: ${this.views}")
+    Log.d(tag, "  Local - Liked: ${local?.isLiked}, Favorited: ${local?.isFavorited}")
+    Log.d(tag, "  Local - ViewCount: ${local?.localViewCount}")
+    Log.d(tag, "  Display - Likes: ${displayLikes(local)}, Favorites: ${displayFavorites(local)}, Views: ${displayViews(local)}")
 }

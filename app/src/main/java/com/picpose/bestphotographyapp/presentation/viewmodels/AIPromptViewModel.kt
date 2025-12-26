@@ -15,7 +15,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
-import kotlin.math.max
 import kotlin.system.measureTimeMillis
 
 private const val TAG = "AIPromptVM"
@@ -121,191 +120,190 @@ class AIPromptViewModel @Inject constructor(
     }
 
     /* ---------------------------------------------------------------------- */
-    /* LIKE - IMPROVED VERSION WITH COUNT UPDATES */
+    /* LIKE - USING CENTRALIZED HANDLER */
+    /* ---------------------------------------------------------------------- */
+
+    /* ---------------------------------------------------------------------- */
+    /* LIKE - USING CENTRALIZED HANDLER - UPDATED */
     /* ---------------------------------------------------------------------- */
 
     fun onLikeClicked(prompt: AIPrompt) {
         viewModelScope.launch {
-            val id = prompt.id
-            if (id.isBlank()) return@launch
+            val id = prompt.id ?: return@launch
 
-            // 1. Get current engagement state
-            val engagement = engagementRepository.getEngagementState(id)
-            val currentLiked = engagement?.isLiked ?: false
+            try {
+                // Use centralized handler with current like count
+                val result = engagementRepository.handleLike(id, prompt.likes)
 
-            // 2. Toggle like status
-            val newLiked = !currentLiked
-            engagementRepository.setLiked(id, newLiked)
-
-            // 3. Calculate new like count (server count + local change)
-            val serverLikes = prompt.likes
-            val newLikes = if (newLiked) serverLikes + 1 else max(0, serverLikes - 1)
-
-            // 4. Update UI State immediately for instant feedback
-            _uiState.update { state ->
-                val updatedAllPrompts = state.allPrompts.map { p ->
-                    if (p.id == id) p.copy(
-                        isLiked = newLiked,
-                        likes = newLikes
-                    ) else p
-                }
-
-                val updatedSelectedPrompt = if (state.selectedPrompt?.id == id) {
-                    state.selectedPrompt.copy(
-                        isLiked = newLiked,
-                        likes = newLikes
+                // ✅ FIXED: Update BOTH allPrompts AND favorite prompts flow
+                updatePromptInAllStates(id) { currentPrompt ->
+                    currentPrompt.copy(
+                        isLiked = result.isLiked,
+                        likes = result.newLikes
                     )
-                } else state.selectedPrompt
-
-                state.copy(
-                    allPrompts = updatedAllPrompts,
-                    selectedPrompt = updatedSelectedPrompt
-                )
-            }
-
-            // 5. Sync with server in background
-            launch(Dispatchers.IO) {
-                runCatching {
-                    if (newLiked) {
-                        homeRepository.incrementLike(id.toInt())
-                    } else {
-                        homeRepository.decrementLike(id.toInt())
-                    }
-                }.onFailure { e ->
-                    // If server fails, revert local state
-                    Log.e(TAG, "Like sync failed: ${e.message}")
-                    viewModelScope.launch {
-                        engagementRepository.setLiked(id, currentLiked)
-                        _uiState.update { state ->
-                            val revertedAllPrompts = state.allPrompts.map { p ->
-                                if (p.id == id) p.copy(
-                                    isLiked = currentLiked,
-                                    likes = serverLikes
-                                ) else p
-                            }
-
-                            val revertedSelectedPrompt = if (state.selectedPrompt?.id == id) {
-                                state.selectedPrompt.copy(
-                                    isLiked = currentLiked,
-                                    likes = serverLikes
-                                )
-                            } else state.selectedPrompt
-
-                            state.copy(
-                                allPrompts = revertedAllPrompts,
-                                selectedPrompt = revertedSelectedPrompt
-                            )
-                        }
-                    }
                 }
+
+                // ✅ FIXED: Also update the prompt in promptRepository cache
+                updatePromptInRepositoryCache(id, result.isLiked, result.newLikes)
+
+                Log.d(TAG, "✅ Like handled: ${id}, liked: ${result.isLiked}, newLikes: ${result.newLikes}")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to handle like: ${e.message}")
             }
         }
     }
 
     /* ---------------------------------------------------------------------- */
-    /* FAVORITE - IMPROVED VERSION WITH COUNT UPDATES */
+    /* FAVORITE - USING CENTRALIZED HANDLER - UPDATED */
     /* ---------------------------------------------------------------------- */
 
     fun onFavoriteClicked(prompt: AIPrompt) {
         viewModelScope.launch {
-            val id = prompt.id
-            if (id.isBlank()) return@launch
+            val id = prompt.id ?: return@launch
 
-            // 1. Get current engagement state
-            val engagement = engagementRepository.getEngagementState(id)
-            val currentFavorited = engagement?.isFavorited ?: false
+            try {
+                // Use centralized handler with current favorite count
+                val result = engagementRepository.handleBookmark(id, prompt.favorites)
 
-            // 2. Toggle favorite status
-            val newFavorited = !currentFavorited
-            engagementRepository.setFavorited(id, newFavorited)
-
-            // 3. Calculate new favorite count (server count + local change)
-            val serverFavorites = prompt.favorites
-            val newFavorites = if (newFavorited) serverFavorites + 1 else max(0, serverFavorites - 1)
-
-            // 4. Update UI State immediately for instant feedback
-            _uiState.update { state ->
-                val updatedAllPrompts = state.allPrompts.map { p ->
-                    if (p.id == id) p.copy(
-                        isFavouriteBookmarked = newFavorited,
-                        favorites = newFavorites
-                    ) else p
-                }
-
-                val updatedSelectedPrompt = if (state.selectedPrompt?.id == id) {
-                    state.selectedPrompt.copy(
-                        isFavouriteBookmarked = newFavorited,
-                        favorites = newFavorites
+                // ✅ FIXED: Update BOTH allPrompts AND favorite prompts flow
+                updatePromptInAllStates(id) { currentPrompt ->
+                    currentPrompt.copy(
+                        isFavouriteBookmarked = result.isBookmarked,
+                        favorites = result.newFavorites
                     )
-                } else state.selectedPrompt
-
-                state.copy(
-                    allPrompts = updatedAllPrompts,
-                    selectedPrompt = updatedSelectedPrompt
-                )
-            }
-
-            // 5. Sync with server in background
-            launch(Dispatchers.IO) {
-                runCatching {
-                    if (newFavorited) {
-                        homeRepository.incrementFavorite(id.toInt())
-                    } else {
-                        homeRepository.decrementFavorite(id.toInt())
-                    }
-                }.onFailure { e ->
-                    // If server fails, revert local state
-                    Log.e(TAG, "Favorite sync failed: ${e.message}")
-                    viewModelScope.launch {
-                        engagementRepository.setFavorited(id, currentFavorited)
-                        _uiState.update { state ->
-                            val revertedAllPrompts = state.allPrompts.map { p ->
-                                if (p.id == id) p.copy(
-                                    isFavouriteBookmarked = currentFavorited,
-                                    favorites = serverFavorites
-                                ) else p
-                            }
-
-                            val revertedSelectedPrompt = if (state.selectedPrompt?.id == id) {
-                                state.selectedPrompt.copy(
-                                    isFavouriteBookmarked = currentFavorited,
-                                    favorites = serverFavorites
-                                )
-                            } else state.selectedPrompt
-
-                            state.copy(
-                                allPrompts = revertedAllPrompts,
-                                selectedPrompt = revertedSelectedPrompt
-                            )
-                        }
-                    }
                 }
+
+                // ✅ FIXED: Also update the prompt in promptRepository cache
+                updatePromptInRepositoryCache(id, result.isBookmarked, result.newFavorites, isFavoriteUpdate = true)
+
+                Log.d(TAG, "✅ Bookmark handled: ${id}, bookmarked: ${result.isBookmarked}, newFavorites: ${result.newFavorites}")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to handle bookmark: ${e.message}")
             }
         }
     }
 
     /* ---------------------------------------------------------------------- */
-    /* REGISTER VIEW (CENTRALIZED) */
+    /* REGISTER VIEW (CENTRALIZED) - FIXED */
     /* ---------------------------------------------------------------------- */
-    // ViewModel में
+
     fun registerView(promptId: String) {
         viewModelScope.launch {
+            // Use centralized view registration
             engagementRepository.registerView(promptId)
 
-            // Update UI state if this prompt is in current list
-            _uiState.update { state ->
-                state.copy(
-                    allPrompts = state.allPrompts.map { prompt ->
-                        if (prompt.id == promptId) {
-                            prompt.copy(views = prompt.views + 1)
-                        } else prompt
-                    },
-                    selectedPrompt = state.selectedPrompt?.let {
-                        if (it.id == promptId) it.copy(views = it.views + 1)
-                        else it
-                    }
-                )
+            // 🔥 IMPORTANT: Don't update UI views here
+            // Views should only be updated from server response
+            // The displayViews() function will show server views automatically
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* UPDATED HELPER FUNCTION - UPDATES ALL STATES */
+    /* ---------------------------------------------------------------------- */
+
+    /* ---------------------------------------------------------------------- */
+    /* UPDATED HELPER FUNCTION - UPDATES ALL STATES */
+    /* ---------------------------------------------------------------------- */
+
+    private fun updatePromptInAllStates(
+        promptId: String,
+        transform: (AIPrompt) -> AIPrompt
+    ) {
+        _uiState.update { currentState ->
+            // Update allPrompts
+            val updatedAllPrompts = currentState.allPrompts.map { prompt ->
+                if (prompt.id == promptId) transform(prompt) else prompt
             }
+
+            // Update selectedPrompt
+            val updatedSelectedPrompt = if (currentState.selectedPrompt?.id == promptId) {
+                transform(currentState.selectedPrompt)
+            } else currentState.selectedPrompt
+
+            currentState.copy(
+                allPrompts = updatedAllPrompts,
+                selectedPrompt = updatedSelectedPrompt
+            )
+        }
+
+        // ✅ FIXED: Also update the prompt in promptRepository cache
+        // This will automatically update favoritePromptsFlow
+        val updatedPrompt = _uiState.value.allPrompts.find { it.id == promptId }
+        if (updatedPrompt != null) {
+            viewModelScope.launch {
+                // Update cache which feeds favoritePromptsFlow
+                val currentCache = promptRepository.observeAllPrompts().value
+                val updatedCache = currentCache.map { prompt ->
+                    if (prompt.id == promptId) updatedPrompt else prompt
+                }
+                promptRepository.syncPromptCache(updatedCache)
+            }
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* NEW FUNCTION: UPDATE PROMPT IN REPOSITORY CACHE */
+    /* ---------------------------------------------------------------------- */
+
+    private fun updatePromptInRepositoryCache(
+        promptId: String,
+        isLiked: Boolean? = null,
+        newLikes: Int? = null,
+        isBookmarked: Boolean? = null,
+        newFavorites: Int? = null,
+        isFavoriteUpdate: Boolean = false
+    ) {
+        viewModelScope.launch {
+            // Get current cache
+            val currentCache = promptRepository.observeAllPrompts().value
+            val promptToUpdate = currentCache.find { it.id == promptId }
+
+            if (promptToUpdate != null) {
+                // Create updated prompt
+                val updatedPrompt = promptToUpdate.copy(
+                    isLiked = isLiked ?: promptToUpdate.isLiked,
+                    likes = newLikes ?: promptToUpdate.likes,
+                    isFavouriteBookmarked = isBookmarked ?: promptToUpdate.isFavouriteBookmarked,
+                    favorites = newFavorites ?: promptToUpdate.favorites
+                )
+
+                // Update cache
+                val updatedCache = currentCache.map { prompt ->
+                    if (prompt.id == promptId) updatedPrompt else prompt
+                }
+
+                promptRepository.syncPromptCache(updatedCache)
+
+                // Log for debugging
+                Log.d(TAG, "✅ Cache updated for prompt: $promptId, " +
+                        "likes: ${updatedPrompt.likes}, " +
+                        "favorites: ${updatedPrompt.favorites}, " +
+                        "isFavoriteUpdate: $isFavoriteUpdate")
+            }
+        }
+    }
+
+
+    /* ---------------------------------------------------------------------- */
+    /* MERGE WITH LOCAL ENGAGEMENT - FIXED */
+    /* ---------------------------------------------------------------------- */
+
+    private suspend fun mergeWithLocalEngagement(
+        prompts: List<AIPrompt>
+    ): List<AIPrompt> {
+        val localStates = localEngagementStates.value
+        return prompts.map { prompt ->
+            val local = localStates[prompt.id]
+            if (local == null) prompt
+            else prompt.copy(
+                isLiked = local.isLiked,
+                isFavouriteBookmarked = local.isFavorited
+                // 🔥 IMPORTANT: views नहीं add करें
+                // Server views ही show करें
+            )
         }
     }
 
@@ -627,22 +625,4 @@ class AIPromptViewModel @Inject constructor(
         }
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* FINAL MERGE (NO DB HIT) */
-    /* ---------------------------------------------------------------------- */
-
-    private suspend fun mergeWithLocalEngagement(
-        prompts: List<AIPrompt>
-    ): List<AIPrompt> {
-        val localStates = localEngagementStates.value
-        return prompts.map { prompt ->
-            val local = localStates[prompt.id]
-            if (local == null) prompt
-            else prompt.copy(
-                isLiked = local.isLiked,
-                isFavouriteBookmarked = local.isFavorited,
-                views = local.localViewCount
-            )
-        }
-    }
 }
