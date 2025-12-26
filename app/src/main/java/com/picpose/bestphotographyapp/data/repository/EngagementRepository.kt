@@ -23,11 +23,12 @@ class EngagementRepository @Inject constructor(
     private val TAG = "EngagementRepo"
 
     /* ---------------------------------------------------- */
-    /* 🔥 CENTRALIZED ENGAGEMENT MANAGEMENT */
+    /* 🔥 CENTRALIZED ENGAGEMENT MANAGEMENT - FIXED */
     /* ---------------------------------------------------- */
 
     /**
      * Central like handler for ALL screens
+     * ❌ DO NOT update updatedAt for likes (to prevent reordering)
      */
     suspend fun handleLike(promptId: String, currentLikes: Int = 0): LikeResult {
         Log.d(TAG, "🔄 handleLike called for: $promptId, currentLikes: $currentLikes")
@@ -37,15 +38,15 @@ class EngagementRepository @Inject constructor(
         val currentLiked = current?.isLiked ?: false
         val newLiked = !currentLiked
 
-        // 2. Update local database
-        val updatedAt = System.currentTimeMillis()
+        // 2. Update local database WITHOUT changing updatedAt
         val newState = current?.copy(
-            isLiked = newLiked,
-            updatedAt = updatedAt
+            isLiked = newLiked
+            // ❌ IMPORTANT: Do NOT update updatedAt for likes
         ) ?: EngagementEntity(
             promptId = promptId,
             isLiked = newLiked,
-            updatedAt = updatedAt
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
         )
 
         engagementDao.upsert(newState)
@@ -81,36 +82,38 @@ class EngagementRepository @Inject constructor(
 
     /**
      * Central bookmark handler for ALL screens
+     * ✅ UPDATE updatedAt for bookmarks (so newest appears on top)
      */
     suspend fun handleBookmark(promptId: String, currentFavorites: Int = 0): BookmarkResult {
         Log.d(TAG, "🔄 handleBookmark called for: $promptId, currentFavorites: $currentFavorites")
 
-        // 1. Get current state
         val current = engagementDao.getById(promptId)
         val currentBookmarked = current?.isFavorited ?: false
         val newBookmarked = !currentBookmarked
 
-        // 2. Update local database
-        val updatedAt = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
         val newState = current?.copy(
             isFavorited = newBookmarked,
-            updatedAt = updatedAt
+            // ✅ IMPORTANT: Update updatedAt ONLY for bookmarks
+            // This ensures proper sorting (newest favorites on top)
+            updatedAt = now
         ) ?: EngagementEntity(
             promptId = promptId,
             isFavorited = newBookmarked,
-            updatedAt = updatedAt
+            createdAt = now,
+            updatedAt = now
         )
 
         engagementDao.upsert(newState)
 
-        // 3. Calculate new favorite count
+        // Calculate new favorite count
         val newFavorites = calculateNewFavorites(
             wasBookmarked = currentBookmarked,
             nowBookmarked = newBookmarked,
             currentFavorites = currentFavorites
         )
 
-        // 4. Sync with server
+        // Sync with server
         try {
             if (newBookmarked) {
                 api.incrementFavorite(promptId.toInt(), RetrofitClient.defaultApiKey)
@@ -149,13 +152,10 @@ class EngagementRepository @Inject constructor(
                 prompt.copy(
                     isLiked = local.isLiked,
                     isFavouriteBookmarked = local.isFavorited
-                    // 🔥 IMPORTANT: views नहीं add करें
-                    // Server views ही show करें
                 )
             }
         }
     }
-
 
     private fun calculateNewLikes(
         wasLiked: Boolean,
@@ -215,20 +215,20 @@ class EngagementRepository @Inject constructor(
     }
 
     /* ---------------------------------------------------- */
-    /* LIKE - NEW FUNCTIONS */
+    /* LIKE - NEW FUNCTIONS (FIXED) */
     /* ---------------------------------------------------- */
 
     suspend fun setLiked(promptId: String, liked: Boolean): Boolean {
         val current = engagementDao.getById(promptId)
-        val updatedAt = System.currentTimeMillis()
 
         val newState = current?.copy(
-            isLiked = liked,
-            updatedAt = updatedAt
+            isLiked = liked
+            // ❌ Do NOT update updatedAt
         ) ?: EngagementEntity(
             promptId = promptId,
             isLiked = liked,
-            updatedAt = updatedAt
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
         )
 
         engagementDao.upsert(newState)
@@ -242,22 +242,24 @@ class EngagementRepository @Inject constructor(
     }
 
     /* ---------------------------------------------------- */
-    /* FAVORITE / BOOKMARK - NEW FUNCTIONS */
+    /* FAVORITE / BOOKMARK - NEW FUNCTIONS (FIXED) */
     /* ---------------------------------------------------- */
 
     suspend fun setFavorited(promptId: String, favorited: Boolean): Boolean {
         Log.d(TAG, "setFavorited: promptId=$promptId, favorited=$favorited")
 
         val current = engagementDao.getById(promptId)
-        val updatedAt = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
 
         val newState = current?.copy(
             isFavorited = favorited,
-            updatedAt = updatedAt
+            // ✅ Update updatedAt for bookmarks
+            updatedAt = now
         ) ?: EngagementEntity(
             promptId = promptId,
             isFavorited = favorited,
-            updatedAt = updatedAt
+            createdAt = now,
+            updatedAt = now
         )
 
         engagementDao.upsert(newState)
@@ -292,7 +294,8 @@ class EngagementRepository @Inject constructor(
                     promptId = promptId,
                     localViewCount = 1,
                     pendingViewSync = 1,
-                    updatedAt = now
+                    updatedAt = now,
+                    createdAt = now
                 )
             )
         } else {
@@ -304,7 +307,8 @@ class EngagementRepository @Inject constructor(
                 current.copy(
                     localViewCount = newLocalCount,
                     pendingViewSync = newPendingSync,
-                    updatedAt = now
+                    // ❌ Do NOT update updatedAt for views
+                    updatedAt = current.updatedAt
                 )
             )
         }
@@ -370,7 +374,9 @@ class EngagementRepository @Inject constructor(
     }
 
     /**
-     * 🔥 FAVORITES — SINGLE SOURCE OF TRUTH
+     * 🔥 FAVORITES — SINGLE SOURCE OF TRUTH (FIXED)
+     * ✅ Newest favorites appear on top
+     * ❌ Like/dislike does NOT reorder the list
      */
     fun observeFavoritePrompts(): Flow<List<AIPrompt>> =
         combine(
@@ -379,16 +385,27 @@ class EngagementRepository @Inject constructor(
         ) { engagements, prompts ->
             Log.d(TAG, "observeFavoritePrompts: ${engagements.size} favorites, ${prompts.size} cached prompts")
 
+            // Get only favorited engagements
             val favEngagements = engagements.filter { it.isFavorited }
+
+            // ✅ Sort by updatedAt DESCENDING (newest first)
+            // This shows most recently favorited/bookmarked items on top
+            val sortedFavEngagements = favEngagements.sortedByDescending { it.updatedAt }
+
             val promptMap = prompts.associateBy { it.id }
 
-            favEngagements
-                .sortedByDescending { it.updatedAt }
+            sortedFavEngagements
                 .mapNotNull { engagement ->
                     promptMap[engagement.promptId]?.copy(
                         isFavouriteBookmarked = true,
                         isLiked = engagement.isLiked
                     )
+                }
+                .also { result ->
+                    Log.d(TAG, "✅ Sorted favorites by updatedAt (newest first): ${result.size} items")
+                    result.forEachIndexed { index, prompt ->
+                        Log.d(TAG, "  [$index] ${prompt.id} - updatedAt: ${engagementDao.getById(prompt.id)?.updatedAt}")
+                    }
                 }
         }
 

@@ -13,6 +13,7 @@ data class EngagementEntity(
     val localViewCount: Int = 0,
     val pendingViewSync: Int = 0,
 
+    val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     // Helper function for logging

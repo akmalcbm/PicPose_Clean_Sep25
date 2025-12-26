@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Explore
@@ -35,15 +36,16 @@ fun AIPromptFavoritesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val favoritePrompts by viewModel.favoritePromptsFlow.collectAsState()
-
-    // 🔥 COLLECT ONCE — SCREEN LEVEL (IMPORTANT)
     val localEngagementMap by viewModel.localEngagementStates.collectAsState()
 
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
+    // ✅ ONLY THIS FIX: Add scroll state to maintain position
+    val lazyListState = rememberLazyListState()
+
     LaunchedEffect(Unit) {
-        Log.e("FAV_DEBUG", "FavoritesScreen OPENED")
+        Log.e("FAV_DEBUG", "FavoritesScreen OPENED - Count: ${favoritePrompts.size}")
     }
 
     // ✅ Show error only once
@@ -133,7 +135,7 @@ fun AIPromptFavoritesScreen(
                     )
                 }
 
-                // ✅ Favorites list
+                // ✅ Favorites list - WITH SCROLL STATE ONLY
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -143,14 +145,14 @@ fun AIPromptFavoritesScreen(
                             start = 16.dp,
                             end = 16.dp
                         ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        state = lazyListState // ✅ ONLY THIS CHANGE
                     ) {
                         items(
                             items = favoritePrompts,
                             key = { it.id ?: it.hashCode() }
                         ) { prompt ->
 
-                            // 🔥 MAP LOOKUP ONLY (NO FLOW HERE)
                             val local = localEngagementMap[prompt.id]
 
                             AIPromptCard(

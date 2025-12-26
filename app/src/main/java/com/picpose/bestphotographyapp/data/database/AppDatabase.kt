@@ -16,7 +16,7 @@ import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
         StatsEntity::class,
         EngagementEntity::class
     ],
-    version = 1, // ✅ Version 1 for fresh development
+    version = 2, // ✅ Version 1 for fresh development
     exportSchema = false
 )
 @TypeConverters(Converters::class)
