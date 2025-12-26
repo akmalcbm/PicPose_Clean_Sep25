@@ -77,7 +77,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -102,6 +101,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -109,6 +109,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -131,9 +132,9 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -151,7 +152,6 @@ fun AIPromptDetailScreen(
     val uiState by aiPromptViewModel.uiState.collectAsState()
 
     val localEngagementStates by aiPromptViewModel.localEngagementStates.collectAsState()
-
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -303,27 +303,26 @@ fun AIPromptDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(effectivePrompt?.fullPrompt ?: ""))
-                            Toast.makeText(context, "Prompt copied for sharing!", Toast.LENGTH_SHORT).show()
-                        }
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
 
-                    effectivePrompt?.let { p ->
-                        IconButton(onClick = { aiPromptViewModel.onFavoriteClicked(p) }) {
-                            Icon(
-                                if (p.isFavouriteBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
-                                contentDescription = "Favorite Bookmarked AI Prompts",
-                                tint = if (p.isFavouriteBookmarked)
-                                    Color(0xFFFFC107)
-                                else
-                                    LocalContentColor.current
-                            )
+                    val seaGreen = Color(0xFF009688)
+
+                    TopBarActionCircleButton(
+                        icon = Icons.Default.Share,
+                        tint = seaGreen,
+                        onClick = {
+                            effectivePrompt?.let { prompt ->
+                                coroutineScope.launch {
+                                    ShareUtils.sharePrompt(
+                                        context = context,
+                                        promptText = prompt.fullPrompt ?: prompt.shortPrompt.orEmpty(),
+                                        imageUrl = prompt.imageUrl ?: prompt.imageUrl2
+                                    )
+                                }
+                            }
                         }
-                    }
+                    )
+
+
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
@@ -442,6 +441,7 @@ fun AIPromptDetailScreen(
                             // 🧮 Stats Row directly under image
                             StatsRow(
                                 promptId = promptData.id ?: "",
+                                category = promptData.category,
                                 likes = promptData.displayLikes(localEngagement),
                                 views = promptData.displayViews(localEngagement),
                                 favorites = promptData.favorites,
@@ -487,40 +487,6 @@ fun AIPromptDetailScreen(
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold
                                     )
-
-                                    if (!promptData.category.isNullOrBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(50),
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                            )
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(
-                                                    horizontal = 10.dp,
-                                                    vertical = 4.dp
-                                                ),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.Label,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(14.dp),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(
-                                                    text = promptData.category ?: "",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    fontWeight = FontWeight.Medium
-                                                )
-                                            }
-                                        }
-                                    }
 
                                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -1034,11 +1000,38 @@ fun LargeAdShimmerPlaceholder() {
     }
 }
 
+@Composable
+private fun CategoryStat(
+    category: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Label,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = category,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
+        )
+    }
+}
+
 
 
 @Composable
 private fun StatsRow(
     promptId: String,
+    category: String?,
     likes: Int,
     views: Int,
     favorites: Int,
@@ -1049,41 +1042,60 @@ private fun StatsRow(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // LIKE - Clickable
-        StatPill(
-            icon = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-            value = likes,
-            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            onClick = { onLikeClick(promptId) }
-        )
 
-        // VIEWS - Non-clickable (server side 5 seconds rule already implemented)
-        StatPill(
-            icon = Icons.Default.Visibility,
-            value = views,
-            tint = MaterialTheme.colorScheme.primary,
-            onClick = null
-        )
+        /* -------------------- LEFT : CATEGORY + VIEWS (INFO ONLY) -------------------- */
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (!category.isNullOrBlank()) {
+                CategoryStat(category = category)
+            }
 
-        // BOOKMARK - Clickable
-        StatPill(
-            icon = if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
-            value = favorites,
-            tint = if (isBookmarked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-            onClick = { onBookmarkClick(promptId) }
-        )
+            ViewsStat(views = views)
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        /* -------------------- RIGHT : ACTIONS -------------------- */
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            StatPill(
+                icon = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                value = formatCompactNumber(likes),
+                tint = if (isLiked)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onLikeClick(promptId) }
+            )
+
+            StatPill(
+                icon = if (isBookmarked)
+                    Icons.Default.BookmarkAdded
+                else
+                    Icons.Default.BookmarkBorder,
+                value = formatCompactNumber(favorites),
+                tint = if (isBookmarked)
+                    MaterialTheme.colorScheme.tertiary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onBookmarkClick(promptId) }
+            )
+        }
     }
 }
 
-// Updated StatPill with click support
 @Composable
 private fun StatPill(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    value: Int,
+    icon: ImageVector,
+    value: String,
     tint: Color,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -1092,7 +1104,10 @@ private fun StatPill(
         color = tint.copy(alpha = 0.08f),
         shape = RoundedCornerShape(50),
         modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            if (onClick != null)
+                Modifier.clickable { onClick() }
+            else
+                Modifier
         )
     ) {
         Row(
@@ -1107,10 +1122,91 @@ private fun StatPill(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = value.toString(),
+                text = value,
                 style = MaterialTheme.typography.labelMedium,
                 color = tint,
                 fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun ViewsStat(
+    views: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Visibility,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = formatCompactNumber(views),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// Advanced latest-style number formatting
+private fun formatCompactNumber(number: Int): String {
+    return when {
+        number >= 1_000_000 -> {
+            val millions = number / 1_000_000f
+            val floored = kotlin.math.floor(millions * 10) / 10
+            if (floored % 1 == 0f)
+                "${floored.toInt()}M"
+            else
+                "${floored}M"
+        }
+
+        number >= 10_000 -> {
+            val thousands = number / 1_000f
+            val floored = kotlin.math.floor(thousands * 10) / 10
+            if (floored % 1 == 0f)
+                "${floored.toInt()}K"
+            else
+                "${floored}K"
+        }
+
+        else -> number.toString()
+    }
+}
+
+
+@Composable
+fun TopBarActionCircleButton(
+    icon: ImageVector,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,      // 👈 Perfect for TopAppBar
+    iconSize: Dp = 24.dp
+) {
+    Surface(
+        shape = CircleShape,
+        color = tint.copy(alpha = 0.14f),
+        modifier = modifier
+            .size(size)
+            .padding(end = 6.dp),
+        onClick = onClick
+    ) {
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(iconSize)
             )
         }
     }
