@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.max
 
 @Singleton
 class EngagementRepository @Inject constructor(
@@ -18,6 +19,142 @@ class EngagementRepository @Inject constructor(
     private val promptRepository: PromptRepository,
     private val api: ApiService
 ) {
+
+    private val TAG = "EngagementRepo"
+
+    /* ---------------------------------------------------- */
+    /* 🔥 CENTRALIZED ENGAGEMENT MANAGEMENT */
+    /* ---------------------------------------------------- */
+
+    /**
+     * Central like handler for ALL screens
+     */
+    suspend fun handleLike(promptId: String): LikeResult {
+        Log.d(TAG, "🔄 handleLike called for: $promptId")
+
+        // 1. Get current state
+        val current = engagementDao.getById(promptId)
+        val currentLiked = current?.isLiked ?: false
+        val newLiked = !currentLiked
+
+        // 2. Update local database
+        val updatedAt = System.currentTimeMillis()
+        val newState = current?.copy(
+            isLiked = newLiked,
+            updatedAt = updatedAt
+        ) ?: EngagementEntity(
+            promptId = promptId,
+            isLiked = newLiked,
+            updatedAt = updatedAt
+        )
+
+        engagementDao.upsert(newState)
+
+        // 3. Sync with server
+        try {
+            if (newLiked) {
+                api.incrementLike(promptId.toInt(), RetrofitClient.defaultApiKey)
+                Log.d(TAG, "✅ Like incremented on server: $promptId")
+            } else {
+                api.decrementLike(promptId.toInt(), RetrofitClient.defaultApiKey)
+                Log.d(TAG, "✅ Like decremented on server: $promptId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Server sync failed: ${e.message}")
+            // Don't revert - keep optimistic UI update
+            // Will retry on next sync
+        }
+
+        return LikeResult(
+            promptId = promptId,
+            isLiked = newLiked,
+            newLikes = calculateNewLikes(currentLiked, newLiked)
+        )
+    }
+
+    /**
+     * Central bookmark handler for ALL screens
+     */
+    suspend fun handleBookmark(promptId: String): BookmarkResult {
+        Log.d(TAG, "🔄 handleBookmark called for: $promptId")
+
+        // 1. Get current state
+        val current = engagementDao.getById(promptId)
+        val currentBookmarked = current?.isFavorited ?: false
+        val newBookmarked = !currentBookmarked
+
+        // 2. Update local database
+        val updatedAt = System.currentTimeMillis()
+        val newState = current?.copy(
+            isFavorited = newBookmarked,
+            updatedAt = updatedAt
+        ) ?: EngagementEntity(
+            promptId = promptId,
+            isFavorited = newBookmarked,
+            updatedAt = updatedAt
+        )
+
+        engagementDao.upsert(newState)
+
+        // 3. Sync with server
+        try {
+            if (newBookmarked) {
+                api.incrementFavorite(promptId.toInt(), RetrofitClient.defaultApiKey)
+                Log.d(TAG, "✅ Bookmark incremented on server: $promptId")
+            } else {
+                api.decrementFavorite(promptId.toInt(), RetrofitClient.defaultApiKey)
+                Log.d(TAG, "✅ Bookmark decremented on server: $promptId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Server sync failed: ${e.message}")
+        }
+
+        return BookmarkResult(
+            promptId = promptId,
+            isBookmarked = newBookmarked,
+            newFavorites = calculateNewFavorites(currentBookmarked, newBookmarked)
+        )
+    }
+
+    private fun calculateNewLikes(
+        wasLiked: Boolean,
+        nowLiked: Boolean,
+        currentLikes: Int = 0
+    ): Int {
+        return when {
+            !wasLiked && nowLiked -> currentLikes + 1  // Like added
+            wasLiked && !nowLiked -> max(0, currentLikes - 1)  // Like removed
+            else -> currentLikes
+        }
+    }
+
+    private fun calculateNewFavorites(
+        wasBookmarked: Boolean,
+        nowBookmarked: Boolean,
+        currentFavorites: Int = 0
+    ): Int {
+        return when {
+            !wasBookmarked && nowBookmarked -> currentFavorites + 1
+            wasBookmarked && !nowBookmarked -> max(0, currentFavorites - 1)
+            else -> currentFavorites
+        }
+    }
+
+    /* ---------------------------------------------------- */
+    /* DATA CLASSES FOR RESULT */
+    /* ---------------------------------------------------- */
+
+    data class LikeResult(
+        val promptId: String,
+        val isLiked: Boolean,
+        val newLikes: Int
+    )
+
+    data class BookmarkResult(
+        val promptId: String,
+        val isBookmarked: Boolean,
+        val newFavorites: Int
+    )
 
     /* ---------------------------------------------------- */
     /* SNAPSHOT READ (One-time) */
@@ -27,102 +164,88 @@ class EngagementRepository @Inject constructor(
         return engagementDao.getAll()
     }
 
-    suspend fun getState(promptId: String): EngagementEntity? {
+    suspend fun getEngagementState(promptId: String): EngagementEntity? {
         return engagementDao.getById(promptId)
     }
 
+    // Alias for backward compatibility
+    suspend fun getState(promptId: String): EngagementEntity? {
+        return getEngagementState(promptId)
+    }
+
     /* ---------------------------------------------------- */
-    /* LIKE */
+    /* LIKE - NEW FUNCTIONS */
     /* ---------------------------------------------------- */
 
-    suspend fun toggleLike(promptId: String): Boolean {
+    suspend fun setLiked(promptId: String, liked: Boolean): Boolean {
         val current = engagementDao.getById(promptId)
+        val updatedAt = System.currentTimeMillis()
 
         val newState = current?.copy(
-            isLiked = !current.isLiked,
-            updatedAt = System.currentTimeMillis()
+            isLiked = liked,
+            updatedAt = updatedAt
         ) ?: EngagementEntity(
             promptId = promptId,
-            isLiked = true,
-            updatedAt = System.currentTimeMillis()
+            isLiked = liked,
+            updatedAt = updatedAt
         )
 
         engagementDao.upsert(newState)
         return newState.isLiked
     }
 
+    suspend fun toggleLike(promptId: String): Boolean {
+        val current = engagementDao.getById(promptId)
+        val newLiked = !(current?.isLiked ?: false)
+        return setLiked(promptId, newLiked)
+    }
+
     /* ---------------------------------------------------- */
-    /* FAVORITE / BOOKMARK */
+    /* FAVORITE / BOOKMARK - NEW FUNCTIONS */
     /* ---------------------------------------------------- */
 
-    suspend fun toggleFavorite(promptId: String): Boolean {
-
-        Log.e("FAV_DEBUG", "toggleFavorite() called with promptId = $promptId")
+    suspend fun setFavorited(promptId: String, favorited: Boolean): Boolean {
+        Log.d(TAG, "setFavorited: promptId=$promptId, favorited=$favorited")
 
         val current = engagementDao.getById(promptId)
-        Log.e("FAV_DEBUG", "Before toggle DB state = $current")
+        val updatedAt = System.currentTimeMillis()
 
         val newState = current?.copy(
-            isFavorited = !current.isFavorited,
-            updatedAt = System.currentTimeMillis()
+            isFavorited = favorited,
+            updatedAt = updatedAt
         ) ?: EngagementEntity(
             promptId = promptId,
-            isFavorited = true,
-            updatedAt = System.currentTimeMillis()
+            isFavorited = favorited,
+            updatedAt = updatedAt
         )
 
         engagementDao.upsert(newState)
 
+        // Verify the change
         val after = engagementDao.getById(promptId)
-        Log.e("FAV_DEBUG", "After toggle DB state = $after")
+        Log.d(TAG, "After setFavorited: DB state = $after")
 
         return newState.isFavorited
     }
 
-
-    /**
-     * Snapshot helper (used earlier in project)
-     */
-    suspend fun getFavoritedPromptIds(): Set<String> {
-        return engagementDao.getAll()
-            .filter { it.isFavorited }
-            .map { it.promptId }
-            .toSet()
+    suspend fun toggleFavorite(promptId: String): Boolean {
+        val current = engagementDao.getById(promptId)
+        val newFavorited = !(current?.isFavorited ?: false)
+        return setFavorited(promptId, newFavorited)
     }
 
     /* ---------------------------------------------------- */
-    /* VIEW */
+    /* VIEW - UPDATED WITH 5-SECOND DELAY SUPPORT */
     /* ---------------------------------------------------- */
 
-    /*suspend fun incrementView(promptId: String) {
-        val now = System.currentTimeMillis()
-        val current = engagementDao.getById(promptId)
-
-        if (current == null) {
-            // First ever view for this prompt
-            engagementDao.upsert(
-                EngagementEntity(
-                    promptId = promptId,
-                    localViewCount = 1,
-                    isLiked = false,
-                    isFavorited = false,
-                    updatedAt = now
-                )
-            )
-        } else {
-            // Atomic increment + timestamp update
-            engagementDao.incrementView(
-                id = promptId,
-                updatedAt = now
-            )
-        }
-    }*/
-
     suspend fun registerView(promptId: String) {
+        Log.d(TAG, "registerView called for: $promptId")
+
         val now = System.currentTimeMillis()
         val current = engagementDao.getById(promptId)
 
         if (current == null) {
+            // First view
             engagementDao.upsert(
                 EngagementEntity(
                     promptId = promptId,
@@ -132,54 +255,74 @@ class EngagementRepository @Inject constructor(
                 )
             )
         } else {
-            engagementDao.incrementView(promptId, now)
+            // Increment local count
+            val newLocalCount = current.localViewCount + 1
+            val newPendingSync = current.pendingViewSync + 1
+
+            engagementDao.upsert(
+                current.copy(
+                    localViewCount = newLocalCount,
+                    pendingViewSync = newPendingSync,
+                    updatedAt = now
+                )
+            )
         }
 
+        // Sync with server in background
         syncViewWithServer(promptId)
     }
 
+    /**
+     * For manual view registration (when user stays for 5+ seconds)
+     */
+    suspend fun registerViewAfterDelay(promptId: String) {
+        Log.d(TAG, "registerViewAfterDelay for: $promptId (5+ seconds)")
+        registerView(promptId)
+    }
 
     private suspend fun syncViewWithServer(promptId: String) {
         val state = engagementDao.getById(promptId) ?: return
         val pending = state.pendingViewSync
+
         if (pending <= 0) return
 
-        runCatching {
-            repeat(pending) {
-                api.incrementView(promptId.toInt(), RetrofitClient.defaultApiKey)
-            }
+        try {
+            // Sync with server
+            api.incrementView(promptId.toInt(), RetrofitClient.defaultApiKey)
+
+            // Mark as synced
             engagementDao.upsert(
                 state.copy(pendingViewSync = 0)
             )
+            Log.d(TAG, "View synced with server for: $promptId")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync view for $promptId: ${e.message}")
+            // Keep pending count for retry later
         }
     }
-
-
-
-
-
 
     /* ---------------------------------------------------- */
     /* UTIL */
     /* ---------------------------------------------------- */
 
     suspend fun clearState(promptId: String) {
-        engagementDao.upsert(
-            EngagementEntity(
-                promptId = promptId,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
+        engagementDao.delete(promptId)
+        Log.d(TAG, "Cleared state for: $promptId")
+    }
+
+    suspend fun resetPendingSync(promptId: String) {
+        val state = engagementDao.getById(promptId) ?: return
+        engagementDao.upsert(state.copy(pendingViewSync = 0))
     }
 
     /* ---------------------------------------------------- */
-    /* 🔥 MERGE LOCAL ENGAGEMENT INTO PROMPTS (SNAPSHOT) */
+    /* MERGE LOCAL ENGAGEMENT INTO PROMPTS (SNAPSHOT) */
     /* ---------------------------------------------------- */
 
     suspend fun mergeWithLocalEngagement(
         prompts: List<AIPrompt>
     ): List<AIPrompt> {
-
         val localStates = engagementDao.getAll()
             .associateBy { it.promptId }
 
@@ -191,8 +334,8 @@ class EngagementRepository @Inject constructor(
             } else {
                 prompt.copy(
                     isLiked = local.isLiked,
-                    isFavouriteBookmarked = local.isFavorited,
-                    views = local.localViewCount
+                    isFavouriteBookmarked = local.isFavorited
+                    //views = prompt.views + local.localViewCount
                 )
             }
         }
@@ -202,72 +345,69 @@ class EngagementRepository @Inject constructor(
     /* 🔥 REACTIVE FLOWS */
     /* ---------------------------------------------------- */
 
-    /**
-     * Observe ALL engagement states
-     * Used by:
-     * - All prompts screen
-     * - Detail screen
-     * - Icon sync
-     */
     fun observeAllStates(): Flow<List<EngagementEntity>> {
         return engagementDao.observeAll()
     }
 
+    fun observeEngagementState(promptId: String): Flow<EngagementEntity?> {
+        return engagementDao.observeById(promptId)
+    }
+
     /**
      * 🔥 FAVORITES — SINGLE SOURCE OF TRUTH
-     * This is what FIXES the Favorites screen
      */
     fun observeFavoritePrompts(): Flow<List<AIPrompt>> =
         combine(
-            engagementDao.observeFavorites(),          // EngagementEntity (Room)
-            promptRepository.observeAllPrompts()       // Prompt cache (Memory)
+            engagementDao.observeFavorites(),
+            promptRepository.observeAllPrompts()
         ) { engagements, prompts ->
-
-            // 🔴 DEBUG START
-            Log.e("FAV_DEBUG", "-----------------------------")
-            Log.e("FAV_DEBUG", "observeFavoritePrompts() CALLED")
-            Log.e("FAV_DEBUG", "Engagements size = ${engagements.size}")
-            Log.e("FAV_DEBUG", "Prompts cache size = ${prompts.size}")
+            Log.d(TAG, "observeFavoritePrompts: ${engagements.size} favorites, ${prompts.size} cached prompts")
 
             val favEngagements = engagements.filter { it.isFavorited }
-            Log.e(
-                "FAV_DEBUG",
-                "Favorited Engagement IDs = ${favEngagements.map { it.promptId }}"
-            )
-
             val promptMap = prompts.associateBy { it.id }
 
-            val result = favEngagements
-                .sortedByDescending { it.updatedAt }   // 🔥 latest first
+            favEngagements
+                .sortedByDescending { it.updatedAt }
                 .mapNotNull { engagement ->
-                    val prompt = promptMap[engagement.promptId]
-
-                    if (prompt == null) {
-                        Log.e(
-                            "FAV_DEBUG",
-                            "❌ Prompt NOT FOUND for engagementId=${engagement.promptId}"
-                        )
-                        null
-                    } else {
-                        Log.e(
-                            "FAV_DEBUG",
-                            "✅ Matched promptId=${prompt.id} title=${prompt.title}"
-                        )
-                        prompt.copy(
-                            isFavouriteBookmarked = true,
-                            isLiked = engagement.isLiked
-                        )
-                    }
+                    promptMap[engagement.promptId]?.copy(
+                        isFavouriteBookmarked = true,
+                        isLiked = engagement.isLiked
+                    )
                 }
-
-            Log.e("FAV_DEBUG", "Final favorite prompts = ${result.size}")
-            Log.e("FAV_DEBUG", "-----------------------------")
-
-            result
         }
 
     suspend fun getAllFavoritedPromptIds(): List<String> {
         return engagementDao.getAllFavoritedPromptIds()
     }
 
+    /* ---------------------------------------------------- */
+    /* NEW HELPER FUNCTIONS FOR COUNT MANAGEMENT */
+    /* ---------------------------------------------------- */
+
+    /**
+     * Get local engagement-adjusted counts for display
+     */
+    fun getDisplayLikes(prompt: AIPrompt, localEngagement: EngagementEntity?): Int {
+        val baseLikes = prompt.likes.coerceAtLeast(0)
+        return when {
+            localEngagement?.isLiked == true && !prompt.isLiked -> baseLikes + 1
+            localEngagement?.isLiked == false && prompt.isLiked -> (baseLikes - 1).coerceAtLeast(0)
+            else -> baseLikes
+        }
+    }
+
+    fun getDisplayFavorites(prompt: AIPrompt, localEngagement: EngagementEntity?): Int {
+        val baseFavorites = prompt.favorites.coerceAtLeast(0)
+        return when {
+            localEngagement?.isFavorited == true && !prompt.isFavouriteBookmarked -> baseFavorites + 1
+            localEngagement?.isFavorited == false && prompt.isFavouriteBookmarked -> (baseFavorites - 1).coerceAtLeast(0)
+            else -> baseFavorites
+        }
+    }
+
+    fun getDisplayViews(prompt: AIPrompt, localEngagement: EngagementEntity?): Int {
+        val serverViews = prompt.views.coerceAtLeast(0)
+        val localViews = localEngagement?.localViewCount?.coerceAtLeast(0) ?: 0
+        return serverViews + localViews
+    }
 }

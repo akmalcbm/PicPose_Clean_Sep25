@@ -414,30 +414,83 @@ class ExploreViewModel @Inject constructor(
     }
 
 
+    /* ---------------------------------------------------- */
+    /* SIMPLIFIED ENGAGEMENT HANDLERS */
+    /* ---------------------------------------------------- */
+
     fun togglePromptLike(prompt: AIPrompt) {
-        val id = prompt.id ?: return
+        val promptId = prompt.id ?: return
 
         viewModelScope.launch {
-            engagementRepository.toggleLike(id)
+            try {
+                // Use centralized handler
+                val result = engagementRepository.handleLike(promptId)
 
-            // 🔁 Server sync already happens inside ExploreRepository
-            exploreRepository.togglePromptLike(prompt).collect()
+                // Update UI state
+                updatePromptInState(promptId) { currentPrompt ->
+                    currentPrompt.copy(
+                        isLiked = result.isLiked,
+                        likes = result.newLikes
+                    )
+                }
 
-            remergeExploreList()
+                Log.d(TAG, "✅ Like toggled: ${promptId}, liked: ${result.isLiked}")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to toggle like: ${e.message}")
+            }
         }
     }
 
-
-
     fun togglePromptBookmark(prompt: AIPrompt) {
-        val id = prompt.id ?: return
+        val promptId = prompt.id ?: return
 
         viewModelScope.launch {
-            engagementRepository.toggleFavorite(id)
+            try {
+                // Use centralized handler
+                val result = engagementRepository.handleBookmark(promptId)
 
-            exploreRepository.togglePromptBookmark(prompt).collect()
+                // Update UI state
+                updatePromptInState(promptId) { currentPrompt ->
+                    currentPrompt.copy(
+                        isFavouriteBookmarked = result.isBookmarked,
+                        favorites = result.newFavorites
+                    )
+                }
 
-            remergeExploreList()
+                Log.d(TAG, "✅ Bookmark toggled: ${promptId}, bookmarked: ${result.isBookmarked}")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to toggle bookmark: ${e.message}")
+            }
+        }
+    }
+
+    /* ---------------------------------------------------- */
+    /* HELPER FUNCTIONS */
+    /* ---------------------------------------------------- */
+
+    private fun updatePromptInState(
+        promptId: String,
+        transform: (AIPrompt) -> AIPrompt
+    ) {
+        _uiState.update { currentState ->
+            val updatedContent = currentState.content.map { content ->
+                if (content is ExploreContent.AIPromptContent && content.prompt.id == promptId) {
+                    ExploreContent.AIPromptContent(transform(content.prompt))
+                } else {
+                    content
+                }
+            }
+
+            val updatedPrompts = currentState.aiPrompts.map { prompt ->
+                if (prompt.id == promptId) transform(prompt) else prompt
+            }
+
+            currentState.copy(
+                content = updatedContent,
+                aiPrompts = updatedPrompts
+            )
         }
     }
 
@@ -450,26 +503,6 @@ class ExploreViewModel @Inject constructor(
                 initialValue = emptyMap()
             )
 
-
-    private suspend fun remergeExploreList() {
-        val current = _uiState.value.content
-
-        val updated = current.map { item ->
-            when (item) {
-                is ExploreContent.AIPromptContent -> {
-                    val merged =
-                        engagementRepository
-                            .mergeWithLocalEngagement(listOf(item.prompt))
-                            .first()
-
-                    ExploreContent.AIPromptContent(merged)
-                }
-                else -> item
-            }
-        }
-
-        _uiState.update { it.copy(content = updated) }
-    }
 
 
 }

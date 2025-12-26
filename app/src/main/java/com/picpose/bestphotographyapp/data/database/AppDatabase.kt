@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.picpose.bestphotographyapp.data.database.dao.EngagementDao
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 
@@ -13,9 +14,9 @@ import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
         FavoritePrompt::class,
         LikedPrompt::class,
         StatsEntity::class,
-        EngagementEntity::class // ✅ ADD THIS
+        EngagementEntity::class
     ],
-    version = 4, // 🔥 VERY IMPORTANT — incremented
+    version = 1, // ✅ Version 1 for fresh development
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -37,13 +38,30 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picpose_db"
                 )
-                    // ✅ DEV SAFE: wipes old DB automatically
+                    // ✅ DEVELOPMENT: Destructive migration for easy testing
                     .fallbackToDestructiveMigration()
+                    // ✅ Optional: Add callbacks for debugging
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            super.onCreate(db)
+                            android.util.Log.d("AppDatabase", "Database created")
+                        }
+
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            android.util.Log.d("AppDatabase", "Database opened")
+                        }
+                    })
                     .build()
 
                 INSTANCE = instance
                 instance
             }
+        }
+
+        // Helper function for testing/development
+        fun destroyInstance() {
+            INSTANCE = null
         }
     }
 }

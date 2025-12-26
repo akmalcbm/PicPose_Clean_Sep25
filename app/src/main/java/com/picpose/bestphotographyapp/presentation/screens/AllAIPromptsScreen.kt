@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -518,17 +519,16 @@ fun AllAIPromptsScreen(
                                         prompt = prompt,
                                         localEngagement = local, // 🔥 STEP-4: CENTRAL VIEW SOURCE
 
+                                        // AllAIPromptsScreen.kt में - onClick handler update
                                         onClick = {
                                             val id = prompt.id
                                             if (id != null) {
-                                                viewModel.loadPromptById(id)
+                                                // 🔥 IMPORTANT: Don't call loadPromptById here
+                                                // Navigation should only navigate, not load data
                                                 onPromptClick(id)
-                                            } else {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Invalid prompt ID",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+
+                                                Log.d("ListScreen", "Navigating to detail: $id")
+                                                Log.d("ListScreen", "Current views: ${prompt.views}")
                                             }
                                         },
 

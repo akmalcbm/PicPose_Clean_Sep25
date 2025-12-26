@@ -5,15 +5,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -96,7 +95,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -135,8 +133,8 @@ import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 private const val TAG_DETAIL = "PromptDetail"
@@ -170,21 +168,6 @@ fun AIPromptDetailScreen(
 
     // Transition overlay
     var isTransitionLoading by rememberSaveable { mutableStateOf(false) }
-
-
-    // To avoid multiple view-count increments
-    val viewTracked = rememberSaveable(promptId) { mutableStateOf(false) }
-
-    // ⚠️ IMPORTANT:
-    // View count MUST be incremented ONLY here with Server Stored total Views +1 (Ai Prompts Detail Screen)
-    // Do NOT call registerView() from any ViewModel load/fetch function
-    LaunchedEffect(promptId) {
-        if (!viewTracked.value) {
-            aiPromptViewModel.registerView(promptId)
-            viewTracked.value = true
-        }
-    }
-
 
     // Interstitial ad
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
@@ -231,6 +214,19 @@ fun AIPromptDetailScreen(
             nativeAd = null
         }
     }
+
+
+    var viewTracked by rememberSaveable(promptId) { mutableStateOf(false) }
+
+    LaunchedEffect(promptId) {
+        if (!viewTracked) {
+            delay(5000)
+            aiPromptViewModel.registerView(promptId)
+            viewTracked = true
+            Log.d(TAG_DETAIL, "✅ View registered after 5 seconds for prompt: $promptId")
+        }
+    }
+
 
     var showImageDialog by remember { mutableStateOf(false) }
 
@@ -445,9 +441,24 @@ fun AIPromptDetailScreen(
 
                             // 🧮 Stats Row directly under image
                             StatsRow(
+                                promptId = promptData.id ?: "",
                                 likes = promptData.displayLikes(localEngagement),
                                 views = promptData.displayViews(localEngagement),
                                 favorites = promptData.favorites,
+                                isLiked = promptData.isLiked,
+                                isBookmarked = promptData.isFavouriteBookmarked,
+                                onLikeClick = { id ->
+                                    // Haptic feedback
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Call ViewModel
+                                    aiPromptViewModel.onLikeClicked(promptData)
+                                },
+                                onBookmarkClick = { id ->
+                                    // Haptic feedback
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    // Call ViewModel
+                                    aiPromptViewModel.onFavoriteClicked(promptData)
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(
@@ -1027,9 +1038,14 @@ fun LargeAdShimmerPlaceholder() {
 
 @Composable
 private fun StatsRow(
+    promptId: String,
     likes: Int,
     views: Int,
     favorites: Int,
+    isLiked: Boolean,
+    isBookmarked: Boolean,
+    onLikeClick: (String) -> Unit,
+    onBookmarkClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -1037,26 +1053,47 @@ private fun StatsRow(
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        StatPill(icon = Icons.Default.ThumbUp, value = likes, tint = MaterialTheme.colorScheme.error)
-        StatPill(icon = Icons.Default.Visibility, value = views, tint = MaterialTheme.colorScheme.primary)
+        // LIKE - Clickable
         StatPill(
-            icon = Icons.Default.BookmarkBorder,
+            icon = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+            value = likes,
+            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            onClick = { onLikeClick(promptId) }
+        )
+
+        // VIEWS - Non-clickable (server side 5 seconds rule already implemented)
+        StatPill(
+            icon = Icons.Default.Visibility,
+            value = views,
+            tint = MaterialTheme.colorScheme.primary,
+            onClick = null
+        )
+
+        // BOOKMARK - Clickable
+        StatPill(
+            icon = if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
             value = favorites,
-            tint = MaterialTheme.colorScheme.tertiary
+            tint = if (isBookmarked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+            onClick = { onBookmarkClick(promptId) }
         )
     }
 }
 
-// small helper — icon + number only (Style A)
+// Updated StatPill with click support
 @Composable
 private fun StatPill(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     value: Int,
-    tint: Color
+    tint: Color,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = tint.copy(alpha = 0.08f),
-        shape = RoundedCornerShape(50)
+        shape = RoundedCornerShape(50),
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1337,6 +1374,42 @@ private fun DetailLoadingPlaceholder(innerPadding: PaddingValues) {
     }
 }
 
+
+fun openGemini(context: Context, promptText: String) {
+    try {
+        // 1️⃣ Copy prompt
+        val clipboard =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText("AI Prompt", promptText)
+        )
+
+        // 2️⃣ Open Google App (Gemini lives here)
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setPackage("com.google.android.googlequicksearchbox")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        context.startActivity(intent)
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+
+        // 3️⃣ LAST fallback → browser
+        val browserIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://gemini.google.com")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(browserIntent)
+    }
+}
+
+
+/*
+
 fun debugGeminiLaunch(context: Context) {
     val pm = context.packageManager
     val geminiPackage = "com.google.android.apps.bard"
@@ -1390,40 +1463,7 @@ fun debugGeminiLaunch(context: Context) {
     android.util.Log.e("GEMINI_DEBUG", "====== GEMINI DEBUG END ======")
 }
 
-
-fun openGemini(context: Context, promptText: String) {
-    try {
-        // 1️⃣ Copy prompt
-        val clipboard =
-            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(
-            ClipData.newPlainText("AI Prompt", promptText)
-        )
-
-        // 2️⃣ Open Google App (Gemini lives here)
-        val intent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            setPackage("com.google.android.googlequicksearchbox")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        context.startActivity(intent)
-
-    } catch (e: Exception) {
-        e.printStackTrace()
-
-        // 3️⃣ LAST fallback → browser
-        val browserIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://gemini.google.com")
-        ).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(browserIntent)
-    }
-}
-
-/*fun openGeminiOrPlayStore(
+fun openGeminiOrPlayStore(
 context: Context,
 promptText: String
 ) {

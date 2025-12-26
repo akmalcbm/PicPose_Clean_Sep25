@@ -14,4 +14,11 @@ data class EngagementEntity(
     val pendingViewSync: Int = 0,
 
     val updatedAt: Long = System.currentTimeMillis()
-)
+) {
+    // Helper function for logging
+    override fun toString(): String {
+        return "EngagementEntity(promptId='$promptId', " +
+                "isLiked=$isLiked, isFavorited=$isFavorited, " +
+                "localViewCount=$localViewCount, pendingViewSync=$pendingViewSync)"
+    }
+}
