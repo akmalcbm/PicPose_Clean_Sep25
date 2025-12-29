@@ -180,8 +180,37 @@ fun HomeScreen(
                                 featuredPosts = uiState.featuredPosts,
                                 popularPosts = uiState.popularPosts,
                                 onPostClick = onNavigateToPostDetail,
-                                onLikeClick = { viewModel.onPostLikeClicked(it.id) },
-                                onShareClick = { viewModel.sharePost(context, it) },
+                                //onLikeClick = { viewModel.onPostLikeClicked(it.id) },
+                                onShareClick = { post ->
+                                    coroutineScope.launch {
+
+                                        // 🔍 Try to resolve full AI Prompt first
+                                        val promptMatch = uiState.aiPrompts
+                                            .firstOrNull { it.id.trim() == post.id.trim() }
+
+                                        if (promptMatch != null) {
+                                            // ✅ FULL PROMPT SHARE (same as detail screen)
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    promptMatch.fullPrompt
+                                                        ?: promptMatch.shortPrompt
+                                                        ?: promptMatch.title,
+                                                imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
+                                            )
+                                        } else {
+                                            // 🔁 Fallback → normal post share
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    post.description
+                                                        .takeIf { it.isNotBlank() }
+                                                        ?: post.title,
+                                                imageUrl = post.image
+                                            )
+                                        }
+                                    }
+                                },
                                 onViewAllClick = { category ->
                                     onNavigateToViewAll(category)
                                 }
