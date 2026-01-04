@@ -12,9 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
@@ -38,7 +37,7 @@ fun TrendingFeaturedAndPopularRow(
     featuredPosts: List<Post>,
     popularPosts: List<Post>,
     onPostClick: (Post) -> Unit,
-    onLikeClick: (Post) -> Unit,
+    //onLikeClick: (Post) -> Unit,
     onShareClick: (Post) -> Unit,
     onViewAllClick: (String) -> Unit
 ) {
@@ -122,7 +121,7 @@ fun TrendingFeaturedAndPopularRow(
                             post = post,
                             categoryLabel = tab,
                             onClick = { onPostClick(post) },
-                            onLikeClick = { onLikeClick(post) },
+                            //onLikeClick = { onLikeClick(post) },
                             onShareClick = { onShareClick(post) }
                         )
                     }
@@ -144,22 +143,13 @@ fun TrendingFeaturedAndPopularCard(
     post: Post,
     categoryLabel: String,
     onClick: () -> Unit,
-    onLikeClick: () -> Unit,
+    //onLikeClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
-    val likeScale by animateFloatAsState(
-        targetValue = if (post.isLiked) 1.08f else 1f,
-        animationSpec = spring(),
-        label = "likeScale"
-    )
 
     Card(
         modifier = Modifier
             .width(220.dp)
-            .graphicsLayer {
-                scaleX = likeScale
-                scaleY = likeScale
-            }
             .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -197,30 +187,33 @@ fun TrendingFeaturedAndPopularCard(
 
                     CategoryChip(categoryLabel)
 
-                    Row {
-                        IconButton(onClick = onLikeClick) {
-                            Icon(
-                                imageVector =
-                                    if (post.isLiked)
-                                        Icons.Filled.Favorite
-                                    else
-                                        Icons.Filled.FavoriteBorder,
-                                contentDescription = "Like",
-                                tint =
-                                    if (post.isLiked)
-                                        Color.Red
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    // 👁 Views
+                    Icon(
+                        imageVector = Icons.Filled.Visibility,
+                        contentDescription = "Views",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-                        IconButton(onClick = onShareClick) {
-                            Icon(
-                                Icons.Filled.Share,
-                                contentDescription = "Share"
-                            )
-                        }
+                    Spacer(Modifier.width(4.dp))
+
+                    Text(
+                        text = post.views.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    // 🔗 Share
+                    IconButton(onClick = onShareClick) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
+
                 }
             }
         }

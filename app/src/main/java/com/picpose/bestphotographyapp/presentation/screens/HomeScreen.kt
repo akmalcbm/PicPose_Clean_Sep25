@@ -37,6 +37,7 @@ import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
+import com.picpose.bestphotographyapp.utils.ShareUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,8 +180,37 @@ fun HomeScreen(
                                 featuredPosts = uiState.featuredPosts,
                                 popularPosts = uiState.popularPosts,
                                 onPostClick = onNavigateToPostDetail,
-                                onLikeClick = { viewModel.onPostLikeClicked(it.id) },
-                                onShareClick = { viewModel.sharePost(context, it) },
+                                //onLikeClick = { viewModel.onPostLikeClicked(it.id) },
+                                onShareClick = { post ->
+                                    coroutineScope.launch {
+
+                                        // 🔍 Try to resolve full AI Prompt first
+                                        val promptMatch = uiState.aiPrompts
+                                            .firstOrNull { it.id.trim() == post.id.trim() }
+
+                                        if (promptMatch != null) {
+                                            // ✅ FULL PROMPT SHARE (same as detail screen)
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    promptMatch.fullPrompt
+                                                        ?: promptMatch.shortPrompt
+                                                        ?: promptMatch.title,
+                                                imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
+                                            )
+                                        } else {
+                                            // 🔁 Fallback → normal post share
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    post.description
+                                                        .takeIf { it.isNotBlank() }
+                                                        ?: post.title,
+                                                imageUrl = post.image
+                                            )
+                                        }
+                                    }
+                                },
                                 onViewAllClick = { category ->
                                     onNavigateToViewAll(category)
                                 }
@@ -229,6 +259,7 @@ fun HomeScreen(
 
                         items(uiState.recentPosts.take(5)) { post ->
                             val local = localEngagementStates[post.id]
+
                             RecentPostItem(
                                 post = post,
                                 localEngagement = local,
@@ -239,11 +270,43 @@ fun HomeScreen(
                                     else
                                         onNavigateToPostDetail(post)
                                 },
-                                onLikeClick = { viewModel.onPostLikeClicked(post.id) },
-                                onShareClick = { viewModel.sharePost(context, post) },
+                                onLikeClick = {
+                                    viewModel.onPostLikeClicked(post.id)
+                                },
+                                onShareClick = {
+                                    coroutineScope.launch {
+
+                                        // 1️⃣ Try to resolve full AI Prompt first
+                                        val promptMatch = uiState.aiPrompts
+                                            .firstOrNull { it.id.trim() == post.id.trim() }
+
+                                        if (promptMatch != null) {
+                                            // ✅ SHARE FULL AI PROMPT (same as detail screen)
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    promptMatch.fullPrompt
+                                                        ?: promptMatch.shortPrompt
+                                                        ?: promptMatch.title,
+                                                imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
+                                            )
+                                        } else {
+                                            // 2️⃣ Fallback → normal Post sharing
+                                            ShareUtils.sharePrompt(
+                                                context = context,
+                                                promptText =
+                                                    post.description
+                                                        .takeIf { it.isNotBlank() }
+                                                        ?: post.title,
+                                                imageUrl = post.image
+                                            )
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+
                     }
 
                     // Guides
