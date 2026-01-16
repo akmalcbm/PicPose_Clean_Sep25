@@ -94,10 +94,17 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
-
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Firebase & Authentication
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
+    implementation(libs.google.identity)
+    // Firebase Messaging (FCM)
+    implementation(libs.firebase.messaging)
 
     // Activity & Lifecycle
     implementation(libs.androidx.activity.compose)
@@ -141,12 +148,6 @@ dependencies {
 
     implementation(libs.play.services.ads)         // Google AdMob
     implementation(libs.facebook.audience.network) // Meta Audience Network
-
-    // Firebase & Authentication
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.play.services.auth)
-    implementation(libs.google.identity)
 
     implementation(libs.facebook.login)
 

@@ -65,6 +65,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
@@ -147,7 +148,7 @@ fun ExploreScreen(
 
         val adLoader = AdLoader.Builder(
             adContext,
-            "ca-app-pub-3940256099942544/2247696110" // Test native ad ID
+            AdMobConfigManager.TEST_NATIVE_ID // Test native ad ID
         )
             .forNativeAd { ad ->
                 if (disposed) ad.destroy()

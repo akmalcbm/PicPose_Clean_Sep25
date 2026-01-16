@@ -2,7 +2,7 @@ package com.picpose.bestphotographyapp.data
 
 import android.util.Log
 import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.models.Admob
+//import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -22,8 +22,7 @@ class PromptRepository @Inject constructor() {
 
     companion object {
         private const val TAG = "PromptRepository"
-        private const val TEST_NATIVE_AD_ID =
-            "ca-app-pub-3940256099942544/2247696110"
+        private const val TEST_NATIVE_AD_ID = "ca-app-pub-3940256099942544/2247696110"
     }
 
     /* ---------------------------------------------------------------------- */
@@ -141,7 +140,7 @@ class PromptRepository @Inject constructor() {
         emit(
             Result.success(
                 AppSettings(
-                    admob = Admob(
+                    /*admob = Admob(
                         appId = "ca-app-pub-3940256099942544~3347511713",
                         banner1Id = "",
                         banner2Id = "",
@@ -151,7 +150,7 @@ class PromptRepository @Inject constructor() {
                         native2Id = TEST_NATIVE_AD_ID,
                         native3Id = TEST_NATIVE_AD_ID,
                         rewarded1Id = ""
-                    )
+                    )*/
                 )
             )
         )

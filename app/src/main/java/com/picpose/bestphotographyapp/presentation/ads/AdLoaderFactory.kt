@@ -1,5 +1,6 @@
-package com.picpose.bestphotographyapp.presentation.ads
 
+package com.picpose.bestphotographyapp.presentation.ads
+/*
 import android.content.Context
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
@@ -23,3 +24,4 @@ object AdLoaderFactory {
         adLoader.loadAd(AdRequest.Builder().build())
     }
 }
+*/

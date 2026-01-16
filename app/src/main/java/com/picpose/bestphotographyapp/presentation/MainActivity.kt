@@ -1,11 +1,16 @@
 package com.picpose.bestphotographyapp.presentation
 
+import android.Manifest
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.lifecycle.ViewModelProvider
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,10 +19,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.picpose.bestphotographyapp.presentation.components.BottomNavigationBar
@@ -37,6 +48,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val deepLink = intent.getStringExtra("deep_link")
+
         // ⭐ Correct Hilt ViewModel loading (NO @Inject!)
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
 
@@ -46,6 +59,8 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
+
+            RequestNotificationPermission()
 
             val settingsViewModel: SettingsViewModel =
                 androidx.lifecycle.viewmodel.compose.viewModel()
@@ -69,6 +84,14 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     val navController = rememberNavController()
+
+                    // ✅ HANDLE NOTIFICATION DEEP LINK HERE
+                    LaunchedEffect(Unit) {
+                        deepLink?.let { link ->
+                            handleNotificationDeepLink(navController, link)
+                        }
+                    }
+
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -97,7 +120,68 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+
     }
+
+    private fun handleNotificationDeepLink(
+        navController: NavHostController,
+        deepLink: String
+    ) {
+        when {
+            deepLink.startsWith("app://prompts/") -> {
+                val id = deepLink.removePrefix("app://prompts/")
+                navController.navigate(Screen.PromptDetail.createRoute(id)) {
+                    launchSingleTop = true
+                }
+            }
+
+            deepLink.startsWith("app://category/") -> {
+                val category = deepLink.removePrefix("app://category/")
+                navController.navigate("${Screen.AllAIPrompts.route}?category=$category") {
+                    launchSingleTop = true
+                }
+            }
+
+            else -> {
+                // fallback → Home
+                navController.navigate(Screen.Home.route) {
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
+
+
+    @Composable
+    fun RequestNotificationPermission() {
+
+        val activity = LocalContext.current as Activity
+
+        val permissionLauncher =
+            rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                if (isGranted) {
+                    // Permission granted
+                } else {
+                    // Permission denied
+                }
+            }
+
+        LaunchedEffect(Unit) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(
+                        activity,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+    }
+
 
     // ⭐ Facebook Login callback forwarding (required by FB SDK)
     @Deprecated("onActivityResult is deprecated but required by Facebook SDK")

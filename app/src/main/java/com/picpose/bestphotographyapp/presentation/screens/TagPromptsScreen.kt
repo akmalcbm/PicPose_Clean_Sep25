@@ -33,6 +33,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.AdLoader
+import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -80,7 +81,7 @@ fun TagPromptsScreen(
         val adLoader = AdLoader.Builder(
             context,
             // ✅ Test native ad unit
-            "ca-app-pub-3940256099942544/2247696110"
+            AdMobConfigManager.TEST_NATIVE_ID
         )
             .forNativeAd { ad ->
                 nativeAd?.destroy()

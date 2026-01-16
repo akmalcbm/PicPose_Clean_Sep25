@@ -55,6 +55,7 @@ datastore = "1.1.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+firebaseMessagingKtx = "25.0.1"
 #constraintlayout = "2.2.0" # This may not be needed for Compose projects
 
 
@@ -106,7 +107,6 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
-
 # Dependency Injection - Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -136,7 +136,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
 google-identity = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "google-identity" }
-
+# Firebase Messaging
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 
 facebook-login = { group = "com.facebook.android", name = "facebook-login", version.ref = "facebook-login" }
 

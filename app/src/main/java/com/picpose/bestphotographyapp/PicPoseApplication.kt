@@ -10,92 +10,128 @@ import com.facebook.FacebookSdk
 import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
+import com.google.firebase.messaging.FirebaseMessaging
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
 
 @HiltAndroidApp
 class PicPoseApplication : Application(), ImageLoaderFactory {
 
+    /**
+     * ✅ Application-wide safe coroutine scope
+     */
+    private val applicationScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Default
+    )
+
     override fun onCreate() {
         super.onCreate()
 
-        // Retrofit cache
+        // 🔹 Retrofit cache
         RetrofitClient.initCache(this)
 
-        // AdMob
-        initializeAdMobSafely()
-        initializeAdMobConfig()
+        // 🔹 Facebook SDK
+        initFacebookSdk()
 
-        // ⭐ NEW Facebook SDK Initialization
+        // 🔹 AdMob
+        initAdMobSafely()
+        fetchAdMobConfig()
+
+        // 🔹 Firebase topic subscription
+        subscribeToFirebaseTopics()
+    }
+
+    /**
+     * 🔵 Facebook SDK initialization
+     */
+    private fun initFacebookSdk() {
         FacebookSdk.setApplicationId(getString(R.string.facebook_app_id))
         FacebookSdk.setClientToken(getString(R.string.facebook_client_token))
-
         FacebookSdk.setAutoInitEnabled(true)
         FacebookSdk.fullyInitialize()
-
         AppEventsLogger.activateApp(this)
     }
 
     /**
-     * Initialize Google Mobile Ads on background thread
+     * 🔵 Firebase topic subscriptions
      */
-    private fun initializeAdMobSafely() {
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+    private fun subscribeToFirebaseTopics() {
+        applicationScope.launch {
+            try {
+                FirebaseMessaging.getInstance().subscribeToTopic("all").await()
+                FirebaseMessaging.getInstance().subscribeToTopic("android").await()
+
+                Log.d("FCM", "✅ Subscribed to default topics")
+
+            } catch (e: Exception) {
+                Log.e("FCM", "❌ Topic subscription failed", e)
+            }
+        }
+    }
+
+    /**
+     * 🔵 Safe AdMob initialization
+     */
+    private fun initAdMobSafely() {
+        applicationScope.launch {
             try {
                 val testDeviceIds = listOf("33BE2250B43518CCDA7DE426D04EE231")
                 val config = RequestConfiguration.Builder()
                     .setTestDeviceIds(testDeviceIds)
                     .build()
-                MobileAds.setRequestConfiguration(config)
 
-                // Delay slightly to ensure Google Play Services is ready
-                delay(300)
+                MobileAds.setRequestConfiguration(config)
 
                 withContext(Dispatchers.Main) {
                     MobileAds.initialize(this@PicPoseApplication) { status ->
-                        Log.d("PicPoseApp", "✅ AdMob initialized: ${status.adapterStatusMap.keys}")
+                        Log.d(
+                            "PicPoseApp",
+                            "✅ AdMob initialized: ${status.adapterStatusMap.keys}"
+                        )
                     }
                 }
             } catch (e: Exception) {
-                Log.e("PicPoseApp", "❌ Failed to initialize AdMob: ${e.message}")
+                Log.e("PicPoseApp", "❌ AdMob init failed", e)
             }
         }
     }
 
     /**
-     * Fetch AdMob settings in background (safe)
+     * 🔵 Fetch AdMob config safely
      */
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun initializeAdMobConfig() {
-        GlobalScope.launch(Dispatchers.IO + SupervisorJob()) {
+    private fun fetchAdMobConfig() {
+        applicationScope.launch(Dispatchers.IO) {
             try {
                 val adMobConfig = AdMobConfigManager.getInstance(this@PicPoseApplication)
                 adMobConfig.fetchAppSettings().first()
             } catch (e: Exception) {
-                Log.w("PicPoseApp", "⚠️ AdMob config fetch failed: ${e.message}")
+                Log.w("PicPoseApp", "⚠️ AdMob config fetch failed", e)
             }
         }
     }
 
-    // ✅ Lazy singleton ImageLoader instance (only created once)
+    /**
+     * 🖼️ Coil ImageLoader (singleton)
+     */
     private val imageLoader by lazy {
         ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25) // Use up to 25% of app memory for images
+                    .maxSizePercent(0.25)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB disk cache
+                    .maxSizeBytes(50L * 1024 * 1024)
                     .build()
             }
-            .crossfade(true) // Optional smooth fade-in
-            .respectCacheHeaders(false) // Ensures old images still load if offline
+            .crossfade(true)
+            .respectCacheHeaders(false)
             .build()
     }
 

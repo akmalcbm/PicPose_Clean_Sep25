@@ -3,7 +3,7 @@ package com.picpose.bestphotographyapp.data.admob
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import com.picpose.bestphotographyapp.data.models.Admob
+//import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
@@ -33,9 +33,10 @@ class AdMobConfigManager private constructor(private val context: Context) {
         
         // Fallback test IDs (Google's test ad unit IDs)
         private const val TEST_APP_ID = "ca-app-pub-3940256099942544~3347511713"
+
         private const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111"
         private const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
-        private const val TEST_NATIVE_ID = "ca-app-pub-3940256099942544/2247696110"
+        public const val TEST_NATIVE_ID = "ca-app-pub-3940256099942544/2247696110"
         private const val TEST_REWARDED_ID = "ca-app-pub-3940256099942544/5224354917"
         
         @Volatile
@@ -112,7 +113,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
     /**
      * Get specific ad unit IDs
      */
-    fun getBanner1Id(): String = getCurrentSettings().banner1Id.ifEmpty { TEST_BANNER_ID }
+    /*fun getBanner1Id(): String = getCurrentSettings().banner1Id.ifEmpty { TEST_BANNER_ID }
     fun getBanner2Id(): String = getCurrentSettings().banner2Id.ifEmpty { TEST_BANNER_ID }
     fun getInterstitial1Id(): String = getCurrentSettings().interstitial1Id.ifEmpty { TEST_INTERSTITIAL_ID }
     fun getInterstitial2Id(): String = getCurrentSettings().interstitial2Id.ifEmpty { TEST_INTERSTITIAL_ID }
@@ -120,7 +121,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
     fun getNative2Id(): String = getCurrentSettings().native2Id.ifEmpty { TEST_NATIVE_ID }
     fun getNative3Id(): String = getCurrentSettings().native3Id.ifEmpty { TEST_NATIVE_ID }
     fun getRewarded1Id(): String = getCurrentSettings().rewarded1Id.ifEmpty { TEST_REWARDED_ID }
-    fun getAppId(): String = getCurrentSettings().appId.ifEmpty { TEST_APP_ID }
+    fun getAppId(): String = getCurrentSettings().appId.ifEmpty { TEST_APP_ID }*/
     
     /**
      * Force refresh settings from server (ignores cache)
@@ -169,7 +170,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
     
     private fun cacheSettings(settings: AppSettings) {
         prefs.edit().apply {
-            putString(KEY_APP_ID, settings.appId)
+            /*putString(KEY_APP_ID, settings.appId)
             putString(KEY_BANNER1_ID, settings.banner1Id)
             putString(KEY_BANNER2_ID, settings.banner2Id)
             putString(KEY_INTERSTITIAL1_ID, settings.interstitial1Id)
@@ -179,7 +180,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
             putString(KEY_NATIVE3_ID, settings.native3Id)
             putString(KEY_REWARDED1_ID, settings.rewarded1Id)
             putLong(KEY_LAST_UPDATE, System.currentTimeMillis())
-            apply()
+            apply()*/
         }
     }
     
@@ -188,7 +189,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
         if (appId.isEmpty()) return null
         
         return AppSettings(
-            admob = Admob(
+            /*admob = Admob(
                 appId = appId,
                 banner1Id = prefs.getString(KEY_BANNER1_ID, "") ?: "",
                 banner2Id = prefs.getString(KEY_BANNER2_ID, "") ?: "",
@@ -198,13 +199,13 @@ class AdMobConfigManager private constructor(private val context: Context) {
                 native2Id = prefs.getString(KEY_NATIVE2_ID, "") ?: "",
                 native3Id = prefs.getString(KEY_NATIVE3_ID, "") ?: "",
                 rewarded1Id = prefs.getString(KEY_REWARDED1_ID, "") ?: ""
-            )
+            )*/
         )
     }
     
     private fun getFallbackSettings(): AppSettings {
         return AppSettings(
-            admob = Admob(
+            /*admob = Admob(
                 appId = TEST_APP_ID,
                 banner1Id = TEST_BANNER_ID,
                 banner2Id = TEST_BANNER_ID,
@@ -214,7 +215,7 @@ class AdMobConfigManager private constructor(private val context: Context) {
                 native2Id = TEST_NATIVE_ID,
                 native3Id = TEST_NATIVE_ID,
                 rewarded1Id = TEST_REWARDED_ID
-            )
+            )*/
         )
     }
 }
