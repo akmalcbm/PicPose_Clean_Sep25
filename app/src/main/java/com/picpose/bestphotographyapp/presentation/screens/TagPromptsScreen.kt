@@ -33,8 +33,10 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.AdLoader
+import com.picpose.bestphotographyapp.data.AdManager
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
@@ -509,7 +511,7 @@ private fun TagBannerAd() {
             factory = {
                 AdView(context).apply {
                     // ✅ Test banner ad unit
-                    adUnitId = "ca-app-pub-3940256099942544/6300978111"
+                    adUnitId = AdsManager.bannerId()
                     setAdSize(AdSize.BANNER)
                     loadAd(AdRequest.Builder().build())
                 }

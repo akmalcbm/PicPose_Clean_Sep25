@@ -12,7 +12,10 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import com.picpose.bestphotographyapp.data.models.AdConfig
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.utils.Constants
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -106,13 +109,36 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
     private fun fetchAdMobConfig() {
         applicationScope.launch(Dispatchers.IO) {
             try {
-                val adMobConfig = AdMobConfigManager.getInstance(this@PicPoseApplication)
+                // 🔹 Currently using TEST ads
+                val adConfig = AdConfig(
+                    appId = Constants.TEST_APP_ID,
+                    bannerId = Constants.TEST_BANNER_ID,
+                    bannerId2 = Constants.TEST_BANNER_ID_2,
+                    interstitialId = Constants.TEST_INTERSTITIAL_ID,
+                    interstitialId2 = Constants.TEST_INTERSTITIAL_ID_2,
+                    nativeId = Constants.TEST_NATIVE_ID,
+                    nativeId2 = Constants.TEST_NATIVE_ID_2,
+                    nativeId3 = Constants.TEST_NATIVE_ID_2,
+                    rewardedId = Constants.TEST_REWARDED_ID,
+                )
+
+                // 🔹 Initialize central AdsManager
+                AdsManager.init(adConfig)
+
+                Log.d("PicPoseApp", "✅ AdsManager initialized with TEST Ad IDs")
+
+                // 🔹 (Optional – future) Server config
+                val adMobConfig =
+                    AdMobConfigManager.getInstance(this@PicPoseApplication)
+
                 adMobConfig.fetchAppSettings().first()
+
             } catch (e: Exception) {
-                Log.w("PicPoseApp", "⚠️ AdMob config fetch failed", e)
+                Log.w("PicPoseApp", "⚠️ Ad config init failed", e)
             }
         }
     }
+
 
     /**
      * 🖼️ Coil ImageLoader (singleton)

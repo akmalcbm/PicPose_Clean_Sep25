@@ -6,6 +6,7 @@ import android.util.Log
 //import com.picpose.bestphotographyapp.data.models.Admob
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -122,7 +123,19 @@ class AdMobConfigManager private constructor(private val context: Context) {
     fun getNative3Id(): String = getCurrentSettings().native3Id.ifEmpty { TEST_NATIVE_ID }
     fun getRewarded1Id(): String = getCurrentSettings().rewarded1Id.ifEmpty { TEST_REWARDED_ID }
     fun getAppId(): String = getCurrentSettings().appId.ifEmpty { TEST_APP_ID }*/
-    
+
+    fun bannerId() = AdsManager.bannerId()
+    fun bannerId2() = AdsManager.bannerId2()
+    fun interstitialId() = AdsManager.interstitialId()
+    fun interstitialId2() = AdsManager.interstitialId2()
+    fun nativeId() = AdsManager.nativeId()
+
+    fun nativeId2() = AdsManager.nativeId2()
+
+    fun nativeId3() = AdsManager.nativeId3()
+    fun rewardedId() = AdsManager.rewardedId()
+
+
     /**
      * Force refresh settings from server (ignores cache)
      */

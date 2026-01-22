@@ -129,6 +129,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -180,7 +181,7 @@ fun AIPromptDetailScreen(
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             context,
-            "ca-app-pub-3940256099942544/1033173712", // test id
+            AdsManager.interstitialId(),
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
@@ -199,7 +200,7 @@ fun AIPromptDetailScreen(
     DisposableEffect(Unit) {
         val adLoader = AdLoader.Builder(
             context,
-            "ca-app-pub-3940256099942544/2247696110" // test native id
+            AdsManager.nativeId()
         ).forNativeAd { ad ->
             nativeAd?.destroy()
             nativeAd = ad

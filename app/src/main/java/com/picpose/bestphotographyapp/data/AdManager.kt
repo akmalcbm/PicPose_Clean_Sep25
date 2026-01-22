@@ -9,7 +9,7 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.picpose.bestphotographyapp.data.models.AppSettings
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,9 +30,6 @@ class AdManager private constructor() {
     companion object {
         private const val TAG = "AdManager"
         
-        // Google test ad IDs (fallback)
-        private const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
-        
         @Volatile
         private var INSTANCE: AdManager? = null
         
@@ -44,8 +41,8 @@ class AdManager private constructor() {
     }
     
     // Ad unit IDs from server (set via initialize)
-    private var interstitial1Id: String = TEST_INTERSTITIAL_ID
-    private var interstitial2Id: String = TEST_INTERSTITIAL_ID
+    private var interstitial1Id: String = AdsManager.interstitialId()
+    private var interstitial2Id: String = AdsManager.interstitialId2()
     
     // Click counter and frequency control
     private val clickCounter = AtomicInteger(0)
@@ -62,12 +59,12 @@ class AdManager private constructor() {
      * Initialize AdManager with AppSettings
      * Should be called once from Application or main activity
      */
-    fun initialize(appSettings: AppSettings, clickFrequency: Int = 3) {
+    fun initialize(clickFrequency: Int = 3) {
         Log.d(TAG, "Initializing AdManager with server settings")
         
         // Use server IDs if available, fallback to test IDs
-        interstitial1Id = appSettings.interstitial1Id.ifEmpty { TEST_INTERSTITIAL_ID }
-        interstitial2Id = appSettings.interstitial2Id.ifEmpty { TEST_INTERSTITIAL_ID }
+        interstitial1Id = AdsManager.interstitialId() //appSettings.interstitial1Id.ifEmpty { TEST_INTERSTITIAL_ID }
+        interstitial2Id = AdsManager.interstitialId2() //appSettings.interstitial2Id.ifEmpty { TEST_INTERSTITIAL_ID }
         
         showAdEveryNClicks = clickFrequency.coerceAtLeast(1) // Minimum 1
         

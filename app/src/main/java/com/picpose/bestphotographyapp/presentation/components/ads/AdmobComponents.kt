@@ -14,6 +14,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 
 @Composable
 fun AdmobBannerAd(
@@ -29,14 +30,14 @@ fun AdmobBannerAd(
             AdView(ctx).apply {
                 setAdSize(AdSize.BANNER)
                 adUnitId = when (adType) {
-                    AdType.BANNER1 -> adMobConfig.getBanner1Id()
-                    AdType.BANNER2 -> adMobConfig.getBanner2Id()
-                    AdType.INTERSTITIAL1 -> TODO()
-                    AdType.INTERSTITIAL2 -> TODO()
-                    AdType.NATIVE1 -> TODO()
-                    AdType.NATIVE2 -> TODO()
-                    AdType.NATIVE3 -> TODO()
-                    AdType.REWARDED1 -> TODO()
+                    AdType.BANNER1 -> adMobConfig.bannerId()
+                    AdType.BANNER2 -> adMobConfig.bannerId2()
+                    AdType.INTERSTITIAL1 -> adMobConfig.interstitialId()
+                    AdType.INTERSTITIAL2 -> adMobConfig.interstitialId2()
+                    AdType.NATIVE1 -> adMobConfig.nativeId()
+                    AdType.NATIVE2 -> adMobConfig.nativeId2()
+                    AdType.NATIVE3 -> adMobConfig.nativeId3()
+                    AdType.REWARDED1 -> adMobConfig.rewardedId()
                 }
                 loadAd(AdRequest.Builder().build())
             }
@@ -54,15 +55,15 @@ fun AdmobInterstitialTrigger(
     adType: AdType = AdType.INTERSTITIAL1
 ) {
     val context = LocalContext.current
-    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
+    //val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
     LaunchedEffect(Unit) {
         val adRequest = AdRequest.Builder().build()
         val adUnitId = when (adType) {
-            AdType.INTERSTITIAL1 -> adMobConfig.getInterstitial1Id()
-            AdType.INTERSTITIAL2 -> adMobConfig.getInterstitial2Id()
-            else -> adMobConfig.getInterstitial1Id()
+            AdType.INTERSTITIAL1 -> AdsManager.interstitialId()
+            AdType.INTERSTITIAL2 -> AdsManager.interstitialId2()
+            else -> AdsManager.interstitialId()
         }
 
         InterstitialAd.load(
@@ -143,7 +144,7 @@ fun AdmobRewardedAd(
 
         RewardedAd.load(
             context,
-            adMobConfig.getRewarded1Id(),
+            AdsManager.rewardedId(),
             adRequest,
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {

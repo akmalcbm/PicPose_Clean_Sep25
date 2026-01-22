@@ -1,75 +1,71 @@
 package com.picpose.bestphotographyapp.presentation.ads
 
-import com.picpose.bestphotographyapp.data.remote.AdPlacementConfig
-import com.picpose.bestphotographyapp.data.remote.AdUnitConfig
-import com.picpose.bestphotographyapp.data.remote.AdsConfigResponse
+import com.picpose.bestphotographyapp.data.models.AdConfig
+import com.picpose.bestphotographyapp.utils.Constants
 
 object AdsManager {
 
-    private var config: AdsConfigResponse? = null
+    private var liveConfig: AdConfig? = null
 
-    fun init(configResponse: AdsConfigResponse) {
-        config = configResponse
+    // Call once after API success
+    fun init(config: AdConfig) {
+        liveConfig = config
     }
 
-    fun isAdsEnabled(): Boolean {
-        return config?.global?.ads_enabled == true
-    }
+    fun isAdsEnabled(): Boolean = true   // future flag possible
 
-    fun getPlacement(key: String): AdPlacementConfig? {
-        return config?.placements?.get(key)
-    }
+    fun appId(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_APP_ID
+        else
+            liveConfig?.appId ?: Constants.TEST_APP_ID
 
-    fun getSortedUnits(key: String): List<AdUnitConfig> {
-        return getPlacement(key)?.units
-            ?.sortedBy { it.priority }
-            ?: emptyList()
-    }
+    fun bannerId(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_BANNER_ID
+        else
+            liveConfig?.bannerId ?: Constants.TEST_BANNER_ID
+
+    fun bannerId2(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_BANNER_ID_2
+        else
+            liveConfig?.bannerId2 ?: Constants.TEST_BANNER_ID_2
+
+    fun interstitialId(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_INTERSTITIAL_ID
+        else
+            liveConfig?.interstitialId ?: Constants.TEST_INTERSTITIAL_ID
+
+    fun interstitialId2(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_INTERSTITIAL_ID_2
+        else
+            liveConfig?.interstitialId2 ?: Constants.TEST_INTERSTITIAL_ID_2
+
+
+    fun nativeId(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_NATIVE_ID
+        else
+            liveConfig?.nativeId ?: Constants.TEST_NATIVE_ID
+
+    fun nativeId2(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_NATIVE_ID_2
+        else
+            liveConfig?.nativeId2 ?: Constants.TEST_NATIVE_ID_2
+
+    fun nativeId3(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_NATIVE_ID_3
+        else
+            liveConfig?.nativeId3 ?: Constants.TEST_NATIVE_ID_3
+
+    fun rewardedId(): String =
+        if (Constants.IS_TEST_ADS)
+            Constants.TEST_REWARDED_ID
+        else
+            liveConfig?.rewardedId ?: Constants.TEST_REWARDED_ID
 }
-
-/*
-7️⃣ Example: Native Ad Loader (Failover Ready)
-loadNativeAd.kt
-fun loadNativeAd(
-    context: Context,
-    placementKey: String,
-    onLoaded: (Any) -> Unit
-) {
-    if (!AdsManager.isAdsEnabled()) return
-
-    val placement = AdsManager.getPlacement(placementKey) ?: return
-    val frequency = placement.frequency ?: 1
-
-    if (!AdsFrequencyManager.canShow(placementKey, frequency)) return
-
-    for (unit in AdsManager.getSortedUnits(placementKey)) {
-
-        if (unit.network == "admob") {
-            loadAdmobNative(context, unit.ad_unit_id, {
-                AdsFrequencyManager.markShown(placementKey)
-                onLoaded(it)
-                return
-            })
-        }
-
-        if (unit.network == "meta") {
-            loadMetaNative(context, unit.ad_unit_id, {
-                AdsFrequencyManager.markShown(placementKey)
-                onLoaded(it)
-                return
-            })
-        }
-    }
-}
-
-8️⃣ Usage in Compose (Example)
-LaunchedEffect(Unit) {
-    loadNativeAd(
-        context = context,
-        placementKey = "home_native_1"
-    ) { ad ->
-        nativeAdState.value = ad
-    }
-}
-*/
-

@@ -39,6 +39,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.data.AdManager
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.ui.ads.NativeAdSection
 import kotlinx.coroutines.launch
 
@@ -192,7 +193,7 @@ fun AiPromptDetailsScreen(
                             prompt = uiState.currentPrompt!!,
                             similarPrompts = uiState.similarPrompts,
                             isLoadingMore = uiState.isLoadingMore,
-                            nativeAdUnitId = uiState.appSettings?.native1Id ?: AdMobConfigManager.TEST_NATIVE_ID,
+                            nativeAdUnitId = AdsManager.nativeId(),
                             listState = listState,
                             onImageClick = { showImageDialog = true },
                             onCopyPrompt = {

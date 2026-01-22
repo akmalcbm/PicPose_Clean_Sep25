@@ -71,7 +71,7 @@ class AiPromptDetailsViewModel(
                             Log.d(TAG, "App settings loaded successfully")
                             _uiState.value = _uiState.value.copy(appSettings = settings)
                             // Initialize AdManager with settings
-                            adManager.initialize(settings, clickFrequency = 3)
+                            adManager.initialize(clickFrequency = 3)
                             // Note: Ads will be preloaded from the screen with context
                         },
                         onFailure = { error ->
