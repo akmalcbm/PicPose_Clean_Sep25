@@ -21,14 +21,14 @@ class AdMobConfigManager private constructor(private val context: Context) {
         private const val TAG = "AdMobConfigManager"
         private const val PREFS_NAME = "admob_config"
         private const val KEY_APP_ID = "app_id"
-        private const val KEY_BANNER1_ID = "banner1_id"
+        /*private const val KEY_BANNER1_ID = "banner1_id"
         private const val KEY_BANNER2_ID = "banner2_id"
         private const val KEY_INTERSTITIAL1_ID = "interstitial1_id"
         private const val KEY_INTERSTITIAL2_ID = "interstitial2_id"
         private const val KEY_NATIVE1_ID = "native1_id"
         private const val KEY_NATIVE2_ID = "native2_id"
         private const val KEY_NATIVE3_ID = "native3_id"
-        private const val KEY_REWARDED1_ID = "rewarded1_id"
+        private const val KEY_REWARDED1_ID = "rewarded1_id"*/
         private const val KEY_LAST_UPDATE = "last_update"
         private const val CACHE_VALIDITY_MS = 24 * 60 * 60 * 1000L // 24 hours
         

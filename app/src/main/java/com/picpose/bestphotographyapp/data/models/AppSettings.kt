@@ -13,22 +13,11 @@ data class AppSettings(
     @SerializedName("tagline") val tagline: String = "",
     @SerializedName("description") val description: String = "",
     @SerializedName("google_play_url") val googlePlayUrl: String = "",
-    //@SerializedName("admob") val admob: Admob = Admob(),
     @SerializedName("contact") val contact: Contact = Contact(),
     @SerializedName("policies") val policies: Policies = Policies(),
     @SerializedName("about") val about: About = About(),
     @SerializedName("meta") val meta: Meta = Meta()
 ) {
-    // Backward compatibility properties for existing code
-    /*val appId: String get() = admob.appId
-    val banner1Id: String get() = admob.banner1Id
-    val banner2Id: String get() = admob.banner2Id
-    val interstitial1Id: String get() = admob.interstitial1Id
-    val interstitial2Id: String get() = admob.interstitial2Id
-    val native1Id: String get() = admob.native1Id
-    val native2Id: String get() = admob.native2Id
-    val native3Id: String get() = admob.native3Id
-    val rewarded1Id: String get() = admob.rewarded1Id*/
     val supportEmail: String get() = contact.email
     val supportPhone: String get() = contact.phone
     val privacyPolicy: String get() = policies.privacyPolicyHtml
@@ -36,21 +25,6 @@ data class AppSettings(
     val appVersion: String get() = "1.0.0" // Can be retrieved from BuildConfig
     val developer: String get() = adminName
 }
-
-/**
- * AdMob configuration
- */
-/*data class Admob(
-    @SerializedName("app_id") val appId: String = "",
-    @SerializedName("banner1_id") val banner1Id: String = "",
-    @SerializedName("banner2_id") val banner2Id: String = "",
-    @SerializedName("interstitial1_id") val interstitial1Id: String = "",
-    @SerializedName("interstitial2_id") val interstitial2Id: String = "",
-    @SerializedName("native1_id") val native1Id: String = "",
-    @SerializedName("native2_id") val native2Id: String = "",
-    @SerializedName("native3_id") val native3Id: String = "",
-    @SerializedName("rewarded1_id") val rewarded1Id: String = ""
-)*/
 
 /**
  * Contact information

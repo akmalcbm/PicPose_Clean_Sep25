@@ -11,7 +11,6 @@ import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
-import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AdConfig
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
@@ -124,14 +123,7 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
 
                 // 🔹 Initialize central AdsManager
                 AdsManager.init(adConfig)
-
                 Log.d("PicPoseApp", "✅ AdsManager initialized with TEST Ad IDs")
-
-                // 🔹 (Optional – future) Server config
-                val adMobConfig =
-                    AdMobConfigManager.getInstance(this@PicPoseApplication)
-
-                adMobConfig.fetchAppSettings().first()
 
             } catch (e: Exception) {
                 Log.w("PicPoseApp", "⚠️ Ad config init failed", e)

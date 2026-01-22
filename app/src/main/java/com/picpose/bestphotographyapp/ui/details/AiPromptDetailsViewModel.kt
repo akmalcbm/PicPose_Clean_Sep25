@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.picpose.bestphotographyapp.data.AdManager
+import com.picpose.bestphotographyapp.data.admob.AdManager
 import com.picpose.bestphotographyapp.data.PromptRepository
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
@@ -56,13 +56,13 @@ class AiPromptDetailsViewModel(
     
     init {
         // Load app settings on init
-        loadAppSettings()
+        //loadAppSettings()
     }
     
     /**
      * Load app settings for AdMob configuration
      */
-    private fun loadAppSettings() {
+    /*private fun loadAppSettings() {
         viewModelScope.launch {
             try {
                 promptRepository.getAppSettings().collect { result ->
@@ -84,7 +84,7 @@ class AiPromptDetailsViewModel(
                 Log.e(TAG, "Exception loading app settings: ${e.message}")
             }
         }
-    }
+    }*/
     
     /**
      * Preload ads with context from Activity

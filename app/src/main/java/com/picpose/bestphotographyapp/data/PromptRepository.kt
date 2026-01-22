@@ -129,16 +129,16 @@ class PromptRepository @Inject constructor() {
     }.flowOn(Dispatchers.IO)
 
     /* ---------------------------------------------------------------------- */
-    /* APP SETTINGS (MOCK) */
+    /* APP SETTINGS (MOCK) Removed from Setting and make a new Ads Section and separate api for this */
     /* ---------------------------------------------------------------------- */
 
-    suspend fun getAppSettings(): Flow<Result<AppSettings>> = flow {
+    /*suspend fun getAppSettings(): Flow<Result<AppSettings>> = flow {
         delay(200)
 
         emit(
             Result.success(
                 AppSettings(
-                    /*admob = Admob(
+                    *//*admob = Admob(
                         appId = "ca-app-pub-3940256099942544~3347511713",
                         banner1Id = "",
                         banner2Id = "",
@@ -148,11 +148,11 @@ class PromptRepository @Inject constructor() {
                         native2Id = TEST_NATIVE_AD_ID,
                         native3Id = TEST_NATIVE_AD_ID,
                         rewarded1Id = ""
-                    )*/
+                    )*//*
                 )
             )
         )
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO)*/
 
     /* ---------------------------------------------------------------------- */
     /* ⚠️ NOTE */
