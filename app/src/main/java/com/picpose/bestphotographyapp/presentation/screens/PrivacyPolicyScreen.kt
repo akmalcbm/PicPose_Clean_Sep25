@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -11,9 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,7 +35,6 @@ fun PrivacyPolicyScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
-    val isDarkTheme = colorScheme.background.luminance() < 0.5
 
     // ✅ Proper Scaffold for consistent edge-to-edge layout
     Scaffold(
@@ -73,7 +72,15 @@ fun PrivacyPolicyScreen(
         ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading Privacy Policy...", color = colorScheme.onSurfaceVariant)
+                    }
                 }
 
                 is AppSettingsUiState.Success -> {
@@ -81,57 +88,12 @@ fun PrivacyPolicyScreen(
                         (state as AppSettingsUiState.Success).settings.policies.privacyPolicyHtml
 
                     if (privacyPolicyHtml.isNotBlank()) {
-                        // ✅ WebView with light/dark adaptive style
-                        AndroidView(
-                            factory = { context ->
-                                WebView(context).apply {
-                                    setBackgroundColor(colorScheme.background.toArgb())
-                                    settings.javaScriptEnabled = false
-                                    settings.loadWithOverviewMode = true
-                                    settings.useWideViewPort = true
-                                }
-                            },
-                            update = { webView ->
-                                val bgColor = colorScheme.background.toArgb()
-                                val textColor = colorScheme.onBackground.toArgb()
-                                val linkColor = colorScheme.primary.toArgb()
-
-                                val htmlContent = """
-                                    <!DOCTYPE html>
-                                    <html>
-                                    <head>
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                        <style>
-                                            body {
-                                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                                                padding: 16px;
-                                                line-height: 1.6;
-                                                background-color: #${Integer.toHexString(bgColor).substring(2)};
-                                                color: #${Integer.toHexString(textColor).substring(2)};
-                                            }
-                                            h1, h2, h3 { color: #${Integer.toHexString(linkColor).substring(2)}; }
-                                            a {
-                                                color: #${Integer.toHexString(linkColor).substring(2)};
-                                                text-decoration: none;
-                                            }
-                                            a:hover { text-decoration: underline; }
-                                            p { margin-bottom: 12px; }
-                                        </style>
-                                    </head>
-                                    <body>
-                                        $privacyPolicyHtml
-                                    </body>
-                                    </html>
-                                """.trimIndent()
-
-                                webView.loadDataWithBaseURL(
-                                    null,
-                                    htmlContent,
-                                    "text/html",
-                                    "UTF-8",
-                                    null
-                                )
-                            },
+                        // ✅ Fixed WebView implementation
+                        PrivacyPolicyWebView(
+                            htmlContent = privacyPolicyHtml,
+                            backgroundColor = colorScheme.background,
+                            textColor = colorScheme.onBackground,
+                            accentColor = colorScheme.primary,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -148,6 +110,12 @@ fun PrivacyPolicyScreen(
                                 text = "No Privacy Policy Available",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Please check back later.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp)
                             )
                         }
                     }
@@ -166,7 +134,41 @@ fun PrivacyPolicyScreen(
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
+                        val errorState = state as AppSettingsUiState.Error
+                        if (errorState.message.isNotEmpty()) {
+                            Text(
+                                text = errorState.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // Show cached data if available
+                        errorState.cachedSettings?.let { cachedSettings ->
+                            if (cachedSettings.policies.privacyPolicyHtml.isNotBlank()) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Showing cached version",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    )
+                                    PrivacyPolicyWebView(
+                                        htmlContent = cachedSettings.policies.privacyPolicyHtml,
+                                        backgroundColor = colorScheme.background,
+                                        textColor = colorScheme.onBackground,
+                                        accentColor = colorScheme.primary,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+
                         Button(
                             onClick = { appSettingsViewModel.loadAppSettings(forceRefresh = true) },
                             colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
@@ -176,8 +178,154 @@ fun PrivacyPolicyScreen(
                     }
                 }
 
-                AppSettingsUiState.Idle -> Unit
+                AppSettingsUiState.Idle -> {
+                    // Show loading initially
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
     }
+}
+
+/**
+ * Helper function to convert Color to hex string without alpha
+ */
+private fun Color.toHexWithoutAlpha(): String {
+    val rgb = toArgb() and 0xFFFFFF // Remove alpha component
+    return String.format("#%06X", rgb)
+}
+
+/**
+ * Separate composable for WebView to handle dark/light theme properly
+ */
+@Composable
+@SuppressLint("SetJavaScriptEnabled")
+fun PrivacyPolicyWebView(
+    htmlContent: String,
+    backgroundColor: Color,
+    textColor: Color,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val bgHex = backgroundColor.toHexWithoutAlpha()
+    val textHex = textColor.toHexWithoutAlpha()
+    val accentHex = accentColor.toHexWithoutAlpha()
+
+    val styledHtml = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    padding: 20px;
+                    line-height: 1.6;
+                    background-color: $bgHex;
+                    color: $textHex;
+                    font-size: 16px;
+                }
+                h1 {
+                    font-size: 24px;
+                    margin-top: 24px;
+                    margin-bottom: 16px;
+                    color: $accentHex;
+                    border-bottom: 2px solid $accentHex;
+                    padding-bottom: 8px;
+                }
+                h2 {
+                    font-size: 20px;
+                    margin-top: 20px;
+                    margin-bottom: 12px;
+                    color: $accentHex;
+                }
+                h3 {
+                    font-size: 18px;
+                    margin-top: 16px;
+                    margin-bottom: 10px;
+                    color: $accentHex;
+                }
+                p {
+                    margin-bottom: 16px;
+                    text-align: justify;
+                }
+                ul, ol {
+                    margin-bottom: 16px;
+                    padding-left: 24px;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                a {
+                    color: $accentHex;
+                    text-decoration: none;
+                    font-weight: 500;
+                }
+                a:hover {
+                    text-decoration: underline;
+                }
+                strong, b {
+                    font-weight: 600;
+                }
+                .container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+                @media (max-width: 600px) {
+                    body {
+                        padding: 16px;
+                        font-size: 15px;
+                    }
+                    h1 { font-size: 22px; }
+                    h2 { font-size: 18px; }
+                    h3 { font-size: 16px; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                $htmlContent
+            </div>
+        </body>
+        </html>
+    """.trimIndent()
+
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.apply {
+                    javaScriptEnabled = false
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    builtInZoomControls = true
+                    displayZoomControls = false
+                    setSupportZoom(true)
+                    domStorageEnabled = true
+                    loadsImagesAutomatically = true
+                }
+                setBackgroundColor(backgroundColor.toArgb())
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL(
+                null,
+                styledHtml,
+                "text/html",
+                "UTF-8",
+                null
+            )
+        },
+        modifier = modifier
+    )
 }

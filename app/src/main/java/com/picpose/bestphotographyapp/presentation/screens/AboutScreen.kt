@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,7 +72,18 @@ fun AboutScreen(
         ) {
             when (state) {
                 is AppSettingsUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Loading About information...",
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 is AppSettingsUiState.Success -> {
@@ -78,120 +91,21 @@ fun AboutScreen(
                     val aboutHtml = settings.about.html
 
                     if (aboutHtml.isNotBlank()) {
-                        // ✅ WebView for HTML About content with theme support
-                        AndroidView(
-                            factory = { context ->
-                                WebView(context).apply {
-                                    setBackgroundColor(colorScheme.background.toArgb())
-                                }
-                            },
-                            update = { webView ->
-                                val bgColor = colorScheme.background.toArgb()
-                                val textColor = colorScheme.onBackground.toArgb()
-                                val linkColor = colorScheme.primary.toArgb()
-
-                                val htmlContent = """
-                                    <!DOCTYPE html>
-                                    <html>
-                                    <head>
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                        <style>
-                                            body {
-                                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                                                padding: 16px;
-                                                line-height: 1.6;
-                                                background-color: #${Integer.toHexString(bgColor).substring(2)};
-                                                color: #${Integer.toHexString(textColor).substring(2)};
-                                            }
-                                            h1, h2, h3 { color: #${Integer.toHexString(linkColor).substring(2)}; }
-                                            a {
-                                                color: #${Integer.toHexString(linkColor).substring(2)};
-                                                text-decoration: none;
-                                            }
-                                            a:hover { text-decoration: underline; }
-                                            p { margin-bottom: 12px; }
-                                        </style>
-                                    </head>
-                                    <body>
-                                        $aboutHtml
-                                    </body>
-                                    </html>
-                                """.trimIndent()
-
-                                webView.loadDataWithBaseURL(
-                                    null,
-                                    htmlContent,
-                                    "text/html",
-                                    "UTF-8",
-                                    null
-                                )
-                            },
+                        // ✅ Fixed WebView implementation
+                        AboutWebView(
+                            htmlContent = aboutHtml,
+                            backgroundColor = colorScheme.background,
+                            textColor = colorScheme.onBackground,
+                            accentColor = colorScheme.primary,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
                         // 🧩 Fallback: Plain text About info
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 20.dp, vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            item {
-                                Text(
-                                    text = settings.appName,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp,
-                                    color = colorScheme.onSurface
-                                )
-                                Text(
-                                    text = settings.tagline,
-                                    fontSize = 14.sp,
-                                    color = colorScheme.onSurfaceVariant
-                                )
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = settings.about.text.ifBlank { settings.description },
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = colorScheme.onBackground,
-                                        lineHeight = 22.sp
-                                    )
-                                )
-
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Divider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = "Version",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp,
-                                    color = colorScheme.primary
-                                )
-                                Text(
-                                    text = "1.0.0",
-                                    fontSize = 14.sp,
-                                    color = colorScheme.onSurfaceVariant
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                if (settings.adminName.isNotBlank()) {
-                                    Text(
-                                        text = "Developer",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
-                                        color = colorScheme.primary
-                                    )
-                                    Text(
-                                        text = settings.adminName,
-                                        fontSize = 14.sp,
-                                        color = colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
+                        AboutFallbackContent(
+                            settings = settings,
+                            colorScheme = colorScheme,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
 
@@ -208,6 +122,12 @@ fun AboutScreen(
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = (state as AppSettingsUiState.Error).message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.onSurfaceVariant
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { viewModel.loadAppSettings(forceRefresh = true) },
@@ -215,11 +135,320 @@ fun AboutScreen(
                         ) {
                             Text("Retry", color = colorScheme.onPrimary)
                         }
+
+                        // Show cached data if available
+                        (state as AppSettingsUiState.Error).cachedSettings?.let { cachedSettings ->
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                "Showing cached information",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                            AboutFallbackContent(
+                                settings = cachedSettings,
+                                colorScheme = colorScheme,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp)
+                            )
+                        }
                     }
                 }
 
-                AppSettingsUiState.Idle -> Unit
+                AppSettingsUiState.Idle -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
+    }
+}
+
+/**
+ * Helper function to convert Color to hex string without alpha
+ */
+private fun Color.toHexWithoutAlpha(): String {
+    val rgb = toArgb() and 0xFFFFFF // Remove alpha component
+    return String.format("#%06X", rgb)
+}
+
+/**
+ * WebView for displaying HTML content
+ */
+@Composable
+@SuppressLint("SetJavaScriptEnabled")
+fun AboutWebView(
+    htmlContent: String,
+    backgroundColor: Color,
+    textColor: Color,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val bgHex = backgroundColor.toHexWithoutAlpha()
+    val textHex = textColor.toHexWithoutAlpha()
+    val accentHex = accentColor.toHexWithoutAlpha()
+
+    val styledHtml = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    padding: 24px 20px;
+                    line-height: 1.6;
+                    background-color: $bgHex;
+                    color: $textHex;
+                    font-size: 16px;
+                }
+                h1 {
+                    font-size: 28px;
+                    margin-top: 24px;
+                    margin-bottom: 16px;
+                    color: $accentHex;
+                    font-weight: 600;
+                }
+                h2 {
+                    font-size: 22px;
+                    margin-top: 20px;
+                    margin-bottom: 12px;
+                    color: $accentHex;
+                    font-weight: 600;
+                }
+                h3 {
+                    font-size: 18px;
+                    margin-top: 16px;
+                    margin-bottom: 10px;
+                    color: $accentHex;
+                    font-weight: 600;
+                }
+                p {
+                    margin-bottom: 16px;
+                    text-align: justify;
+                }
+                ul, ol {
+                    margin-bottom: 16px;
+                    padding-left: 24px;
+                }
+                li {
+                    margin-bottom: 8px;
+                }
+                a {
+                    color: $accentHex;
+                    text-decoration: none;
+                    font-weight: 500;
+                }
+                a:hover {
+                    text-decoration: underline;
+                }
+                strong, b {
+                    font-weight: 600;
+                }
+                .container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+                .app-name {
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: $accentHex;
+                    margin-bottom: 8px;
+                }
+                .tagline {
+                    font-size: 16px;
+                    color: $textHex;
+                    opacity: 0.8;
+                    margin-bottom: 24px;
+                }
+                @media (max-width: 600px) {
+                    body {
+                        padding: 20px 16px;
+                        font-size: 15px;
+                    }
+                    h1 { font-size: 24px; }
+                    h2 { font-size: 20px; }
+                    h3 { font-size: 17px; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                $htmlContent
+            </div>
+        </body>
+        </html>
+    """.trimIndent()
+
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.apply {
+                    javaScriptEnabled = false
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    builtInZoomControls = true
+                    displayZoomControls = false
+                    setSupportZoom(true)
+                    domStorageEnabled = true
+                    loadsImagesAutomatically = true
+                }
+                setBackgroundColor(backgroundColor.toArgb())
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL(
+                null,
+                styledHtml,
+                "text/html",
+                "UTF-8",
+                null
+            )
+        },
+        modifier = modifier
+    )
+}
+
+/**
+ * Fallback content when HTML is not available
+ */
+@Composable
+fun AboutFallbackContent(
+    settings: com.picpose.bestphotographyapp.data.models.AppSettings,
+    colorScheme: ColorScheme,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(
+                text = settings.appName,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                color = colorScheme.primary
+            )
+
+            if (settings.tagline.isNotBlank()) {
+                Text(
+                    text = settings.tagline,
+                    fontSize = 16.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val aboutText = settings.about.text.ifBlank { settings.description }
+            if (aboutText.isNotBlank()) {
+                Text(
+                    text = aboutText,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = colorScheme.onBackground,
+                        lineHeight = 24.sp
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+            Divider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // App Info Section
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Version
+                InfoRow(
+                    title = "Version",
+                    value = "1.0.0",
+                    colorScheme = colorScheme
+                )
+
+                // Developer
+                if (settings.adminName.isNotBlank()) {
+                    InfoRow(
+                        title = "Developer",
+                        value = settings.adminName,
+                        colorScheme = colorScheme
+                    )
+                }
+
+                // Support Email
+                if (settings.contact.email.isNotBlank()) {
+                    InfoRow(
+                        title = "Support Email",
+                        value = settings.contact.email,
+                        colorScheme = colorScheme
+                    )
+                }
+
+                // Support Phone
+                if (settings.contact.phone.isNotBlank()) {
+                    InfoRow(
+                        title = "Support Phone",
+                        value = settings.contact.phone,
+                        colorScheme = colorScheme
+                    )
+                }
+
+                // Google Play
+                if (settings.googlePlayUrl.isNotBlank()) {
+                    InfoRow(
+                        title = "Google Play",
+                        value = "Download on Play Store",
+                        colorScheme = colorScheme
+                    )
+                }
+
+                // Last Updated
+                if (settings.meta.updatedAt.isNotBlank()) {
+                    InfoRow(
+                        title = "Last Updated",
+                        value = settings.meta.updatedAt,
+                        colorScheme = colorScheme
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Reusable info row component
+ */
+@Composable
+fun InfoRow(
+    title: String,
+    value: String,
+    colorScheme: ColorScheme
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = title,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = colorScheme.primary
+        )
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            color = colorScheme.onSurfaceVariant
+        )
     }
 }
