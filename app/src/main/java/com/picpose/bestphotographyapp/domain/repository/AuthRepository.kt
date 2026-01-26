@@ -1,11 +1,15 @@
-package com.picpose.bestphotographyapp.data.repository
+package com.picpose.bestphotographyapp.domain.repository
 
 import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toFile
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
-import com.picpose.bestphotographyapp.data.models.*
+import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.data.models.LoginRequest
+import com.picpose.bestphotographyapp.data.models.RegisterRequest
+import com.picpose.bestphotographyapp.data.models.SocialAuthData
+import com.picpose.bestphotographyapp.data.models.User
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.network.UserApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,6 +24,7 @@ import org.json.JSONObject
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.io.path.createTempFile
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -247,7 +252,7 @@ class AuthRepository @Inject constructor(
                 uri.toFile()
             } catch (e: Exception) {
                 val input = context.contentResolver.openInputStream(uri)
-                val file = kotlin.io.path.createTempFile("upload_", ".jpg").toFile()
+                val file = createTempFile("upload_", ".jpg").toFile()
                 input?.use { it.copyTo(file.outputStream()) }
                 file
             }

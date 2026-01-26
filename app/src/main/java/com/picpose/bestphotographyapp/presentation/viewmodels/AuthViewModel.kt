@@ -7,12 +7,14 @@ import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.facebook.CallbackManager
-import com.picpose.bestphotographyapp.auth.*
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.User
-import com.picpose.bestphotographyapp.data.repository.AuthRepository
+import com.picpose.bestphotographyapp.domain.repository.AuthRepository
 import com.picpose.bestphotographyapp.core.utils.PKCEUtil
+import com.picpose.bestphotographyapp.data.remote.auth.FacebookAuthClient
+import com.picpose.bestphotographyapp.data.remote.auth.GoogleAuthUiClient
+import com.picpose.bestphotographyapp.data.remote.auth.TwitterAuthClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

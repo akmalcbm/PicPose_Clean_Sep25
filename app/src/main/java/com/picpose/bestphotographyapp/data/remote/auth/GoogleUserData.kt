@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.auth
+package com.picpose.bestphotographyapp.data.remote.auth
 
 data class GoogleUserData(
     val displayName: String?,

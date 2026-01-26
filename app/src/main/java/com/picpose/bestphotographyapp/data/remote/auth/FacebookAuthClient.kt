@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.auth
+package com.picpose.bestphotographyapp.data.remote.auth
 
 import android.app.Activity
 import android.os.Bundle

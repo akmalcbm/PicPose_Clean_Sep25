@@ -1,9 +1,9 @@
 package com.picpose.bestphotographyapp.di
 
 import android.content.Context
-import com.picpose.bestphotographyapp.auth.FacebookAuthClient
-import com.picpose.bestphotographyapp.auth.GoogleAuthUiClient
-import com.picpose.bestphotographyapp.auth.TwitterAuthClient
+import com.picpose.bestphotographyapp.data.remote.auth.FacebookAuthClient
+import com.picpose.bestphotographyapp.data.remote.auth.GoogleAuthUiClient
+import com.picpose.bestphotographyapp.data.remote.auth.TwitterAuthClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

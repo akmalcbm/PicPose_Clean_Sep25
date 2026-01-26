@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.admob.AdManager
-import com.picpose.bestphotographyapp.data.PromptRepository
+import com.picpose.bestphotographyapp.data.repository.PromptRepository
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository

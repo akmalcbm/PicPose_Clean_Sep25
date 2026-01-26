@@ -3,7 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.picpose.bestphotographyapp.data.PromptRepository
+import com.picpose.bestphotographyapp.data.repository.PromptRepository
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
