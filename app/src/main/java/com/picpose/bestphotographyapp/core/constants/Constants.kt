@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.utils
+package com.picpose.bestphotographyapp.core.constants
 
 object Constants {
 

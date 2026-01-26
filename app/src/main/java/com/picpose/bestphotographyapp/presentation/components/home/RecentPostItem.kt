@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.utils.displayFavorites
-import com.picpose.bestphotographyapp.utils.displayViews
+import com.picpose.bestphotographyapp.core.utils.displayFavorites
+import com.picpose.bestphotographyapp.core.utils.displayViews
 
 @Composable
 fun RecentPostItem(

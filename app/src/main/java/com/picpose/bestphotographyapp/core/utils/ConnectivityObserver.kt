@@ -1,9 +1,8 @@
-package com.picpose.bestphotographyapp.utils
+package com.picpose.bestphotographyapp.core.utils
 
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkCapabilities
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

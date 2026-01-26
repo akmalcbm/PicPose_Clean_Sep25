@@ -27,9 +27,13 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.core.utils.displayFavorites
+import com.picpose.bestphotographyapp.core.utils.displayLikes
+import com.picpose.bestphotographyapp.core.utils.displayViews
+import com.picpose.bestphotographyapp.core.utils.getBookmarkIconState
+import com.picpose.bestphotographyapp.core.utils.getLikeIconState
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.utils.*
 import kotlinx.coroutines.launch
 
 @Composable

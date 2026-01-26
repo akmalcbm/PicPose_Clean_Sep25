@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.utils
+package com.picpose.bestphotographyapp.core.utils
 
 import java.text.SimpleDateFormat
 import java.util.*

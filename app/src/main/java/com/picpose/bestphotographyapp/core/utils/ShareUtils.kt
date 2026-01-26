@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.utils
+package com.picpose.bestphotographyapp.core.utils
 
 import android.content.Context
 import android.content.Intent

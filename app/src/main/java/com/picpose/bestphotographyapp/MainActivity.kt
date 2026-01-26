@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.presentation
+package com.picpose.bestphotographyapp
 
 import android.Manifest
 import android.app.Activity
@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -63,7 +64,7 @@ class MainActivity : ComponentActivity() {
             RequestNotificationPermission()
 
             val settingsViewModel: SettingsViewModel =
-                androidx.lifecycle.viewmodel.compose.viewModel()
+                viewModel()
 
             val themeMode by settingsViewModel.themeMode.collectAsState()
             val systemDark = isSystemInDarkTheme()
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
             PicPoseTheme(darkTheme = finalDarkTheme) {
 
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.Companion.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
 
@@ -107,7 +108,7 @@ class MainActivity : ComponentActivity() {
                     ) { paddingValues ->
 
                         Box(
-                            modifier = Modifier
+                            modifier = Modifier.Companion
                                 .fillMaxSize()
                                 .padding(paddingValues)
                         ) {

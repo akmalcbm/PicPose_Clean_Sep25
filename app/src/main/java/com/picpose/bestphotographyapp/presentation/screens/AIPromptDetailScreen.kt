@@ -133,9 +133,9 @@ import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
-import com.picpose.bestphotographyapp.utils.ShareUtils
-import com.picpose.bestphotographyapp.utils.displayLikes
-import com.picpose.bestphotographyapp.utils.displayViews
+import com.picpose.bestphotographyapp.core.utils.ShareUtils
+import com.picpose.bestphotographyapp.core.utils.displayLikes
+import com.picpose.bestphotographyapp.core.utils.displayViews
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

@@ -30,8 +30,8 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.utils.displayLikes
-import com.picpose.bestphotographyapp.utils.displayViews
+import com.picpose.bestphotographyapp.core.utils.displayLikes
+import com.picpose.bestphotographyapp.core.utils.displayViews
 
 @Composable
 fun AIPromptCard(

@@ -14,14 +14,13 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.picpose.bestphotographyapp.data.models.AdConfig
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
-import com.picpose.bestphotographyapp.utils.Constants
+import com.picpose.bestphotographyapp.core.constants.Constants
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
 @HiltAndroidApp
-class PicPoseApplication : Application(), ImageLoaderFactory {
+class PicPoseApp : Application(), ImageLoaderFactory {
 
     /**
      * ✅ Application-wide safe coroutine scope
@@ -89,7 +88,7 @@ class PicPoseApplication : Application(), ImageLoaderFactory {
                 MobileAds.setRequestConfiguration(config)
 
                 withContext(Dispatchers.Main) {
-                    MobileAds.initialize(this@PicPoseApplication) { status ->
+                    MobileAds.initialize(this@PicPoseApp) { status ->
                         Log.d(
                             "PicPoseApp",
                             "✅ AdMob initialized: ${status.adapterStatusMap.keys}"

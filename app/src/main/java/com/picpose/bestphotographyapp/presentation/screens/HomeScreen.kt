@@ -37,7 +37,7 @@ import com.picpose.bestphotographyapp.presentation.components.home.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
-import com.picpose.bestphotographyapp.utils.ShareUtils
+import com.picpose.bestphotographyapp.core.utils.ShareUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

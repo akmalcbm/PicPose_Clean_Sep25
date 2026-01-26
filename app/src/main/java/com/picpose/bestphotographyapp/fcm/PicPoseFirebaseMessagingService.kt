@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.picpose.bestphotographyapp.R
-import com.picpose.bestphotographyapp.presentation.MainActivity
+import com.picpose.bestphotographyapp.MainActivity
 import kotlinx.coroutines.*
 import java.net.URL
 import kotlin.random.Random

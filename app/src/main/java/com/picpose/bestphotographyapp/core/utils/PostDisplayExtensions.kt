@@ -1,4 +1,4 @@
-package com.picpose.bestphotographyapp.utils
+package com.picpose.bestphotographyapp.core.utils
 
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.Post

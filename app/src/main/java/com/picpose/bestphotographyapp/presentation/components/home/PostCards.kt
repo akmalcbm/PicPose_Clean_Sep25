@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.Post
-import com.picpose.bestphotographyapp.utils.formatNumber
-import com.picpose.bestphotographyapp.utils.formatTimestamp
+import com.picpose.bestphotographyapp.core.utils.formatNumber
+import com.picpose.bestphotographyapp.core.utils.formatTimestamp
 
 @Composable
 fun FeaturedPostCard(

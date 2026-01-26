@@ -1,7 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.ads
 
 import com.picpose.bestphotographyapp.data.models.AdConfig
-import com.picpose.bestphotographyapp.utils.Constants
+import com.picpose.bestphotographyapp.core.constants.Constants
 
 object AdsManager {
 

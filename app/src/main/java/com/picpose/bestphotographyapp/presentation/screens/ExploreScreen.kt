@@ -72,8 +72,8 @@ import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.presentation.components.GuidePostCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.*
-import com.picpose.bestphotographyapp.utils.ConnectivityObserver
-import com.picpose.bestphotographyapp.utils.copyToClipboard
+import com.picpose.bestphotographyapp.core.utils.ConnectivityObserver
+import com.picpose.bestphotographyapp.core.utils.copyToClipboard
 
 /** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
 /** ⚡ Enhanced adaptive frequency for best UX + Revenue */
