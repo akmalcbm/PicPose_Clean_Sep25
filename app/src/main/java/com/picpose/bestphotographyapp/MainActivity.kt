@@ -16,15 +16,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
@@ -157,12 +168,16 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun RequestNotificationPermission() {
 
-        val activity = LocalContext.current as Activity
+        val context = LocalContext.current
+        val activity = context as Activity
+
+        var showRationale by remember { mutableStateOf(false) }
 
         val permissionLauncher =
             rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
+                ActivityResultContracts.RequestPermission()
             ) { isGranted ->
+                showRationale = false
                 if (isGranted) {
                     // Permission granted
                 } else {
@@ -173,15 +188,88 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (ContextCompat.checkSelfPermission(
-                        activity,
+                        context,
                         Manifest.permission.POST_NOTIFICATIONS
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    showRationale = true
                 }
             }
         }
+
+        if (showRationale) {
+            NotificationPermissionDialog(
+                onAllow = {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                },
+                onCancel = {
+                    showRationale = false
+                }
+            )
+        }
     }
+
+    @Composable
+    fun NotificationPermissionDialog(
+        onAllow: () -> Unit,
+        onCancel: () -> Unit
+    ) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = {
+                Text(
+                    text = "Stay Updated 📢",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = buildAnnotatedString {
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                        append("Enable notifications to receive:\n\n")
+                        pop()
+
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                        append("⚆  Daily AI Prompts & Creative Ideas\n")
+                        pop()
+
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                        append("⚆  Daily Photography Guide & Tips\n")
+                        pop()
+
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                        append("⚆  Important App Updates, etc\n\n")
+
+                        pushStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
+                        append("Note:\n")
+                        pop()
+
+                        append("You can turn notifications off anytime from ")
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                        append("Settings.")
+                        pop()
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = onAllow) {
+                    Text("Allow")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancel) {
+                    Text("Not Now")
+                }
+            }
+        )
+    }
+
+
 
 
     // ⭐ Facebook Login callback forwarding (required by FB SDK)

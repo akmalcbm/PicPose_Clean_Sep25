@@ -33,7 +33,6 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.AdLoader
-import com.picpose.bestphotographyapp.data.admob.AdManager
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager

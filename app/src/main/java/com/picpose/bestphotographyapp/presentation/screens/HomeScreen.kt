@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -31,6 +32,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
 import com.picpose.bestphotographyapp.presentation.components.home.*
@@ -38,6 +43,8 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +78,28 @@ fun HomeScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
     }
+
+    // Native Ad (single instance)
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    DisposableEffect(Unit) {
+        val adLoader = AdLoader.Builder(
+            context,
+            AdsManager.nativeId()
+        ).forNativeAd { ad ->
+            nativeAd?.destroy()
+            nativeAd = ad
+        }.withNativeAdOptions(
+            NativeAdOptions.Builder().build()
+        ).build()
+
+        adLoader.loadAd(AdRequest.Builder().build())
+
+        onDispose {
+            nativeAd?.destroy()
+            nativeAd = null
+        }
+    }
+
 
     var isRefreshing by remember { mutableStateOf(false) }
     var currentTipIndex by remember { mutableIntStateOf(0) }
@@ -219,12 +248,28 @@ fun HomeScreen(
                     }
 
                     // Banner Ad
-                    item {
+                    /*item {
                         AdmobBannerAd(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                         )
+                    }*/
+
+                    item {
+                        // 📢 One-Time Large Native Ad with Shimmer Placeholder
+                        if (nativeAd == null) {
+                            // ⏳ Shimmer while ad loads
+                            LargeAdShimmerPlaceholder()
+                        } else {
+                            // 🎉 Real Large Ad
+                            LargeNativeAdCard(
+                                nativeAd = nativeAd,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+                        }
                     }
 
                     // Categories
