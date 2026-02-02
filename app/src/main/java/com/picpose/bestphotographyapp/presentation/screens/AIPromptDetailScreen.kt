@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
@@ -219,8 +220,8 @@ fun AIPromptDetailScreen(
 
     var viewTracked by rememberSaveable(promptId) { mutableStateOf(false) }
 
-    LaunchedEffect(promptId) {
-        if (!viewTracked) {
+    if (!viewTracked) {
+        LaunchedEffect(promptId) {
             delay(5000)
             aiPromptViewModel.registerView(promptId)
             viewTracked = true
@@ -235,26 +236,26 @@ fun AIPromptDetailScreen(
     val effectivePrompt: AIPrompt? = remember(promptId, uiState.allPrompts, uiState.selectedPrompt, localPrompt) {
         val idTrim = promptId.trim()
         localPrompt
-            ?: uiState.selectedPrompt?.takeIf { it.id?.trim() == idTrim }
-            ?: uiState.allPrompts.find { it.id?.trim() == idTrim }
+            ?: uiState.selectedPrompt?.takeIf { it.id.trim() == idTrim }
+            ?: uiState.allPrompts.find { it.id.trim() == idTrim }
     }
 
     // Keep localPrompt in sync / trigger fetch when not found
     LaunchedEffect(promptId, uiState.allPrompts, uiState.selectedPrompt) {
         val idTrim = promptId.trim()
         val merged = listOfNotNull(uiState.selectedPrompt) + uiState.allPrompts
-        val match = merged.find { it.id?.trim() == idTrim }
+        val match = merged.find { it.id.trim() == idTrim }
 
-        android.util.Log.d(TAG_DETAIL, "Received promptId = $promptId")
-        android.util.Log.d(TAG_DETAIL, "Total prompts available = ${uiState.allPrompts.size}")
-        android.util.Log.d(TAG_DETAIL, "Matched prompt? = ${match != null}")
+        Log.d(TAG_DETAIL, "Received promptId = $promptId")
+        Log.d(TAG_DETAIL, "Total prompts available = ${uiState.allPrompts.size}")
+        Log.d(TAG_DETAIL, "Matched prompt? = ${match != null}")
 
         if (match != null) {
             localPrompt = match
             aiPromptViewModel.loadPromptById(promptId)
         } else if (!hasRequestedFromApi) {
             hasRequestedFromApi = true
-            android.util.Log.w(TAG_DETAIL, "⚠️ Not found in memory → Fetching from API")
+            Log.w(TAG_DETAIL, "⚠️ Not found in memory → Fetching from API")
             aiPromptViewModel.loadPromptById(promptId)
         }
     }
@@ -441,20 +442,20 @@ fun AIPromptDetailScreen(
 
                             // 🧮 Stats Row directly under image
                             StatsRow(
-                                promptId = promptData.id ?: "",
+                                promptId = promptData.id,
                                 category = promptData.category,
                                 likes = promptData.displayLikes(localEngagement),
                                 views = promptData.displayViews(localEngagement),
                                 favorites = promptData.favorites,
                                 isLiked = promptData.isLiked,
                                 isBookmarked = promptData.isFavouriteBookmarked,
-                                onLikeClick = { id ->
+                                onLikeClick = { _ ->
                                     // Haptic feedback
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     // Call ViewModel
                                     aiPromptViewModel.onLikeClicked(promptData)
                                 },
-                                onBookmarkClick = { id ->
+                                onBookmarkClick = { _ ->
                                     // Haptic feedback
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     // Call ViewModel
@@ -493,7 +494,7 @@ fun AIPromptDetailScreen(
 
                                     if (!promptData.shortPrompt.isNullOrBlank()) {
                                         Text(
-                                            text = promptData.shortPrompt ?: "",
+                                            text = promptData.shortPrompt,
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             lineHeight = 22.sp
@@ -580,7 +581,7 @@ fun AIPromptDetailScreen(
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
-                                                    promptData.id?.toIntOrNull()?.let {
+                                                    promptData.id.toIntOrNull()?.let {
                                                         aiPromptViewModel.incrementCopyCount(it)
                                                     }
                                                 } else {
@@ -651,7 +652,7 @@ fun AIPromptDetailScreen(
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
-                                                    promptData.id?.toIntOrNull()?.let {
+                                                    promptData.id.toIntOrNull()?.let {
                                                         aiPromptViewModel.incrementCopyCount(it)
                                                     }
                                                 }
@@ -739,7 +740,7 @@ fun AIPromptDetailScreen(
                                                 Toast.LENGTH_SHORT
                                             ).show()
 
-                                            promptData.id?.toIntOrNull()?.let {
+                                            promptData.id.toIntOrNull()?.let {
                                                 aiPromptViewModel.incrementCopyCount(it)
                                             }
 
@@ -764,7 +765,7 @@ fun AIPromptDetailScreen(
 
 
                         // 🏷 Tags (expandable)
-                        promptData.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+                        promptData.tags.takeIf { it.isNotEmpty() }?.let { tags ->
                             item {
                                 var expanded by remember { mutableStateOf(false) }
 
@@ -892,7 +893,7 @@ fun AIPromptDetailScreen(
                                             SimilarPromptCard(
                                                 prompt = similarPrompt,
                                                 onClick = {
-                                                    val id = similarPrompt.id ?: return@SimilarPromptCard
+                                                    val id = similarPrompt.id
                                                     isTransitionLoading = true
 
                                                     // Interstitial after 1 click (test condition)
@@ -1099,8 +1100,8 @@ private fun StatPill(
     icon: ImageVector,
     value: String,
     tint: Color,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
         color = tint.copy(alpha = 0.08f),
@@ -1497,7 +1498,7 @@ fun openGemini(context: Context, promptText: String) {
         // 3️⃣ LAST fallback → browser
         val browserIntent = Intent(
             Intent.ACTION_VIEW,
-            Uri.parse("https://gemini.google.com")
+            "https://gemini.google.com".toUri()
         ).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

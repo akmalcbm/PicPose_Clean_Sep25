@@ -154,7 +154,7 @@ fun AIPromptFavoritesScreen(
                     ) {
                         items(
                             items = favoritePrompts,
-                            key = { it.id ?: it.hashCode() }
+                            key = { it.id }
                         ) { prompt ->
 
                             val local = localEngagementMap[prompt.id]
@@ -164,7 +164,7 @@ fun AIPromptFavoritesScreen(
                                 localEngagement = local,
 
                                 onClick = {
-                                    prompt.id?.let(onPromptClick)
+                                    onPromptClick(prompt.id)
                                 },
 
                                 onCopy = {

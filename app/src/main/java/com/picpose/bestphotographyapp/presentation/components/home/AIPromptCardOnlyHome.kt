@@ -51,16 +51,17 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@Suppress("unused")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIPromptCardOnlyHome(
     prompt: AIPrompt,
     onClick: () -> Unit,
     onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
     onFavoriteClick: ((AIPrompt) -> Unit)? = null,
     isCompact: Boolean = false,
     showFavoriteIcon: Boolean = true,
-    modifier: Modifier = Modifier,
     viewModel: AIPromptViewModel? = null // ✅ add this
 
 ) {
@@ -88,7 +89,7 @@ fun AIPromptCardOnlyHome(
     )
 
     // Safe string helpers to avoid passing null to Text
-    val safeTitle = prompt.title ?: ""
+    val safeTitle = prompt.title
     val safeShortPrompt = prompt.shortPrompt ?: ""
     val safeFullPrompt = prompt.fullPrompt ?: ""
     val safeCategory = prompt.category ?: ""

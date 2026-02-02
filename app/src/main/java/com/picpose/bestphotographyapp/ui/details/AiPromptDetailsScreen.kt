@@ -36,7 +36,6 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.data.admob.AdManager
-import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.core.utils.setText
@@ -55,6 +54,7 @@ import kotlinx.coroutines.launch
  * - Scroll reset to top on navigation
  * - Fallback to test ad IDs when server IDs missing
  */
+@Suppress("unused", "UNUSED_VALUE")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AiPromptDetailsScreen(
@@ -222,7 +222,7 @@ fun AiPromptDetailsScreen(
                                         viewModel.setShowAdLoader(true)
                                         
                                         // Show ad and wait for dismissal
-                                        val adShown = adManager.showInterstitialAndWait(activity)
+                                        adManager.showInterstitialAndWait(activity)
                                         
                                         // Hide loading
                                         viewModel.setShowAdLoader(false)
@@ -413,7 +413,7 @@ private fun PromptContent(
                             color = MaterialTheme.colorScheme.error
                         )
                         
-                        prompt.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+                        prompt.tags.takeIf { it.isNotEmpty() }?.let { tags ->
                             StatChip(
                                 icon = Icons.AutoMirrored.Filled.Label,
                                 text = "${tags.size} tags",
@@ -524,7 +524,7 @@ private fun PromptContent(
         }
         
         // Tags Section
-        prompt.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+        prompt.tags.takeIf { it.isNotEmpty() }?.let { tags ->
             item {
                 Card(
                     modifier = Modifier

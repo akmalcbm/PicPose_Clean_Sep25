@@ -257,7 +257,7 @@ fun AllAIPromptsScreen(
     val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
         uiState.allPrompts.filter { prompt ->
             val matchesSearch = uiState.searchQuery.isBlank() ||
-                    prompt.title?.contains(uiState.searchQuery, true) == true ||
+                    prompt.title.contains(uiState.searchQuery, true) ||
                     prompt.fullPrompt?.contains(uiState.searchQuery, true) == true ||
                     prompt.shortPrompt?.contains(uiState.searchQuery, true) == true
 
@@ -437,7 +437,7 @@ fun AllAIPromptsScreen(
                             ) {
                                 itemsIndexed(
                                     items = displayPrompts,
-                                    key = { index, item -> item.id ?: index.toString() }
+                                    key = { _, item -> item.id }
                                 ) { index, prompt ->
 
                                     val gap = dynamicGap(index)
@@ -452,7 +452,7 @@ fun AllAIPromptsScreen(
 
                                     if (shouldShowAdHere) {
                                         val style = chooseMixedAdStyle(
-                                            key = prompt.id ?: index.toString(),
+                                            key = prompt.id,
                                             mode = ViewMode.GRID
                                         )
                                         when (style) {
@@ -511,7 +511,7 @@ fun AllAIPromptsScreen(
                             ) {
                                 itemsIndexed(
                                     items = displayPrompts,
-                                    key = { index, item -> item.id ?: index.toString() }
+                                    key = { _, item -> item.id }
                                 ) { index, prompt ->
 
                                     val local = localStates[prompt.id]
@@ -553,12 +553,12 @@ fun AllAIPromptsScreen(
                                         },
 
                                         // 👍 LIKE (ID based)
-                                        onLikeClick = { id ->
+                                        onLikeClick = { _ ->
                                             viewModel.onLikeClicked(prompt)
                                         },
 
                                         // ⭐ FAVORITE (BOOKMARK)
-                                        onFavoriteClick = { id ->
+                                        onFavoriteClick = { _ ->
                                             viewModel.onFavoriteClicked(prompt)
                                         },
 
@@ -581,7 +581,7 @@ fun AllAIPromptsScreen(
                                         Spacer(modifier = Modifier.height(8.dp))
 
                                         val style = chooseMixedAdStyle(
-                                            key = prompt.id ?: index.toString(),
+                                            key = prompt.id,
                                             mode = ViewMode.LIST
                                         )
 
@@ -681,7 +681,7 @@ private fun GridPromptItem(
 
                 // TITLE
                 Text(
-                    text = prompt.title ?: "",
+                    text = prompt.title,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -776,6 +776,7 @@ private fun EmptyPromptsState(
 /* ------------------------
    Optional Shimmer Brush
 ------------------------ */
+@Suppress("unused")
 @Composable
 private fun shimmerBrush(): Brush {
     val transition = rememberInfiniteTransition()
