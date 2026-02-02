@@ -1,122 +1,254 @@
-# ========== GOOGLE SIGN-IN & AUTH ==========
--keep class com.google.android.gms.auth.** { *; }
--keep class com.google.android.gms.common.** { *; }
--keep class com.google.android.gms.tasks.** { *; }
--keep class com.google.android.gms.security.** { *; }
+# General Android rules
+-optimizationpasses 5
+-dontusemixedcaseclassnames
+-dontskipnonpubliclibraryclasses
+-dontskipnonpubliclibraryclassmembers
+-dontpreverify
+-verbose
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*,!code/allocation/variable
 
-# Google Play Services
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.android.gms.**
+# Keep important Android classes
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.backup.BackupAgentHelper
+-keep public class * extends android.preference.Preference
+-keep public class * extends android.view.View
+-keep public class com.google.android.gms.common.internal.safeparcel.SafeParcelable {
+    public static final *** NULL;
+}
 
-# Google Identity Services
--keep class com.google.android.libraries.identity.googleid.** { *; }
+# Keep annotations
+-keepattributes *Annotation*, InnerClasses, Signature, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 
-# ========== RETROFIT & OKHTTP (CRITICAL) ==========
-# Retrofit2
+# Keep Kotlin metadata
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+-dontwarn kotlin.**
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontnote kotlin.**
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+# Keep Hilt/Dagger
+-keep class com.google.dagger.hilt.** { *; }
+-keep class * extends dagger.hilt.android.internal.managers.HiltWrapper_ActivityRetainedComponentManager_ActivityRetainedComponentBuilderEntryPoint { *; }
+-keep class * extends dagger.hilt.internal.GeneratedComponentManagerHolder { *; }
+-keep class * extends dagger.hilt.internal.aggregatedroot.codegen.Root { *; }
+-keep class * extends dagger.hilt.android.internal.lifecycle.DefaultViewModelFactories { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager { *; }
+-keep class * extends dagger.hilt.internal.processedrootsentinel.codegen.ProcessedRootSentinel { *; }
+-dontwarn dagger.hilt.internal.aggregatedroot.codegen.**
+
+# Keep Room database
+-keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.room.Entity
+-keepclassmembers class * {
+    @androidx.room.* *;
+}
+-keep class * extends androidx.room.migration.AutoMigrationSpec
+
+# Keep Retrofit
 -keep class retrofit2.** { *; }
 -dontwarn retrofit2.**
--keepattributes Signature
--keepattributes Exceptions
--keepattributes *Annotation*
-
-# Keep Retrofit interfaces
+-keepattributes Signature, Exceptions, InnerClasses, EnclosingMethod
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
 }
 
-# Keep Retrofit annotations
--keep class retrofit2.http.* { *; }
-
-# OkHttp3
+# Keep OkHttp
 -keep class okhttp3.** { *; }
 -keep interface okhttp3.** { *; }
 -dontwarn okhttp3.**
--dontwarn okio.**
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
 
-# OkHttp Interceptors
--keep class okhttp3.logging.HttpLoggingInterceptor { *; }
--keep class okhttp3.internal.** { *; }
-
-# ========== GSON (For Retrofit) ==========
+# Keep Gson/Retrofit converters
 -keep class com.google.gson.** { *; }
--keep class sun.misc.** { *; }
 -keep class com.google.gson.stream.** { *; }
--keep class * implements com.google.gson.TypeAdapterFactory
--keep class * implements com.google.gson.JsonSerializer
--keep class * implements com.google.gson.JsonDeserializer
+-keep class com.squareup.retrofit2.converter.gson.** { *; }
+-keepattributes Signature
 
-# GSON Model classes (keep your data classes)
--keepclassmembers,allowobfuscation class * {
-  @com.google.gson.annotations.SerializedName <fields>;
-}
-
-# ========== MOSHI (Twitter) ==========
+# Keep Moshi
 -keep class com.squareup.moshi.** { *; }
--keep class * extends com.squareup.moshi.JsonAdapter
--keep @com.squareup.moshi.JsonClass class * {
-    *;
+-keepnames class kotlin.Any { *; }
+-keep class com.squareup.moshi.JsonQualifier { *; }
+-keepclassmembers class * {
+    @com.squareup.moshi.* <methods>;
 }
 
-# ========== FIREBASE AUTH ==========
--keep class com.google.firebase.auth.** { *; }
+# Keep Navigation
+-keep class androidx.navigation.** { *; }
+-keep class * extends androidx.navigation.NavType
+-keep class * implements androidx.navigation.NavArgs
+
+# Keep Compose
+-keep class androidx.compose.runtime.** { *; }
+-keep class androidx.compose.ui.** { *; }
+-keep class androidx.compose.foundation.** { *; }
+-keep class androidx.compose.animation.** { *; }
+-keep class androidx.compose.material.** { *; }
+-keep class androidx.compose.material3.** { *; }
+
+# Keep Coil
+-keep class coil.** { *; }
+-keep class coil3.** { *; }
+-keep class okio.** { *; }
+
+# Keep Lottie
+-keep class com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**
+
+# Keep Firebase/Auth
 -keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
 -dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keep class com.google.firebase.provider.FirebaseInitProvider
+-keepnames class com.fasterxml.jackson.** { *; }
+-keepnames class javax.inject.**
 
-# Firebase Messaging
--keep class com.google.firebase.messaging.** { *; }
-
-# Play Services Auth
--keep class com.google.android.gms.auth.api.** { *; }
--keep class com.google.android.gms.auth.api.signin.** { *; }
-
-# ========== FACEBOOK LOGIN ==========
+# Keep Facebook
 -keep class com.facebook.** { *; }
 -dontwarn com.facebook.**
 -keepattributes Signature
+-keep class * extends com.facebook.FacebookException {
+    <init>(...);
+}
+-keepnames class com.facebook.internal.NativeProtocol
 
-# Facebook Login specific
--keep class com.facebook.login.** { *; }
--keep class com.facebook.AccessToken { *; }
--keep class com.facebook.GraphRequest { *; }
--keep class com.facebook.CallbackManager { *; }
+# Keep DataStore
+-keep class androidx.datastore.** { *; }
+-keep class * implements androidx.datastore.core.DataStore
 
-# ========== REFLECTION USED BY LIBRARIES ==========
-# Many auth libraries use reflection
--keepattributes Signature, InnerClasses, EnclosingMethod
-
-# Keep annotation information
--keepattributes *Annotation*
-
-# Keep generic types (important for Retrofit)
--keepattributes Signature
-
-# ========== BROWSER CUSTOM TABS (Twitter OAuth) ==========
--keep class androidx.browser.** { *; }
-
-# ========== KEEP YOUR API MODELS ==========
-# Keep your data classes used in API calls
--keep class com.picpose.bestphotographyapp.model.** { *; }
--keepclassmembers class com.picpose.bestphotographyapp.model.** {
-    *;
+# Keep serialization
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.* <methods>;
 }
 
-# Keep classes with @SerializedName (if using GSON)
--keepclassmembers class * {
+# Keep your application class and entry points
+-keep class com.picpose.bestphotographyapp.** { *; }
+-keep class com.picpose.bestphotographyapp.BuildConfig { *; }
+-keep class * extends android.app.Application
+-keep class * extends androidx.lifecycle.ViewModel
+
+# Keep BuildConfig fields
+-keepclassmembers class **.BuildConfig {
+    public static ** *;
+}
+
+# Keep API key and other important fields
+-keepclassmembers class ** {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# ========== SERIALIZATION ==========
-# Kotlin Serialization
--keepattributes *Annotation*, InnerClasses
--keep class kotlinx.serialization.** { *; }
--keep class * implements kotlinx.serialization.KSerializer
+# Keep enum classes
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
 
-# ========== NETWORK SECURITY ==========
-# Keep SSL/security classes
--keep class javax.net.ssl.** { *; }
--keep class java.security.** { *; }
+# Keep Parcelable
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
 
-# ========== ROOM DATABASE (if network cache) ==========
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--keep @androidx.room.Dao class *
+# Keep Serializable
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# Keep resource classes
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
+# Keep custom views
+-keep public class * extends android.view.View {
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    public void set*(...);
+}
+
+# Keep onClick methods
+-keepclassmembers class * {
+    public void *(android.view.View);
+}
+
+# Keep native methods
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# Keep JavaScript interfaces (if using WebView)
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# Remove logging in release (optional but recommended)
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
+
+# For OkHttp logging interceptor
+-assumenosideeffects class okhttp3.logging.HttpLoggingInterceptor$Logger {
+    public void log(...);
+}
+
+# AdMob specific rules
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
+-dontwarn com.google.ads.**
+
+# Facebook Ads specific rules
+-keep class com.facebook.ads.** { *; }
+-dontwarn com.facebook.ads.**
+
+# CanHub Image Cropper
+-keep class com.canhub.cropper.** { *; }
+-dontwarn com.canhub.cropper.**
+
+# Keep constructors for activities, services, etc.
+-keepclasseswithmembers class * {
+    public <init>(android.content.Context, android.util.AttributeSet);
+}
+-keepclasseswithmembers class * {
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+
+# For lambda expressions
+-keepclassmembers class * {
+    private static synthetic lambda$*(...);
+}
+
+# Keep data classes (especially if using Room)
+-keepclassmembers class * {
+    @androidx.room.* *;
+}
+
+# For JSON serialization/deserialization
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Warning suppression for libraries
+-dontwarn org.jetbrains.annotations.**
+-dontwarn javax.annotation.**
+-dontwarn kotlinx.coroutines.**
+-dontwarn androidx.compose.runtime.**
