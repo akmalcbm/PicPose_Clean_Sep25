@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.gradle.api.JavaVersion
 
 plugins {
     alias(libs.plugins.android.application)
@@ -42,6 +41,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            // Enable resource shrinking along with code shrinking
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -55,8 +57,10 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            isShrinkResources = false
             // BuildConfig field is inherited from defaultConfig, but you can override if needed
         }
+
     }
 
     buildFeatures {
@@ -82,6 +86,25 @@ android {
 
 composeCompiler {
     enableStrongSkippingMode = true
+}
+
+// Add this for memory optimization
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.compilerArgs.addAll(listOf("-Xlint:unchecked", "-Xlint:deprecation"))
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
+            listOf(
+                "-opt-in=kotlin.RequiresOptIn",
+                "-Xjvm-default=all",
+                "-Xstring-concat=inline"
+            )
+        )
+    }
 }
 
 dependencies {
