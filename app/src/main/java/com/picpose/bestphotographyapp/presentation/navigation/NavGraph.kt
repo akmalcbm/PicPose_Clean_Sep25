@@ -28,10 +28,8 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 fun NavGraph(navController: NavHostController, activity: Activity? = null) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
-    val hasSkippedAuth = authViewModel.hasSkippedAuth.collectAsState().value
-
     // ✅ Dynamic start destination
-    val startDestination = if (isLoggedIn || hasSkippedAuth) {
+    val startDestination = if (isLoggedIn) {
         Screen.Home.route
     } else {
         Screen.Login.route

@@ -44,8 +44,6 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
-    val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
-
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
@@ -57,8 +55,8 @@ fun LoginScreen(
     }
 
     // Auto navigate after success
-    LaunchedEffect(authState, hasSkippedAuth) {
-        if (authState is AuthState.Success || hasSkippedAuth) {
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
             authViewModel.fetchCurrentUser()
             onNavigateToHome()
             authViewModel.resetAuthState()
@@ -70,7 +68,10 @@ fun LoginScreen(
             TopAppBar(
                 title = { Text(if (isLoginMode) "Login" else "Register") },
                 actions = {
-                    TextButton(onClick = { authViewModel.skipAuth() }) {
+                    TextButton(onClick = {
+                        authViewModel.skipAuth()
+                        onNavigateToHome()
+                    }) {
                         Text("Skip", color = MaterialTheme.colorScheme.primary)
                     }
                 },

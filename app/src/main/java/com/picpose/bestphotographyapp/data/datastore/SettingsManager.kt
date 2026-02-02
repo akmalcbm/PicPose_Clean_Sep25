@@ -23,6 +23,15 @@ class SettingsManager(private val context: Context) {
 
         // 🔥 NEW — Gemini dialog preference
         private val SKIP_GEMINI_DIALOG_KEY = booleanPreferencesKey("skip_gemini_dialog")
+
+        // 🔔 Notification permission tracking
+        private val NOTIFICATION_PERMISSION_REQUESTED_KEY =
+            booleanPreferencesKey("notification_permission_requested")
+        private val NOTIFICATION_PERMISSION_DENIED_AT_OPEN_KEY =
+            intPreferencesKey("notification_permission_denied_at_open")
+        private val NOTIFICATION_PERMISSION_LAST_PROMPT_OPEN_KEY =
+            intPreferencesKey("notification_permission_last_prompt_open")
+        private val APP_OPEN_COUNT_KEY = intPreferencesKey("app_open_count")
     }
 
     /** Theme mode flow */
@@ -68,6 +77,26 @@ class SettingsManager(private val context: Context) {
             prefs[SKIP_GEMINI_DIALOG_KEY] ?: false
         }
 
+    /** Notification permission requested */
+    val notificationPermissionRequested: Flow<Boolean> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[NOTIFICATION_PERMISSION_REQUESTED_KEY] ?: false }
+
+    /** App open count */
+    val appOpenCount: Flow<Int> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[APP_OPEN_COUNT_KEY] ?: 0 }
+
+    /** Open count when user last denied notifications */
+    val notificationPermissionDeniedAtOpen: Flow<Int> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[NOTIFICATION_PERMISSION_DENIED_AT_OPEN_KEY] ?: -1 }
+
+    /** Open count when we last showed a permission prompt */
+    val notificationPermissionLastPromptOpen: Flow<Int> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[NOTIFICATION_PERMISSION_LAST_PROMPT_OPEN_KEY] ?: -1 }
+
     /** Save Gemini dialog preference */
     suspend fun setSkipGeminiDialog(skip: Boolean) {
         context.settingsDataStore.edit { prefs ->
@@ -79,6 +108,35 @@ class SettingsManager(private val context: Context) {
     suspend fun resetGeminiDialogPreference() {
         context.settingsDataStore.edit { prefs ->
             prefs.remove(SKIP_GEMINI_DIALOG_KEY)
+        }
+    }
+
+    /** Mark notification permission requested */
+    suspend fun setNotificationPermissionRequested(requested: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[NOTIFICATION_PERMISSION_REQUESTED_KEY] = requested
+        }
+    }
+
+    /** Increment app open count */
+    suspend fun incrementAppOpenCount() {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[APP_OPEN_COUNT_KEY] ?: 0
+            prefs[APP_OPEN_COUNT_KEY] = current + 1
+        }
+    }
+
+    /** Record open count when user denied notification permission */
+    suspend fun setNotificationPermissionDeniedAtOpen(openCount: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[NOTIFICATION_PERMISSION_DENIED_AT_OPEN_KEY] = openCount
+        }
+    }
+
+    /** Record open count when permission prompt was shown */
+    suspend fun setNotificationPermissionLastPromptOpen(openCount: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[NOTIFICATION_PERMISSION_LAST_PROMPT_OPEN_KEY] = openCount
         }
     }
 

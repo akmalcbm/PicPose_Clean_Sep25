@@ -34,6 +34,23 @@ class SettingsViewModel @Inject constructor(
     //SKIP GEMINI DIALOG
     val skipGeminiDialog = settingsManager.skipGeminiDialog
 
+    // NOTIFICATION PERMISSION (OS)
+    val notificationPermissionRequested: StateFlow<Boolean> =
+        settingsManager.notificationPermissionRequested
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val notificationPermissionDeniedAtOpen: StateFlow<Int> =
+        settingsManager.notificationPermissionDeniedAtOpen
+            .stateIn(viewModelScope, SharingStarted.Eagerly, -1)
+
+    val notificationPermissionLastPromptOpen: StateFlow<Int> =
+        settingsManager.notificationPermissionLastPromptOpen
+            .stateIn(viewModelScope, SharingStarted.Eagerly, -1)
+
+    val appOpenCount: StateFlow<Int> =
+        settingsManager.appOpenCount
+            .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
 
     // ----------------------------
     // UPDATE THEME MODE
@@ -68,6 +85,33 @@ class SettingsViewModel @Inject constructor(
     fun resetGeminiDialog() {
         viewModelScope.launch {
             settingsManager.setSkipGeminiDialog(false)
+        }
+    }
+
+    // ----------------------------
+    // NOTIFICATION PERMISSION TRACKING
+    // ----------------------------
+    fun incrementAppOpenCount() {
+        viewModelScope.launch {
+            settingsManager.incrementAppOpenCount()
+        }
+    }
+
+    fun setNotificationPermissionRequested(requested: Boolean) {
+        viewModelScope.launch {
+            settingsManager.setNotificationPermissionRequested(requested)
+        }
+    }
+
+    fun setNotificationPermissionDeniedAtOpen(openCount: Int) {
+        viewModelScope.launch {
+            settingsManager.setNotificationPermissionDeniedAtOpen(openCount)
+        }
+    }
+
+    fun setNotificationPermissionLastPromptOpen(openCount: Int) {
+        viewModelScope.launch {
+            settingsManager.setNotificationPermissionLastPromptOpen(openCount)
         }
     }
 

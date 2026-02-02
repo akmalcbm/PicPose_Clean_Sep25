@@ -1,7 +1,10 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -24,12 +27,19 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.ads.AdLoader
@@ -45,6 +55,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,11 +83,64 @@ fun HomeScreen(
     val authViewModel: AuthViewModel = hiltViewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val hasSkippedAuth by authViewModel.hasSkippedAuth.collectAsState()
+
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val appOpenCount by settingsViewModel.appOpenCount.collectAsState()
+    val permissionRequested by settingsViewModel.notificationPermissionRequested.collectAsState()
+    val deniedAtOpen by settingsViewModel.notificationPermissionDeniedAtOpen.collectAsState()
+    val lastPromptOpen by settingsViewModel.notificationPermissionLastPromptOpen.collectAsState()
 
     // Enable edge-to-edge layout
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
+    }
+
+    val isUserActive = isLoggedIn || hasSkippedAuth
+    var hasCountedOpen by rememberSaveable { mutableStateOf(false) }
+    var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        settingsViewModel.setNotificationPermissionRequested(true)
+        settingsViewModel.setNotificationPermissionLastPromptOpen(appOpenCount)
+        if (isGranted) {
+            settingsViewModel.setNotificationPermissionDeniedAtOpen(-1)
+        } else {
+            settingsViewModel.setNotificationPermissionDeniedAtOpen(appOpenCount)
+        }
+    }
+
+    // Track app opens only when the user is on Home (logged in or skipped).
+    LaunchedEffect(isUserActive) {
+        if (isUserActive && !hasCountedOpen) {
+            settingsViewModel.incrementAppOpenCount()
+            hasCountedOpen = true
+        }
+    }
+
+    // Ask permission only after Home is visible and user context is valid.
+    LaunchedEffect(isUserActive, appOpenCount, permissionRequested, deniedAtOpen, lastPromptOpen) {
+        if (!isUserActive) return@LaunchedEffect
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@LaunchedEffect
+
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) return@LaunchedEffect
+
+        val retryGap = 4
+        val canRetry = deniedAtOpen >= 0 && (appOpenCount - deniedAtOpen) >= retryGap
+        val shouldPrompt = !permissionRequested || canRetry
+
+        if (shouldPrompt && lastPromptOpen != appOpenCount) {
+            // Slight delay to let users engage with Home content first.
+            kotlinx.coroutines.delay(8_000)
+            showPermissionDialog = true
+        }
     }
 
     // Native Ad (single instance)
@@ -113,6 +177,22 @@ fun HomeScreen(
                 uiState.guidePosts.isEmpty()
 
     val showShimmer = uiState.isLoading && isCompletelyEmpty
+
+    if (showPermissionDialog) {
+        NotificationPermissionDialog(
+            onAllow = {
+                showPermissionDialog = false
+                settingsViewModel.setNotificationPermissionLastPromptOpen(appOpenCount)
+                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onCancel = {
+                showPermissionDialog = false
+                settingsViewModel.setNotificationPermissionRequested(true)
+                settingsViewModel.setNotificationPermissionDeniedAtOpen(appOpenCount)
+                settingsViewModel.setNotificationPermissionLastPromptOpen(appOpenCount)
+            }
+        )
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -421,4 +501,64 @@ fun ShimmerLoadingHomeScreen() {
             ) {}
         }
     }
+}
+
+@Composable
+private fun NotificationPermissionDialog(
+    onAllow: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = "Stay Updated 📢",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Text(
+                text = buildAnnotatedString {
+                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    append("Enable notifications to receive:\n\n")
+                    pop()
+
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                    append("⚆  Daily AI Prompts & Creative Ideas\n")
+                    pop()
+
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                    append("⚆  Daily Photography Guide & Tips\n")
+                    pop()
+
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
+                    append("⚆  Important App Updates, etc\n\n")
+
+                    pushStyle(
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                    append("Note:\n")
+                    pop()
+
+                    append("You can turn notifications off anytime from ")
+                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    append("Settings.")
+                    pop()
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onAllow) {
+                Text("Allow")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Not Now")
+            }
+        }
+    )
 }
