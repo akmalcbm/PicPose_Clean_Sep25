@@ -1,14 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <!-- Allow HTTP traffic only for your domain during development -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!-- 1. Development domain for HTTP -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">picpose.iamakmal.in</domain>
+        <domain includeSubdomains="true">api.picpose.iamakmal.in</domain>
     </domain-config>
 
-    <!-- Default: everything else requires HTTPS -->
+    <!-- 2. Google/Firebase auth domains -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">accounts.google.com</domain>
+        <domain includeSubdomains="true">www.googleapis.com</domain>
+        <domain includeSubdomains="true">oauth2.googleapis.com</domain>
+        <domain includeSubdomains="true">securetoken.googleapis.com</domain>
+        <domain includeSubdomains="true">www.google.com</domain>
+    </domain-config>
+
+    <!-- 3. Facebook auth domains -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">facebook.com</domain>
+        <domain includeSubdomains="true">graph.facebook.com</domain>
+        <domain includeSubdomains="true">www.facebook.com</domain>
+        <domain includeSubdomains="true">connect.facebook.net</domain>
+    </domain-config>
+
+    <!-- 4. Default configuration -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" /> <!-- Important for debug certificates -->
         </trust-anchors>
     </base-config>
+
+    <!-- 5. Debug overrides (only applies to debug builds) -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+        <!-- For local development -->
+        <domain-config cleartextTrafficPermitted="true"
+            tools:ignore="NetworkSecurityConfig">
+            <domain includeSubdomains="true">localhost</domain>
+            <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator -->
+            <domain includeSubdomains="true">192.168.*.*</domain> <!-- Local network -->
+        </domain-config>
+    </debug-overrides>
 </network-security-config>
