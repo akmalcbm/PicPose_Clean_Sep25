@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
@@ -47,26 +48,17 @@ fun TrendingFeaturedAndPopularRow(
     Column {
 
         // 🔹 Tabs
-        TabRow(
+        PrimaryTabRow(
             selectedTabIndex = tabs.indexOf(selectedTab),
             containerColor = Color.Transparent,
-            indicator = { tabPositions ->
-                val transition = updateTransition(selectedTab, label = "tabIndicator")
-                val left by transition.animateDp(label = "left") {
-                    tabPositions[tabs.indexOf(it)].left
-                }
-                val right by transition.animateDp(label = "right") {
-                    tabPositions[tabs.indexOf(it)].right
-                }
-
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .wrapContentSize(Alignment.BottomStart)
-                        .offset(x = left)
-                        .width(right - left)
-                        .height(3.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(
+                        selectedTabIndex = tabs.indexOf(selectedTab),
+                        matchContentSize = true
+                    ),
+                    width = Dp.Unspecified,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         ) {

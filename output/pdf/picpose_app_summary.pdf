@@ -1,0 +1,62 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 2366 >>
+stream
+BT /F2 20 Tf 48.00 744.00 Td (PicPose App Summary) Tj ET
+BT /F2 12 Tf 48.00 716.00 Td (What It Is) Tj ET
+BT /F1 10.5 Tf 48.00 700.00 Td (- Android app that curates AI image prompts and photography guidance for creators.) Tj ET
+BT /F1 10.5 Tf 48.00 687.00 Td (- Built with Jetpack Compose and a network-backed content feed.) Tj ET
+BT /F2 12 Tf 48.00 666.00 Td (Who It Is For) Tj ET
+BT /F1 10.5 Tf 48.00 650.00 Td (- Mobile users who want quick AI prompt ideas and photography tips.) Tj ET
+BT /F2 12 Tf 48.00 629.00 Td (What It Does) Tj ET
+BT /F1 10.5 Tf 48.00 613.00 Td (- Browse AI prompts and photography guide posts.) Tj ET
+BT /F1 10.5 Tf 48.00 600.00 Td (- View prompt details and copy full prompts to clipboard.) Tj ET
+BT /F1 10.5 Tf 48.00 587.00 Td (- Favorite prompts and export all favorites to clipboard.) Tj ET
+BT /F1 10.5 Tf 48.00 574.00 Td (- See daily tips and featured content on Home.) Tj ET
+BT /F1 10.5 Tf 48.00 561.00 Td (- Sign in with Google, Facebook, or Twitter.) Tj ET
+BT /F1 10.5 Tf 48.00 548.00 Td (- Manage profile, settings, and theme preferences.) Tj ET
+BT /F1 10.5 Tf 48.00 535.00 Td (- Shows in-app ads and supports reward screen navigation.) Tj ET
+BT /F2 12 Tf 48.00 514.00 Td (How It Works) Tj ET
+BT /F1 10.5 Tf 48.00 498.00 Td (- UI: Jetpack Compose screens with Navigation graph.) Tj ET
+BT /F1 10.5 Tf 48.00 485.00 Td (- Logic: ViewModels injected with Hilt \(Home, Explore, Auth, Settings, etc.\).) Tj ET
+BT /F1 10.5 Tf 48.00 472.00 Td (- Data: Repositories call Retrofit API \(base URL in RetrofitClient\) with OkHttp caching.) Tj ET
+BT /F1 10.5 Tf 48.00 459.00 Td (- Local: Room database for favorites/likes/stats; DataStore for settings/session.) Tj ET
+BT /F1 10.5 Tf 48.00 446.00 Td (- Services: Firebase Messaging for push notifications and deep links.) Tj ET
+BT /F1 10.5 Tf 48.00 433.00 Td (- Monetization: AdMob/Meta Audience Network via AdsManager in Application.) Tj ET
+BT /F2 12 Tf 48.00 412.00 Td (How To Run) Tj ET
+BT /F1 10.5 Tf 48.00 396.00 Td (- Open the project in Android Studio and sync Gradle.) Tj ET
+BT /F1 10.5 Tf 48.00 383.00 Td (- Ensure Android SDK is configured in local.properties \(Not found in repo\).) Tj ET
+BT /F1 10.5 Tf 48.00 370.00 Td (- Run the app on an emulator or device using the app configuration.) Tj ET
+BT /F1 10.5 Tf 48.00 357.00 Td (- Backend/API setup details \(Not found in repo\).) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000327 00000 n 
+0000000402 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2820
+%%EOF

@@ -16,15 +16,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,8 +39,9 @@ fun AIPromptFavoritesScreen(
     val favoritePrompts by viewModel.favoritePromptsFlow.collectAsState()
     val localEngagementMap by viewModel.localEngagementStates.collectAsState()
 
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // ✅ ONLY THIS FIX: Add scroll state to maintain position
     val lazyListState = rememberLazyListState()
@@ -80,7 +82,9 @@ fun AIPromptFavoritesScreen(
                                 val allPrompts = favoritePrompts.joinToString("\n\n") { prompt ->
                                     "${prompt.title}\n${prompt.fullPrompt.orEmpty()}"
                                 }
-                                clipboardManager.setText(AnnotatedString(allPrompts))
+                                coroutineScope.launch {
+                                    clipboard.setText(allPrompts, label = "favorites")
+                                }
                                 Toast.makeText(
                                     context,
                                     "All favorites copied!",
@@ -164,9 +168,12 @@ fun AIPromptFavoritesScreen(
                                 },
 
                                 onCopy = {
-                                    clipboardManager.setText(
-                                        AnnotatedString(prompt.fullPrompt.orEmpty())
-                                    )
+                                    coroutineScope.launch {
+                                        clipboard.setText(
+                                            prompt.fullPrompt.orEmpty(),
+                                            label = "prompt"
+                                        )
+                                    }
                                     Toast.makeText(
                                         context,
                                         "Prompt copied!",

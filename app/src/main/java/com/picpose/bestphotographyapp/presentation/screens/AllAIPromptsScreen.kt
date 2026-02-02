@@ -66,9 +66,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -88,6 +87,7 @@ import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.core.utils.displayViews
+import com.picpose.bestphotographyapp.core.utils.setText
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -146,7 +146,7 @@ fun AllAIPromptsScreen(
     val localStates by viewModel.localEngagementStates.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
@@ -479,16 +479,16 @@ fun AllAIPromptsScreen(
                                             prompt = prompt,
                                             localEngagement = local, // 🔥 NEW (CENTRAL SOURCE)
                                             onClick = {
-                                                val id = prompt.id
-                                                if (id != null) {
-                                                    onPromptClick(id)
-                                                } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Invalid ID",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
+                                            val id = prompt.id
+                                            if (id.isNotBlank()) {
+                                                onPromptClick(id)
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Invalid ID",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                             }
                                         )
                                     }
@@ -523,20 +523,28 @@ fun AllAIPromptsScreen(
                                         // AllAIPromptsScreen.kt में - onClick handler update
                                         onClick = {
                                             val id = prompt.id
-                                            if (id != null) {
+                                            if (id.isNotBlank()) {
                                                 // 🔥 IMPORTANT: Don't call loadPromptById here
                                                 // Navigation should only navigate, not load data
                                                 onPromptClick(id)
 
                                                 Log.d("ListScreen", "Navigating to detail: $id")
                                                 Log.d("ListScreen", "Current views: ${prompt.views}")
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Invalid ID",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }
                                         },
 
                                         onCopy = {
                                             val textToCopy =
                                                 prompt.shortPrompt ?: prompt.fullPrompt ?: ""
-                                            clipboardManager.setText(AnnotatedString(textToCopy))
+                                            coroutineScope.launch {
+                                                clipboard.setText(textToCopy, label = "prompt")
+                                            }
                                             Toast.makeText(
                                                 context,
                                                 "Prompt copied!",

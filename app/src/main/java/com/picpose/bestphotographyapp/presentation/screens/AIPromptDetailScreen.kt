@@ -104,10 +104,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -134,6 +133,7 @@ import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
+import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.core.utils.displayLikes
 import com.picpose.bestphotographyapp.core.utils.displayViews
 import kotlinx.coroutines.delay
@@ -155,7 +155,7 @@ fun AIPromptDetailScreen(
     val localEngagementStates by aiPromptViewModel.localEngagementStates.collectAsState()
 
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -506,7 +506,6 @@ fun AIPromptDetailScreen(
                         // ✨ Full Prompt section
                         item {
                             val ctx = LocalContext.current
-                            val clipMgr = LocalClipboardManager.current
                             val localHaptic = LocalHapticFeedback.current
                             var showGeminiDialog by remember { mutableStateOf(false) }
 
@@ -641,7 +640,9 @@ fun AIPromptDetailScreen(
                                             onClick = {
                                                 val textToCopy = promptData.fullPrompt ?: ""
                                                 if (textToCopy.isNotBlank()) {
-                                                    clipMgr.setText(AnnotatedString(textToCopy))
+                                                    coroutineScope.launch {
+                                                        clipboard.setText(textToCopy, label = "prompt")
+                                                    }
                                                     localHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
                                                     Toast.makeText(

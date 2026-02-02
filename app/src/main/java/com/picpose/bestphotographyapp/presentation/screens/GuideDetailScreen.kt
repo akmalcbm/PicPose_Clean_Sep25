@@ -18,10 +18,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +32,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.GuidePostViewModel
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.picpose.bestphotographyapp.core.utils.setText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +43,7 @@ fun GuideDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -282,7 +282,9 @@ fun GuideDetailScreen(
                                                 }
                                                 append("\n\n#PicPose #PhotographyGuide")
                                             }
-                                            clipboardManager.setText(AnnotatedString(shareText))
+                                        coroutineScope.launch {
+                                            clipboard.setText(shareText, label = "guide")
+                                        }
                                             Toast.makeText(context, "Guide details copied to clipboard!", Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier
@@ -546,7 +548,9 @@ fun GuideDetailScreen(
                                             append(guidePostData.content)
                                             append("\n\n#PicPose #PhotographyGuide")
                                         }
-                                        clipboardManager.setText(AnnotatedString(fullContent))
+                                    coroutineScope.launch {
+                                        clipboard.setText(fullContent, label = "guide")
+                                    }
                                         Toast.makeText(context, "Guide content copied!", Toast.LENGTH_SHORT).show()
                                     },
                                     modifier = Modifier.weight(1f)

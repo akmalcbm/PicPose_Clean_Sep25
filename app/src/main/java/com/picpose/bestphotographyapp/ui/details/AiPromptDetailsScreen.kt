@@ -25,10 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +39,7 @@ import com.picpose.bestphotographyapp.data.admob.AdManager
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.ui.ads.NativeAdSection
 import kotlinx.coroutines.launch
 
@@ -67,7 +67,7 @@ fun AiPromptDetailsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -130,7 +130,9 @@ fun AiPromptDetailsScreen(
                     uiState.currentPrompt?.let { prompt ->
                         IconButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(prompt.fullPrompt ?: ""))
+                                    coroutineScope.launch {
+                                        clipboard.setText(prompt.fullPrompt ?: "", label = "prompt")
+                                    }
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("Prompt copied for sharing!")
                                 }
@@ -197,7 +199,9 @@ fun AiPromptDetailsScreen(
                             listState = listState,
                             onImageClick = { showImageDialog = true },
                             onCopyPrompt = {
-                                clipboardManager.setText(AnnotatedString(uiState.currentPrompt?.fullPrompt ?: ""))
+                                    coroutineScope.launch {
+                                        clipboard.setText(uiState.currentPrompt?.fullPrompt ?: "", label = "prompt")
+                                    }
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")

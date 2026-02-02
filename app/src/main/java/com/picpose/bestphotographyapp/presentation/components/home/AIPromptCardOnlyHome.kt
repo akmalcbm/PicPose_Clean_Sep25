@@ -35,10 +35,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,8 +46,10 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +65,8 @@ fun AIPromptCardOnlyHome(
 
 ) {
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
     var isExpanded by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
 
@@ -246,7 +248,9 @@ fun AIPromptCardOnlyHome(
                                 IconButton(
                                     onClick = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        clipboardManager.setText(AnnotatedString(safeFullPrompt))
+                                        coroutineScope.launch {
+                                            clipboard.setText(safeFullPrompt, label = "prompt")
+                                        }
                                         Toast.makeText(
                                             context,
                                             "Prompt copied to clipboard!",
@@ -413,7 +417,9 @@ fun AIPromptCardOnlyHome(
                             OutlinedButton(
                                 onClick = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    clipboardManager.setText(AnnotatedString(safeFullPrompt))
+                                    coroutineScope.launch {
+                                        clipboard.setText(safeFullPrompt, label = "prompt")
+                                    }
                                     Toast.makeText(
                                         context,
                                         "Full prompt copied!",
