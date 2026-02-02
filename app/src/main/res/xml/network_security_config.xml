@@ -30,19 +30,4 @@
             <certificates src="user" /> <!-- Important for debug certificates -->
         </trust-anchors>
     </base-config>
-
-    <!-- 5. Debug overrides (only applies to debug builds) -->
-    <debug-overrides>
-        <trust-anchors>
-            <certificates src="system" />
-            <certificates src="user" />
-        </trust-anchors>
-        <!-- For local development -->
-        <domain-config cleartextTrafficPermitted="true"
-            tools:ignore="NetworkSecurityConfig">
-            <domain includeSubdomains="true">localhost</domain>
-            <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator -->
-            <domain includeSubdomains="true">192.168.*.*</domain> <!-- Local network -->
-        </domain-config>
-    </debug-overrides>
 </network-security-config>

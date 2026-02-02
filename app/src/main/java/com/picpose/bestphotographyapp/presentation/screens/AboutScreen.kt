@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -364,7 +365,7 @@ fun AboutFallbackContent(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Divider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
+            HorizontalDivider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(24.dp))
 
             // App Info Section

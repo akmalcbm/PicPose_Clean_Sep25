@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -60,9 +61,14 @@ private val DarkGlassyColorScheme = darkColorScheme(
 fun PicPoseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     useGlassyLook: Boolean = false,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
         useGlassyLook && darkTheme -> DarkGlassyColorScheme
         useGlassyLook -> LightGlassyColorScheme
         darkTheme -> DarkColorScheme
@@ -73,10 +79,40 @@ fun PicPoseTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+            val statusBarColor = colorScheme.background.toArgb()
+            val navigationBarColor = colorScheme.background.toArgb()
+
+            // ✅ Method 1: Check for available method at runtime
+            try {
+                // Try to use WindowCompat if available
+                val setStatusBarColorMethod = WindowCompat::class.java.getMethod(
+                    "setStatusBarColor",
+                    Window::class.java,
+                    Int::class.java
+                )
+                setStatusBarColorMethod.invoke(null, window, statusBarColor)
+
+                val setNavBarColorMethod = WindowCompat::class.java.getMethod(
+                    "setNavigationBarColor",
+                    Window::class.java,
+                    Int::class.java
+                )
+                setNavBarColorMethod.invoke(null, window, navigationBarColor)
+            } catch (e: Exception) {
+                // Fallback to direct window properties with suppression
+                @Suppress("DEPRECATION")
+                window.statusBarColor = statusBarColor
+                @Suppress("DEPRECATION")
+                window.navigationBarColor = navigationBarColor
+            }
+
+            // WindowInsetsController works fine
+            val windowInsetsController = WindowCompat.getInsetsController(window, view)
+            windowInsetsController.isAppearanceLightStatusBars = !darkTheme
+            windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
+
+            // Enable edge-to-edge
+            WindowCompat.setDecorFitsSystemWindows(window, false)
         }
     }
 

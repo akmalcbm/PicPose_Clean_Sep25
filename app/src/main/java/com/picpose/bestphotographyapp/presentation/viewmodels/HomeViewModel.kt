@@ -16,6 +16,7 @@ import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +54,7 @@ data class HomeUiState(
 
 enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor (
     private val repository: HomeRepository,

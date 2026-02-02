@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ViewQuilt
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -76,7 +77,7 @@ fun CreateScreen() {
         CreationCategory(
             title = "Guides & Tips",
             items = listOf(
-                CreateOption("Create Guide", "Write a guide", Icons.Filled.Article) {
+                CreateOption("Create Guide", "Write a guide", Icons.AutoMirrored.Filled.Article) {
                     Toast.makeText(context, "Guide creation coming soon!", Toast.LENGTH_SHORT).show()
                 },
                 CreateOption("Share Tip", "Share a tip", Icons.Filled.Lightbulb) {

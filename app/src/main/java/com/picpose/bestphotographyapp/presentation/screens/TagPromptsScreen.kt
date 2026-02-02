@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -137,7 +138,7 @@ fun TagPromptsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Label,
+                                imageVector = Icons.AutoMirrored.Filled.Label,
                                 contentDescription = "Tag",
                                 tint = Color.White,
                                 modifier = Modifier.padding(end = 6.dp)

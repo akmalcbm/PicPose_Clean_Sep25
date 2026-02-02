@@ -50,6 +50,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -167,31 +168,43 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun RequestNotificationPermission() {
-
         val context = LocalContext.current
         val activity = context as Activity
 
         var showRationale by remember { mutableStateOf(false) }
+        var permissionRequested by remember { mutableStateOf(false) }
 
-        val permissionLauncher =
-            rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                showRationale = false
-                if (isGranted) {
-                    // Permission granted
-                } else {
-                    // Permission denied
-                }
+        val permissionLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            showRationale = false
+            permissionRequested = true
+            if (isGranted) {
+                // Permission granted
+            } else {
+                // Permission denied
             }
+        }
 
         LaunchedEffect(Unit) {
+            // Wait for 1.5 minutes (90 seconds) before showing permission
+            delay(65000L) // 65 seconds = 1:05 minutes
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(
-                        context,
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+                val shouldShowRationale =
+                    activity.shouldShowRequestPermissionRationale(
                         Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
+                    )
+
+                // Only show if permission not already granted and not already requested
+                if (!hasPermission && !permissionRequested) {
+                    // You can check some condition here before showing
+                    // For example, only show if user has engaged with the app
                     showRationale = true
                 }
             }
@@ -204,6 +217,7 @@ class MainActivity : ComponentActivity() {
                 },
                 onCancel = {
                     showRationale = false
+                    permissionRequested = true
                 }
             )
         }

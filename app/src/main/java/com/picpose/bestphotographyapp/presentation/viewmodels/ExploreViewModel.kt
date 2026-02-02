@@ -9,6 +9,7 @@ import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -82,6 +83,7 @@ data class ExploreUiState(
 
 enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
