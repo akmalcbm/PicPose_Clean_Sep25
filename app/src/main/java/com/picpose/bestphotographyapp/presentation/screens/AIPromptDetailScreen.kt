@@ -240,6 +240,15 @@ fun AIPromptDetailScreen(
             ?: uiState.allPrompts.find { it.id.trim() == idTrim }
     }
 
+    // Smoothly return to top when a new prompt is loaded in-place.
+    LaunchedEffect(effectivePrompt?.id) {
+        if (effectivePrompt != null &&
+            (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0)
+        ) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     // Keep localPrompt in sync / trigger fetch when not found
     LaunchedEffect(promptId, uiState.allPrompts, uiState.selectedPrompt) {
         val idTrim = promptId.trim()
