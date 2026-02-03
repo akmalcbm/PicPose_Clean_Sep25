@@ -48,6 +48,38 @@
     <string name="loading">लोड हो रहा है…</string>
     <string name="save">सहेजें</string>
     <string name="cancel">रद्द करें</string>
+    <string name="skip">छोड़ें</string>
+    <string name="app_logo">ऐप लोगो</string>
+    <string name="welcome_back">वापसी पर स्वागत है 👋</string>
+    <string name="create_account">खाता बनाएं</string>
+    <string name="full_name">पूरा नाम</string>
+    <string name="toggle_password_visibility">पासवर्ड दिखाएं/छिपाएं</string>
+    <string name="dont_have_account_sign_up">खाता नहीं है? साइन अप करें</string>
+    <string name="already_have_account_login">पहले से खाता है? लॉगिन करें</string>
+    <string name="google">Google</string>
+    <string name="back">वापस</string>
+    <string name="section_appearance">दिखावट</string>
+    <string name="section_preferences">पसंद</string>
+    <string name="dark_mode_subtitle">डार्क थीम चालू या बंद करें</string>
+    <string name="notifications_subtitle">सूचनाएं सक्षम करें</string>
+    <string name="gemini_confirmation">जेमिनी पुष्टि</string>
+    <string name="gemini_confirmation_disabled">पुष्टि संवाद बंद है</string>
+    <string name="gemini_confirmation_enabled">जेमिनी खोलने से पहले पूछें</string>
+    <string name="reset_gemini_title">जेमिनी पुष्टि रीसेट करें?</string>
+    <string name="reset_gemini_message">जेमिनी खोलने से पहले फिर से पूछा जाएगा।</string>
+    <string name="reset">रीसेट</string>
+    <string name="enabled">सक्रिय</string>
+    <string name="language_english">English</string>
+    <string name="language_hindi">हिन्दी</string>
+    <string name="notification_title">अपडेट रहें 📢</string>
+    <string name="notification_message_header">सूचनाएं सक्षम करें ताकि आप पा सकें:\n\n</string>
+    <string name="notification_message_line1">⚆  दैनिक AI प्रॉम्प्ट्स और रचनात्मक आइडिया\n</string>
+    <string name="notification_message_line2">⚆  दैनिक फोटोग्राफी गाइड और टिप्स\n</string>
+    <string name="notification_message_line3">⚆  महत्वपूर्ण ऐप अपडेट आदि\n\n</string>
+    <string name="notification_note_title">नोट:\n</string>
+    <string name="notification_note_body_prefix">आप कभी भी सूचनाएं बंद कर सकते हैं, </string>
+    <string name="allow">अनुमति दें</string>
+    <string name="not_now">अभी नहीं</string>
 
     <!-- एआई प्रॉम्प्ट पसंदीदा स्क्रीन -->
     <string name="favorite_prompts_title">पसंदीदा प्रॉम्प्ट (%d)</string>
@@ -59,6 +91,49 @@
     <string name="no_favorite_prompts_title">कोई पसंदीदा प्रॉम्प्ट नहीं</string>
     <string name="no_favorite_prompts_description">एआई प्रॉम्प्ट खोजें और अपने पसंदीदा यहाँ जोड़ें!</string>
     <string name="browse_prompts_button">प्रॉम्प्ट ब्राउज़ करें</string>
+
+    <!-- Home / Sections -->
+    <string name="trending">ट्रेंडिंग</string>
+    <string name="featured">विशेष</string>
+    <string name="popular">लोकप्रिय</string>
+    <string name="view_all_title">सभी देखें</string>
+    <string name="no_posts_available">कोई पोस्ट उपलब्ध नहीं है</string>
+
+    <!-- Actions -->
+    <string name="like">लाइक</string>
+    <string name="favorite">पसंदीदा</string>
+    <string name="share">शेयर</string>
+    <string name="views">देखे गए</string>
+    <string name="clear">हटाएं</string>
+    <string name="search">खोजें</string>
+    <string name="submit_search">खोज सबमिट करें</string>
+    <string name="dismiss">बंद करें</string>
+
+    <!-- Tips -->
+    <string name="daily_ai_tip">दैनिक AI टिप</string>
+    <string name="tip">टिप</string>
+    <string name="next_tip">अगली टिप</string>
+    <string name="read_more">और पढ़ें</string>
+    <string name="show_less">कम दिखाएं</string>
+    <string name="tap_to_see_another_tip">
+        दूसरी टिप देखने के लिए टैप करें
+    </string>
+
+    <!-- Time -->
+    <string name="minutes_format">%1$d मिनट</string>
+    <string name="minutes_compact_format">%1$dमि</string>
+
+    <!-- Search -->
+    <string name="search_prompts_guides_placeholder">
+        प्रॉम्प्ट और गाइड खोजें…
+    </string>
+
+    <!-- Welcome -->
+    <string name="welcome_to_picpose">PicPose में आपका स्वागत है</string>
+    <string name="welcome_subtitle">
+        स्मार्ट AI फोटोग्राफी टिप्स और प्रॉम्प्ट
+    </string>
+    <string name="like_count">लाइक</string>
 
 
 </resources>

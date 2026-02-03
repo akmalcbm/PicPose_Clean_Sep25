@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
+import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +68,7 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(languageCode: String) {
         viewModelScope.launch {
             settingsManager.setLanguage(languageCode)
+            AppLocaleManager.applyLanguage(languageCode)
         }
     }
 

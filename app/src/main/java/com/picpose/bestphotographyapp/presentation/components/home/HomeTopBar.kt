@@ -26,11 +26,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -66,7 +68,7 @@ fun HomeTopBar(
                             onQueryChanged(it)
                         },
                         placeholder = {
-                            Text("Search prompts, guides...", textAlign = TextAlign.Start)
+                            Text(stringResource(R.string.search_prompts_guides_placeholder), textAlign = TextAlign.Start)
                         },
                         leadingIcon = {
                             IconButton(
@@ -79,7 +81,7 @@ fun HomeTopBar(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
+                                    contentDescription = stringResource(R.string.back)
                                 )
                             }
                         },
@@ -90,14 +92,14 @@ fun HomeTopBar(
                                         query = ""
                                         onQueryChanged("")
                                     }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear))
                                     }
                                 }
                                 IconButton(onClick = {
                                     focusManager.clearFocus()
                                     onSearchClick(query)
                                 }) {
-                                    Icon(Icons.Default.Search, contentDescription = "Submit search")
+                                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.submit_search))
                                 }
                             }
                         },
@@ -134,7 +136,7 @@ fun HomeTopBar(
             if (!isSearchExpanded) {
                 // 🔍 Search button
                 IconButton(onClick = { isSearchExpanded = true }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
                 }
 
                 Spacer(Modifier.width(8.dp))
@@ -153,7 +155,7 @@ fun HomeTopBar(
                                 .data(userImage)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Profile",
+                            contentDescription = stringResource(R.string.profile),
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
@@ -170,7 +172,7 @@ fun HomeTopBar(
                         ) {
                             Icon(
                                 Icons.Default.AccountCircle,
-                                contentDescription = "Profile",
+                                contentDescription = stringResource(R.string.profile),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -66,13 +67,18 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isLoginMode) "Login" else "Register") },
+                title = {
+                    Text(
+                        if (isLoginMode) stringResource(R.string.login)
+                        else stringResource(R.string.register)
+                    )
+                },
                 actions = {
                     TextButton(onClick = {
                         authViewModel.skipAuth()
                         onNavigateToHome()
                     }) {
-                        Text("Skip", color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.skip), color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 modifier = Modifier.statusBarsPadding()
@@ -93,14 +99,17 @@ fun LoginScreen(
 
             Image(
                 painter = painterResource(id = R.drawable.ic_logo_light),
-                contentDescription = "App Logo",
+                contentDescription = stringResource(R.string.app_logo),
                 modifier = Modifier.size(110.dp)
             )
 
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = if (isLoginMode) "Welcome Back 👋" else "Create an Account",
+                text = if (isLoginMode)
+                    stringResource(R.string.welcome_back)
+                else
+                    stringResource(R.string.create_account),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -113,7 +122,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Full Name") },
+                    label = { Text(stringResource(R.string.full_name)) },
                     leadingIcon = { Icon(Icons.Default.Person, null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -125,7 +134,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email)) },
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
@@ -138,13 +147,13 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password)) },
                 leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle password visibility"
+                            contentDescription = stringResource(R.string.toggle_password_visibility)
                         )
                     }
                 },
@@ -175,7 +184,11 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text(if (isLoginMode) "Login" else "Sign Up", fontSize = 16.sp)
+                    Text(
+                        if (isLoginMode) stringResource(R.string.login)
+                        else stringResource(R.string.sign_up),
+                        fontSize = 16.sp
+                    )
                 }
             }
 
@@ -193,9 +206,9 @@ fun LoginScreen(
             TextButton(onClick = { isLoginMode = !isLoginMode }) {
                 Text(
                     if (isLoginMode)
-                        "Don’t have an account? Sign Up"
+                        stringResource(R.string.dont_have_account_sign_up)
                     else
-                        "Already have an account? Login"
+                        stringResource(R.string.already_have_account_login)
                 )
             }
 
@@ -208,7 +221,7 @@ fun LoginScreen(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    text = "Or Login With",
+                    text = stringResource(R.string.or_login_with),
                     modifier = Modifier.padding(horizontal = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -247,12 +260,12 @@ fun LoginScreen(
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_google),
-                            contentDescription = "Google",
+                            contentDescription = stringResource(R.string.google),
                             modifier = Modifier.size(26.dp)
                         )
                     }
                     Spacer(Modifier.height(6.dp))
-                    Text("Google", fontSize = 13.sp, color = Color.Gray)
+                    Text(stringResource(R.string.google), fontSize = 13.sp, color = Color.Gray)
                 }
 
                 /*

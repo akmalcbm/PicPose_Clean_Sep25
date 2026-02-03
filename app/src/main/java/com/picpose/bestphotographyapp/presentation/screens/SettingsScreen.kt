@@ -47,11 +47,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,12 +73,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -104,13 +106,13 @@ fun SettingsScreen(
             // ---------------------
             // APPEARANCE
             // ---------------------
-            item { SectionTitle("Appearance") }
+            item { SectionTitle(stringResource(R.string.section_appearance)) }
 
             item {
                 SettingItem(
                     icon = Icons.Default.DarkMode,
-                    title = "Dark Mode",
-                    subtitle = "Enable or disable dark theme",
+                    title = stringResource(R.string.dark_mode),
+                    subtitle = stringResource(R.string.dark_mode_subtitle),
                     trailing = {
                         Switch(
                             checked = themeMode == "dark",
@@ -127,8 +129,11 @@ fun SettingsScreen(
             item {
                 SettingItem(
                     icon = Icons.Default.Language,
-                    title = "Language",
-                    subtitle = if (language == "hi") "Hindi" else "English",
+                    title = stringResource(R.string.language),
+                    subtitle = if (language == "hi")
+                        stringResource(R.string.language_hindi)
+                    else
+                        stringResource(R.string.language_english),
                     onClick = { showLanguageDialog = true },
                     trailing = {
                         Icon(Icons.Default.ChevronRight, null)
@@ -139,13 +144,13 @@ fun SettingsScreen(
             // ---------------------
             // PREFERENCES
             // ---------------------
-            item { SectionTitle("Preferences") }
+            item { SectionTitle(stringResource(R.string.section_preferences)) }
 
             item {
                 SettingItem(
                     icon = Icons.Default.Notifications,
-                    title = "Notifications",
-                    subtitle = "Enable notifications",
+                    title = stringResource(R.string.notifications),
+                    subtitle = stringResource(R.string.notifications_subtitle),
                     trailing = {
                         Switch(
                             checked = notificationsEnabled,
@@ -160,17 +165,20 @@ fun SettingsScreen(
             item {
                 SettingItem(
                     icon = Icons.Default.AutoAwesome,
-                    title = "Gemini confirmation",
+                    title = stringResource(R.string.gemini_confirmation),
                     subtitle = if (skipGeminiDialog)
-                        "Confirmation dialog disabled"
+                        stringResource(R.string.gemini_confirmation_disabled)
                     else
-                        "Ask before opening Gemini",
+                        stringResource(R.string.gemini_confirmation_enabled),
                     onClick = {
                         if (skipGeminiDialog) showResetGeminiDialog = true
                     },
                     trailing = {
                         Text(
-                            text = if (skipGeminiDialog) "Reset" else "Enabled",
+                            text = if (skipGeminiDialog)
+                                stringResource(R.string.reset)
+                            else
+                                stringResource(R.string.enabled),
                             color = if (skipGeminiDialog)
                                 MaterialTheme.colorScheme.primary
                             else
@@ -188,21 +196,21 @@ fun SettingsScreen(
         if (showResetGeminiDialog) {
             AlertDialog(
                 onDismissRequest = { showResetGeminiDialog = false },
-                title = { Text("Reset Gemini confirmation?") },
+                title = { Text(stringResource(R.string.reset_gemini_title)) },
                 text = {
-                    Text("You will be asked again before opening Gemini.")
+                    Text(stringResource(R.string.reset_gemini_message))
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         settingsViewModel.resetGeminiDialog()
                         showResetGeminiDialog = false
                     }) {
-                        Text("Reset")
+                        Text(stringResource(R.string.reset))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showResetGeminiDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -214,11 +222,11 @@ fun SettingsScreen(
         if (showLanguageDialog) {
             AlertDialog(
                 onDismissRequest = { showLanguageDialog = false },
-                title = { Text("Select Language") },
+                title = { Text(stringResource(R.string.select_language)) },
                 text = {
                     Column {
                         RadioButtonItem(
-                            text = "English",
+                            text = stringResource(R.string.language_english),
                             selected = language == "en",
                             onClick = {
                                 settingsViewModel.setLanguage("en")
@@ -226,7 +234,7 @@ fun SettingsScreen(
                             }
                         )
                         RadioButtonItem(
-                            text = "Hindi",
+                            text = stringResource(R.string.language_hindi),
                             selected = language == "hi",
                             onClick = {
                                 settingsViewModel.setLanguage("hi")
@@ -237,7 +245,7 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showLanguageDialog = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )

@@ -31,6 +31,27 @@
     <string name="select_language">Select Language</string>
     <string name="english">English</string>
     <string name="hindi">हिन्दी</string>
+    <string name="back">Back</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="section_preferences">Preferences</string>
+    <string name="dark_mode_subtitle">Enable or disable dark theme</string>
+    <string name="notifications_subtitle">Enable notifications</string>
+    <string name="gemini_confirmation">Gemini confirmation</string>
+    <string name="gemini_confirmation_disabled">Confirmation dialog disabled</string>
+    <string name="gemini_confirmation_enabled">Ask before opening Gemini</string>
+    <string name="reset_gemini_title">Reset Gemini confirmation?</string>
+    <string name="reset_gemini_message">You will be asked again before opening Gemini.</string>
+    <string name="language_english">English</string>
+    <string name="language_hindi">Hindi</string>
+    <string name="notification_title">Stay Updated 📢</string>
+    <string name="notification_message_header">Enable notifications to receive:\n\n</string>
+    <string name="notification_message_line1">⚆  Daily AI Prompts &amp; Creative Ideas\n</string>
+    <string name="notification_message_line2">⚆  Daily Photography Guide &amp; Tips\n</string>
+    <string name="notification_message_line3">⚆  Important App Updates, etc\n\n</string>
+    <string name="notification_note_title">Note:\n</string>
+    <string name="notification_note_body_prefix">You can turn notifications off anytime from </string>
+    <string name="allow">Allow</string>
+    <string name="not_now">Not Now</string>
     
     <!-- Profile -->
     <string name="profile">Profile</string>
@@ -50,6 +71,17 @@
     <string name="loading">Loading…</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="skip">Skip</string>
+    <string name="app_logo">App Logo</string>
+    <string name="welcome_back">Welcome Back 👋</string>
+    <string name="create_account">Create an Account</string>
+    <string name="full_name">Full Name</string>
+    <string name="toggle_password_visibility">Toggle password visibility</string>
+    <string name="dont_have_account_sign_up">Don’t have an account? Sign Up</string>
+    <string name="already_have_account_login">Already have an account? Login</string>
+    <string name="google">Google</string>
+    <string name="reset">Reset</string>
+    <string name="enabled">Enabled</string>
 
     <!-- AI Prompt Favorites Screen -->
     <string name="favorite_prompts_title">Favorite Prompts (%d)</string>
@@ -63,5 +95,47 @@
     <string name="browse_prompts_button">Browse Prompts</string>
     <string name="facebook_app_id" translatable="false">1158827679752112</string>
     <string name="facebook_client_token" translatable="false">0656140dee77bb556f0f3eb80cbb7d67</string>
+
+
+    <!-- Home / Sections -->
+    <string name="trending">Trending</string>
+    <string name="featured">Featured</string>
+    <string name="popular">Popular</string>
+    <string name="view_all_title">View All</string>
+    <string name="no_posts_available">No posts available</string>
+
+    <!-- Actions -->
+    <string name="like">Like</string>
+    <string name="favorite">Favorite</string>
+    <string name="share">Share</string>
+    <string name="views">Views</string>
+    <string name="clear">Clear</string>
+    <string name="search">Search</string>
+    <string name="submit_search">Submit Search</string>
+    <string name="dismiss">Dismiss</string>
+
+    <!-- Tips -->
+    <string name="daily_ai_tip">Daily AI Tip</string>
+    <string name="tip">Tip</string>
+    <string name="next_tip">Next Tip</string>
+    <string name="read_more">Read more</string>
+    <string name="show_less">Show less</string>
+    <string name="tap_to_see_another_tip">Tap to see another tip</string>
+
+    <!-- Time -->
+    <string name="minutes_format">%1$d minutes</string>
+    <string name="minutes_compact_format">%1$dm</string>
+
+    <!-- Search -->
+    <string name="search_prompts_guides_placeholder">
+        Search prompts, guides…
+    </string>
+
+    <!-- Welcome -->
+    <string name="welcome_to_picpose">Welcome to PicPose</string>
+    <string name="welcome_subtitle">
+        Smart AI photography tips &amp; prompts
+    </string>
+    <string name="like_count">Likes</string>
 
 </resources>

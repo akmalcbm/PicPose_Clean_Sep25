@@ -27,8 +27,9 @@ fun CategoriesRow(
     modifier: Modifier = Modifier
 ) {
     LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         items(categories) { category ->
             CategoryCard(category = category) { onCategoryClick(category) }

@@ -23,12 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun AIPromptsRow(
@@ -98,7 +100,7 @@ fun AIPromptCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Trending",
+                        text = stringResource(R.string.trending),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -107,7 +109,7 @@ fun AIPromptCard(
                         Icon(
                             imageVector = if (prompt.isFavouriteBookmarked)
                                 Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "Favorite",
+                            contentDescription = stringResource(R.string.favorite),
                             tint = if (prompt.isFavouriteBookmarked)
                                 MaterialTheme.colorScheme.error else
                                 MaterialTheme.colorScheme.onSurfaceVariant

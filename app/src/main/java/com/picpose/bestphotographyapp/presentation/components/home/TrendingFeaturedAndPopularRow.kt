@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -42,8 +44,12 @@ fun TrendingFeaturedAndPopularRow(
     onShareClick: (Post) -> Unit,
     onViewAllClick: (String) -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf("Trending") }
-    val tabs = listOf("Trending", "Featured", "Popular")
+    val tabTrending = stringResource(R.string.trending)
+    val tabFeatured = stringResource(R.string.featured)
+    val tabPopular = stringResource(R.string.popular)
+
+    var selectedTab by remember { mutableStateOf(tabTrending) }
+    val tabs = listOf(tabTrending, tabFeatured, tabPopular)
 
     Column {
 
@@ -86,9 +92,9 @@ fun TrendingFeaturedAndPopularRow(
         ) { tab ->
 
             val posts = when (tab) {
-                "Trending" -> trendingPosts
-                "Featured" -> featuredPosts
-                "Popular" -> popularPosts
+                tabTrending -> trendingPosts
+                tabFeatured -> featuredPosts
+                tabPopular -> popularPosts
                 else -> emptyList()
             }
 
@@ -101,7 +107,7 @@ fun TrendingFeaturedAndPopularRow(
                 if (posts.isEmpty()) {
                     item {
                         Text(
-                            text = "No posts available",
+                            text = stringResource(R.string.no_posts_available),
                             modifier = Modifier.padding(24.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -182,7 +188,7 @@ fun TrendingFeaturedAndPopularCard(
                     // 👁 Views
                     Icon(
                         imageVector = Icons.Filled.Visibility,
-                        contentDescription = "Views",
+                        contentDescription = stringResource(R.string.views),
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -201,7 +207,7 @@ fun TrendingFeaturedAndPopularCard(
                     IconButton(onClick = onShareClick) {
                         Icon(
                             imageVector = Icons.Filled.Share,
-                            contentDescription = "Share",
+                            contentDescription = stringResource(R.string.share),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -218,9 +224,9 @@ fun EnhancedViewAllCard(
     onClick: () -> Unit
 ) {
     val (gradient, icon) = when (title) {
-        "Trending" -> Brush.linearGradient(listOf(Color(0xFF43CEA2), Color(0xFF037C75))) to Icons.AutoMirrored.Filled.TrendingUp
-        "Featured" -> Brush.linearGradient(listOf(Color(0xFFFFD200), Color(0xFFFFA000))) to Icons.Filled.Star
-        "Popular" -> Brush.linearGradient(listOf(Color(0xFFFF5F6D), Color(0xFFE81E63))) to Icons.Filled.Favorite
+        stringResource(R.string.trending) -> Brush.linearGradient(listOf(Color(0xFF43CEA2), Color(0xFF037C75))) to Icons.AutoMirrored.Filled.TrendingUp
+        stringResource(R.string.featured) -> Brush.linearGradient(listOf(Color(0xFFFFD200), Color(0xFFFFA000))) to Icons.Filled.Star
+        stringResource(R.string.popular) -> Brush.linearGradient(listOf(Color(0xFFFF5F6D), Color(0xFFE81E63))) to Icons.Filled.Favorite
         else -> Brush.linearGradient(listOf(Color.Gray, Color.DarkGray)) to Icons.AutoMirrored.Filled.ArrowForward
     }
 
@@ -240,7 +246,11 @@ fun EnhancedViewAllCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("View All $title", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.view_all_title, title),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -249,9 +259,9 @@ fun EnhancedViewAllCard(
 @Composable
 fun CategoryChip(label: String) {
     val (bgColor, icon) = when (label) {
-        "Trending" -> Color(0xFF00ACC1) to Icons.AutoMirrored.Filled.TrendingUp
-        "Featured" -> Color(0xFFFFC107) to Icons.Filled.Star
-        "Popular" -> Color(0xFFE91E63) to Icons.Filled.Favorite
+        stringResource(R.string.trending) -> Color(0xFF00ACC1) to Icons.AutoMirrored.Filled.TrendingUp
+        stringResource(R.string.featured) -> Color(0xFFFFC107) to Icons.Filled.Star
+        stringResource(R.string.popular) -> Color(0xFFE91E63) to Icons.Filled.Favorite
         else -> MaterialTheme.colorScheme.primary to Icons.Filled.Star
     }
 

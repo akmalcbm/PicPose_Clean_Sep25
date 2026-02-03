@@ -18,12 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.core.utils.displayFavorites
 import com.picpose.bestphotographyapp.core.utils.displayViews
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun RecentPostItem(
@@ -107,7 +109,7 @@ fun RecentPostItem(
                                         Icons.Filled.ThumbUp
                                     else
                                         Icons.Outlined.ThumbUp,
-                                contentDescription = "Like",
+                                contentDescription = stringResource(R.string.like),
                                 tint =
                                     if (isLiked)
                                         MaterialTheme.colorScheme.primary
@@ -143,7 +145,7 @@ fun RecentPostItem(
                     Spacer(Modifier.weight(1f))
 
                     IconButton(onClick = onShareClick) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
                     }
                 }
             }

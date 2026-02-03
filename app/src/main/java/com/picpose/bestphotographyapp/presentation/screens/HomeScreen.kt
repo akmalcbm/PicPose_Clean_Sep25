@@ -57,6 +57,8 @@ import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
+import com.picpose.bestphotographyapp.R
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -512,7 +514,7 @@ private fun NotificationPermissionDialog(
         onDismissRequest = onCancel,
         title = {
             Text(
-                text = "Stay Updated 📢",
+                text = stringResource(R.string.notification_title),
                 style = MaterialTheme.typography.titleLarge
             )
         },
@@ -520,19 +522,19 @@ private fun NotificationPermissionDialog(
             Text(
                 text = buildAnnotatedString {
                     pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                    append("Enable notifications to receive:\n\n")
+                    append(stringResource(R.string.notification_message_header))
                     pop()
 
                     pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
-                    append("⚆  Daily AI Prompts & Creative Ideas\n")
+                    append(stringResource(R.string.notification_message_line1))
                     pop()
 
                     pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
-                    append("⚆  Daily Photography Guide & Tips\n")
+                    append(stringResource(R.string.notification_message_line2))
                     pop()
 
                     pushStyle(SpanStyle(fontStyle = FontStyle.Normal))
-                    append("⚆  Important App Updates, etc\n\n")
+                    append(stringResource(R.string.notification_message_line3))
 
                     pushStyle(
                         SpanStyle(
@@ -540,24 +542,24 @@ private fun NotificationPermissionDialog(
                             textDecoration = TextDecoration.Underline
                         )
                     )
-                    append("Note:\n")
+                    append(stringResource(R.string.notification_note_title))
                     pop()
 
-                    append("You can turn notifications off anytime from ")
+                    append(stringResource(R.string.notification_note_body_prefix))
                     pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                    append("Settings.")
+                    append(stringResource(R.string.settings))
                     pop()
                 }
             )
         },
         confirmButton = {
             TextButton(onClick = onAllow) {
-                Text("Allow")
+                Text(stringResource(R.string.allow))
             }
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
-                Text("Not Now")
+                Text(stringResource(R.string.not_now))
             }
         }
     )

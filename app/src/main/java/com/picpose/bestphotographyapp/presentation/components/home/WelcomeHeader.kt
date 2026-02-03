@@ -19,10 +19,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -118,7 +120,7 @@ fun AnimatedWelcomeHeader() {
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Welcome to PicPose",
+                                text = stringResource(R.string.welcome_to_picpose),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -129,7 +131,7 @@ fun AnimatedWelcomeHeader() {
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "Capture your creativity with AI photography",
+                                text = stringResource(R.string.welcome_subtitle),
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
@@ -162,7 +164,7 @@ fun AnimatedWelcomeHeader() {
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.dismiss),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )

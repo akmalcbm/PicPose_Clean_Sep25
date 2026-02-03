@@ -28,6 +28,7 @@ import com.picpose.bestphotographyapp.presentation.navigation.NavGraph
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
+import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
 import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -57,6 +58,7 @@ class MainActivity : ComponentActivity() {
                 viewModel()
 
             val themeMode by settingsViewModel.themeMode.collectAsState()
+            val language by settingsViewModel.language.collectAsState()
             val systemDark = isSystemInDarkTheme()
 
             val requestedDarkTheme: Boolean? = when (themeMode.lowercase()) {
@@ -66,6 +68,10 @@ class MainActivity : ComponentActivity() {
             }
 
             val finalDarkTheme = requestedDarkTheme ?: systemDark
+
+            LaunchedEffect(language) {
+                AppLocaleManager.applyLanguage(language)
+            }
 
             PicPoseTheme(darkTheme = finalDarkTheme) {
 

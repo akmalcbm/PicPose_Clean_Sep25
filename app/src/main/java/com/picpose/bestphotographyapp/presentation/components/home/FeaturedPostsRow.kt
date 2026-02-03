@@ -6,8 +6,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun FeaturedPostsRow(
@@ -63,10 +65,10 @@ fun PostCard(
             Spacer(modifier = Modifier.height(8.dp))
             Row {
                 TextButton(onClick = onLikeClick) {
-                    Text("Like (${post.likes})")
+                    Text(stringResource(R.string.like_count, post.likes))
                 }
                 TextButton(onClick = onShareClick) {
-                    Text("Share")
+                    Text(stringResource(R.string.share))
                 }
             }
         }

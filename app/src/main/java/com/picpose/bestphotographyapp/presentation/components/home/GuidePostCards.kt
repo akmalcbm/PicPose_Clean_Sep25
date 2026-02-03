@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.core.utils.formatNumber
+import com.picpose.bestphotographyapp.R
 import kotlin.math.max
 
 // Helper: server base used to build absolute image URLs when API returns relative paths.
@@ -97,7 +99,7 @@ fun GuidePostCards(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Featured",
+                                text = stringResource(R.string.featured),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -177,7 +179,7 @@ fun GuidePostCards(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "${estimatedMinutes} min",
+                                text = stringResource(R.string.minutes_format, estimatedMinutes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
@@ -236,7 +238,7 @@ fun GuidePostCards(
                         IconButton(onClick = onLikeClick) {
                             Icon(
                                 imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Like",
+                                contentDescription = stringResource(R.string.like),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
@@ -251,7 +253,7 @@ fun GuidePostCards(
                     IconButton(onClick = onShareClick) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
+                            contentDescription = stringResource(R.string.share),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
@@ -345,7 +347,7 @@ fun CompactGuidePostCard(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "${estimatedMinutes}min",
+                                text = stringResource(R.string.minutes_compact_format, estimatedMinutes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
@@ -382,7 +384,7 @@ fun CompactGuidePostCard(
                     IconButton(onClick = onLikeClick) {
                         Icon(
                             imageVector = Icons.Default.FavoriteBorder,
-                            contentDescription = "Like",
+                            contentDescription = stringResource(R.string.like),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -397,7 +399,7 @@ fun CompactGuidePostCard(
                 IconButton(onClick = onShareClick) {
                     Icon(
                         imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
+                        contentDescription = stringResource(R.string.share),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp)
                     )

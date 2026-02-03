@@ -13,9 +13,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -50,13 +52,13 @@ fun AnimatedDailyTipCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
-                        contentDescription = "Tip",
+                        contentDescription = stringResource(R.string.tip),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Daily AI Tip",
+                        text = stringResource(R.string.daily_ai_tip),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -69,7 +71,7 @@ fun AnimatedDailyTipCard(
                 }) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Next Tip",
+                        contentDescription = stringResource(R.string.next_tip),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
@@ -99,7 +101,10 @@ fun AnimatedDailyTipCard(
             if (tip.length > 100) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = if (isExpanded) "Show less" else "Read more",
+                    text = if (isExpanded)
+                        stringResource(R.string.show_less)
+                    else
+                        stringResource(R.string.read_more),
                     style = MaterialTheme.typography.labelMedium.copy(
                         color = MaterialTheme.colorScheme.primary
                     ),
@@ -117,7 +122,7 @@ fun AnimatedDailyTipCard(
 
             // 🔹 Hint to user for interactivity
             Text(
-                text = "Tap ↻ to see another tip",
+                text = stringResource(R.string.tap_to_see_another_tip),
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 ),

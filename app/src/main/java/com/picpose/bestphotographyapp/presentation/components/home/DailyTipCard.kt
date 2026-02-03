@@ -12,8 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -51,7 +53,7 @@ fun DailyTipCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "💡 Daily AI Tip",
+                        text = stringResource(R.string.daily_ai_tip),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -60,7 +62,7 @@ fun DailyTipCard(
                 IconButton(onClick = onNextTip) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Next Tip"
+                        contentDescription = stringResource(R.string.next_tip)
                     )
                 }
             }
@@ -93,7 +95,10 @@ fun DailyTipCard(
             if (tip.length > 100) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (isExpanded) "Show less" else "Read more",
+                    text = if (isExpanded)
+                        stringResource(R.string.show_less)
+                    else
+                        stringResource(R.string.read_more),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { isExpanded = !isExpanded }
