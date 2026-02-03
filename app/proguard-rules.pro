@@ -197,6 +197,17 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
+# Keep Firebase Messaging service
+-keep class * extends com.google.firebase.messaging.FirebaseMessagingService
+-keep class com.picpose.bestphotographyapp.fcm.** { *; }
+
+# Keep FileProvider
+-keep class androidx.core.content.FileProvider
+
+# Keep AdMob (explicit)
+-keep class com.google.android.gms.ads.** { *; }
+-dontwarn com.google.android.gms.ads.**
+
 # Remove logging in release (optional but recommended)
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
