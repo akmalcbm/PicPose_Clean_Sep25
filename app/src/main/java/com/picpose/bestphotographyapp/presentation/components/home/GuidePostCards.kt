@@ -55,9 +55,7 @@ fun GuidePostCards(
             .width(280.dp)
             .clickable { onGuidePostClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column {
             // Image area

@@ -27,7 +27,7 @@ fun CategoriesRow(
     modifier: Modifier = Modifier
 ) {
     LazyRow(
-        modifier = Modifier.padding(vertical = 16.dp),
+        modifier = Modifier.padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {

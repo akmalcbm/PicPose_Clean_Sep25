@@ -281,7 +281,7 @@ fun HomeScreen(
                                 title = "Community Highlights",
                                 subtitle = "Explore trending & featured posts",
                                 icon = Icons.Default.Star,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
                             )
                         }
 
@@ -361,7 +361,7 @@ fun HomeScreen(
                                 title = "Categories",
                                 subtitle = "Explore different styles",
                                 icon = Icons.Default.Category,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp)
                             )
                         }
                         item {
@@ -380,7 +380,7 @@ fun HomeScreen(
                                 title = "Recent Posts",
                                 subtitle = "Latest from the community",
                                 icon = Icons.Default.Schedule,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
                             )
                         }
 
@@ -443,7 +443,7 @@ fun HomeScreen(
                                 title = "Photography Guides",
                                 subtitle = "Learn from experts",
                                 icon = Icons.Default.Book,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp)
                             )
                         }
 
@@ -452,8 +452,8 @@ fun HomeScreen(
                                 guidePosts = uiState.guidePosts,
                                 onGuidePostClick = onNavigateToGuidePostDetail,
                                 onLikeClick = { viewModel.toggleGuidePostLike(it.id) },
-                                onShareClick = { viewModel.shareGuidePost(context, it) },
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                onShareClick = { viewModel.shareGuidePost(context, it) }
+                                //modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
