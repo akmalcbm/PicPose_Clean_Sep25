@@ -55,7 +55,7 @@ fun AdmobInterstitialTrigger(
     adType: AdType = AdType.INTERSTITIAL1
 ) {
     val context = LocalContext.current
-    //val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
+    val adMobConfig = remember { AdMobConfigManager.getInstance(context) }
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
 
     LaunchedEffect(Unit) {
@@ -86,7 +86,7 @@ fun AdmobInterstitialTrigger(
     LaunchedEffect(interstitialAd) {
         interstitialAd?.let { ad ->
             // Show ad after delay or user action
-            kotlinx.coroutines.delay(30000) // 30 seconds
+            kotlinx.coroutines.delay(1000) // after 1 seconds
             if (context is androidx.activity.ComponentActivity) {
                 ad.show(context)
             }

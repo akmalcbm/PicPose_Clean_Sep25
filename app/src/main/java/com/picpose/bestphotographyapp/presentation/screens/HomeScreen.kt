@@ -458,7 +458,7 @@ fun HomeScreen(
                         }
                     }
 
-                    item { AdmobInterstitialTrigger() }
+                    //item { AdmobInterstitialTrigger() }
                 }
             }
         }
