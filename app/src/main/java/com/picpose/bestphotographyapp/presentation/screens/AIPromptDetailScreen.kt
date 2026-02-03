@@ -336,7 +336,7 @@ fun AIPromptDetailScreen(
 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
                 ),
                 modifier = Modifier.windowInsetsPadding(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
@@ -1205,7 +1205,7 @@ fun TopBarActionCircleButton(
 ) {
     Surface(
         shape = CircleShape,
-        color = tint.copy(alpha = 0.14f),
+        color = tint.copy(alpha = 0.02f),
         modifier = modifier
             .size(size)
             .padding(end = 6.dp),
