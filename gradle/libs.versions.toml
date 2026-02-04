@@ -18,7 +18,7 @@ lifecycle = "2.8.3"
 splashscreen = "1.0.1"
 room = "2.6.1"
 
-canhub_image_cropper = "4.3.3"
+canhub_image_cropper = "4.5.0"
 
 # Navigation & DI
 navigation-compose = "2.8.3"
