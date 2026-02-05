@@ -39,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +74,11 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                //Use below code if you want same Bottom Nav Background Color
+                /*colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),*/
                 title = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -86,6 +92,7 @@ fun SettingsScreen(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
                 )
             )
+
         },
         // 🔥 IMPORTANT — SAME AS ProfileScreen
         contentWindowInsets = WindowInsets(0)

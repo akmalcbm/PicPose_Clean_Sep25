@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.presentation.components
 
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -19,7 +20,8 @@ fun BottomNavigationBar(navController: NavController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        modifier = Modifier.navigationBarsPadding() // Correct bottom inset handling
+        modifier = Modifier.navigationBarsPadding(), // Correct bottom inset handling
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         bottomNavItems.forEach { item ->
             NavigationBarItem(

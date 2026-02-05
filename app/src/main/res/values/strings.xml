@@ -120,7 +120,7 @@
     <string name="next_tip">Next Tip</string>
     <string name="read_more">Read more</string>
     <string name="show_less">Show less</string>
-    <string name="tap_to_see_another_tip">Tap to see another tip</string>
+    <string name="tap_to_see_another_tip">Tap on refresh 🔄 to see another tip</string>
 
     <!-- Time -->
     <string name="minutes_format">%1$d minutes</string>

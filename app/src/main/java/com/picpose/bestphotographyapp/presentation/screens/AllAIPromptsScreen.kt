@@ -78,6 +78,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.core.constants.Constants
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -174,7 +175,7 @@ fun AllAIPromptsScreen(
 
         val adLoader = AdLoader.Builder(
             adContext,
-            AdMobConfigManager.TEST_NATIVE_ID // ✅ Test native ad ID
+            Constants.TEST_NATIVE_ID // ✅ Test native ad ID
         )
             .forNativeAd { ad ->
                 if (disposed) {

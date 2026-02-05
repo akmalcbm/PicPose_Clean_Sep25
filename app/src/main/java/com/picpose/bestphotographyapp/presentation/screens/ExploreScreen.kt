@@ -65,7 +65,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
-import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
+import com.picpose.bestphotographyapp.core.constants.Constants
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
@@ -148,7 +148,7 @@ fun ExploreScreen(
 
         val adLoader = AdLoader.Builder(
             adContext,
-            AdMobConfigManager.TEST_NATIVE_ID // Test native ad ID
+            Constants.TEST_NATIVE_ID // Test native ad ID
         )
             .forNativeAd { ad ->
                 if (disposed) ad.destroy()
@@ -472,7 +472,9 @@ private fun ExploreTopBar(
     )
 
     TopAppBar(
-        modifier = Modifier, // ❗ No inset padding here
+        modifier = Modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+        ),
         title = {
             AnimatedContent(targetState = isSearchExpanded, transitionSpec = {
                 slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
@@ -515,7 +517,13 @@ private fun ExploreTopBar(
                 FilterButtonWithIndicator(isFilterExpanded = isFilterExpanded, rotation = filterRotation, scale = scale, onClick = { isFilterExpanded = !isFilterExpanded; onToggleFilters() })
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)) //Transparent Plain App Bar
+
+        /*//Background Same as Bottom Nav
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )*/
     )
 }
 
