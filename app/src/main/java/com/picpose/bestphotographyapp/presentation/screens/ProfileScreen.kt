@@ -38,11 +38,6 @@ import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -82,9 +77,6 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                ),
                 title = { Text("Profile", fontWeight = FontWeight.Bold) }
             )
         },
@@ -101,7 +93,7 @@ fun ProfileScreen(
                         .asPaddingValues()
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp, start = 16.dp, end = 16.dp)
+            contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
         ) {
 
             // -------------------------------

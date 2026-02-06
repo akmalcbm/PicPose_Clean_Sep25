@@ -1,6 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -40,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
@@ -75,8 +73,6 @@ fun HomeScreen(
     onRequestLogin: () -> Unit        // ✅ NEW — navigation callback
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
-
     val uiState by viewModel.uiState.collectAsState()
     val localEngagementStates by viewModel.localEngagementStates.collectAsState()
     val statsViewModel: StatsViewModel = hiltViewModel()
@@ -92,12 +88,6 @@ fun HomeScreen(
     val permissionRequested by settingsViewModel.notificationPermissionRequested.collectAsState()
     val deniedAtOpen by settingsViewModel.notificationPermissionDeniedAtOpen.collectAsState()
     val lastPromptOpen by settingsViewModel.notificationPermissionLastPromptOpen.collectAsState()
-
-    // Enable edge-to-edge layout
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
-    }
 
     val isUserActive = isLoggedIn || hasSkippedAuth
     var hasCountedOpen by rememberSaveable { mutableStateOf(false) }
@@ -239,9 +229,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(
                         top = 12.dp,
-                        bottom = WindowInsets.navigationBars
-                            .asPaddingValues()
-                            .calculateBottomPadding() + 24.dp
+                        bottom = 24.dp
                     )
                 ) {
 

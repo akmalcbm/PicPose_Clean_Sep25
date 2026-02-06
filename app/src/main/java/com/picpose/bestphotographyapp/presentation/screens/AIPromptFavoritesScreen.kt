@@ -100,9 +100,6 @@ fun AIPromptFavoritesScreen(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
             )
         },
         contentWindowInsets = WindowInsets(0)

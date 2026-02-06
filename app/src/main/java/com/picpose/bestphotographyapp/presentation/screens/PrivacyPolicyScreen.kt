@@ -50,9 +50,6 @@ fun PrivacyPolicyScreen(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
                 ),
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
             )
         },
         contentWindowInsets = WindowInsets(0) // disable auto inset to avoid double spacing
@@ -63,7 +60,6 @@ fun PrivacyPolicyScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
-                // ✅ Only horizontal insets to remove top/bottom gaps
                 .padding(
                     WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal)

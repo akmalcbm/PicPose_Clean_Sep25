@@ -53,9 +53,6 @@ fun TermsScreen(
                     titleContentColor = colorScheme.onSurface
                 ),
                 // ✅ Handles status bar space correctly
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
             )
         },
         // ✅ Prevent double-padding from system bars
@@ -67,7 +64,6 @@ fun TermsScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
-                // ✅ Only respect horizontal insets for curved/gesture devices
                 .padding(
                     WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal)

@@ -80,8 +80,7 @@ fun LoginScreen(
                     }) {
                         Text(stringResource(R.string.skip), color = MaterialTheme.colorScheme.primary)
                     }
-                },
-                modifier = Modifier.statusBarsPadding()
+                }
             )
         }
     ) { paddingValues ->

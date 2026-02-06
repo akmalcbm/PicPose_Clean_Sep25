@@ -3,44 +3,41 @@ package com.picpose.bestphotographyapp
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import com.picpose.bestphotographyapp.presentation.components.BottomNavigationBar
-import com.picpose.bestphotographyapp.presentation.navigation.NavGraph
+import com.picpose.bestphotographyapp.presentation.navigation.AppRoot
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
 import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     // ⭐ Correct way to hold the ViewModel reference in Activity
     private lateinit var authViewModel: AuthViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
 
         val deepLink = intent.getStringExtra("deep_link")
 
@@ -69,8 +66,15 @@ class MainActivity : ComponentActivity() {
 
             val finalDarkTheme = requestedDarkTheme ?: systemDark
 
+            var isApplyingLocale by remember { mutableStateOf(false) }
             LaunchedEffect(language) {
-                AppLocaleManager.applyLanguage(language)
+                val current = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                if (!isApplyingLocale && language.isNotBlank() && current != language) {
+                    isApplyingLocale = true
+                    AppLocaleManager.applyLanguage(language)
+                    // Recreate so resources reload immediately.
+                    this@MainActivity.recreate()
+                }
             }
 
             PicPoseTheme(darkTheme = finalDarkTheme) {
@@ -79,41 +83,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.Companion.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-
-                    val navController = rememberNavController()
-
-                    // ✅ HANDLE NOTIFICATION DEEP LINK HERE
-                    LaunchedEffect(Unit) {
-                        deepLink?.let { link ->
-                            handleNotificationDeepLink(navController, link)
-                        }
-                    }
-
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = navBackStackEntry?.destination?.route
-
-                    val showBottomNav =
-                        currentRoute != Screen.Splash.route &&
-                                currentRoute != Screen.Login.route
-
-                    Scaffold(
-                        contentWindowInsets = WindowInsets(0),
-                        bottomBar = {
-                            if (showBottomNav) BottomNavigationBar(navController)
-                        }
-                    ) { paddingValues ->
-
-                        Box(
-                            modifier = Modifier.Companion
-                                .fillMaxSize()
-                                .padding(paddingValues)
-                        ) {
-                            NavGraph(
-                                navController = navController,
-                                activity = this@MainActivity
-                            )
-                        }
-                    }
+                    AppRoot(
+                        activity = this@MainActivity,
+                        deepLink = deepLink,
+                        onHandleNotificationDeepLink = ::handleNotificationDeepLink
+                    )
                 }
             }
         }

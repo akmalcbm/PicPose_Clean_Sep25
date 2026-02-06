@@ -51,9 +51,7 @@ fun AboutScreen(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
                 ),
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
+
             )
         },
         contentWindowInsets = WindowInsets(0) // disable auto inset to prevent double space
@@ -64,7 +62,6 @@ fun AboutScreen(
                 .fillMaxSize()
                 .background(colorScheme.background)
                 .padding(innerPadding)
-                // ✅ Only respect horizontal safe insets to remove top/bottom extra gaps
                 .padding(
                     WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal)

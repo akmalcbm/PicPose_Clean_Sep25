@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
@@ -84,9 +83,7 @@ fun ViewAllPromptsScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = 12.dp,
-                    bottom = WindowInsets.navigationBars
-                        .asPaddingValues()
-                        .calculateBottomPadding() + 24.dp // ✅ fixes white gap at bottom
+                    bottom = 24.dp
                 )
             ) {
                 itemsIndexed(posts) { index: Int, post: Post ->

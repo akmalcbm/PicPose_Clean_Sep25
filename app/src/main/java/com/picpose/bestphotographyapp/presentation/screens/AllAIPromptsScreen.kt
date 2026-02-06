@@ -1,7 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.app.Activity
-import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
@@ -71,7 +70,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.SubcomposeAsyncImage
 import com.google.android.gms.ads.AdLoader
@@ -157,13 +155,6 @@ fun AllAIPromptsScreen(
     val gridState = rememberLazyGridState()
 
     val categoryListState = rememberLazyListState()
-
-    // Edge-to-edge for Android 11+
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
-        }
-    }
 
     // 🔁 Native Ad pool (preload multiple)
     var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
@@ -318,9 +309,6 @@ fun AllAIPromptsScreen(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
             )
         },
         snackbarHost = { SnackbarHost(snackBarHostState) },
@@ -431,7 +419,7 @@ fun AllAIPromptsScreen(
                                     start = 12.dp,
                                     end = 12.dp,
                                     top = 8.dp,
-                                    bottom = 100.dp
+                                    bottom = 24.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -506,7 +494,7 @@ fun AllAIPromptsScreen(
                                     start = 16.dp,
                                     end = 16.dp,
                                     top = 8.dp,
-                                    bottom = 100.dp
+                                    bottom = 24.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {

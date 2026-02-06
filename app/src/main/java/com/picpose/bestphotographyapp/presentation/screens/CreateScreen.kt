@@ -1,7 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.app.Activity
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,21 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateScreen() {
     val context = LocalContext.current
-    val activity = context as? Activity
-
-    // ✅ Enable edge-to-edge layout for Android 11+
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
-        }
-    }
-
     val creationCategories = listOf(
         CreationCategory(
             title = "Photography",
@@ -90,13 +78,9 @@ fun CreateScreen() {
         )
     )
 
-    // ✅ Scaffold to handle system bars and consistent layout
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                ),
                 title = {
                     Text(
                         text = "Create",
@@ -124,9 +108,7 @@ fun CreateScreen() {
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = WindowInsets.navigationBars
-                    .asPaddingValues()
-                    .calculateBottomPadding() + 24.dp
+                bottom = 24.dp
             )
         ) {
             // 🧠 Header

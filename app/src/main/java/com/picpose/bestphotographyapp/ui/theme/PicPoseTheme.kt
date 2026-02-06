@@ -110,9 +110,6 @@ fun PicPoseTheme(
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
             windowInsetsController.isAppearanceLightStatusBars = !darkTheme
             windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
-
-            // Enable edge-to-edge
-            WindowCompat.setDecorFitsSystemWindows(window, false)
         }
     }
 

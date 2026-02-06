@@ -81,6 +81,7 @@
     <string name="allow">अनुमति दें</string>
     <string name="not_now">अभी नहीं</string>
 
+
     <!-- एआई प्रॉम्प्ट पसंदीदा स्क्रीन -->
     <string name="favorite_prompts_title">पसंदीदा प्रॉम्प्ट (%d)</string>
     <string name="back_button_content_description">वापस</string>

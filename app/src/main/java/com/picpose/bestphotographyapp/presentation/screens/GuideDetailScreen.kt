@@ -161,7 +161,6 @@ fun GuideDetailScreen(
                     )
                 }
             },
-            modifier = Modifier.statusBarsPadding(), // ✅ Fixes top extra space
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
                 titleContentColor = MaterialTheme.colorScheme.onSurface

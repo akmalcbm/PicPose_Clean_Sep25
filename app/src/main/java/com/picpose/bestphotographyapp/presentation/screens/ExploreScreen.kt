@@ -1,7 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -58,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdLoader
@@ -131,12 +128,6 @@ fun ExploreScreen(
 
     val connectivityObserver = remember { ConnectivityObserver(context) }
     val networkStatus by connectivityObserver.observe().collectAsState(initial = ConnectivityObserver.Status.Available)
-
-    val activity = context as? Activity
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
-    }
 
     // 🔁 Native Ad pool (preload multiple)
     var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
@@ -276,13 +267,12 @@ fun ExploreScreen(
                             top = 8.dp,
                             start = 12.dp,
                             end = 12.dp,
-                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
+                            bottom = 24.dp
                         ),
                         modifier = Modifier
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.background)
                             .padding(innerPadding)
-                            .consumeWindowInsets(innerPadding)
                     ) {
                         if (uiState.content.isNotEmpty() && showFilters) {
                             stickyHeader {
@@ -472,9 +462,6 @@ private fun ExploreTopBar(
     )
 
     TopAppBar(
-        modifier = Modifier.windowInsetsPadding(
-            WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-        ),
         title = {
             AnimatedContent(targetState = isSearchExpanded, transitionSpec = {
                 slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()

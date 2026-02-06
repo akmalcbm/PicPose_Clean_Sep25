@@ -81,9 +81,6 @@ fun HelpAndSupportScreen(
                     containerColor = colorScheme.surface.copy(alpha = 0.95f),
                     titleContentColor = colorScheme.onSurface
                 ),
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                )
             )
         },
         contentWindowInsets = WindowInsets(0) // 🚫 prevent double padding

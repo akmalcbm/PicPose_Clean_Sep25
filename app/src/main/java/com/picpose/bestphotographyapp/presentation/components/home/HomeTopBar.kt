@@ -49,9 +49,6 @@ fun HomeTopBar(
     val focusManager = LocalFocusManager.current
 
     TopAppBar(
-        modifier = Modifier.windowInsetsPadding(
-            WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-        ),
         title = {
             AnimatedContent(
                 targetState = isSearchExpanded,

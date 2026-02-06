@@ -1,7 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,26 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreen() {
     val userPoints = 2450
-    val activity = LocalContext.current as? Activity
-
-    // ✅ Enable edge-to-edge (for Android 11+)
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
-        }
-    }
-
     val rewards = listOf(
         Reward("Premium Filters Pack", "Unlock 20+ premium filters", 500, Icons.Filled.FilterVintage),
         Reward("Cloud Storage 100GB", "Extra cloud storage space", 800, Icons.Filled.CloudUpload),
@@ -54,9 +41,6 @@ fun RewardsScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
-                ),
                 title = {
                     Text(
                         text = "Rewards",
@@ -84,9 +68,7 @@ fun RewardsScreen() {
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = WindowInsets.navigationBars
-                    .asPaddingValues()
-                    .calculateBottomPadding() + 24.dp
+                bottom = 24.dp
             )
         ) {
             // 🏆 Header Section
