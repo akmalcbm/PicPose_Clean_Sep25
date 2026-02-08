@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
@@ -58,26 +60,38 @@ fun ProfileScreen(
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val context = LocalContext.current
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     // ⭐ RANDOM fallback bios (UI only)
-    val fallbackBios = remember {
-        listOf(
-            "Capturing moments, creating memories ✨",
-            "Chasing light & freezing time 📸",
-            "Turning everyday life into art 🎨",
-            "Life looks better through a lens ✨",
-            "Framing emotions in every shot 💫"
-        )
+    val fallbackBios = remember(context) {
+        context.resources.getStringArray(R.array.profile_fallback_bios).toList()
     }
 
     val chosenFallbackBio = remember { fallbackBios.random() }
+    val appInfoOptions = listOf(
+        ProfileOption(
+            stringResource(R.string.privacy_policy_title),
+            stringResource(R.string.read_privacy_policy),
+            Icons.Filled.PrivacyTip
+        ) to Screen.Privacy.route,
+        ProfileOption(
+            stringResource(R.string.terms_conditions_title),
+            stringResource(R.string.terms_and_conditions),
+            Icons.Filled.Description
+        ) to Screen.Terms.route,
+        ProfileOption(
+            stringResource(R.string.about),
+            stringResource(R.string.about_the_app),
+            Icons.Filled.Info
+        ) to Screen.About.route
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile", fontWeight = FontWeight.Bold) }
+                title = { Text(stringResource(R.string.profile), fontWeight = FontWeight.Bold) }
             )
         },
         contentWindowInsets = WindowInsets(0)
@@ -136,14 +150,14 @@ fun ProfileScreen(
             // PROFILE MANAGEMENT
             // ------------------------
             item {
-                SectionHeader("Profile Management")
+                SectionHeader(stringResource(R.string.profile_management))
             }
 
             item {
                 ProfileOptionCard(
                     option = ProfileOption(
-                        title = "Edit Profile",
-                        description = "Update your profile information",
+                        title = stringResource(R.string.edit_profile),
+                        description = stringResource(R.string.update_profile_information),
                         icon = Icons.Filled.Edit
                     ),
                     onClick = { onNavigateToEditProfile() }
@@ -154,14 +168,14 @@ fun ProfileScreen(
             // APP SETTINGS
             // ------------------------
             item {
-                SectionHeader("App Settings")
+                SectionHeader(stringResource(R.string.app_settings))
             }
 
             item {
                 ProfileOptionCard(
                     option = ProfileOption(
-                        title = "Settings",
-                        description = "Customize your app preferences",
+                        title = stringResource(R.string.settings),
+                        description = stringResource(R.string.customize_app_preferences),
                         icon = Icons.Filled.Settings
                     ),
                     onClick = onNavigateToSettings
@@ -171,37 +185,26 @@ fun ProfileScreen(
             // ------------------------
             // APP INFO
             // ------------------------
-            item { SectionHeader("App Info") }
+            item { SectionHeader(stringResource(R.string.app_info)) }
 
-            items(
-                listOf(
-                    ProfileOption("Privacy Policy", "Read our privacy policy", Icons.Filled.PrivacyTip),
-                    ProfileOption("Terms & Conditions", "Terms and conditions", Icons.Filled.Description),
-                    ProfileOption("About", "About the app", Icons.Filled.Info)
-                )
-            ) { option ->
+            items(appInfoOptions) { entry ->
+                val option = entry.first
                 ProfileOptionCard(
                     option = option,
-                    onClick = {
-                        when (option.title) {
-                            "Privacy Policy" -> navController.navigate(Screen.Privacy.route)
-                            "Terms & Conditions" -> navController.navigate(Screen.Terms.route)
-                            "About" -> navController.navigate(Screen.About.route)
-                        }
-                    }
+                    onClick = { navController.navigate(entry.second) }
                 )
             }
 
             // ------------------------
             // SUPPORT
             // ------------------------
-            item { SectionHeader("Support") }
+            item { SectionHeader(stringResource(R.string.support)) }
 
             item {
                 ProfileOptionCard(
                     option = ProfileOption(
-                        "Help & Support",
-                        "Get help and contact support",
+                        stringResource(R.string.help_support_title),
+                        stringResource(R.string.get_help_and_contact_support),
                         Icons.AutoMirrored.Filled.HelpOutline
                     ),
                     onClick = { navController.navigate(Screen.HelpAndSupportScreen.route) }
@@ -221,18 +224,18 @@ fun ProfileScreen(
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = stringResource(R.string.logout))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Logout")
+                        Text(stringResource(R.string.logout))
                     }
                 } else {
                     Button(
                         onClick = onNavigateToLogin,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Login")
+                        Icon(Icons.AutoMirrored.Filled.Login, contentDescription = stringResource(R.string.login))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Login")
+                        Text(stringResource(R.string.login))
                     }
                 }
             }
@@ -290,7 +293,7 @@ private fun ProfileHeaderCard(
                     if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
                         AsyncImage(
                             model = currentUser.displayProfilePicture,
-                            contentDescription = "Profile Picture",
+                            contentDescription = stringResource(R.string.profile_picture),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(140.dp)
@@ -311,7 +314,7 @@ private fun ProfileHeaderCard(
             // NAME
             // ----------------------------
             Text(
-                text = currentUser?.displayName ?: "Guest User",
+                text = currentUser?.displayName ?: stringResource(R.string.guest_user),
                 fontSize = 26.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -322,7 +325,7 @@ private fun ProfileHeaderCard(
             // EMAIL
             // ----------------------------
             Text(
-                text = currentUser?.email ?: "Not logged in",
+                text = currentUser?.email ?: stringResource(R.string.not_logged_in),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -449,13 +452,13 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
 private fun LogoutDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Logout") },
-        text = { Text("Are you sure you want to logout?") },
+        title = { Text(stringResource(R.string.logout)) },
+        text = { Text(stringResource(R.string.logout_confirmation_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Logout") }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.logout)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

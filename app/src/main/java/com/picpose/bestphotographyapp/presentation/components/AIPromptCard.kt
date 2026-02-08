@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.core.utils.displayLikes
@@ -125,7 +127,7 @@ fun AIPromptCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.BrokenImage,
-                                contentDescription = "Image error",
+                                contentDescription = stringResource(R.string.image_error),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(40.dp)
                             )
@@ -199,7 +201,7 @@ fun AIPromptCard(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "Popular",
+                                    text = stringResource(R.string.popular),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = colors.error
                                 )
@@ -228,7 +230,7 @@ fun AIPromptCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Visibility,
-                                contentDescription = "Views",
+                                contentDescription = stringResource(R.string.views),
                                 tint = colors.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -250,7 +252,7 @@ fun AIPromptCard(
                                         Icons.Default.BookmarkAdded
                                     else
                                         Icons.Default.BookmarkBorder,
-                                contentDescription = "Favorite",
+                                contentDescription = stringResource(R.string.favorite),
                                 tint =
                                     if (isBookmarked)
                                         Color(0xFFFFC107)

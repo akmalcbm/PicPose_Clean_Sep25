@@ -12,29 +12,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreen() {
     val userPoints = 2450
     val rewards = listOf(
-        Reward("Premium Filters Pack", "Unlock 20+ premium filters", 500, Icons.Filled.FilterVintage),
-        Reward("Cloud Storage 100GB", "Extra cloud storage space", 800, Icons.Filled.CloudUpload),
-        Reward("AI Photo Enhancement", "10 AI enhancement credits", 300, Icons.Filled.AutoAwesome),
-        Reward("Premium Templates", "Access to premium templates", 600, Icons.Filled.WorkspacePremium),
-        Reward("Photo Contest Entry", "Enter exclusive contests", 200, Icons.Filled.EmojiEvents),
-        Reward("1-on-1 Photography Tips", "Personal session with expert", 1500, Icons.Filled.School)
+        Reward(stringResource(R.string.reward_premium_filters_pack), stringResource(R.string.reward_premium_filters_pack_desc), 500, Icons.Filled.FilterVintage),
+        Reward(stringResource(R.string.reward_cloud_storage_100gb), stringResource(R.string.reward_cloud_storage_100gb_desc), 800, Icons.Filled.CloudUpload),
+        Reward(stringResource(R.string.reward_ai_photo_enhancement), stringResource(R.string.reward_ai_photo_enhancement_desc), 300, Icons.Filled.AutoAwesome),
+        Reward(stringResource(R.string.reward_premium_templates), stringResource(R.string.reward_premium_templates_desc), 600, Icons.Filled.WorkspacePremium),
+        Reward(stringResource(R.string.reward_photo_contest_entry), stringResource(R.string.reward_photo_contest_entry_desc), 200, Icons.Filled.EmojiEvents),
+        Reward(stringResource(R.string.reward_one_on_one_photography_tips), stringResource(R.string.reward_one_on_one_photography_tips_desc), 1500, Icons.Filled.School)
     )
 
     val achievements = listOf(
-        Achievement("First Upload", "Upload your first photo", true, Icons.Filled.CloudUpload),
-        Achievement("Social Butterfly", "Get 100 likes", true, Icons.Filled.Favorite),
-        Achievement("Creative Streak", "Upload 10 photos", false, Icons.Filled.Stream),
-        Achievement("Popular Creator", "Get 1000 followers", false, Icons.Filled.People)
+        Achievement(stringResource(R.string.achievement_first_upload), stringResource(R.string.achievement_first_upload_desc), true, Icons.Filled.CloudUpload),
+        Achievement(stringResource(R.string.achievement_social_butterfly), stringResource(R.string.achievement_social_butterfly_desc), true, Icons.Filled.Favorite),
+        Achievement(stringResource(R.string.achievement_creative_streak), stringResource(R.string.achievement_creative_streak_desc), false, Icons.Filled.Stream),
+        Achievement(stringResource(R.string.achievement_popular_creator), stringResource(R.string.achievement_popular_creator_desc), false, Icons.Filled.People)
     )
 
     // ✅ Scaffold for insets-safe layout
@@ -43,7 +45,7 @@ fun RewardsScreen() {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Rewards",
+                        text = stringResource(R.string.rewards),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -79,19 +81,19 @@ fun RewardsScreen() {
                 ) {
                     Icon(
                         Icons.Filled.Stars,
-                        contentDescription = "Points",
+                        contentDescription = stringResource(R.string.points),
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "$userPoints Points",
+                        text = stringResource(R.string.points_count, userPoints),
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Earn points and unlock exclusive rewards",
+                        text = stringResource(R.string.earn_points_and_unlock_rewards),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
@@ -103,7 +105,7 @@ fun RewardsScreen() {
             // 🎁 Available Rewards
             item {
                 Text(
-                    text = "Available Rewards",
+                    text = stringResource(R.string.available_rewards),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -122,7 +124,7 @@ fun RewardsScreen() {
             // 🥇 Achievements
             item {
                 Text(
-                    text = "Achievements",
+                    text = stringResource(R.string.achievements),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -138,7 +140,7 @@ fun RewardsScreen() {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Keep earning points by participating in challenges and uploading your best shots!",
+                    text = stringResource(R.string.rewards_footer_message),
                     textAlign = TextAlign.Center,
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -209,7 +211,7 @@ fun RewardCard(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
                 Text(
-                    text = "${reward.pointsCost} Points",
+                    text = stringResource(R.string.points_count, reward.pointsCost),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary
@@ -223,7 +225,7 @@ fun RewardCard(
                     disabledContainerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
             ) {
-                Text(if (canRedeem) "Redeem" else "Locked")
+                Text(if (canRedeem) stringResource(R.string.redeem) else stringResource(R.string.locked))
             }
         }
     }
@@ -284,7 +286,7 @@ fun AchievementCard(achievement: Achievement) {
             if (achievement.isCompleted) {
                 Icon(
                     Icons.Filled.CheckCircle,
-                    contentDescription = "Completed",
+                    contentDescription = stringResource(R.string.completed),
                     tint = Color(0xFF4CAF50)
                 )
             }

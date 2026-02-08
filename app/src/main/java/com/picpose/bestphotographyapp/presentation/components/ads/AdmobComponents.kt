@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.*
@@ -13,6 +14,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 
@@ -111,7 +113,7 @@ fun AdmobNativeAd(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Sponsored Content",
+                text = stringResource(R.string.sponsored_content),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -173,7 +175,7 @@ fun AdmobRewardedAd(
                 isAdLoaded = false
             }
         ) {
-            Text("Watch Ad for Reward")
+            Text(stringResource(R.string.watch_ad_for_reward))
         }
     }
 }

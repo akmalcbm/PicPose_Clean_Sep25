@@ -18,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,50 +31,94 @@ fun CreateScreen() {
     val context = LocalContext.current
     val creationCategories = listOf(
         CreationCategory(
-            title = "Photography",
+            title = context.getString(R.string.create_category_photography),
             items = listOf(
-                CreateOption("Take Photo", "Capture a new photo", Icons.Filled.CameraAlt) {
-                    Toast.makeText(context, "Camera feature coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_take_photo),
+                    context.getString(R.string.create_option_take_photo_desc),
+                    Icons.Filled.CameraAlt
+                ) {
+                    Toast.makeText(context, context.getString(R.string.camera_feature_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Upload Photo", "Choose from gallery", Icons.Filled.PhotoLibrary) {
-                    Toast.makeText(context, "Gallery picker coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_upload_photo),
+                    context.getString(R.string.create_option_upload_photo_desc),
+                    Icons.Filled.PhotoLibrary
+                ) {
+                    Toast.makeText(context, context.getString(R.string.gallery_picker_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Photo Editor", "Edit your photos", Icons.Filled.Edit) {
-                    Toast.makeText(context, "Photo editor coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_photo_editor),
+                    context.getString(R.string.create_option_photo_editor_desc),
+                    Icons.Filled.Edit
+                ) {
+                    Toast.makeText(context, context.getString(R.string.photo_editor_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("AI Enhancement", "Enhance with AI", Icons.Filled.AutoAwesome) {
-                    Toast.makeText(context, "AI enhancement coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_ai_enhancement),
+                    context.getString(R.string.create_option_ai_enhancement_desc),
+                    Icons.Filled.AutoAwesome
+                ) {
+                    Toast.makeText(context, context.getString(R.string.ai_enhancement_coming_soon), Toast.LENGTH_SHORT).show()
                 }
             )
         ),
         CreationCategory(
-            title = "Content Creation",
+            title = context.getString(R.string.create_category_content_creation),
             items = listOf(
-                CreateOption("Photo Collage", "Create a collage", Icons.Filled.Collections) {
-                    Toast.makeText(context, "Collage maker coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_photo_collage),
+                    context.getString(R.string.create_option_photo_collage_desc),
+                    Icons.Filled.Collections
+                ) {
+                    Toast.makeText(context, context.getString(R.string.collage_maker_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Templates", "Use templates", Icons.AutoMirrored.Filled.ViewQuilt) {
-                    Toast.makeText(context, "Templates coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_templates),
+                    context.getString(R.string.create_option_templates_desc),
+                    Icons.AutoMirrored.Filled.ViewQuilt
+                ) {
+                    Toast.makeText(context, context.getString(R.string.templates_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Add Text", "Add text to photos", Icons.Filled.TextFields) {
-                    Toast.makeText(context, "Text editor coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_add_text),
+                    context.getString(R.string.create_option_add_text_desc),
+                    Icons.Filled.TextFields
+                ) {
+                    Toast.makeText(context, context.getString(R.string.text_editor_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Add Filters", "Apply artistic filters", Icons.Filled.FilterVintage) {
-                    Toast.makeText(context, "Filters coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_add_filters),
+                    context.getString(R.string.create_option_add_filters_desc),
+                    Icons.Filled.FilterVintage
+                ) {
+                    Toast.makeText(context, context.getString(R.string.filters_coming_soon), Toast.LENGTH_SHORT).show()
                 }
             )
         ),
         CreationCategory(
-            title = "Guides & Tips",
+            title = context.getString(R.string.create_category_guides_tips),
             items = listOf(
-                CreateOption("Create Guide", "Write a guide", Icons.AutoMirrored.Filled.Article) {
-                    Toast.makeText(context, "Guide creation coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_create_guide),
+                    context.getString(R.string.create_option_create_guide_desc),
+                    Icons.AutoMirrored.Filled.Article
+                ) {
+                    Toast.makeText(context, context.getString(R.string.guide_creation_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("Share Tip", "Share a tip", Icons.Filled.Lightbulb) {
-                    Toast.makeText(context, "Tip sharing coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_share_tip),
+                    context.getString(R.string.create_option_share_tip_desc),
+                    Icons.Filled.Lightbulb
+                ) {
+                    Toast.makeText(context, context.getString(R.string.tip_sharing_coming_soon), Toast.LENGTH_SHORT).show()
                 },
-                CreateOption("AI Prompt", "Create AI prompts", Icons.Filled.Psychology) {
-                    Toast.makeText(context, "AI prompt creation coming soon!", Toast.LENGTH_SHORT).show()
+                CreateOption(
+                    context.getString(R.string.create_option_ai_prompt),
+                    context.getString(R.string.create_option_ai_prompt_desc),
+                    Icons.Filled.Psychology
+                ) {
+                    Toast.makeText(context, context.getString(R.string.ai_prompt_creation_coming_soon), Toast.LENGTH_SHORT).show()
                 }
             )
         )
@@ -83,7 +129,7 @@ fun CreateScreen() {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Create",
+                        text = stringResource(R.string.create_screen_title),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -128,13 +174,13 @@ fun CreateScreen() {
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Create Something New",
+                            text = stringResource(R.string.create_header_title),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Choose what you want to make today",
+                            text = stringResource(R.string.create_header_subtitle),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -172,13 +218,13 @@ fun CreateScreen() {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "More features coming soon!",
+                            text = stringResource(R.string.more_features_coming_soon),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "We’re working on bringing you new creation tools and experiences.",
+                            text = stringResource(R.string.more_features_coming_soon_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center

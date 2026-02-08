@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.GuidePost
 
 @Composable
@@ -144,7 +146,7 @@ fun GuidePostCard(
                             ) {
                                 Icon(
                                     imageVector = if (guidePost.isFavorited) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    contentDescription = if (guidePost.isFavorited) "Remove from favorites" else "Add to favorites",
+                                    contentDescription = if (guidePost.isFavorited) stringResource(R.string.remove_from_favorites) else stringResource(R.string.add_to_favorites),
                                     tint = if (guidePost.isFavorited) Color.Red else Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -200,7 +202,7 @@ fun GuidePostCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "GUIDE",
+                            text = stringResource(R.string.guide_label),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
@@ -215,7 +217,7 @@ fun GuidePostCard(
 
                 // Title
                 Text(
-                    text = guidePost.title.ifBlank { "Untitled" },
+                    text = guidePost.title.ifBlank { stringResource(R.string.untitled) },
                     style = if (isCompact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = if (isCompact) 1 else 2,
@@ -264,7 +266,7 @@ fun GuidePostCard(
                         if (guidePost.createdAt.isNotBlank()) {
                             if (guidePost.authorName.isNotBlank()) {
                                 Text(
-                                    text = " • ${guidePost.createdAt}",
+                                    text = stringResource(R.string.created_at_with_bullet, guidePost.createdAt),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color(0xFF64748B)
                                 )
@@ -292,7 +294,7 @@ fun GuidePostCard(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "${guidePost.readingTime} min read",
+                                text = stringResource(R.string.read_time_with_minutes, guidePost.readingTime),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF475569),
                                 fontWeight = FontWeight.Medium,

@@ -12,10 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -42,10 +44,10 @@ fun TermsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Terms & Conditions", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.terms_conditions_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -144,7 +146,7 @@ fun TermsScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "No Terms & Conditions Available",
+                                text = stringResource(R.string.no_terms_conditions_available),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colorScheme.onSurfaceVariant
                             )
@@ -162,7 +164,7 @@ fun TermsScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Failed to load Terms & Conditions",
+                            text = stringResource(R.string.failed_to_load_terms_conditions),
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
@@ -171,7 +173,7 @@ fun TermsScreen(
                             onClick = { appSettingsViewModel.loadAppSettings(forceRefresh = true) },
                             colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
                         ) {
-                            Text("Retry", color = colorScheme.onPrimary)
+                            Text(stringResource(R.string.retry), color = colorScheme.onPrimary)
                         }
                     }
                 }

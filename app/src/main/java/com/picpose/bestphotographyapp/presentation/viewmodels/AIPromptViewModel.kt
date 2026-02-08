@@ -1,8 +1,10 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.repository.PromptRepository
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
@@ -12,6 +14,7 @@ import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -33,7 +36,7 @@ data class AIPromptUiState(
     val tagPrompts: List<AIPrompt> = emptyList(),
 
     val categories: List<String> = emptyList(),
-    val selectedCategory: String = "All",
+    val selectedCategory: String = "",
     val searchQuery: String = "",
 
     val totalPrompts: Int = 0,
@@ -52,7 +55,8 @@ class AIPromptViewModel @Inject constructor(
     private val engagementRepository: EngagementRepository,
     private val promptRepository: PromptRepository,
     private val api: ApiService,
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIPromptUiState())
@@ -114,6 +118,7 @@ class AIPromptViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            _uiState.update { it.copy(selectedCategory = appContext.getString(R.string.all)) }
             preloadPromptCacheForFavorites()
             loadCategories()
         }
@@ -378,7 +383,7 @@ class AIPromptViewModel @Inject constructor(
             _uiState.value.allPrompts.isNotEmpty()
         ) return
 
-        selectedCategoryServer = if (category == "All") null else category
+        selectedCategoryServer = if (category == appContext.getString(R.string.all)) null else category
         currentPage = 1
         canLoadMore = true
         cachedPrompts = null
@@ -468,7 +473,7 @@ class AIPromptViewModel @Inject constructor(
                         onFailure = { throwable ->
                             _uiState.update { state ->
                                 state.copy(
-                                    error = throwable.localizedMessage ?: "Something went wrong"
+                                    error = throwable.localizedMessage ?: appContext.getString(R.string.something_went_wrong)
                                 )
                             }
                         }
@@ -523,7 +528,7 @@ class AIPromptViewModel @Inject constructor(
                     onFailure = { throwable ->
                         _uiState.update { state ->
                             state.copy(
-                                error = throwable.localizedMessage ?: "Failed to load prompts",
+                                error = throwable.localizedMessage ?: appContext.getString(R.string.failed_to_load_prompts),
                                 isLoading = false
                             )
                         }
@@ -566,14 +571,14 @@ class AIPromptViewModel @Inject constructor(
                         val names =
                             cats.mapNotNull { it.name }.distinct().sorted()
                         _uiState.update {
-                            it.copy(categories = listOf("All") + names)
+                            it.copy(categories = listOf(appContext.getString(R.string.all)) + names)
                         }
                         categoriesLoaded = true
                     },
                     onFailure = { throwable ->
                         _uiState.update { state ->
                             state.copy(
-                                error = throwable.localizedMessage ?: "Failed to load categories"
+                                error = throwable.localizedMessage ?: appContext.getString(R.string.failed_to_load_categories)
                             )
                         }
                     }

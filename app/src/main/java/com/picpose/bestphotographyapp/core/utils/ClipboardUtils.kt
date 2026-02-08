@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.text.AnnotatedString
+import com.picpose.bestphotographyapp.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -36,12 +37,11 @@ fun copyToClipboard(
                 fallbackMethod?.call(clipboard, AnnotatedString(copiedText))
             }
 
-            Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.prompt_copied_toast), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Failed to copy text!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.failed_to_copy_text), Toast.LENGTH_SHORT).show()
         }
     }
 }
-
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -34,6 +35,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.AdLoader
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.constants.Constants
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -140,7 +142,7 @@ fun TagPromptsScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Label,
-                                contentDescription = "Tag",
+                                contentDescription = stringResource(R.string.tag),
                                 tint = Color.White,
                                 modifier = Modifier.padding(end = 6.dp)
                             )
@@ -152,7 +154,7 @@ fun TagPromptsScreen(
                         }
                         if (taggedPrompts.isNotEmpty()) {
                             Text(
-                                text = "${taggedPrompts.size} prompts",
+                                text = stringResource(R.string.prompts_count, taggedPrompts.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color.White.copy(alpha = 0.85f)
                             )
@@ -163,7 +165,7 @@ fun TagPromptsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                             tint = Color.White
                         )
                     }
@@ -210,13 +212,13 @@ fun TagPromptsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "No prompts found",
+                            text = stringResource(R.string.no_prompts_found),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Try another tag or refresh.",
+                            text = stringResource(R.string.try_another_tag_or_refresh),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -247,15 +249,15 @@ fun TagPromptsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Showing ${taggedPrompts.size} prompts",
+                                text = stringResource(R.string.showing_prompts_count, taggedPrompts.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = when (sortOption) {
-                                    TagSortOption.LATEST -> "Sorted: Latest"
-                                    TagSortOption.MOST_VIEWED -> "Sorted: Most Viewed"
-                                    TagSortOption.MOST_LIKED -> "Sorted: Most Liked"
+                                    TagSortOption.LATEST -> stringResource(R.string.sorted_latest)
+                                    TagSortOption.MOST_VIEWED -> stringResource(R.string.sorted_most_viewed)
+                                    TagSortOption.MOST_LIKED -> stringResource(R.string.sorted_most_liked)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
@@ -272,7 +274,7 @@ fun TagPromptsScreen(
                             onClick = { onPromptClick(prompt.id) },
                             onCopy = {
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Prompt copied to clipboard")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_to_clipboard))
                                 }
                             },
                             isCompact = false,
@@ -358,9 +360,9 @@ private fun TagSortDropdown(
             label = {
                 Text(
                     text = when (current) {
-                        TagSortOption.LATEST -> "Latest"
-                        TagSortOption.MOST_VIEWED -> "Most Viewed"
-                        TagSortOption.MOST_LIKED -> "Most Liked"
+                        TagSortOption.LATEST -> stringResource(R.string.latest)
+                        TagSortOption.MOST_VIEWED -> stringResource(R.string.most_viewed)
+                        TagSortOption.MOST_LIKED -> stringResource(R.string.most_liked)
                     },
                     color = Color.White
                 )
@@ -377,21 +379,21 @@ private fun TagSortDropdown(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("Latest First") },
+                text = { Text(stringResource(R.string.latest_first)) },
                 onClick = {
                     expanded = false
                     onChange(TagSortOption.LATEST)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Most Viewed") },
+                text = { Text(stringResource(R.string.most_viewed)) },
                 onClick = {
                     expanded = false
                     onChange(TagSortOption.MOST_VIEWED)
                 }
             )
             DropdownMenuItem(
-                text = { Text("Most Liked") },
+                text = { Text(stringResource(R.string.most_liked)) },
                 onClick = {
                     expanded = false
                     onChange(TagSortOption.MOST_LIKED)
@@ -486,7 +488,7 @@ private fun TagNativeAdCard(nativeAd: NativeAd) {
                 visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
             }
             (adView.callToActionView as? Button)?.apply {
-                text = nativeAd.callToAction ?: "Install"
+                text = nativeAd.callToAction ?: adView.context.getString(R.string.install)
                 visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
             }
             adView.mediaView?.mediaContent = nativeAd.mediaContent

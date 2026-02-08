@@ -1,9 +1,11 @@
 package com.picpose.bestphotographyapp.core.utils
 
+import android.content.Context
+import com.picpose.bestphotographyapp.R
 import java.text.SimpleDateFormat
 import java.util.*
 
-fun formatTimestamp(timestamp: String): String {
+fun formatTimestamp(context: Context, timestamp: String): String {
     return try {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
         val date = sdf.parse(timestamp)
@@ -11,13 +13,13 @@ fun formatTimestamp(timestamp: String): String {
         val diff = now - (date?.time ?: 0)
 
         when {
-            diff < 60000 -> "Just now"
-            diff < 3600000 -> "${diff / 60000}m ago"
-            diff < 86400000 -> "${diff / 3600000}h ago"
-            else -> "${diff / 86400000}d ago"
+            diff < 60000 -> context.getString(R.string.just_now)
+            diff < 3600000 -> context.getString(R.string.time_minutes_ago_short, diff / 60000)
+            diff < 86400000 -> context.getString(R.string.time_hours_ago_short, diff / 3600000)
+            else -> context.getString(R.string.time_days_ago_short, diff / 86400000)
         }
     } catch (e: Exception) {
-        "Recently"
+        context.getString(R.string.recently)
     }
 }
 

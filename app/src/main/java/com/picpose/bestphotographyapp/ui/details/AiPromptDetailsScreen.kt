@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +38,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.data.admob.AdManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.ui.ads.NativeAdSection
@@ -117,12 +119,12 @@ fun AiPromptDetailsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("AI Prompt Details") },
+                title = { Text(stringResource(R.string.ai_prompt_details_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -134,11 +136,11 @@ fun AiPromptDetailsScreen(
                                         clipboard.setText(prompt.fullPrompt ?: "", label = "prompt")
                                     }
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Prompt copied for sharing!")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_for_sharing))
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
                         }
                         
                         IconButton(
@@ -147,8 +149,11 @@ fun AiPromptDetailsScreen(
                                     viewModel.toggleFavorite(prompt)
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar(
-                                            if (prompt.isFavouriteBookmarked) "Removed from favorites"
-                                            else "Added to favorites"
+                                            if (prompt.isFavouriteBookmarked) {
+                                                context.getString(R.string.removed_from_favorites)
+                                            } else {
+                                                context.getString(R.string.added_to_favorites)
+                                            }
                                         )
                                     }
                                 }
@@ -156,10 +161,10 @@ fun AiPromptDetailsScreen(
                         ) {
                             Icon(
                                 if (prompt.isFavouriteBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Favorite",
+                                contentDescription = stringResource(R.string.favorite),
                                 tint = if (prompt.isFavouriteBookmarked)
-                                    MaterialTheme.colorScheme.error 
-                                else 
+                                    MaterialTheme.colorScheme.error
+                                else
                                     LocalContentColor.current
                             )
                         }
@@ -204,7 +209,7 @@ fun AiPromptDetailsScreen(
                                     }
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("✨ Prompt copied to clipboard!")
+                                    snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_to_clipboard))
                                 }
                             },
                             onTagClick = onTagClick,
@@ -263,7 +268,7 @@ fun AiPromptDetailsScreen(
                         ) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("Loading ad...", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.loading_ad), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -283,7 +288,7 @@ private fun LoadingState() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CircularProgressIndicator()
-            Text("Loading prompt...", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.loading_prompt), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -300,16 +305,16 @@ private fun ErrorState(onRetry: () -> Unit) {
         ) {
             Icon(
                 Icons.Default.Error,
-                contentDescription = "Error",
+                contentDescription = stringResource(R.string.error),
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.error
             )
             Text(
-                "Prompt not found",
+                stringResource(R.string.prompt_not_found),
                 style = MaterialTheme.typography.headlineSmall
             )
             Button(onClick = onRetry) {
-                Text("Retry")
+                Text(stringResource(R.string.retry))
             }
         }
     }
@@ -359,7 +364,7 @@ private fun PromptContent(
                         is AsyncImagePainter.State.Error -> {
                             Icon(
                                 Icons.Default.BrokenImage,
-                                contentDescription = "Image load error",
+                                contentDescription = stringResource(R.string.image_load_error),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(64.dp)
                             )
@@ -456,7 +461,7 @@ private fun PromptContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Full AI Prompt",
+                            text = stringResource(R.string.full_ai_prompt),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -498,7 +503,7 @@ private fun PromptContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Copy Full Prompt",
+                            text = stringResource(R.string.copy_full_prompt),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -538,7 +543,7 @@ private fun PromptContent(
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            text = "🏷️ Tags",
+                            text = stringResource(R.string.tags_with_emoji),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -578,7 +583,7 @@ private fun PromptContent(
         if (similarPrompts.isNotEmpty()) {
             item {
                 Text(
-                    text = "Similar Prompts",
+                    text = stringResource(R.string.similar_prompts),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
@@ -612,7 +617,7 @@ private fun PromptContent(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        Text("Load More")
+                        Text(stringResource(R.string.load_more))
                     }
                 }
             }

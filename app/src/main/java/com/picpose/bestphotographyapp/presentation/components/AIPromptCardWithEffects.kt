@@ -20,6 +20,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.utils.displayFavorites
 import com.picpose.bestphotographyapp.core.utils.displayLikes
 import com.picpose.bestphotographyapp.core.utils.displayViews
@@ -213,7 +215,7 @@ fun AIPromptCardWithEffects(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    "Popular",
+                                    stringResource(R.string.popular),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = colors.error
                                 )
@@ -233,7 +235,7 @@ fun AIPromptCardWithEffects(
                         ) {
                             Icon(
                                 imageVector = if (isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
-                                contentDescription = if (isLiked) "Unlike" else "Like",
+                                contentDescription = if (isLiked) stringResource(R.string.unlike) else stringResource(R.string.like),
                                 tint = if (isLiked) MaterialTheme.colorScheme.primary else colors.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(22.dp)

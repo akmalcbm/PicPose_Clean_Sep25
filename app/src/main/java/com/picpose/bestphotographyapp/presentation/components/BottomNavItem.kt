@@ -7,16 +7,17 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.picpose.bestphotographyapp.R
 
 data class BottomNavItem(
-    val name: String,
+    val nameRes: Int,
     val route: String,
     val icon: ImageVector
 )
 
 val bottomNavItems = listOf(
     BottomNavItem(
-        name = "Explore",
+        nameRes = R.string.explore_title,
         route = Screen.Explore.route,
         icon = Icons.Default.Explore
     ),
@@ -26,7 +27,7 @@ val bottomNavItems = listOf(
         icon = Icons.Default.Add
     ),*/
     BottomNavItem(
-        name = "Home",
+        nameRes = R.string.home,
         route = Screen.Home.route,
         icon = Icons.Default.Home
     ),
@@ -36,7 +37,7 @@ val bottomNavItems = listOf(
         icon = Icons.Default.Star
     ), */
     BottomNavItem(
-        name = "Settings",
+        nameRes = R.string.profile,
         route = Screen.Profile.route,
         icon = Icons.Default.Person
         //Profile & Settings

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import kotlinx.coroutines.Dispatchers
@@ -84,7 +86,7 @@ fun EditProfileScreen(
         if (result.isSuccessful) {
             selectedImageUri = result.uriContent
         } else {
-            Toast.makeText(context, result.error?.message ?: "Crop failed", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, result.error?.message ?: context.getString(R.string.crop_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -136,29 +138,19 @@ fun EditProfileScreen(
     fun openCamera() = cameraLauncher.launch(null)
     fun openGallery() = galleryLauncher.launch("image/*")
 
-    val aiBioSuggestions = listOf(
-        "Capturing moments, creating memories ✨",
-        "Chasing light & freezing time 📸",
-        "Turning everyday life into art 🎨",
-        "Creating magic through my lens ✨",
-        "Living life one snapshot at a time 🌿",
-        "Finding beauty in small details 🌱",
-        "Smile. Click. Repeat. 📷",
-        "Collecting moments, not things 💫",
-        "Where creativity meets clarity ✨",
-        "Storytelling through frames 🎞️",
-        "Exploring the world through my lens 🌍"
-    )
+    val aiBioSuggestions = remember {
+        context.resources.getStringArray(R.array.ai_bio_suggestions).toList()
+    }
 
     var showBioMenu by remember { mutableStateOf(false) }
 
     EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.edit_profile), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -194,7 +186,7 @@ fun EditProfileScreen(
                         selectedImageUri != null -> {
                             AsyncImage(
                                 model = selectedImageUri,
-                                contentDescription = "Selected",
+                                contentDescription = stringResource(R.string.selected_image),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -203,7 +195,7 @@ fun EditProfileScreen(
                         !currentUser!!.displayProfilePicture.isNullOrBlank() -> {
                             AsyncImage(
                                 model = currentUser!!.displayProfilePicture,
-                                contentDescription = "Profile",
+                                contentDescription = stringResource(R.string.profile),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -242,7 +234,7 @@ fun EditProfileScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onPrimary)
+                    Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
@@ -250,7 +242,7 @@ fun EditProfileScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Full Name") },
+                label = { Text(stringResource(R.string.full_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, null) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -262,7 +254,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = bio,
                     onValueChange = { bio = it },
-                    label = { Text("Bio") },
+                    label = { Text(stringResource(R.string.bio)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 120.dp),
@@ -270,7 +262,7 @@ fun EditProfileScreen(
                     maxLines = 4,
                     trailingIcon = {
                         IconButton(onClick = { showBioMenu = true }) {
-                            Icon(Icons.Default.Lightbulb, contentDescription = "AI Bio", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Lightbulb, contentDescription = stringResource(R.string.ai_bio), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 )
@@ -280,7 +272,7 @@ fun EditProfileScreen(
                     onDismissRequest = { showBioMenu = false }
                 ) {
                     Text(
-                        "AI Bio Suggestions",
+                        stringResource(R.string.ai_bio_suggestions),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.primary
@@ -302,7 +294,7 @@ fun EditProfileScreen(
             Button(
                 onClick = {
                     if (name.text.trim().isEmpty()) {
-                        Toast.makeText(context, "Please enter your name", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.please_enter_your_name), Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
@@ -322,7 +314,7 @@ fun EditProfileScreen(
                             ) { result ->
                                 isSaving = false
                                 result.onSuccess {
-                                    Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.profile_updated), Toast.LENGTH_SHORT).show()
                                     onSaveSuccess()
                                 }.onFailure {
                                     Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
@@ -342,7 +334,7 @@ fun EditProfileScreen(
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    Text("Save Changes", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.save_changes), fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -364,7 +356,7 @@ fun EditProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ListItem(
-                    headlineContent = { Text("Take Photo") },
+                    headlineContent = { Text(stringResource(R.string.take_photo)) },
                     leadingContent = { Icon(Icons.Default.CameraAlt, null) },
                     modifier = Modifier.clickable {
                         showPhotoSheet.value = false
@@ -373,7 +365,7 @@ fun EditProfileScreen(
                     }
                 )
                 ListItem(
-                    headlineContent = { Text("Choose from Gallery") },
+                    headlineContent = { Text(stringResource(R.string.choose_from_gallery)) },
                     leadingContent = { Icon(Icons.Default.PhotoLibrary, null) },
                     modifier = Modifier.clickable {
                         showPhotoSheet.value = false
@@ -383,12 +375,12 @@ fun EditProfileScreen(
                 )
                 ListItem(
                     headlineContent = {
-                        Text("Remove Photo", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.remove_photo), color = MaterialTheme.colorScheme.error)
                     },
                     leadingContent = {
                         Icon(
                             Icons.Default.Delete,
-                            "Remove",
+                            stringResource(R.string.remove),
                             tint = MaterialTheme.colorScheme.error
                         )
                     },
@@ -426,7 +418,7 @@ fun NotLoggedInScreen(
         Spacer(Modifier.height(16.dp))
 
         Text(
-            "You're not logged in",
+            stringResource(R.string.you_are_not_logged_in),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
@@ -434,7 +426,7 @@ fun NotLoggedInScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            "Please login to edit your profile",
+            stringResource(R.string.please_login_to_edit_profile),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -444,11 +436,11 @@ fun NotLoggedInScreen(
             onClick = onNavigateToLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login")
+            Text(stringResource(R.string.login))
         }
 
         TextButton(onClick = onBack) {
-            Text("Cancel")
+            Text(stringResource(R.string.cancel))
         }
     }
 }

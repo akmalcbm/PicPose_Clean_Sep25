@@ -1,10 +1,13 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.AppSettings
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +26,8 @@ sealed class AppSettingsUiState {
 
 @HiltViewModel
 class AppSettingsViewModel @Inject constructor(
-    private val homeRepository: HomeRepository
+    private val homeRepository: HomeRepository,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     // StateFlow for better state management
@@ -63,7 +67,7 @@ class AppSettingsViewModel @Inject constructor(
                         hasFetchedSettings = true
                     },
                     onFailure = { err: Throwable ->
-                        val errorMsg = err.message ?: "Failed to load app settings"
+                        val errorMsg = err.message ?: appContext.getString(R.string.failed_to_load_app_settings)
                         // If we have cached settings, show error with cache
                         _uiState.value = AppSettingsUiState.Error(errorMsg, cachedSettings)
                     }

@@ -7,11 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.UserRole
 
@@ -23,15 +25,15 @@ fun AccountBadge(accountType: AccountType?) {
     when (accountType) {
         AccountType.PREMIUM -> {
             bgColor = MaterialTheme.colorScheme.tertiaryContainer
-            label = "Premium"
+            label = stringResource(R.string.premium)
         }
         AccountType.AD_FREE -> {
             bgColor = MaterialTheme.colorScheme.secondaryContainer
-            label = "Ad-Free"
+            label = stringResource(R.string.ad_free)
         }
         else -> {
             bgColor = MaterialTheme.colorScheme.surfaceVariant
-            label = "Free"
+            label = stringResource(R.string.free)
         }
     }
 
@@ -46,15 +48,15 @@ fun RoleBadge(role: UserRole?) {
     when (role) {
         UserRole.PROFESSIONAL -> {
             bgColor = MaterialTheme.colorScheme.primaryContainer
-            label = "Professional"
+            label = stringResource(R.string.professional)
         }
         UserRole.ADMIN -> {
             bgColor = MaterialTheme.colorScheme.errorContainer
-            label = "Admin"
+            label = stringResource(R.string.admin)
         }
         else -> {
             bgColor = MaterialTheme.colorScheme.surfaceVariant
-            label = "User"
+            label = stringResource(R.string.user)
         }
     }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.picpose.bestphotographyapp.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -18,10 +19,13 @@ object ShareUtils {
         imageUrl: String? = null
     ) {
         val shareText = buildString {
-            append("🔥 PicPose: AI Prompt Book 🔥\n\n")
-            append("✨ Try PicPose App for more amazing AI prompts & pose ideas!\n\n")
-            append("📲 Download now:\n")
-            append("https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp")
+            append(context.getString(R.string.share_prompt_header))
+            append("\n\n")
+            append(context.getString(R.string.share_prompt_subheader))
+            append("\n\n")
+            append(context.getString(R.string.download_on_play_store))
+            append("\n")
+            append(context.getString(R.string.play_store_url))
             append("\n\n")
             append(promptText.trim())
 
@@ -42,7 +46,7 @@ object ShareUtils {
         }
 
         context.startActivity(
-            Intent.createChooser(intent, "Share Prompt via")
+            Intent.createChooser(intent, context.getString(R.string.share_prompt_via))
         )
     }
 

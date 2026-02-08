@@ -37,7 +37,7 @@ import com.picpose.bestphotographyapp.R
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun HomeTopBar(
-    titleText: String = "PicPose",
+    titleText: String,
     initialSearch: String = "",
     userImage: String? = null,       // 👈 NEW FIELD
     onSearchClick: (String) -> Unit = {},

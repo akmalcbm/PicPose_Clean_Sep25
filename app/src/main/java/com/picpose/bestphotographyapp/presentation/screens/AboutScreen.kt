@@ -14,11 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -41,10 +43,10 @@ fun AboutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("About App", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.about_app_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -78,7 +80,7 @@ fun AboutScreen(
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "Loading About information...",
+                            stringResource(R.string.loading_about_information),
                             color = colorScheme.onSurfaceVariant
                         )
                     }
@@ -116,7 +118,7 @@ fun AboutScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            "Failed to load About information",
+                            stringResource(R.string.failed_to_load_about_information),
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
@@ -131,14 +133,14 @@ fun AboutScreen(
                             onClick = { viewModel.loadAppSettings(forceRefresh = true) },
                             colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
                         ) {
-                            Text("Retry", color = colorScheme.onPrimary)
+                            Text(stringResource(R.string.retry), color = colorScheme.onPrimary)
                         }
 
                         // Show cached data if available
                         (state as AppSettingsUiState.Error).cachedSettings?.let { cachedSettings ->
                             Spacer(modifier = Modifier.height(24.dp))
                             Text(
-                                "Showing cached information",
+                                stringResource(R.string.showing_cached_information),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colorScheme.onSurfaceVariant
                             )
@@ -371,7 +373,7 @@ fun AboutFallbackContent(
             ) {
                 // Version
                 InfoRow(
-                    title = "Version",
+                    title = stringResource(R.string.version),
                     value = "1.0.0",
                     colorScheme = colorScheme
                 )
@@ -379,7 +381,7 @@ fun AboutFallbackContent(
                 // Developer
                 if (settings.adminName.isNotBlank()) {
                     InfoRow(
-                        title = "Developer",
+                        title = stringResource(R.string.developer),
                         value = settings.adminName,
                         colorScheme = colorScheme
                     )
@@ -388,7 +390,7 @@ fun AboutFallbackContent(
                 // Support Email
                 if (settings.contact.email.isNotBlank()) {
                     InfoRow(
-                        title = "Support Email",
+                        title = stringResource(R.string.support_email),
                         value = settings.contact.email,
                         colorScheme = colorScheme
                     )
@@ -397,7 +399,7 @@ fun AboutFallbackContent(
                 // Support Phone
                 if (settings.contact.phone.isNotBlank()) {
                     InfoRow(
-                        title = "Support Phone",
+                        title = stringResource(R.string.support_phone),
                         value = settings.contact.phone,
                         colorScheme = colorScheme
                     )
@@ -406,8 +408,8 @@ fun AboutFallbackContent(
                 // Google Play
                 if (settings.googlePlayUrl.isNotBlank()) {
                     InfoRow(
-                        title = "Google Play",
-                        value = "Download on Play Store",
+                        title = stringResource(R.string.google_play),
+                        value = stringResource(R.string.download_on_play_store),
                         colorScheme = colorScheme
                     )
                 }
@@ -415,7 +417,7 @@ fun AboutFallbackContent(
                 // Last Updated
                 if (settings.meta.updatedAt.isNotBlank()) {
                     InfoRow(
-                        title = "Last Updated",
+                        title = stringResource(R.string.last_updated),
                         value = settings.meta.updatedAt,
                         colorScheme = colorScheme
                     )

@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Category
@@ -15,6 +16,7 @@ import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -57,6 +59,7 @@ enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor (
+    @ApplicationContext private val appContext: Context,
     private val repository: HomeRepository,
     private val engagementRepository: EngagementRepository
     ) : ViewModel() {
@@ -65,20 +68,8 @@ class HomeViewModel @Inject constructor (
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     // Local photography tips used as fallback (keeps UX stable)
-    private val photographyTips = listOf(
-        "🎯 Use specific descriptive words in your prompts for better AI results!",
-        "🌅 Golden hour provides the most flattering natural light",
-        "👁️ Focus on the eyes in portrait photography",
-        "🛤️ Use leading lines to guide the viewer's attention",
-        "📐 Experiment with different angles and perspectives",
-        "⚪ Learn to use negative space effectively",
-        "⚙️ Master manual camera settings for creative control",
-        "📖 Practice the art of storytelling through images",
-        "🤖 Try AI prompts: 'Professional headshot, soft lighting, clean background'",
-        "✨ AI Prompt: 'Cinematic portrait, golden hour, bokeh background'",
-        "🎨 Use AI: 'Street photography style, black and white, urban setting'",
-        "🌟 AI Magic: 'Fashion photography, dramatic lighting, studio setup'"
-    )
+    private val photographyTips =
+        appContext.resources.getStringArray(R.array.photography_tips_fallback).toList()
 
     private var currentTipIndex = 0
 
@@ -299,7 +290,7 @@ class HomeViewModel @Inject constructor (
     fun copyPromptToClipboard(context: Context, prompt: String?) {
         try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("AI Prompt", prompt ?: "")
+            val clip = ClipData.newPlainText(context.getString(R.string.ai_prompt_label), prompt ?: "")
             clipboard.setPrimaryClip(clip)
             // Optionally reflect a short UI hint via state (not implemented here)
         } catch (e: Exception) {
@@ -353,7 +344,7 @@ class HomeViewModel @Inject constructor (
         if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
             val diff = now - lastRefreshTimestamp
             Log.w(TAG, "refresh throttled: only ${diff}ms since last refresh")
-            _uiState.value = _uiState.value.copy(error = "Please wait before refreshing again.")
+            _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.please_wait_before_refreshing_again))
             return
         }
         lastRefreshTimestamp = now
@@ -457,16 +448,18 @@ class HomeViewModel @Inject constructor (
     fun sharePost(context: Context, post: Post) {
         try {
             val shareText = buildString {
-                append("Check out this amazing photo: ${post.title}\n\n")
+                append(context.getString(R.string.share_post_intro, post.title))
+                append("\n\n")
                 append(post.description ?: "")
-                append("\n\n#PicPose #Photography")
+                append("\n\n")
+                append(context.getString(R.string.share_hashtag_photography))
             }
 
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("Shared Post", shareText)
+            val clip = ClipData.newPlainText(context.getString(R.string.shared_post_label), shareText)
             clipboard.setPrimaryClip(clip)
 
-            Toast.makeText(context, "Post details copied to clipboard!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.post_details_copied_to_clipboard), Toast.LENGTH_SHORT).show()
 
             // Optional: analytics or server call to record share
             viewModelScope.launch {
@@ -540,22 +533,26 @@ class HomeViewModel @Inject constructor (
     fun shareGuidePost(context: Context, guidePost: GuidePost) {
         try {
             val shareText = buildString {
-                append("Check out this photography guide: ${guidePost.title}\n\n")
+                append(context.getString(R.string.share_guide_intro, guidePost.title))
+                append("\n\n")
                 append(guidePost.excerpt.ifEmpty { guidePost.content.take(150) })
                 if (guidePost.difficultyLevel.isNotEmpty()) {
-                    append("\n\nDifficulty: ${guidePost.difficultyLevel}")
+                    append("\n\n")
+                    append(context.getString(R.string.difficulty_with_value, guidePost.difficultyLevel))
                 }
                 if (guidePost.estimatedReadTime > 0) {
-                    append("\nRead time: ${guidePost.estimatedReadTime} min")
+                    append("\n")
+                    append(context.getString(R.string.read_time_with_minutes, guidePost.estimatedReadTime))
                 }
-                append("\n\n#PicPose #PhotographyGuide")
+                append("\n\n")
+                append(context.getString(R.string.share_hashtag_guide))
             }
 
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("Shared Guide Post", shareText)
+            val clip = ClipData.newPlainText(context.getString(R.string.shared_guide_post_label), shareText)
             clipboard.setPrimaryClip(clip)
 
-            Toast.makeText(context, "Guide post details copied to clipboard!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.guide_post_details_copied_to_clipboard), Toast.LENGTH_SHORT).show()
 
             // Optional: analytics or server call to record share
             viewModelScope.launch {
@@ -604,7 +601,7 @@ class HomeViewModel @Inject constructor (
                     val posts = aiPrompts.map { aiPrompt ->
                         Post(
                             id = aiPrompt.id ?: "",
-                            title = aiPrompt.title ?: "Untitled",
+                            title = aiPrompt.title ?: appContext.getString(R.string.untitled),
                             description = aiPrompt.shortPrompt
                                 ?: aiPrompt.fullPrompt
                                 ?: "",

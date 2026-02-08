@@ -1,0 +1,30 @@
+<resources>
+    <string-array name="ai_bio_suggestions">
+        <item>Photographer exploring creative portraits and cinematic lighting.</item>
+        <item>AI prompt enthusiast sharing ideas for better image generation.</item>
+        <item>Visual storyteller inspired by street, nature, and studio photography.</item>
+        <item>Experimenting daily with composition, light, and color.</item>
+        <item>Creating practical prompts for creators and photography lovers.</item>
+    </string-array>
+
+    <string-array name="profile_fallback_bios">
+        <item>Photography enthusiast who loves creative shots.</item>
+        <item>Exploring AI prompts and camera techniques every day.</item>
+        <item>Turning ideas into visuals through light and composition.</item>
+    </string-array>
+
+    <string-array name="photography_tips_fallback">
+        <item>Use specific descriptive words in your prompts for better AI results.</item>
+        <item>Golden hour provides the most flattering natural light.</item>
+        <item>Focus on the eyes in portrait photography.</item>
+        <item>Use leading lines to guide the viewer\'s attention.</item>
+        <item>Experiment with different angles and perspectives.</item>
+        <item>Learn to use negative space effectively.</item>
+        <item>Master manual camera settings for creative control.</item>
+        <item>Practice the art of storytelling through images.</item>
+        <item>Try AI prompt: Professional headshot, soft lighting, clean background.</item>
+        <item>Try AI prompt: Cinematic portrait, golden hour, bokeh background.</item>
+        <item>Try AI prompt: Street photography style, black and white, urban setting.</item>
+        <item>Try AI prompt: Fashion photography, dramatic lighting, studio setup.</item>
+    </string-array>
+</resources>

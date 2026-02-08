@@ -18,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 
 @Composable
@@ -74,13 +76,13 @@ fun AIPromptSectionHeader(
                 ) {
                     Column {
                         Text(
-                            text = "🤖 AI Prompts",
+                            text = stringResource(R.string.ai_prompts_with_emoji),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
-                            text = "Discover creative AI prompts",
+                            text = stringResource(R.string.discover_creative_ai_prompts),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.9f)
                         )
@@ -93,7 +95,7 @@ fun AIPromptSectionHeader(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "✨Live Stats",
+                            text = stringResource(R.string.live_stats_with_emoji),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -127,25 +129,25 @@ fun AIPromptSectionHeader(
                         StatItem(
                             icon = Icons.Default.AutoAwesome,
                             count = stats.total_prompts,
-                            label = "Prompts",
+                            label = stringResource(R.string.prompts),
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(
                             icon = Icons.Default.Favorite,
                             count = stats.total_likes,
-                            label = "Likes",
+                            label = stringResource(R.string.likes),
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(
                             icon = Icons.Default.CollectionsBookmark,
                             count = stats.total_favorites,
-                            label = "Favorites",
+                            label = stringResource(R.string.favorites),
                             modifier = Modifier.weight(1f)
                         )
                         StatItem(
                             icon = Icons.Default.ContentCopy,
                             count = stats.total_copies,
-                            label = "Copies",
+                            label = stringResource(R.string.copies),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -160,7 +162,7 @@ fun AIPromptSectionHeader(
                 } else {
                     // Error or empty state
                     Text(
-                        text = uiState.error ?: "No data available",
+                        text = uiState.error ?: stringResource(R.string.no_data_available),
                         color = Color.White.copy(alpha = 0.9f),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
@@ -194,7 +196,7 @@ fun AIPromptSectionHeader(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Favorites",
+                            text = stringResource(R.string.favorites),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp
                         )
@@ -212,7 +214,7 @@ fun AIPromptSectionHeader(
                         contentPadding = PaddingValues(vertical = 14.dp)
                     ) {
                         Text(
-                            text = "View All",
+                            text = stringResource(R.string.view_all_title),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )

@@ -1,14 +1,18 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.util.Log
+import androidx.annotation.StringRes
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -34,16 +38,16 @@ sealed class ExploreContent {
     }
 }
 
-enum class SortOption(val displayName: String) {
-    NEWEST("Newest"),
-    POPULAR("Popular"),
-    MOST_LIKED("Most Liked")
+enum class SortOption(@StringRes val labelRes: Int) {
+    NEWEST(R.string.newest),
+    POPULAR(R.string.popular),
+    MOST_LIKED(R.string.most_liked)
 }
 
-enum class ContentFilter(val displayName: String) {
-    ALL("All Content"),
-    AI_PROMPTS("AI Prompts"),
-    GUIDE_POSTS("Guide Posts")
+enum class ContentFilter(@StringRes val labelRes: Int) {
+    ALL(R.string.all_content),
+    AI_PROMPTS(R.string.ai_prompts),
+    GUIDE_POSTS(R.string.guide_posts)
 }
 
 data class ExploreUiState(
@@ -55,7 +59,7 @@ data class ExploreUiState(
     val aiPrompts: List<AIPrompt> = emptyList(),
     val guidePosts: List<GuidePost> = emptyList(),
     val categories: List<String> = emptyList(),
-    val selectedCategory: String = "All",
+    val selectedCategory: String = "",
     val selectedContentFilter: ContentFilter = ContentFilter.ALL,
     val selectedSortOption: SortOption = SortOption.NEWEST,
     val searchQuery: String = "",
@@ -87,11 +91,13 @@ enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
-    private val engagementRepository: EngagementRepository
+    private val engagementRepository: EngagementRepository,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExploreUiState())
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
 
+    private val allCategoryLabel: String by lazy { appContext.getString(R.string.all) }
     private val _searchQuery = MutableStateFlow("")
     private var loadContentJob: Job? = null
 
@@ -106,7 +112,12 @@ class ExploreViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true) }
 
         // default sort
-        _uiState.update { it.copy(selectedSortOption = SortOption.NEWEST) }
+        _uiState.update {
+            it.copy(
+                selectedSortOption = SortOption.NEWEST,
+                selectedCategory = allCategoryLabel
+            )
+        }
 
         // debounced search
         viewModelScope.launch {
@@ -163,7 +174,7 @@ class ExploreViewModel @Inject constructor(
                 currentPage = 1,
                 // only reset filters if requested; keep content to avoid flicker
                 searchQuery = if (resetFilters) "" else prev.searchQuery,
-                selectedCategory = if (resetFilters) "All" else prev.selectedCategory,
+                selectedCategory = if (resetFilters) allCategoryLabel else prev.selectedCategory,
                 selectedContentFilter = if (resetFilters) ContentFilter.ALL else prev.selectedContentFilter,
                 selectedSortOption = if (resetFilters) SortOption.NEWEST else prev.selectedSortOption,
                 hasMore = true
@@ -235,7 +246,7 @@ class ExploreViewModel @Inject constructor(
     private suspend fun loadAIPrompts(forceRefresh: Boolean, state: ExploreUiState): List<AIPrompt> {
         val now = System.currentTimeMillis()
         val limit = 20
-        val category = if (state.selectedCategory == "All") null else state.selectedCategory
+        val category = if (state.selectedCategory == allCategoryLabel) null else state.selectedCategory
         val search = state.searchQuery.ifBlank { null }
 
         // use cache only for first page and when not forcing refresh
@@ -315,7 +326,7 @@ class ExploreViewModel @Inject constructor(
                     prompt.fullPrompt?.contains(state.searchQuery, true) == true ||
                     prompt.shortPrompt?.contains(state.searchQuery, true) == true
 
-            val matchesCategory = state.selectedCategory == "All" ||
+            val matchesCategory = state.selectedCategory == allCategoryLabel ||
                     prompt.category.equals(state.selectedCategory, ignoreCase = true)
 
             matchesSearch && matchesCategory
@@ -328,7 +339,7 @@ class ExploreViewModel @Inject constructor(
                     post.title?.contains(state.searchQuery, true) == true ||
                     post.content?.contains(state.searchQuery, true) == true
 
-            val matchesCategory = state.selectedCategory == "All" ||
+            val matchesCategory = state.selectedCategory == allCategoryLabel ||
                     post.category.equals(state.selectedCategory, ignoreCase = true)
 
             matchesSearch && matchesCategory
@@ -373,15 +384,35 @@ class ExploreViewModel @Inject constructor(
                 homeRepository.getCategories().collect { result ->
                     result.fold(
                         onSuccess = { cats ->
-                            _uiState.update { it.copy(categories = listOf("All") + cats.map { c -> c.name }) }
+                            _uiState.update { it.copy(categories = listOf(allCategoryLabel) + cats.map { c -> c.name }) }
                         },
                         onFailure = {
-                            _uiState.update { it.copy(categories = listOf("All", "Portrait", "Nature", "Street", "Abstract")) }
+                            _uiState.update {
+                                it.copy(
+                                    categories = listOf(
+                                        allCategoryLabel,
+                                        appContext.getString(R.string.category_portrait),
+                                        appContext.getString(R.string.category_nature),
+                                        appContext.getString(R.string.category_street),
+                                        appContext.getString(R.string.category_abstract)
+                                    )
+                                )
+                            }
                         }
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(categories = listOf("All", "Portrait", "Nature", "Street", "Abstract")) }
+                _uiState.update {
+                    it.copy(
+                        categories = listOf(
+                            allCategoryLabel,
+                            appContext.getString(R.string.category_portrait),
+                            appContext.getString(R.string.category_nature),
+                            appContext.getString(R.string.category_street),
+                            appContext.getString(R.string.category_abstract)
+                        )
+                    )
+                }
             }
         }
     }

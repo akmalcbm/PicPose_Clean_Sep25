@@ -17,6 +17,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.home.ViewAllPromptsScreen
 import com.picpose.bestphotographyapp.presentation.screens.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -52,7 +53,11 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 activity.finish()
             } else {
                 lastBackPressTime = currentTime
-                Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.press_back_again_to_exit),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }

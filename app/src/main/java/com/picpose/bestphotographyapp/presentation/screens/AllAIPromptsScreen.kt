@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.constants.Constants
 import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
@@ -268,14 +270,18 @@ fun AllAIPromptsScreen(
                     val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
                     Text(
                         text = if (uiState.selectedCategory != "All")
-                            "${uiState.selectedCategory} Prompts (${displayPrompts.size})"
+                            context.getString(
+                                R.string.prompts_for_category_count,
+                                uiState.selectedCategory,
+                                displayPrompts.size
+                            )
                         else
-                            "All Prompts ($total)"
+                            context.getString(R.string.all_prompts_count, total)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -285,12 +291,12 @@ fun AllAIPromptsScreen(
                             forceRefresh = true
                         )
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(
                             if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
-                            contentDescription = "Search"
+                            contentDescription = stringResource(R.string.search)
                         )
                     }
                     IconButton(onClick = {
@@ -301,7 +307,7 @@ fun AllAIPromptsScreen(
                                 Icons.AutoMirrored.Filled.ViewList
                             else
                                 Icons.Default.GridView,
-                            contentDescription = "Change View"
+                            contentDescription = stringResource(R.string.change_view)
                         )
                     }
                 },
@@ -332,12 +338,12 @@ fun AllAIPromptsScreen(
                 OutlinedTextField(
                     value = uiState.searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
-                    placeholder = { Text("Search prompts...") },
+                    placeholder = { Text(stringResource(R.string.search_prompts_placeholder)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (uiState.searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear))
                             }
                         }
                     },
@@ -474,7 +480,7 @@ fun AllAIPromptsScreen(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Invalid ID",
+                                                    context.getString(R.string.invalid_id),
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -522,7 +528,7 @@ fun AllAIPromptsScreen(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Invalid ID",
+                                                    context.getString(R.string.invalid_id),
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -536,7 +542,7 @@ fun AllAIPromptsScreen(
                                             }
                                             Toast.makeText(
                                                 context,
-                                                "Prompt copied!",
+                                                context.getString(R.string.prompt_copied_toast),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         },
@@ -698,7 +704,7 @@ private fun GridPromptItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Visibility,
-                        contentDescription = "Views",
+                        contentDescription = stringResource(R.string.views),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
@@ -732,18 +738,18 @@ private fun EmptyPromptsState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("🔍", style = MaterialTheme.typography.displayLarge)
+        Text(stringResource(R.string.search_icon_emoji), style = MaterialTheme.typography.displayLarge)
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (searchQuery.isNotEmpty()) "No results found" else "No prompts available",
+            text = if (searchQuery.isNotEmpty()) stringResource(R.string.no_results_found) else stringResource(R.string.no_prompts_available),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         val message = when {
-            searchQuery.isNotEmpty() -> "Try different search terms or clear filters"
-            selectedCategory != "All" -> "No prompts found in this category"
-            else -> "Check back later for new prompts"
+            searchQuery.isNotEmpty() -> stringResource(R.string.try_different_search_terms_or_clear_filters)
+            selectedCategory != "All" -> stringResource(R.string.no_prompts_found_in_this_category)
+            else -> stringResource(R.string.check_back_later_for_new_prompts)
         }
         Text(
             text = message,
@@ -756,7 +762,7 @@ private fun EmptyPromptsState(
                 onClick = onClearFilters,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
             ) {
-                Text("Clear Filters")
+                Text(stringResource(R.string.clear_filters))
             }
         }
     }

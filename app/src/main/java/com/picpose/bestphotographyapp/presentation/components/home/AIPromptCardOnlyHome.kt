@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -226,7 +228,7 @@ fun AIPromptCardOnlyHome(
                                                     Icons.Default.Star
                                                 else
                                                     Icons.Default.StarBorder,
-                                            contentDescription = "Favorite",
+                                            contentDescription = stringResource(R.string.favorite),
                                             tint =
                                                 if (prompt.isFavouriteBookmarked)
                                                     Color(0xFFFFC107)
@@ -254,7 +256,7 @@ fun AIPromptCardOnlyHome(
                                         }
                                         Toast.makeText(
                                             context,
-                                            "Prompt copied to clipboard!",
+                                            context.getString(R.string.prompt_copied_to_clipboard),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         onCopy()
@@ -267,7 +269,7 @@ fun AIPromptCardOnlyHome(
                                 ) {
                                     Icon(
                                         Icons.Default.ContentCopy,
-                                        contentDescription = "Copy",
+                                        contentDescription = stringResource(R.string.copy),
                                         modifier = Modifier.size(18.dp),
                                         tint = Color(0xFF10B981)
                                     )
@@ -321,7 +323,7 @@ fun AIPromptCardOnlyHome(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Popular",
+                                    text = stringResource(R.string.popular),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Medium
@@ -384,7 +386,7 @@ fun AIPromptCardOnlyHome(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                text = "Full Prompt:",
+                                text = stringResource(R.string.full_prompt_label),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF374151)
@@ -423,7 +425,7 @@ fun AIPromptCardOnlyHome(
                                     }
                                     Toast.makeText(
                                         context,
-                                        "Full prompt copied!",
+                                        context.getString(R.string.full_prompt_copied),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     onCopy()
@@ -445,7 +447,7 @@ fun AIPromptCardOnlyHome(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Copy Full Prompt",
+                                    text = stringResource(R.string.copy_full_prompt),
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -473,8 +475,8 @@ fun AIPromptCardOnlyHome(
                                     if (prompt.isLiked)
                                         Icons.Default.ThumbUp
                                     else
-                                        Icons.Default.ThumbUpOffAlt,
-                                contentDescription = "Like",
+                                    Icons.Default.ThumbUpOffAlt,
+                                contentDescription = stringResource(R.string.like),
                                 tint =
                                     if (prompt.isLiked)
                                         MaterialTheme.colorScheme.primary
@@ -484,7 +486,7 @@ fun AIPromptCardOnlyHome(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${prompt.likes} likes",
+                                text = stringResource(R.string.likes_count, prompt.likes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B),
                                 fontWeight = FontWeight.Medium
@@ -502,7 +504,7 @@ fun AIPromptCardOnlyHome(
                             )
                         ) {
                             Text(
-                                text = if (isExpanded) "Show Less" else "Show More",
+                                text = if (isExpanded) stringResource(R.string.show_less) else stringResource(R.string.show_more),
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 14.sp
                             )

@@ -22,6 +22,7 @@ import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
+import com.picpose.bestphotographyapp.R
 
 /**
  * NativeAdSection - Composable for displaying native ads
@@ -167,7 +168,7 @@ private fun bindNativeAdToView(adView: NativeAdView, ad: NativeAd) {
     
     // Set call to action button (hide if empty)
     (adView.callToActionView as? Button)?.apply {
-        text = ad.callToAction ?: "Learn More"
+        text = ad.callToAction ?: adView.context.getString(R.string.learn_more)
         visibility = if (ad.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
     }
     

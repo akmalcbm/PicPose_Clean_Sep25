@@ -13,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun QuickActionsCard(
@@ -52,12 +54,12 @@ fun QuickActionsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "⚡",
+                    text = stringResource(R.string.lightning_emoji),
                     fontSize = 20.sp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Quick Actions",
+                    text = stringResource(R.string.quick_actions),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     // Use theme onSurface color instead of hardcoded dark color
@@ -73,8 +75,8 @@ fun QuickActionsCard(
             ) {
                 ActionButton(
                     icon = Icons.Default.AutoAwesome,
-                    title = "Browse Prompts",
-                    subtitle = "Explore All AI prompts",
+                    title = stringResource(R.string.browse_prompts_button),
+                    subtitle = stringResource(R.string.explore_all_ai_prompts),
                     onClick = onNavigateToAllPrompts,
                     modifier = Modifier.weight(1f),
                     // Use primaryContainer / primary so colors adapt to theme
@@ -84,8 +86,8 @@ fun QuickActionsCard(
 
                 ActionButton(
                     icon = Icons.Default.BookmarkAdded,
-                    title = "My Favorites",
-                    subtitle = "Saved prompts",
+                    title = stringResource(R.string.my_favorites),
+                    subtitle = stringResource(R.string.saved_prompts),
                     onClick = onNavigateToFavorites,
                     modifier = Modifier.weight(1f),
                     // Use secondaryContainer / secondary for second button
@@ -157,4 +159,3 @@ private fun ActionButton(
         }
     }
 }
-

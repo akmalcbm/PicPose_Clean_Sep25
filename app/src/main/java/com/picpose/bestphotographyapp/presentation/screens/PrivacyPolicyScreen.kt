@@ -14,10 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsUiState
 
@@ -40,10 +42,10 @@ fun PrivacyPolicyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Privacy Policy", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.privacy_policy_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,7 +77,7 @@ fun PrivacyPolicyScreen(
                     ) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Loading Privacy Policy...", color = colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.loading_privacy_policy), color = colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -103,12 +105,12 @@ fun PrivacyPolicyScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "No Privacy Policy Available",
+                                text = stringResource(R.string.no_privacy_policy_available),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Please check back later.",
+                                text = stringResource(R.string.please_check_back_later),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -126,7 +128,7 @@ fun PrivacyPolicyScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Failed to load Privacy Policy",
+                            text = stringResource(R.string.failed_to_load_privacy_policy),
                             style = MaterialTheme.typography.titleMedium,
                             color = colorScheme.error
                         )
@@ -149,7 +151,7 @@ fun PrivacyPolicyScreen(
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "Showing cached version",
+                                        text = stringResource(R.string.showing_cached_version),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(bottom = 16.dp)
@@ -169,7 +171,7 @@ fun PrivacyPolicyScreen(
                             onClick = { appSettingsViewModel.loadAppSettings(forceRefresh = true) },
                             colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
                         ) {
-                            Text("Retry", color = colorScheme.onPrimary)
+                            Text(stringResource(R.string.retry), color = colorScheme.onPrimary)
                         }
                     }
                 }

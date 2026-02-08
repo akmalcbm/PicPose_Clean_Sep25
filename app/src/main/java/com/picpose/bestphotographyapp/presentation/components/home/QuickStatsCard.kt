@@ -11,8 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 
 @Composable
@@ -33,7 +35,7 @@ fun QuickStatsCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "📊 Quick Stats",
+                text = stringResource(R.string.quick_stats_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -61,13 +63,13 @@ fun QuickStatsCard(
                             StatItem(
                                 icon = Icons.Default.AutoAwesome,
                                 value = stats.total_prompts.toString(),
-                                label = "AI Prompts",
+                                label = stringResource(R.string.ai_prompts),
                                 color = Color(0xFFF44336)
                             )
                             StatItem(
                                 icon = Icons.Default.Favorite,
                                 value = stats.total_likes.toString(),
-                                label = "Likes",
+                                label = stringResource(R.string.likes),
                                 color = Color(0xFFE91E63)
                             )
                         }
@@ -82,13 +84,13 @@ fun QuickStatsCard(
                             StatItem(
                                 icon = Icons.Default.CollectionsBookmark,
                                 value = stats.total_favorites.toString(),
-                                label = "Favorites",
+                                label = stringResource(R.string.favorites),
                                 color = Color(0xFF673AB7)
                             )
                             StatItem(
                                 icon = Icons.Default.ContentCopy,
                                 value = stats.total_copies.toString(),
-                                label = "Copies",
+                                label = stringResource(R.string.copies),
                                 color = Color(0xFF4CAF50)
                             )
                         }
@@ -96,14 +98,14 @@ fun QuickStatsCard(
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Last updated just now",
+                        text = stringResource(R.string.last_updated_just_now),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.align(Alignment.End)
                     )
                 } else {
                     Text(
-                        text = uiState.error ?: "No data available",
+                        text = uiState.error ?: stringResource(R.string.no_data_available),
                         color = MaterialTheme.colorScheme.error
                     )
                 }

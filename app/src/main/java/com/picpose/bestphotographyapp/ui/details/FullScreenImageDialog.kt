@@ -28,10 +28,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.SubcomposeAsyncImage
+import com.picpose.bestphotographyapp.R
 
 /**
  * FullScreenImageDialog - Zoomable full-screen image viewer
@@ -98,7 +100,7 @@ fun FullScreenImageDialog(
             ) {
                 SubcomposeAsyncImage(
                     model = imageUrl,
-                    contentDescription = "Full-screen image",
+                    contentDescription = stringResource(R.string.full_screen_image),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
@@ -129,7 +131,7 @@ fun FullScreenImageDialog(
                         ) {
                             Icon(
                                 Icons.Default.BrokenImage,
-                                contentDescription = "Image load error",
+                                contentDescription = stringResource(R.string.image_load_error),
                                 tint = Color.White,
                                 modifier = Modifier.size(96.dp)
                             )
@@ -148,7 +150,7 @@ fun FullScreenImageDialog(
             ) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.close),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )

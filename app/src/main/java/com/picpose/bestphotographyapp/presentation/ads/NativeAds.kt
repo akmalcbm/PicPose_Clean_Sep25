@@ -30,6 +30,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
+import com.picpose.bestphotographyapp.R
 
 /*-----------------------------------------------------------
    ENUM FOR AD STYLES
@@ -178,7 +179,7 @@ fun LargeNativeAdCard(
 
                 /** ⭐ Sponsored badge (TOP-LEFT) */
                 val badge = TextView(context).apply {
-                    text = "Sponsored"
+                    text = context.getString(R.string.sponsored)
                     textSize = 11f
                     setPadding(10, -12, 10, 4)
                     backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
@@ -330,7 +331,7 @@ fun LargeNativeAdCardForGrid(
 
                 /** ⭐ Sponsored badge (TOP-LEFT) */
                 val badge = TextView(context).apply {
-                    text = "Sponsored"
+                    text = context.getString(R.string.sponsored)
                     textSize = 11f
                     setPadding(10, -12, 10, 4)
                     backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
@@ -500,7 +501,7 @@ fun InlineNativeAdCard(
 
                 /** Sponsored badge */
                 val badge = TextView(context).apply {
-                    text = "Sponsored"
+                    text = context.getString(R.string.sponsored)
                     textSize = 11f
                     setPadding(10, -12, 10, 4)
                     backgroundTintList = ColorStateList.valueOf(sponsoredBackground)

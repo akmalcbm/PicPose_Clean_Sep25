@@ -7,6 +7,7 @@ import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.facebook.CallbackManager
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.User
@@ -16,6 +17,7 @@ import com.picpose.bestphotographyapp.data.remote.auth.FacebookAuthClient
 import com.picpose.bestphotographyapp.data.remote.auth.GoogleAuthUiClient
 import com.picpose.bestphotographyapp.data.remote.auth.TwitterAuthClient
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,7 +36,8 @@ sealed class AuthState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     // ----------------------------------------
@@ -71,7 +74,7 @@ class AuthViewModel @Inject constructor(
         }
 
         if (googleData == null) {
-            onResult(Result.failure(Exception("Google credential missing")))
+            onResult(Result.failure(Exception(appContext.getString(R.string.google_credential_missing))))
             return
         }
 
@@ -91,7 +94,8 @@ class AuthViewModel @Inject constructor(
                 saveAndEmitSuccess(user)
                 onResult(Result.success(user))
             } else {
-                val msg = result.exceptionOrNull()?.message ?: "Google login failed"
+                val msg = result.exceptionOrNull()?.message
+                    ?: appContext.getString(R.string.google_login_failed)
                 _authState.value = AuthState.Error(msg)
                 onResult(Result.failure(Exception(msg)))
             }
@@ -113,7 +117,7 @@ class AuthViewModel @Inject constructor(
                 if (accessToken != null) {
                     signInWithFacebook(accessToken.token)
                 } else {
-                    _authState.value = AuthState.Error("Facebook returned null token")
+                    _authState.value = AuthState.Error(appContext.getString(R.string.facebook_null_token))
                 }
             },
             onError = { error ->
@@ -137,7 +141,7 @@ class AuthViewModel @Inject constructor(
                 saveAndEmitSuccess(result.getOrNull()!!)
             } else {
                 _authState.value =
-                    AuthState.Error(result.exceptionOrNull()?.message ?: "Facebook login failed")
+                    AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.facebook_login_failed))
             }
         }
     }
@@ -169,16 +173,16 @@ class AuthViewModel @Inject constructor(
         val state = uri.getQueryParameter("state")
 
         if (code.isNullOrEmpty()) {
-            _authState.value = AuthState.Error("Twitter code missing")
+            _authState.value = AuthState.Error(appContext.getString(R.string.twitter_code_missing))
             return
         }
         if (state != twitterState) {
-            _authState.value = AuthState.Error("Twitter state mismatch")
+            _authState.value = AuthState.Error(appContext.getString(R.string.twitter_state_mismatch))
             return
         }
 
         val verifier = twitterVerifier ?: run {
-            _authState.value = AuthState.Error("Missing PKCE verifier")
+            _authState.value = AuthState.Error(appContext.getString(R.string.missing_pkce_verifier))
             return
         }
 
@@ -189,7 +193,7 @@ class AuthViewModel @Inject constructor(
             if (tokenResult.isSuccess) {
                 val token = tokenResult.getOrNull()?.access_token
                 if (token.isNullOrEmpty()) {
-                    _authState.value = AuthState.Error("Twitter access token invalid")
+                    _authState.value = AuthState.Error(appContext.getString(R.string.twitter_access_token_invalid))
                     return@launch
                 }
 
@@ -205,11 +209,11 @@ class AuthViewModel @Inject constructor(
                     saveAndEmitSuccess(loginResult.getOrNull()!!)
                 } else {
                     _authState.value =
-                        AuthState.Error(loginResult.exceptionOrNull()?.message ?: "Twitter login failed")
+                        AuthState.Error(loginResult.exceptionOrNull()?.message ?: appContext.getString(R.string.twitter_login_failed))
                 }
             } else {
                 _authState.value =
-                    AuthState.Error(tokenResult.exceptionOrNull()?.message ?: "Twitter token exchange failed")
+                    AuthState.Error(tokenResult.exceptionOrNull()?.message ?: appContext.getString(R.string.twitter_token_exchange_failed))
             }
         }
     }
@@ -253,7 +257,7 @@ class AuthViewModel @Inject constructor(
                 saveAndEmitSuccess(result.getOrNull()!!)
             } else {
                 _authState.value =
-                    AuthState.Error(result.exceptionOrNull()?.message ?: "Login failed")
+                    AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.login_failed))
             }
         }
     }
@@ -267,7 +271,7 @@ class AuthViewModel @Inject constructor(
                 saveAndEmitSuccess(result.getOrNull()!!)
             } else {
                 _authState.value =
-                    AuthState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
+                    AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.registration_failed))
             }
         }
     }
@@ -308,7 +312,7 @@ class AuthViewModel @Inject constructor(
 
             val userId = userSessionManager.userId.firstOrNull()
             if (userId == null) {
-                _authState.value = AuthState.Error("Not logged in")
+                _authState.value = AuthState.Error(appContext.getString(R.string.not_logged_in))
                 return@launch
             }
 

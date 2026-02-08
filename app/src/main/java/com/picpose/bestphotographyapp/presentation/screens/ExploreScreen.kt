@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +63,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.constants.Constants
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
@@ -119,6 +121,7 @@ fun ExploreScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val allCategoryLabel = stringResource(R.string.all)
 
     // we use a local flag for manual refresh button animation control
     var manualRefreshInFlight by remember { mutableStateOf(false) }
@@ -209,8 +212,8 @@ fun ExploreScreen(
                 manualRefreshInFlight = false
                 listState.animateScrollToItem(0)
                 snackbarHostState.showSnackbar(
-                    if (uiState.content.isNotEmpty()) "All filters and content refreshed"
-                    else "No new content found"
+                    if (uiState.content.isNotEmpty()) context.getString(R.string.all_filters_and_content_refreshed)
+                    else context.getString(R.string.no_new_content_found)
                 )
             }
         }
@@ -234,7 +237,7 @@ fun ExploreScreen(
                         selectedCategory = uiState.selectedCategory,
                         onClearFilters = {
                             exploreViewModel.updateSearchQuery("")
-                            exploreViewModel.updateCategory("All")
+                            exploreViewModel.updateCategory(allCategoryLabel)
                             exploreViewModel.updateContentFilter(ContentFilter.ALL)
                             exploreViewModel.refresh(resetFilters = true)
                         },
@@ -370,9 +373,9 @@ fun NoInternetSection(onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Icon(imageVector = Icons.Default.WifiOff, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp))
-            Text(text = "No Internet Connection", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(text = "Connect to Wi-Fi or mobile data to continue.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = onRetry) { Text("Retry") }
+            Text(text = stringResource(R.string.no_internet_connection), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.connect_wifi_mobile_data), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
     }
 }
@@ -470,31 +473,31 @@ private fun ExploreTopBar(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search content...") },
+                        placeholder = { Text(stringResource(R.string.search_content_placeholder)) },
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = {
                             IconButton(onClick = { isSearchExpanded = false; onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close search")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_search))
                             }
                         },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    Text("Explore", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explore_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
             }
         },
         actions = {
             if (!isSearchExpanded) {
                 IconButton(onClick = { isSearchExpanded = true }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
                 }
 
                 IconButton(onClick = { onRefresh() }) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
+                        contentDescription = stringResource(R.string.refresh),
                         modifier = Modifier.rotate(if (isManualRefreshLoading) spin else 0f)
                     )
                 }
@@ -523,6 +526,7 @@ private fun EmptyStateSection(
     onClearFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val allCategoryLabel = stringResource(R.string.all)
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -555,16 +559,16 @@ private fun EmptyStateSection(
             }
 
             Text(
-                text = if (searchQuery.isNotEmpty()) "No results found" else "No content available",
+                text = if (searchQuery.isNotEmpty()) stringResource(R.string.no_results_found) else stringResource(R.string.no_content_available),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
             val message = when {
-                searchQuery.isNotEmpty() -> "Try different search terms or clear filters"
-                selectedCategory != "All" -> "No content found in this category"
-                else -> "Check back later for new content"
+                searchQuery.isNotEmpty() -> stringResource(R.string.try_different_search_terms_or_clear_filters)
+                selectedCategory != allCategoryLabel -> stringResource(R.string.no_content_found_in_this_category)
+                else -> stringResource(R.string.check_back_later_for_new_content)
             }
 
             Text(
@@ -575,7 +579,7 @@ private fun EmptyStateSection(
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (searchQuery.isNotEmpty() || selectedCategory != "All") {
+            if (searchQuery.isNotEmpty() || selectedCategory != allCategoryLabel) {
                 Button(
                     onClick = onClearFilters,
                     modifier = Modifier.padding(top = 8.dp)
@@ -586,7 +590,7 @@ private fun EmptyStateSection(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Clear Filters")
+                    Text(stringResource(R.string.clear_filters))
                 }
             }
         }
@@ -609,7 +613,7 @@ private fun LoadingSection() {
                 strokeWidth = 4.dp
             )
             Text(
-                text = "Loading content...",
+                text = stringResource(R.string.loading_content),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -730,7 +734,7 @@ private fun FrostedStickyFilters(
                     onClick = { onContentFilterSelected(filter) },
                     label = {
                         Text(
-                            filter.displayName,
+                            stringResource(filter.labelRes),
                             style = MaterialTheme.typography.labelSmall
                         )
                     },
@@ -753,7 +757,7 @@ private fun FrostedStickyFilters(
                     onClick = { onSortOptionSelected(option) },
                     label = {
                         Text(
-                            option.displayName,
+                            stringResource(option.labelRes),
                             style = MaterialTheme.typography.labelSmall
                         )
                     },
@@ -791,7 +795,7 @@ private fun FrostedStickyFilters(
                 item {
                     AssistChip(
                         onClick = { showMore = !showMore },
-                        label = { Text(if (showMore) "Less" else "More") },
+                        label = { Text(if (showMore) stringResource(R.string.less) else stringResource(R.string.more)) },
                         leadingIcon = {
                             Icon(
                                 if (showMore) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
@@ -827,7 +831,11 @@ private fun FilterButtonWithIndicator(
         ) {
             Icon(
                 imageVector = Icons.Default.FilterList,
-                contentDescription = if (isFilterExpanded) "Hide filters" else "Show filters"
+                contentDescription = if (isFilterExpanded) {
+                    stringResource(R.string.hide_filters)
+                } else {
+                    stringResource(R.string.show_filters)
+                }
             )
         }
 

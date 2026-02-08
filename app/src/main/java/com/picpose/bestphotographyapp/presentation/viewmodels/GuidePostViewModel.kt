@@ -1,11 +1,14 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +26,8 @@ data class GuidePostUiState(
 
 @HiltViewModel
 class GuidePostViewModel @Inject constructor(
-    private val repository: HomeRepository
+    private val repository: HomeRepository,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GuidePostUiState())
@@ -56,7 +60,7 @@ class GuidePostViewModel @Inject constructor(
                             Log.e(TAG, "loadGuidePosts: failed", exception)
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                error = exception.message ?: "Failed to load guide posts"
+                                error = exception.message ?: appContext.getString(R.string.failed_to_load_guide_posts)
                             )
                         }
                     )
@@ -65,7 +69,7 @@ class GuidePostViewModel @Inject constructor(
                 Log.e(TAG, "loadGuidePosts: unexpected error", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Unexpected error occurred"
+                    error = e.message ?: appContext.getString(R.string.unexpected_error_occurred)
                 )
             }
         }

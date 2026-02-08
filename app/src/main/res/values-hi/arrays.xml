@@ -1,0 +1,30 @@
+<resources>
+    <string-array name="ai_bio_suggestions">
+        <item>क्रिएटिव पोर्ट्रेट और सिनेमैटिक लाइटिंग पर काम करने वाला फोटोग्राफर।</item>
+        <item>बेहतर इमेज जनरेशन के लिए AI प्रॉम्प्ट आइडिया साझा करता हूँ।</item>
+        <item>स्ट्रीट, नेचर और स्टूडियो फोटोग्राफी से प्रेरित विज़ुअल स्टोरीटेलर।</item>
+        <item>हर दिन कम्पोज़िशन, लाइट और रंग के साथ प्रयोग करता हूँ।</item>
+        <item>क्रिएटर्स और फोटोग्राफी प्रेमियों के लिए उपयोगी प्रॉम्प्ट बनाता हूँ।</item>
+    </string-array>
+
+    <string-array name="profile_fallback_bios">
+        <item>क्रिएटिव तस्वीरें पसंद करने वाला फोटोग्राफी उत्साही।</item>
+        <item>हर दिन AI प्रॉम्प्ट और कैमरा तकनीकें सीख रहा हूँ।</item>
+        <item>लाइट और कम्पोज़िशन से आइडिया को विज़ुअल में बदलता हूँ।</item>
+    </string-array>
+
+    <string-array name="photography_tips_fallback">
+        <item>बेहतर AI परिणामों के लिए प्रॉम्प्ट में स्पष्ट और सटीक शब्द लिखें।</item>
+        <item>गोल्डन ऑवर में प्राकृतिक रोशनी सबसे आकर्षक होती है।</item>
+        <item>पोर्ट्रेट में आंखों पर फोकस रखें।</item>
+        <item>दर्शक की नज़र गाइड करने के लिए लीडिंग लाइन्स का उपयोग करें।</item>
+        <item>अलग-अलग एंगल और परस्पेक्टिव के साथ प्रयोग करें।</item>
+        <item>नेगेटिव स्पेस का सही इस्तेमाल करना सीखें।</item>
+        <item>क्रिएटिव कंट्रोल के लिए मैन्युअल कैमरा सेटिंग्स सीखें।</item>
+        <item>तस्वीरों के जरिए कहानी कहने की कला का अभ्यास करें।</item>
+        <item>AI प्रॉम्प्ट आज़माएं: Professional headshot, soft lighting, clean background.</item>
+        <item>AI प्रॉम्प्ट आज़माएं: Cinematic portrait, golden hour, bokeh background.</item>
+        <item>AI प्रॉम्प्ट आज़माएं: Street photography style, black and white, urban setting.</item>
+        <item>AI प्रॉम्प्ट आज़माएं: Fashion photography, dramatic lighting, studio setup.</item>
+    </string-array>
+</resources>

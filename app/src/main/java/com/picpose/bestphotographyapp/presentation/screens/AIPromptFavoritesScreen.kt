@@ -18,10 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
@@ -63,7 +66,11 @@ fun AIPromptFavoritesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Favorites (${favoritePrompts.size})",
+                        text = pluralStringResource(
+                            R.plurals.favorites_count,
+                            favoritePrompts.size,
+                            favoritePrompts.size
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 },
@@ -71,7 +78,7 @@ fun AIPromptFavoritesScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -87,12 +94,12 @@ fun AIPromptFavoritesScreen(
                                 }
                                 Toast.makeText(
                                     context,
-                                    "All favorites copied!",
+                                    context.getString(R.string.all_favorites_copied),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = "Share All")
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_all))
                         }
                     }
                 },
@@ -173,7 +180,7 @@ fun AIPromptFavoritesScreen(
                                     }
                                     Toast.makeText(
                                         context,
-                                        "Prompt copied!",
+                                        context.getString(R.string.prompt_copied_toast),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 },
@@ -207,12 +214,12 @@ private fun EmptyFavoritesState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("💔", style = MaterialTheme.typography.displayLarge)
+        Text(stringResource(R.string.empty_favorites_icon), style = MaterialTheme.typography.displayLarge)
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "No Favorite Prompts",
+            text = stringResource(R.string.no_favorite_prompts_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -221,7 +228,7 @@ private fun EmptyFavoritesState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Start adding your favorite prompts to see them here!",
+            text = stringResource(R.string.no_favorite_prompts_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -238,7 +245,7 @@ private fun EmptyFavoritesState(
         ) {
             Icon(Icons.Default.Explore, contentDescription = null)
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Browse Prompts")
+            Text(stringResource(R.string.browse_prompts_button))
         }
     }
 }

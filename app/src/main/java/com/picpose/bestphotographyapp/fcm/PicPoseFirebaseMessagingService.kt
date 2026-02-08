@@ -136,10 +136,10 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "PicPose Notifications",
+                getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "PicPose app notifications"
+                description = getString(R.string.notification_channel_description)
             }
 
             val manager =

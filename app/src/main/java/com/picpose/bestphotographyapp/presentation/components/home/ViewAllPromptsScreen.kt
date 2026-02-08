@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Post
@@ -39,6 +41,12 @@ fun ViewAllPromptsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val categoryDisplayName = when (categoryType) {
+        "Trending" -> stringResource(R.string.trending)
+        "Featured" -> stringResource(R.string.featured)
+        "Popular" -> stringResource(R.string.popular)
+        else -> categoryType
+    }
 
     // 🚀 Load category-specific posts once
     LaunchedEffect(categoryType) {
@@ -51,10 +59,10 @@ fun ViewAllPromptsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("View All $categoryType Posts") },
+                title = { Text(stringResource(R.string.view_all_posts_title, categoryDisplayName)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -101,7 +109,7 @@ fun ViewAllPromptsScreen(
                         localEngagement = local, // ✅ REQUIRED PARAMETER
                         onClick = { onPromptClick(post.id) },
                         onCopy = {
-                            Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.prompt_copied_toast), Toast.LENGTH_SHORT).show()
                         },
 
                         // 👍 LIKE
@@ -151,6 +159,6 @@ fun NativeAdPlaceholder() {
             .background(Color.LightGray.copy(alpha = 0.3f)),
         contentAlignment = Alignment.Center
     ) {
-        Text("Ad Placeholder", color = Color.Gray)
+        Text(stringResource(R.string.ad_placeholder), color = Color.Gray)
     }
 }

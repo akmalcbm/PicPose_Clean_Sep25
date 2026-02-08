@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.picpose.bestphotographyapp.R
@@ -37,7 +38,7 @@ fun SplashScreen(
     ) {
         Image(
             painter = painterResource(id = R.drawable.ic_logo_light),
-            contentDescription = "App Logo"
+            contentDescription = stringResource(R.string.app_logo)
         )
     }
 

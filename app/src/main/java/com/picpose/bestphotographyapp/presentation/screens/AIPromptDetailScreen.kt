@@ -5,7 +5,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.core.net.toUri
@@ -106,6 +105,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -126,6 +126,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
@@ -305,10 +306,10 @@ fun AIPromptDetailScreen(
     EdgeToEdgeScaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI Prompt Details") },
+                title = { Text(stringResource(R.string.ai_prompt_details_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -357,11 +358,11 @@ fun AIPromptDetailScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Prompt not found",
+                            text = stringResource(R.string.prompt_not_found),
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onBack) { Text("Go Back") }
+                        Button(onClick = onBack) { Text(stringResource(R.string.go_back)) }
                     }
                 }
             }
@@ -416,7 +417,7 @@ fun AIPromptDetailScreen(
                                         is AsyncImagePainter.State.Error -> {
                                             Icon(
                                                 Icons.Default.BrokenImage,
-                                                contentDescription = "Image load error",
+                                                contentDescription = stringResource(R.string.image_load_error),
                                                 tint = MaterialTheme.colorScheme.error,
                                                 modifier = Modifier.size(64.dp)
                                             )
@@ -534,7 +535,7 @@ fun AIPromptDetailScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Full AI Prompt",
+                                            text = stringResource(R.string.full_ai_prompt),
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -581,7 +582,7 @@ fun AIPromptDetailScreen(
 
                                                     Toast.makeText(
                                                         ctx,
-                                                        "Prompt copied. Opening Gemini…",
+                                                        ctx.getString(R.string.prompt_copied_opening_gemini),
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
@@ -598,20 +599,20 @@ fun AIPromptDetailScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.AutoAwesome,
-                                                contentDescription = "Copy Prompts & Open in Gemini",
+                                                contentDescription = stringResource(R.string.copy_prompts_open_gemini),
                                                 modifier = Modifier.size(22.dp),
                                                 tint = MaterialTheme.colorScheme.onPrimary
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Column {
                                                 Text(
-                                                    text = "Copy Prompts & Open in Gemini",
+                                                    text = stringResource(R.string.copy_prompts_open_gemini),
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimary
                                                 )
                                                 Text(
-                                                    text = "Best for generating results",
+                                                    text = stringResource(R.string.best_for_generating_results),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                                                 )
@@ -651,7 +652,7 @@ fun AIPromptDetailScreen(
 
                                                     Toast.makeText(
                                                         ctx,
-                                                        "Prompt copied to clipboard",
+                                                        ctx.getString(R.string.prompt_copied_to_clipboard),
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
@@ -680,7 +681,7 @@ fun AIPromptDetailScreen(
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = "Copy Prompt",
+                                                text = stringResource(R.string.copy_prompt),
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -699,12 +700,11 @@ fun AIPromptDetailScreen(
                                         showGeminiDialog = false
                                         dontAskAgain = false
                                     },
-                                    title = { Text("Continue in Gemini") },
+                                    title = { Text(stringResource(R.string.continue_in_gemini)) },
                                     text = {
                                         Column {
                                             Text(
-                                                "Your prompt will be copied and opened in Gemini.\n\n" +
-                                                        "If the app is installed, tap “Try in app”."
+                                                stringResource(R.string.gemini_continue_message)
                                             )
 
                                             Spacer(modifier = Modifier.height(12.dp))
@@ -720,7 +720,7 @@ fun AIPromptDetailScreen(
                                                     onCheckedChange = { dontAskAgain = it }
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Don’t ask again")
+                                                Text(stringResource(R.string.dont_ask_again))
                                             }
                                         }
                                     },
@@ -739,7 +739,7 @@ fun AIPromptDetailScreen(
 
                                             Toast.makeText(
                                                 ctx,
-                                                "Prompt copied. Opening Gemini…",
+                                                ctx.getString(R.string.prompt_copied_opening_gemini),
                                                 Toast.LENGTH_SHORT
                                             ).show()
 
@@ -749,7 +749,7 @@ fun AIPromptDetailScreen(
 
                                             dontAskAgain = false
                                         }) {
-                                            Text("Continue")
+                                            Text(stringResource(R.string.continue_label))
                                         }
                                     },
                                     dismissButton = {
@@ -757,7 +757,7 @@ fun AIPromptDetailScreen(
                                             showGeminiDialog = false
                                             dontAskAgain = false
                                         }) {
-                                            Text("Cancel")
+                                            Text(stringResource(R.string.cancel))
                                         }
                                     }
                                 )
@@ -784,7 +784,7 @@ fun AIPromptDetailScreen(
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         Text(
-                                            text = "🏷️ Tags",
+                                            text = stringResource(R.string.tags_with_emoji),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -865,7 +865,11 @@ fun AIPromptDetailScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = if (expanded) "Show Less" else "Show More",
+                                                    text = if (expanded) {
+                                                        stringResource(R.string.show_less)
+                                                    } else {
+                                                        stringResource(R.string.show_more)
+                                                    },
                                                     color = MaterialTheme.colorScheme.primary,
                                                     style = MaterialTheme.typography.labelMedium,
                                                     fontWeight = FontWeight.Medium
@@ -882,7 +886,7 @@ fun AIPromptDetailScreen(
                             item {
                                 Column(modifier = Modifier.padding(top = 8.dp)) {
                                     Text(
-                                        text = "Similar Prompts",
+                                        text = stringResource(R.string.similar_prompts),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -949,7 +953,7 @@ fun AIPromptDetailScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "Loading prompt…",
+                                    text = stringResource(R.string.loading_prompt),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -1297,7 +1301,7 @@ fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
             ) {
                 SubcomposeAsyncImage(
                     model = imageUrl,
-                    contentDescription = "Full-screen image",
+                    contentDescription = stringResource(R.string.full_screen_image),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
@@ -1320,7 +1324,7 @@ fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
                     error = {
                         Icon(
                             Icons.Default.BrokenImage,
-                            contentDescription = "Image load error",
+                            contentDescription = stringResource(R.string.image_load_error),
                             tint = Color.White,
                             modifier = Modifier.size(96.dp)
                         )
@@ -1337,7 +1341,7 @@ fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
             ) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.close),
                     tint = Color.White
                 )
             }
@@ -1483,7 +1487,7 @@ fun openGemini(context: Context, promptText: String) {
         val clipboard =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(
-            ClipData.newPlainText("AI Prompt", promptText)
+            ClipData.newPlainText(context.getString(R.string.ai_prompt_label), promptText)
         )
 
         // 2️⃣ Open Google App (Gemini lives here)
@@ -1575,7 +1579,7 @@ val geminiPackage = "com.google.android.apps.bard"
 val clipboard =
     context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 clipboard.setPrimaryClip(
-    ClipData.newPlainText("AI Prompt", promptText)
+    ClipData.newPlainText(context.getString(R.string.ai_prompt_label), promptText)
 )
 
 val pm = context.packageManager

@@ -190,7 +190,7 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             HomeTopBar(
-                titleText = "PicPose",
+                titleText = stringResource(R.string.app_name),
                 initialSearch = "",
                 userImage = currentUser?.displayProfilePicture,
                 onQueryChanged = { query -> viewModel.onSearchChanged(query) },
@@ -266,8 +266,8 @@ fun HomeScreen(
                     if (uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty()) {
                         item {
                             SectionHeader(
-                                title = "Community Highlights",
-                                subtitle = "Explore trending & featured posts",
+                                title = stringResource(R.string.community_highlights_title),
+                                subtitle = stringResource(R.string.community_highlights_subtitle),
                                 icon = Icons.Default.Star,
                                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
                             )
@@ -346,8 +346,8 @@ fun HomeScreen(
                     if (uiState.categories.isNotEmpty()) {
                         item {
                             SectionHeader(
-                                title = "Categories",
-                                subtitle = "Explore different styles",
+                                title = stringResource(R.string.categories_title),
+                                subtitle = stringResource(R.string.categories_subtitle),
                                 icon = Icons.Default.Category,
                                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp)
                             )
@@ -365,8 +365,8 @@ fun HomeScreen(
                     if (uiState.recentPosts.isNotEmpty()) {
                         item {
                             SectionHeader(
-                                title = "Recent Posts",
-                                subtitle = "Latest from the community",
+                                title = stringResource(R.string.recent_posts_title),
+                                subtitle = stringResource(R.string.recent_posts_subtitle),
                                 icon = Icons.Default.Schedule,
                                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
                             )
@@ -428,8 +428,8 @@ fun HomeScreen(
                     if (uiState.guidePosts.isNotEmpty()) {
                         item {
                             SectionHeader(
-                                title = "Photography Guides",
-                                subtitle = "Learn from experts",
+                                title = stringResource(R.string.photography_guides_title),
+                                subtitle = stringResource(R.string.photography_guides_subtitle),
                                 icon = Icons.Default.Book,
                                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp)
                             )

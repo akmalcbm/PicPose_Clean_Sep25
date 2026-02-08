@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun LikeButton(
@@ -29,7 +31,7 @@ fun LikeButton(
             imageVector =
                 if (isLiked) Icons.Default.ThumbUp
                 else Icons.Default.ThumbUpOffAlt,
-            contentDescription = "Like",
+            contentDescription = stringResource(R.string.like),
             tint =
                 if (isLiked) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant

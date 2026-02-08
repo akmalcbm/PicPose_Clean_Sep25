@@ -15,11 +15,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.core.utils.formatNumber
 import com.picpose.bestphotographyapp.core.utils.formatTimestamp
@@ -79,7 +81,7 @@ fun FeaturedPostCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Featured",
+                                text = stringResource(R.string.featured),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -173,7 +175,7 @@ fun FeaturedPostCard(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = formatTimestamp(post.createdAt),
+                            text = formatTimestamp(LocalContext.current, post.createdAt),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -195,13 +197,13 @@ fun FeaturedPostCard(
                         StatChip(
                             icon = Icons.Default.Favorite,
                             count = post.likes,
-                            contentDescription = "Likes",
+                            contentDescription = stringResource(R.string.likes),
                             tint = Color(0xFFE91E63)
                         )
                         StatChip(
                             icon = Icons.Default.Visibility,
                             count = post.views,
-                            contentDescription = "Views",
+                            contentDescription = stringResource(R.string.views),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
@@ -218,7 +220,7 @@ fun FeaturedPostCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.FavoriteBorder,
-                                contentDescription = "Like",
+                                contentDescription = stringResource(R.string.like),
                                 tint = Color(0xFFE91E63),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -232,7 +234,7 @@ fun FeaturedPostCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
+                                contentDescription = stringResource(R.string.share),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -298,7 +300,7 @@ fun CompactPostCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "by ${post.author}",
+                    text = stringResource(R.string.by_author, post.author),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
