@@ -220,10 +220,10 @@ fun AIPromptDetailScreen(
 
     if (!viewTracked) {
         LaunchedEffect(promptId) {
-            delay(5000)
+            delay(4000)
             aiPromptViewModel.registerView(promptId)
             viewTracked = true
-            Log.d(TAG_DETAIL, "✅ View registered after 5 seconds for prompt: $promptId")
+            Log.d(TAG_DETAIL, "✅ View registered after 4 seconds for prompt: $promptId")
         }
     }
 
@@ -480,14 +480,14 @@ fun AIPromptDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = 8.dp), //from outer most left and right padding
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                             ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
+                                Column(modifier = Modifier.padding(16.dp)) {
                                     Text(
                                         text = promptData.title,
                                         style = MaterialTheme.typography.headlineSmall,
@@ -517,14 +517,14 @@ fun AIPromptDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = 8.dp), //from outer most left and right padding
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                             ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
+                                Column(modifier = Modifier.padding(16.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             Icons.Default.AutoAwesome,
@@ -631,7 +631,6 @@ fun AIPromptDetailScreen(
                                                     .fillMaxWidth()
                                             )
                                         }
-
 
 
                                         HorizontalDivider(
