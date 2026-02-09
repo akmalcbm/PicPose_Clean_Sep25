@@ -92,6 +92,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -117,19 +118,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
-import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.interstitial.InterstitialAd
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.ads.AdsLog
+import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.InterstitialAdController
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
@@ -170,49 +167,80 @@ fun AIPromptDetailScreen(
     // Transition overlay
     var isTransitionLoading by rememberSaveable { mutableStateOf(false) }
 
-    // Interstitial ad
-    var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
+    // Interstitial controller
+    val interstitialController = remember {
+        InterstitialAdController(placementKey = AdsManager.KEY_DETAIL_INTERSTITIAL)
+    }
     val similarClickCount by aiPromptViewModel.similarPromptsClickCount.collectAsState()
+    val adsConfigState by AdsManager.configState.collectAsState()
 
     val skipGeminiDialog by aiPromptViewModel.skipGeminiDialog.collectAsState()
 
-    // Load interstitial once
-    LaunchedEffect(Unit) {
-        val adRequest = AdRequest.Builder().build()
-        InterstitialAd.load(
-            context,
-            AdsManager.interstitialId(),
-            adRequest,
-            object : InterstitialAdLoadCallback() {
-                override fun onAdLoaded(ad: InterstitialAd) {
-                    interstitialAd = ad
-                }
-
-                override fun onAdFailedToLoad(adError: LoadAdError) {
-                    interstitialAd = null
-                }
-            }
+    // Preload interstitial once
+    LaunchedEffect(adsConfigState) {
+        if (adsConfigState is AdsConfigState.Loading) {
+            AdsLog.d(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=wait reason=CONFIG_LOADING"
+            )
+            return@LaunchedEffect
+        }
+        val canShowAds = AdsManager.canShowAds()
+        AdsLog.i(
+            AdsLog.TAG_UI,
+            "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=preload_request canShowAds=$canShowAds"
         )
+        if (!canShowAds) {
+            AdsLog.i(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=skip reason=global_gate"
+            )
+            return@LaunchedEffect
+        }
+        interstitialController.preload(context)
     }
 
     // Native Ad (single instance)
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
-    DisposableEffect(Unit) {
-        val adLoader = AdLoader.Builder(
-            context,
-            AdsManager.nativeId()
-        ).forNativeAd { ad ->
-            nativeAd?.destroy()
-            nativeAd = ad
-        }.withNativeAdOptions(
-            NativeAdOptions.Builder().build()
-        ).build()
-
-        adLoader.loadAd(AdRequest.Builder().build())
-
-        onDispose {
-            nativeAd?.destroy()
-            nativeAd = null
+    val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }
+    DisposableEffect(adsConfigState) {
+        if (adsConfigState is AdsConfigState.Loading) {
+            AdsLog.d(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
+            )
+            onDispose { }
+        } else {
+            val canShowAds = AdsManager.canShowAds()
+            AdsLog.i(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
+            )
+            if (canShowAds) {
+                nativeAdController.load(context = context, callbacks = object : NativeAdController.Callbacks {
+                    override fun onLoaded(ad: NativeAd) {
+                        AdsLog.i(
+                            AdsLog.TAG_UI,
+                            "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
+                        )
+                        nativeAd = ad
+                    }
+                })
+            } else {
+                AdsLog.i(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                )
+            }
+            onDispose {
+                AdsLog.d(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=AIPromptDetailScreen action=dispose_ads"
+                )
+                interstitialController.clear()
+                nativeAdController.clear()
+                nativeAd = null
+            }
         }
     }
 
@@ -905,22 +933,31 @@ fun AIPromptDetailScreen(
 
                                                     // Interstitial after 1 click (test condition)
                                                     if (similarClickCount >= 1) {
-                                                        interstitialAd?.let { ad ->
-                                                            ad.fullScreenContentCallback =
-                                                                object : FullScreenContentCallback() {
-                                                                    override fun onAdDismissedFullScreenContent() {
-                                                                        onPromptClick(id)
-                                                                    }
-
-                                                                    override fun onAdFailedToShowFullScreenContent(
-                                                                        adError: AdError
-                                                                    ) {
-                                                                        onPromptClick(id)
-                                                                    }
+                                                        val activity = context as? Activity
+                                                        if (activity != null) {
+                                                            AdsLog.i(
+                                                                AdsLog.TAG_UI,
+                                                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=show_request reason=similar_prompt_click clickCount=$similarClickCount"
+                                                            )
+                                                            interstitialController.show(
+                                                                activity = activity,
+                                                                onComplete = {
+                                                                    onPromptClick(id)
                                                                 }
-                                                            ad.show(context as Activity)
-                                                        } ?: onPromptClick(id)
+                                                            )
+                                                            interstitialController.preload(context)
+                                                        } else {
+                                                            AdsLog.w(
+                                                                AdsLog.TAG_UI,
+                                                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=skip reason=activity_null"
+                                                            )
+                                                            onPromptClick(id)
+                                                        }
                                                     } else {
+                                                        AdsLog.d(
+                                                            AdsLog.TAG_UI,
+                                                            "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_DETAIL_INTERSTITIAL} action=skip reason=click_threshold clickCount=$similarClickCount"
+                                                        )
                                                         onPromptClick(id)
                                                     }
                                                 }

@@ -29,15 +29,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.android.gms.ads.AdLoader
 import com.picpose.bestphotographyapp.R
-import com.picpose.bestphotographyapp.core.constants.Constants
-import com.picpose.bestphotographyapp.data.admob.AdMobConfigManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
@@ -83,22 +80,29 @@ fun TagPromptsScreen(
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
 
     DisposableEffect(normalizedTag) {
-        val adLoader = AdLoader.Builder(
-            context,
-            // ✅ Test native ad unit
-            Constants.TEST_NATIVE_ID
-        )
-            .forNativeAd { ad ->
-                nativeAd?.destroy()
-                nativeAd = ad
-            }
-            .withNativeAdOptions(
-                NativeAdOptions.Builder()
-                    .build()
-            )
-            .build()
+        val adUnitId = if (AdsManager.canShowAds()) {
+            AdsManager.getAdUnitId(AdsManager.KEY_NATIVE_AD)
+        } else {
+            null
+        }
 
-        adLoader.loadAd(AdManagerAdRequest.Builder().build())
+        if (!adUnitId.isNullOrBlank()) {
+            val adLoader = AdLoader.Builder(
+                context,
+                adUnitId
+            )
+                .forNativeAd { ad ->
+                    nativeAd?.destroy()
+                    nativeAd = ad
+                }
+                .withNativeAdOptions(
+                    NativeAdOptions.Builder()
+                        .build()
+                )
+                .build()
+
+            adLoader.loadAd(AdRequest.Builder().build())
+        }
 
         onDispose {
             nativeAd?.destroy()
@@ -503,6 +507,9 @@ private fun TagNativeAdCard(nativeAd: NativeAd) {
 @Composable
 private fun TagBannerAd() {
     val context = LocalContext.current
+    if (!AdsManager.canShowAds()) return
+    val bannerAdUnitId = AdsManager.getAdUnitId(AdsManager.KEY_HOME_BANNER)
+    if (bannerAdUnitId.isNullOrBlank()) return
 
     Surface(
         tonalElevation = 3.dp
@@ -513,8 +520,7 @@ private fun TagBannerAd() {
                 .height(50.dp),
             factory = {
                 AdView(context).apply {
-                    // ✅ Test banner ad unit
-                    adUnitId = AdsManager.bannerId()
+                    adUnitId = bannerAdUnitId
                     setAdSize(AdSize.BANNER)
                     loadAd(AdRequest.Builder().build())
                 }

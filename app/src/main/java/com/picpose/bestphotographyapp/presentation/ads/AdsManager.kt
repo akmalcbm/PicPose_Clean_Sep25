@@ -1,71 +1,412 @@
 package com.picpose.bestphotographyapp.presentation.ads
 
-import com.picpose.bestphotographyapp.data.models.AdConfig
+import android.content.Context
 import com.picpose.bestphotographyapp.core.constants.Constants
+import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
+import com.picpose.bestphotographyapp.data.models.AdConfig
+import com.picpose.bestphotographyapp.data.models.AdsConfig
+import com.picpose.bestphotographyapp.data.models.PlacementConfig
+import com.picpose.bestphotographyapp.data.models.UnitConfig
+import com.picpose.bestphotographyapp.data.network.AdsApiService
+import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.remote.localFallbackAdsConfig
+import com.picpose.bestphotographyapp.data.repository.AdsConfigResult
+import com.picpose.bestphotographyapp.data.repository.AdsConfigSource
+import com.picpose.bestphotographyapp.data.repository.AdsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+sealed interface AdsConfigState {
+    data object Loading : AdsConfigState
+    data class Ready(
+        val source: AdsConfigSource,
+        val configVersion: String,
+        val timestamp: Long,
+        val placementsCount: Int
+    ) : AdsConfigState
+
+    data class Error(
+        val reason: String
+    ) : AdsConfigState
+}
 
 object AdsManager {
 
-    private var liveConfig: AdConfig? = null
+    const val KEY_BANNER_1 = "banner_1"
+    const val KEY_BANNER_2 = "banner_2"
+    const val KEY_INTERSTITIAL_1 = "interstitial_1"
+    const val KEY_INTERSTITIAL_2 = "interstitial_2"
+    const val KEY_NATIVE_1 = "native_1"
+    const val KEY_NATIVE_2 = "native_2"
+    const val KEY_NATIVE_3 = "native_3"
+    const val KEY_REWARDED_1 = "rewarded_1"
+    const val KEY_HOME_BANNER = "home_banner"
+    const val KEY_HOME_INTERSTITIAL = "home_interstitial"
+    const val KEY_DETAIL_INTERSTITIAL = "detail_interstitial"
+    const val KEY_NATIVE_AD = "native_ad"
+    const val KEY_REWARDED_AD = "rewarded_ad"
 
-    // Call once after API success
-    fun init(config: AdConfig) {
-        liveConfig = config
+    private const val REASON_PLACEMENT_NOT_FOUND = "PLACEMENT_NOT_FOUND"
+    private const val REASON_PLACEMENT_DISABLED = "PLACEMENT_DISABLED"
+    private const val REASON_AUTO_DISABLED = "AUTO_DISABLED"
+    private const val REASON_NO_UNITS = "NO_UNITS"
+    private const val REASON_CMP_NOT_READY = "CMP_NOT_READY"
+    private const val REASON_FREQUENCY_BLOCK = "FREQUENCY_BLOCK"
+    private const val REASON_CONFIG_NOT_READY = "CONFIG_NOT_READY"
+
+    @Volatile
+    private var appContext: Context? = null
+
+    @Volatile
+    private var consentGate: ConsentGate = DefaultConsentGate()
+
+    @Volatile
+    private var currentResult: AdsConfigResult? = null
+    @Volatile
+    private var injectedRepository: AdsRepository? = null
+    @Volatile
+    private var consentReady: Boolean = false
+
+    private val warmUpMutex = Mutex()
+    private val _configState = MutableStateFlow<AdsConfigState>(AdsConfigState.Loading)
+    val configState: StateFlow<AdsConfigState> = _configState.asStateFlow()
+
+    private data class ResolvedPlacement(
+        val requestedKey: String,
+        val matchedKey: String,
+        val placement: PlacementConfig
+    )
+
+    fun configure(context: Context, gate: ConsentGate? = null) {
+        appContext = context.applicationContext
+        gate?.let { consentGate = it }
+        AdsLog.init(context)
+        if (currentResult == null) {
+            _configState.value = AdsConfigState.Loading
+        }
+        AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] action=configure gateSet=${gate != null} state=${_configState.value}")
     }
 
-    fun isAdsEnabled(): Boolean = true   // future flag possible
+    fun setConsentGate(gate: ConsentGate) {
+        consentGate = gate
+        AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] action=setConsentGate")
+    }
 
-    fun appId(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_APP_ID
-        else
-            liveConfig?.appId ?: Constants.TEST_APP_ID
+    fun bindRepository(repository: AdsRepository) {
+        injectedRepository = repository
+        AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] action=bindRepository")
+    }
 
-    fun bannerId(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_BANNER_ID
-        else
-            liveConfig?.bannerId ?: Constants.TEST_BANNER_ID
+    suspend fun warmUp(forceRefresh: Boolean = false) {
+        warmUpMutex.withLock {
+            val context = appContext
+            if (context == null) {
+                _configState.value = AdsConfigState.Error(REASON_CONFIG_NOT_READY)
+                AdsLog.w(AdsLog.TAG_MANAGER, "[AdsManager] action=warmUp status=SKIP reason=context_not_configured")
+                return
+            }
+            _configState.value = AdsConfigState.Loading
+            AdsFrequencyManager.initialize(context)
 
-    fun bannerId2(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_BANNER_ID_2
-        else
-            liveConfig?.bannerId2 ?: Constants.TEST_BANNER_ID_2
+            val repository = injectedRepository ?: AdsRepository(
+                api = RetrofitClient.createService(AdsApiService::class.java),
+                cache = AdsConfigCache(context),
+                deviceIdStore = DeviceIdStore(context)
+            )
 
-    fun interstitialId(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_INTERSTITIAL_ID
-        else
-            liveConfig?.interstitialId ?: Constants.TEST_INTERSTITIAL_ID
+            val result = runCatching {
+                repository.getAdsConfig(forceRefresh = forceRefresh)
+            }.getOrElse {
+                AdsLog.e(AdsLog.TAG_MANAGER, "[AdsManager] action=warmUp status=FAIL error=${it.message}", it)
+                val now = System.currentTimeMillis()
+                AdsConfigResult(
+                    config = AdsConfigCache(context).get()?.config ?: localFallbackAdsConfig(),
+                    source = AdsConfigSource.FALLBACK,
+                    timestamp = now,
+                    configVersion = "fallback"
+                )
+            }
 
-    fun interstitialId2(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_INTERSTITIAL_ID_2
-        else
-            liveConfig?.interstitialId2 ?: Constants.TEST_INTERSTITIAL_ID_2
+            currentResult = result
+            consentReady = runCatching { consentGate.isReady() }.getOrDefault(false)
+            _configState.value = AdsConfigState.Ready(
+                source = result.source,
+                configVersion = result.configVersion,
+                timestamp = result.timestamp,
+                placementsCount = result.config.placements.size
+            )
 
+            AdsLog.i(
+                AdsLog.TAG_MANAGER,
+                "[AdsManager] action=warmUp status=OK source=${result.source} version=${result.configVersion} placementsCount=${result.config.placements.size} updatedAt=${result.config.global.configUpdatedAt} env=${result.config.global.environment} adsEnabled=${result.config.global.adsEnabled} useTestAds=${result.config.global.useTestAds} cmpRequired=${result.config.global.cmpRequired} consentReady=$consentReady"
+            )
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] snapshot=${debugSnapshot()}")
+        }
+    }
 
-    fun nativeId(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_NATIVE_ID
-        else
-            liveConfig?.nativeId ?: Constants.TEST_NATIVE_ID
+    fun canShowAds(): Boolean {
+        val config = currentResult?.config
+        if (config == null) {
+            AdsLog.d(AdsLog.TAG_MANAGER, "[AdsManager] canShowAds=false reason=$REASON_CONFIG_NOT_READY")
+            return false
+        }
+        if (!config.global.adsEnabled) {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] canShowAds=false reason=GLOBAL_DISABLED")
+            return false
+        }
+        if (config.global.cmpRequired && !consentReady) {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] canShowAds=false reason=$REASON_CMP_NOT_READY cmpRequired=true consentReady=$consentReady")
+            return false
+        }
+        AdsLog.d(AdsLog.TAG_MANAGER, "[AdsManager] canShowAds=true env=${config.global.environment} useTestAds=${config.global.useTestAds}")
+        return true
+    }
 
-    fun nativeId2(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_NATIVE_ID_2
-        else
-            liveConfig?.nativeId2 ?: Constants.TEST_NATIVE_ID_2
+    fun getAdUnitId(placementKey: String): String? {
+        val result = currentResult ?: run {
+            logPlacementNullDecision(
+                placementKey = placementKey,
+                reason = REASON_CONFIG_NOT_READY
+            )
+            return null
+        }
+        if (result.config.global.cmpRequired && !consentReady) {
+            logPlacementNullDecision(
+                placementKey = placementKey,
+                reason = REASON_CMP_NOT_READY
+            )
+            return null
+        }
 
-    fun nativeId3(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_NATIVE_ID_3
-        else
-            liveConfig?.nativeId3 ?: Constants.TEST_NATIVE_ID_3
+        val resolved = resolvePlacement(placementKey, result.config) ?: run {
+            logPlacementNullDecision(
+                placementKey = placementKey,
+                reason = REASON_PLACEMENT_NOT_FOUND
+            )
+            return null
+        }
+        val placement = resolved.placement
 
-    fun rewardedId(): String =
-        if (Constants.IS_TEST_ADS)
-            Constants.TEST_REWARDED_ID
-        else
-            liveConfig?.rewardedId ?: Constants.TEST_REWARDED_ID
+        if (!placement.enabled) {
+            logPlacementDecision(resolved, null, REASON_PLACEMENT_DISABLED)
+            return null
+        }
+        if (placement.autoDisabled) {
+            logPlacementDecision(resolved, null, REASON_AUTO_DISABLED)
+            return null
+        }
+
+        val sortedUnits = placement.units.sortedBy { it.priority }
+        if (sortedUnits.isEmpty()) {
+            logPlacementDecision(resolved, null, REASON_NO_UNITS)
+            return null
+        }
+
+        val preferLive = isProductionSelection(result.config)
+        val preferred = if (preferLive) sortedUnits.filter { it.isLive } else sortedUnits.filter { it.isTest }
+        val selected = preferred.firstOrNull() ?: sortedUnits.firstOrNull()
+        val selectedId = selected?.adUnitId?.takeIf { it.isNotBlank() }
+        val reason = if (selectedId == null) REASON_NO_UNITS else "OK"
+
+        logPlacementDecision(resolved, selected, reason)
+        return selectedId
+    }
+
+    fun getPlacement(placementKey: String): PlacementConfig? {
+        val config = currentResult?.config ?: return null
+        return resolvePlacement(placementKey, config)?.placement
+    }
+
+    fun shouldShowNow(placementKey: String): Boolean {
+        val result = currentResult ?: run {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_CONFIG_NOT_READY")
+            return false
+        }
+        if (result.config.global.cmpRequired && !consentReady) {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_CMP_NOT_READY")
+            return false
+        }
+        val resolved = resolvePlacement(placementKey, result.config) ?: run {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_PLACEMENT_NOT_FOUND")
+            return false
+        }
+        if (!resolved.placement.enabled) {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey resolved=${resolved.matchedKey} shouldShow=false reason=$REASON_PLACEMENT_DISABLED")
+            return false
+        }
+        if (resolved.placement.autoDisabled) {
+            AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey resolved=${resolved.matchedKey} shouldShow=false reason=$REASON_AUTO_DISABLED")
+            return false
+        }
+
+        val limit = resolved.placement.frequency?.takeIf { it > 0 } ?: result.config.global.defaultFrequencyPerHour
+        val canShow = AdsFrequencyManager.canShow(resolved.matchedKey, limit.coerceAtLeast(1))
+        AdsLog.i(
+            AdsLog.TAG_MANAGER,
+            "[AdsManager] placement=$placementKey resolved=${resolved.matchedKey} shouldShow=$canShow limitPerHour=${limit.coerceAtLeast(1)} reason=${if (canShow) "OK" else REASON_FREQUENCY_BLOCK}"
+        )
+        return canShow
+    }
+
+    fun markShown(placementKey: String) {
+        runCatching {
+            val resolvedKey = resolvePlacement(placementKey, currentResult?.config)?.matchedKey ?: placementKey
+            AdsFrequencyManager.markShown(resolvedKey)
+            AdsLog.d(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey resolved=$resolvedKey action=markShown status=OK")
+        }.onFailure {
+            AdsLog.e(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey action=markShown status=FAIL error=${it.message}", it)
+        }
+    }
+
+    fun debugSnapshot(): String {
+        val result = currentResult ?: return "state=${_configState.value} source=NONE version=NONE env=NONE ads_enabled=false placementsCount=0"
+        return "state=${_configState.value::class.simpleName} source=${result.source} version=${result.configVersion} env=${result.config.global.environment} ads_enabled=${result.config.global.adsEnabled} use_test_ads=${result.config.global.useTestAds} cmp_required=${result.config.global.cmpRequired} consent_ready=$consentReady placementsCount=${result.config.placements.size}"
+    }
+
+    private fun resolvePlacement(requestedKey: String, config: AdsConfig?): ResolvedPlacement? {
+        if (config == null) return null
+        val candidates = candidateKeysFor(requestedKey)
+        for (candidate in candidates) {
+            val placement = config.findPlacement(candidate)
+            if (placement != null) {
+                return ResolvedPlacement(requestedKey = requestedKey, matchedKey = candidate, placement = placement)
+            }
+        }
+        return null
+    }
+
+    private fun candidateKeysFor(key: String): List<String> {
+        val candidates = mutableListOf(key)
+        when (key) {
+            KEY_HOME_BANNER -> candidates += KEY_BANNER_1
+            KEY_BANNER_1 -> candidates += KEY_HOME_BANNER
+            KEY_HOME_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
+            KEY_DETAIL_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
+            KEY_INTERSTITIAL_1 -> candidates += listOf(KEY_HOME_INTERSTITIAL, KEY_DETAIL_INTERSTITIAL)
+            KEY_INTERSTITIAL_2 -> candidates += listOf(KEY_DETAIL_INTERSTITIAL, KEY_HOME_INTERSTITIAL)
+            KEY_NATIVE_AD -> candidates += KEY_NATIVE_1
+            KEY_NATIVE_1 -> candidates += KEY_NATIVE_AD
+            KEY_REWARDED_AD -> candidates += KEY_REWARDED_1
+            KEY_REWARDED_1 -> candidates += KEY_REWARDED_AD
+        }
+        return candidates.distinct()
+    }
+
+    private fun logPlacementNullDecision(
+        placementKey: String,
+        reason: String
+    ) {
+        val result = currentResult
+        AdsLog.i(
+            AdsLog.TAG_MANAGER,
+            "[AdsManager] placement=$placementKey placementExists=false enabled=false autoDisabled=false unitsCount=0 selectedUnit=null reason=$reason source=${result?.source} version=${result?.configVersion} placementsCount=${result?.config?.placements?.size ?: 0}"
+        )
+    }
+
+    private fun logPlacementDecision(
+        resolved: ResolvedPlacement,
+        selected: UnitConfig?,
+        reason: String
+    ) {
+        val result = currentResult
+        AdsLog.i(
+            AdsLog.TAG_MANAGER,
+            "[AdsManager] placement=${resolved.requestedKey} resolved=${resolved.matchedKey} placementExists=true enabled=${resolved.placement.enabled} autoDisabled=${resolved.placement.autoDisabled} unitsCount=${resolved.placement.units.size} selectedUnit=${AdsLog.maskAdUnitId(selected?.adUnitId)} is_test=${selected?.isTest} is_live=${selected?.isLive} priority=${selected?.priority} refreshSeconds=${resolved.placement.refreshSeconds} frequency=${resolved.placement.frequency} reason=$reason source=${result?.source} version=${result?.configVersion} placementsCount=${result?.config?.placements?.size ?: 0}"
+        )
+    }
+
+    private fun isProductionSelection(config: AdsConfig): Boolean {
+        val envProduction = config.global.environment.equals("production", ignoreCase = true)
+        return envProduction && !config.global.useTestAds
+    }
+
+    suspend fun bootstrap(context: Context, apiKey: String? = null) {
+        configure(context)
+        warmUp(forceRefresh = false)
+    }
+
+    fun canLoadAnyAd(): Boolean = canShowAds()
+
+    fun canShowPlacement(placementKey: String, expectedType: String? = null): Boolean {
+        val placement = getPlacement(placementKey) ?: return false
+        if (!expectedType.isNullOrBlank() && !placement.adType.equals(expectedType, ignoreCase = true)) {
+            return false
+        }
+        return shouldShowNow(placementKey)
+    }
+
+    fun markPlacementShown(placementKey: String, expectedType: String? = null) {
+        val placement = getPlacement(placementKey) ?: return
+        if (!expectedType.isNullOrBlank() && !placement.adType.equals(expectedType, ignoreCase = true)) {
+            return
+        }
+        markShown(placementKey)
+    }
+
+    fun bannerIdOrNull(): String? = getAdUnitId(KEY_BANNER_1)
+    fun bannerId2OrNull(): String? = getAdUnitId(KEY_BANNER_2)
+    fun interstitialIdOrNull(): String? = getAdUnitId(KEY_INTERSTITIAL_1)
+    fun interstitialId2OrNull(): String? = getAdUnitId(KEY_INTERSTITIAL_2)
+    fun nativeIdOrNull(): String? = getAdUnitId(KEY_NATIVE_1)
+    fun nativeId2OrNull(): String? = getAdUnitId(KEY_NATIVE_2)
+    fun nativeId3OrNull(): String? = getAdUnitId(KEY_NATIVE_3)
+    fun rewardedIdOrNull(): String? = getAdUnitId(KEY_REWARDED_1)
+
+    @Deprecated("Use warmUp + getAdUnitId APIs")
+    fun init(config: AdConfig) {
+        currentResult = AdsConfigResult(
+            config = localFallbackAdsConfig().copy(
+                placements = listOf(
+                    PlacementConfig(KEY_BANNER_1, "banner", true, null, null, false, listOf(UnitConfig(config.bannerId, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_BANNER_2, "banner", true, null, null, false, listOf(UnitConfig(config.bannerId2, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_INTERSTITIAL_1, "interstitial", true, null, null, false, listOf(UnitConfig(config.interstitialId, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_INTERSTITIAL_2, "interstitial", true, null, null, false, listOf(UnitConfig(config.interstitialId2, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_NATIVE_1, "native", true, null, null, false, listOf(UnitConfig(config.nativeId, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_NATIVE_2, "native", true, null, null, false, listOf(UnitConfig(config.nativeId2, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_NATIVE_3, "native", true, null, null, false, listOf(UnitConfig(config.nativeId3, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_REWARDED_1, "rewarded", true, null, null, false, listOf(UnitConfig(config.rewardedId, 1, false, true, "admob", true)))
+                )
+            ),
+            source = AdsConfigSource.FALLBACK,
+            timestamp = System.currentTimeMillis(),
+            configVersion = "legacy"
+        )
+        consentReady = true
+        _configState.value = AdsConfigState.Ready(
+            source = AdsConfigSource.FALLBACK,
+            configVersion = "legacy",
+            timestamp = System.currentTimeMillis(),
+            placementsCount = currentResult?.config?.placements?.size ?: 0
+        )
+    }
+
+    @Deprecated("Use *OrNull APIs")
+    fun appId(): String = Constants.TEST_APP_ID
+
+    @Deprecated("Use bannerIdOrNull")
+    fun bannerId(): String = bannerIdOrNull().orEmpty()
+
+    @Deprecated("Use bannerId2OrNull")
+    fun bannerId2(): String = bannerId2OrNull().orEmpty()
+
+    @Deprecated("Use interstitialIdOrNull")
+    fun interstitialId(): String = interstitialIdOrNull().orEmpty()
+
+    @Deprecated("Use interstitialId2OrNull")
+    fun interstitialId2(): String = interstitialId2OrNull().orEmpty()
+
+    @Deprecated("Use nativeIdOrNull")
+    fun nativeId(): String = nativeIdOrNull().orEmpty()
+
+    @Deprecated("Use nativeId2OrNull")
+    fun nativeId2(): String = nativeId2OrNull().orEmpty()
+
+    @Deprecated("Use nativeId3OrNull")
+    fun nativeId3(): String = nativeId3OrNull().orEmpty()
+
+    @Deprecated("Use rewardedIdOrNull")
+    fun rewardedId(): String = rewardedIdOrNull().orEmpty()
 }

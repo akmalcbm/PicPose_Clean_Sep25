@@ -65,6 +65,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.constants.Constants
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
@@ -140,21 +141,29 @@ fun ExploreScreen(
         var disposed = false
         val loadedAds = mutableListOf<NativeAd>()
 
-        val adLoader = AdLoader.Builder(
-            adContext,
-            Constants.TEST_NATIVE_ID // Test native ad ID
-        )
-            .forNativeAd { ad ->
-                if (disposed) ad.destroy()
-                else {
-                    loadedAds.add(ad)
-                    nativeAds = loadedAds.toList()
-                }
-            }
-            .withNativeAdOptions(NativeAdOptions.Builder().build())
-            .build()
+        val adUnitId = if (AdsManager.canShowAds()) {
+            AdsManager.getAdUnitId(AdsManager.KEY_NATIVE_AD)
+        } else {
+            null
+        }
 
-        repeat(3) { adLoader.loadAd(AdRequest.Builder().build()) }
+        if (!adUnitId.isNullOrBlank()) {
+            val adLoader = AdLoader.Builder(
+                adContext,
+                adUnitId
+            )
+                .forNativeAd { ad ->
+                    if (disposed) ad.destroy()
+                    else {
+                        loadedAds.add(ad)
+                        nativeAds = loadedAds.toList()
+                    }
+                }
+                .withNativeAdOptions(NativeAdOptions.Builder().build())
+                .build()
+
+            repeat(3) { adLoader.loadAd(AdRequest.Builder().build()) }
+        }
 
         onDispose {
             disposed = true

@@ -28,6 +28,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -40,10 +41,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
 import com.picpose.bestphotographyapp.presentation.components.home.*
@@ -51,8 +49,11 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
+import com.picpose.bestphotographyapp.presentation.ads.AdsLog
+import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
 import com.picpose.bestphotographyapp.R
@@ -137,22 +138,46 @@ fun HomeScreen(
 
     // Native Ad (single instance)
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
-    DisposableEffect(Unit) {
-        val adLoader = AdLoader.Builder(
-            context,
-            AdsManager.nativeId()
-        ).forNativeAd { ad ->
-            nativeAd?.destroy()
-            nativeAd = ad
-        }.withNativeAdOptions(
-            NativeAdOptions.Builder().build()
-        ).build()
-
-        adLoader.loadAd(AdRequest.Builder().build())
-
-        onDispose {
-            nativeAd?.destroy()
-            nativeAd = null
+    val adsConfigState by AdsManager.configState.collectAsState()
+    val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }
+    DisposableEffect(adsConfigState) {
+        if (adsConfigState is AdsConfigState.Loading) {
+            AdsLog.d(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
+            )
+            onDispose { }
+        } else {
+            val canShowAds = AdsManager.canShowAds()
+            AdsLog.i(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
+            )
+            if (canShowAds) {
+                nativeAdController.load(context = context, forceReload = false,
+                    callbacks = object : NativeAdController.Callbacks {
+                        override fun onLoaded(ad: NativeAd) {
+                            AdsLog.i(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
+                            )
+                            nativeAd = ad
+                        }
+                    })
+            } else {
+                AdsLog.i(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                )
+            }
+            onDispose {
+                AdsLog.d(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=dispose"
+                )
+                nativeAdController.clear()
+                nativeAd = null
+            }
         }
     }
 
@@ -318,15 +343,22 @@ fun HomeScreen(
                     }
 
                     // Banner Ad
-                    /*item {
+                    /*if (AdsManager.canShowAds()) item {
                         AdmobBannerAd(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = 16.dp),
+                            placementKey = AdsManager.KEY_HOME_BANNER
                         )
                     }*/
 
                     item {
+                        LaunchedEffect(nativeAd != null) {
+                            AdsLog.i(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=render hasAd=${nativeAd != null}"
+                            )
+                        }
                         // 📢 One-Time Large Native Ad with Shimmer Placeholder
                         if (nativeAd == null) {
                             // ⏳ Shimmer while ad loads
@@ -533,7 +565,7 @@ private fun NotificationPermissionDialog(
                     append(stringResource(R.string.notification_note_title))
                     pop()
 
-                    append(stringResource(R.string.notification_note_body_prefix))
+                    append(stringResource(R.string.notification_note_body_prefix)+" ")
                     pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
                     append(stringResource(R.string.settings))
                     pop()

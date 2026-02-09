@@ -200,7 +200,7 @@ fun AiPromptDetailsScreen(
                             prompt = uiState.currentPrompt!!,
                             similarPrompts = uiState.similarPrompts,
                             isLoadingMore = uiState.isLoadingMore,
-                            nativeAdUnitId = AdsManager.nativeId(),
+                            nativePlacementKey = AdsManager.KEY_NATIVE_AD,
                             listState = listState,
                             onImageClick = { showImageDialog = true },
                             onCopyPrompt = {
@@ -326,7 +326,7 @@ private fun PromptContent(
     prompt: AIPrompt,
     similarPrompts: List<AIPrompt>,
     isLoadingMore: Boolean,
-    nativeAdUnitId: String,
+    nativePlacementKey: String,
     listState: LazyListState,
     onImageClick: () -> Unit,
     onCopyPrompt: () -> Unit,
@@ -513,18 +513,20 @@ private fun PromptContent(
         }
         
         // Native Ad Section
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                NativeAdSection(
-                    adUnitId = nativeAdUnitId,
-                    modifier = Modifier.fillMaxWidth()
-                )
+        if (AdsManager.canShowAds()) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    NativeAdSection(
+                        placementKey = nativePlacementKey,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
         

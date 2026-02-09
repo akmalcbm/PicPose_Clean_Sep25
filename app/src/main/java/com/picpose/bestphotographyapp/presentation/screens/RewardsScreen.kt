@@ -18,10 +18,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.ads.AdsLog
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.components.ads.AdmobRewardedAd
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreen() {
+    val canShowAds = AdsManager.canShowAds()
+    LaunchedEffect(Unit) {
+        AdsLog.i(
+            AdsLog.TAG_UI,
+            "[AdsUI] screen=RewardsScreen placement=${AdsManager.KEY_REWARDED_AD} action=compose canShowAds=$canShowAds"
+        )
+    }
+    LaunchedEffect(canShowAds) {
+        AdsLog.i(
+            AdsLog.TAG_UI,
+            if (canShowAds) {
+                "[AdsUI] screen=RewardsScreen placement=${AdsManager.KEY_REWARDED_AD} action=render"
+            } else {
+                "[AdsUI] screen=RewardsScreen placement=${AdsManager.KEY_REWARDED_AD} action=skip reason=global_gate"
+            }
+        )
+    }
+
     val userPoints = 2450
     val rewards = listOf(
         Reward(stringResource(R.string.reward_premium_filters_pack), stringResource(R.string.reward_premium_filters_pack_desc), 500, Icons.Filled.FilterVintage),
@@ -148,6 +169,16 @@ fun RewardsScreen() {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                 )
+            }
+
+            if (canShowAds) {
+                item {
+                    AdmobRewardedAd(
+                        placementKey = AdsManager.KEY_REWARDED_AD,
+                        onRewardEarned = { /* reward payout hook */ },
+                        onAdDismissed = { /* UI callback hook */ }
+                    )
+                }
             }
         }
     }
