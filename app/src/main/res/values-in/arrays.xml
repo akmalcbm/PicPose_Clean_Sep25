@@ -1,0 +1,30 @@
+<resources>
+    <string-array name="ai_bio_suggestions">
+        <item>Fotografer yang mengeksplorasi potret kreatif dan pencahayaan sinematik.</item>
+        <item>Penggemar prompt AI yang berbagi ide untuk menghasilkan gambar yang lebih baik.</item>
+        <item>Pencerita visual yang terinspirasi fotografi jalanan, alam, dan studio.</item>
+        <item>Bereksperimen setiap hari dengan komposisi, cahaya, dan warna.</item>
+        <item>Membuat prompt praktis untuk kreator dan pecinta fotografi.</item>
+    </string-array>
+
+    <string-array name="profile_fallback_bios">
+        <item>Penggemar fotografi yang suka jepretan kreatif.</item>
+        <item>Menjelajahi prompt AI dan teknik kamera setiap hari.</item>
+        <item>Mengubah ide menjadi visual melalui cahaya dan komposisi.</item>
+    </string-array>
+
+    <string-array name="photography_tips_fallback">
+        <item>Gunakan kata deskriptif yang spesifik dalam prompt Anda untuk hasil AI yang lebih baik.</item>
+        <item>Golden hour memberi cahaya alami yang paling menyanjung.</item>
+        <item>Fokus pada mata dalam fotografi potret.</item>
+        <item>Gunakan garis pemandu untuk mengarahkan perhatian penonton.</item>
+        <item>Bereksperimen dengan sudut dan perspektif yang berbeda.</item>
+        <item>Pelajari cara menggunakan ruang negatif secara efektif.</item>
+        <item>Kuasai pengaturan kamera manual untuk kontrol kreatif.</item>
+        <item>Latih seni bercerita melalui gambar.</item>
+        <item>Coba prompt AI: headshot profesional, pencahayaan lembut, latar bersih.</item>
+        <item>Coba prompt AI: potret sinematik, golden hour, latar bokeh.</item>
+        <item>Coba prompt AI: gaya fotografi jalanan, hitam putih, suasana urban.</item>
+        <item>Coba prompt AI: fotografi fesyen, pencahayaan dramatis, set studio.</item>
+    </string-array>
+</resources>

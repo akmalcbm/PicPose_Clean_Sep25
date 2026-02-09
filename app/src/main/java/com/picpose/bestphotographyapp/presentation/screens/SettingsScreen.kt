@@ -53,6 +53,25 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import com.picpose.bestphotographyapp.R
 
+private data class LanguageOption(
+    val code: String,
+    val label: String
+)
+
+private val languageOptions = listOf(
+    LanguageOption("system", "System Default"),
+    LanguageOption("en", "English"),
+    LanguageOption("hi", "हिन्दी"),
+    LanguageOption("zh-CN", "中文(简体)"),
+    LanguageOption("es", "Español"),
+    LanguageOption("ar", "العربية"),
+    LanguageOption("pt-BR", "Português (Brasil)"),
+    LanguageOption("id", "Bahasa Indonesia")
+)
+
+private fun languageLabel(languageCode: String): String =
+    languageOptions.firstOrNull { it.code == languageCode }?.label ?: "English"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -131,10 +150,7 @@ fun SettingsScreen(
                 SettingItem(
                     icon = Icons.Default.Language,
                     title = stringResource(R.string.language),
-                    subtitle = if (language == "hi")
-                        stringResource(R.string.language_hindi)
-                    else
-                        stringResource(R.string.language_english),
+                    subtitle = languageLabel(language),
                     onClick = { showLanguageDialog = true },
                     trailing = {
                         Icon(Icons.Default.ChevronRight, null)
@@ -226,22 +242,16 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.select_language)) },
                 text = {
                     Column {
-                        RadioButtonItem(
-                            text = stringResource(R.string.language_english),
-                            selected = language == "en",
-                            onClick = {
-                                settingsViewModel.setLanguage("en")
-                                showLanguageDialog = false
-                            }
-                        )
-                        RadioButtonItem(
-                            text = stringResource(R.string.language_hindi),
-                            selected = language == "hi",
-                            onClick = {
-                                settingsViewModel.setLanguage("hi")
-                                showLanguageDialog = false
-                            }
-                        )
+                        languageOptions.forEach { option ->
+                            RadioButtonItem(
+                                text = option.label,
+                                selected = language == option.code,
+                                onClick = {
+                                    settingsViewModel.setLanguage(option.code)
+                                    showLanguageDialog = false
+                                }
+                            )
+                        }
                     }
                 },
                 confirmButton = {

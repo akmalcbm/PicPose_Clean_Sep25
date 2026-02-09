@@ -1,0 +1,31 @@
+<resources>
+    <string-array name="ai_bio_suggestions">
+        <item>探索创意人像与电影感光影的摄影师。</item>
+        <item>AI 提示词爱好者，分享更好生成图片的创意。</item>
+        <item>受街拍、自然与棚拍启发的视觉讲述者。</item>
+        <item>每天尝试构图、光线与色彩。</item>
+        <item>为创作者与摄影爱好者打造实用提示词。</item>
+    </string-array>
+
+    <string-array name="profile_fallback_bios">
+        <item>热爱创意拍摄的摄影爱好者。</item>
+        <item>每天探索 AI 提示词与相机技巧。</item>
+        <item>用光线与构图把想法变成画面。</item>
+    </string-array>
+
+    <string-array name="photography_tips_fallback">
+        <item>在提示词中使用更具体的描述词，AI 效果更好。</item>
+        <item>黄金时刻提供最柔和、最上镜的自然光。</item>
+        <item>拍人像时要对焦在眼睛上。</item>
+        <item>使用引导线来带动观众的视线。</item>
+        <item>尝试不同角度与视角。</item>
+        <item>学会有效利用留白。</item>
+        <item>掌握手动相机设置，获得更强创作控制。</item>
+        <item>练习用影像讲故事。</item>
+        <item>试试 AI 提示词：专业头像照，柔光，干净背景。</item>
+        <item>试试 AI 提示词：电影感人像，黄金时刻，虚化背景。</item>
+        <item>试试 AI 提示词：街拍风格，黑白，城市环境。</item>
+        <item>试试 AI 提示词：时尚摄影，戏剧光，棚拍布光。</item>
+    </string-array>
+
+</resources>

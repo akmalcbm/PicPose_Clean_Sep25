@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="favorites_count">
+        <item quantity="one">%1$d favorit</item>
+        <item quantity="other">%1$d favorit</item>
+    </plurals>
+</resources>

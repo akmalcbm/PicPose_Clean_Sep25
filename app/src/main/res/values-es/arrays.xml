@@ -1,0 +1,30 @@
+<resources>
+    <string-array name="ai_bio_suggestions">
+        <item>Fotógrafo que explora retratos creativos y luz cinematográfica.</item>
+        <item>Amante de los prompts de IA, compartiendo ideas para generar mejores imágenes.</item>
+        <item>Narrador visual inspirado por la fotografía urbana, la naturaleza y el estudio.</item>
+        <item>Cada día prueba composición, luz y color.</item>
+        <item>Crea prompts prácticos para creadores y amantes de la fotografía.</item>
+    </string-array>
+
+    <string-array name="profile_fallback_bios">
+        <item>Aficionado a la fotografía creativa.</item>
+        <item>Explorando a diario prompts de IA y consejos de cámara.</item>
+        <item>Convierte ideas en imágenes con luz y composición.</item>
+    </string-array>
+
+    <string-array name="photography_tips_fallback">
+        <item>Usa descripciones más específicas en tus prompts para mejores resultados de IA.</item>
+        <item>La hora dorada ofrece la luz natural más suave y favorecedora.</item>
+        <item>En retratos, enfoca los ojos.</item>
+        <item>Usa líneas guía para dirigir la mirada.</item>
+        <item>Prueba diferentes ángulos y perspectivas.</item>
+        <item>Aprende a usar el espacio negativo de forma efectiva.</item>
+        <item>Domina los ajustes manuales de la cámara para mayor control creativo.</item>
+        <item>Practica contar historias con tus imágenes.</item>
+        <item>Prueba un prompt de IA: foto de perfil profesional, luz suave, fondo limpio.</item>
+        <item>Prueba un prompt de IA: retrato cinematográfico, hora dorada, fondo desenfocado.</item>
+        <item>Prueba un prompt de IA: estilo callejero, blanco y negro, entorno urbano.</item>
+        <item>Prueba un prompt de IA: fotografía de moda, luz dramática, iluminación de estudio.</item>
+    </string-array>
+</resources>

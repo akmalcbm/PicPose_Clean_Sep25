@@ -69,7 +69,8 @@ class MainActivity : AppCompatActivity() {
             var isApplyingLocale by remember { mutableStateOf(false) }
             LaunchedEffect(language) {
                 val current = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-                if (!isApplyingLocale && language.isNotBlank() && current != language) {
+                val target = AppLocaleManager.resolveLanguageTags(language)
+                if (!isApplyingLocale && language.isNotBlank() && current != target) {
                     isApplyingLocale = true
                     AppLocaleManager.applyLanguage(language)
                     // Recreate so resources reload immediately.

@@ -125,7 +125,7 @@ fun AnimatedWelcomeHeader() {
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 ),
-                                maxLines = 1
+                                maxLines = 2
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
