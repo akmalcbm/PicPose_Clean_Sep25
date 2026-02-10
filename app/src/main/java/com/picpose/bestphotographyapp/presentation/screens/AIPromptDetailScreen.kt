@@ -549,21 +549,21 @@ fun AIPromptDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp), //from outer most left and right padding
+                                    .padding(horizontal = 12.dp), //from outer most left and right padding
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                             ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
+                                Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
                                         text = promptData.title,
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold
                                     )
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(16.dp))
 
                                     if (!promptData.shortPrompt.isNullOrBlank()) {
                                         Text(
@@ -586,8 +586,8 @@ fun AIPromptDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp), //from outer most left and right padding
-                                shape = RoundedCornerShape(16.dp),
+                                    .padding(horizontal = 12.dp), //from outer most left and right padding
+                                shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
@@ -839,14 +839,14 @@ fun AIPromptDetailScreen(
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
+                                        .padding(horizontal = 12.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surface
                                     ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
                                             text = stringResource(R.string.tags_with_emoji),
                                             style = MaterialTheme.typography.titleMedium,

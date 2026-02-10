@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -101,6 +102,7 @@ fun TrendingFeaturedAndPopularRow(
             LazyRow(
                 modifier = Modifier.padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
 
@@ -125,14 +127,28 @@ fun TrendingFeaturedAndPopularRow(
                     }
 
                     item {
-                        EnhancedViewAllCard(
-                            title = tab,
-                            onClick = { onViewAllClick(tab) }
-                        )
+                        CenteredLazyRowItem {
+                            EnhancedViewAllCard(
+                                title = tab,
+                                onClick = { onViewAllClick(tab) }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LazyItemScope.CenteredLazyRowItem(
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = Modifier.fillParentMaxHeight(),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 
