@@ -586,7 +586,7 @@ class HomeRepository(
                         flattenCategories(wrapper.data)
 
                         val categories = flatList.map { it.toCategory() }
-                        Log.d(TAG, "getCategories: loaded ${categories.size} categories from server")
+                        //Log.d(TAG, "getCategories: loaded ${categories.size} categories from server")
                         emit(Result.success(categories))
                     } else {
                         Log.w(TAG, "getCategories: empty or invalid response")
