@@ -1,29 +1,31 @@
 package com.picpose.bestphotographyapp.presentation.components.home
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.Post
+import com.google.android.gms.ads.nativead.NativeAd
+import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
+import com.picpose.bestphotographyapp.presentation.ads.AdsLog
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
@@ -39,6 +41,8 @@ fun ViewAllPromptsScreen(
     aiPromptViewModel: AIPromptViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val localEngagementStates by aiPromptViewModel.localEngagementStates.collectAsState()
+    val adsConfigState by AdsManager.configState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val categoryDisplayName = when (categoryType) {
@@ -82,6 +86,93 @@ fun ViewAllPromptsScreen(
                 CircularProgressIndicator()
             }
         } else {
+            val adFrequency = 5
+            val adSlotIndices by remember(posts.size) {
+                derivedStateOf {
+                    buildList {
+                        var i = adFrequency
+                        while (i < posts.size) {
+                            add(i)
+                            i += adFrequency
+                        }
+                    }
+                }
+            }
+            val adStates = remember { mutableStateMapOf<Int, NativeAdUiState>() }
+            val adControllers = remember { mutableStateMapOf<Int, NativeAdController>() }
+            val rows by remember(posts, adStates) {
+                derivedStateOf {
+                    buildList<ViewAllRow> {
+                        posts.forEachIndexed { index, post ->
+                            if (index > 0 && index % adFrequency == 0) {
+                                val state = adStates[index]
+                                if (state is NativeAdUiState.Loaded) {
+                                    add(ViewAllRow.AdRow(slotIndex = index, ad = state.ad))
+                                }
+                            }
+                            add(ViewAllRow.PostRow(post = post, index = index))
+                        }
+                    }
+                }
+            }
+
+            LaunchedEffect(adsConfigState, adSlotIndices) {
+                if (adsConfigState !is AdsConfigState.Ready) return@LaunchedEffect
+
+                if (!AdsManager.canShowAds()) {
+                    adSlotIndices.forEach { slot ->
+                        adStates[slot] = NativeAdUiState.Disabled
+                    }
+                    AdsLog.i(
+                        AdsLog.TAG_UI,
+                        "[AdsUI] screen=ViewAllPrompts placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                    )
+                    return@LaunchedEffect
+                }
+
+                adSlotIndices.forEach { slot ->
+                    if (adStates[slot] is NativeAdUiState.Loaded || adStates[slot] is NativeAdUiState.Loading) {
+                        return@forEach
+                    }
+                    adStates[slot] = NativeAdUiState.Loading
+                    val controller = adControllers.getOrPut(slot) {
+                        NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD)
+                    }
+                    controller.load(
+                        context = context,
+                        callbacks = object : NativeAdController.Callbacks {
+                            override fun onLoaded(ad: com.google.android.gms.ads.nativead.NativeAd) {
+                                adStates[slot] = NativeAdUiState.Loaded(ad)
+                            }
+
+                            override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
+                                adStates[slot] = NativeAdUiState.Failed
+                                AdsLog.w(
+                                    AdsLog.TAG_UI,
+                                    "[AdsUI] screen=ViewAllPrompts placement=${AdsManager.KEY_NATIVE_AD} slot=$slot action=failed domain=${error.domain} code=${error.code} message=${error.message}"
+                                )
+                            }
+
+                            override fun onUnavailable(reason: String) {
+                                adStates[slot] = if (reason == "ADS_DISABLED") {
+                                    NativeAdUiState.Disabled
+                                } else {
+                                    NativeAdUiState.Failed
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            DisposableEffect(Unit) {
+                onDispose {
+                    adControllers.values.forEach { it.clear() }
+                    adControllers.clear()
+                    adStates.clear()
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -94,43 +185,63 @@ fun ViewAllPromptsScreen(
                     bottom = 24.dp
                 )
             ) {
-                itemsIndexed(posts) { index: Int, post: Post ->
-                    if (index > 0 && index % 5 == 0) {
-                        NativeAdPlaceholder()
+                items(
+                    items = rows,
+                    key = { row ->
+                        when (row) {
+                            is ViewAllRow.AdRow -> "inline_ad_${row.slotIndex}"
+                            is ViewAllRow.PostRow -> "post_${row.post.id}_${row.index}"
+                        }
                     }
+                ) { row ->
+                    when (row) {
+                        is ViewAllRow.AdRow -> {
+                            LargeNativeAdCard(
+                                nativeAd = row.ad,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            )
+                        }
 
-                    // 🔥 STEP 1: local engagement nikalo (agar ViewAll me nahi hai to null pass karo)
-                    val local: EngagementEntity? =
-                        aiPromptViewModel.localEngagementStates.collectAsState().value[post.id]
+                        is ViewAllRow.PostRow -> {
+                            val post = row.post
+                            val local: EngagementEntity? = localEngagementStates[post.id]
 
-                    // 🔥 STEP 2: AIPromptCard ko pass karo
-                    AIPromptCard(
-                        prompt = post.toAIPrompt(),
-                        localEngagement = local, // ✅ REQUIRED PARAMETER
-                        onClick = { onPromptClick(post.id) },
-                        onCopy = {
-                            Toast.makeText(context, context.getString(R.string.prompt_copied_toast), Toast.LENGTH_SHORT).show()
-                        },
-
-                        // 👍 LIKE
-                        onLikeClick = { id ->
-                            aiPromptViewModel.onLikeClicked(post.toAIPrompt())
-                        },
-
-                        // ⭐ FAVORITE
-                        onFavoriteClick = { id ->
-                            aiPromptViewModel.onFavoriteClicked(post.toAIPrompt())
-                        },
-
-                        showFavoriteIcon = true,
-                        isCompact = false
-                    )
-
-
+                            AIPromptCard(
+                                prompt = post.toAIPrompt(),
+                                localEngagement = local,
+                                onClick = { onPromptClick(post.id) },
+                                onCopy = {
+                                    Toast.makeText(context, context.getString(R.string.prompt_copied_toast), Toast.LENGTH_SHORT).show()
+                                },
+                                onLikeClick = {
+                                    aiPromptViewModel.onLikeClicked(post.toAIPrompt())
+                                },
+                                onFavoriteClick = {
+                                    aiPromptViewModel.onFavoriteClicked(post.toAIPrompt())
+                                },
+                                showFavoriteIcon = true,
+                                isCompact = false
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+private sealed interface ViewAllRow {
+    data class PostRow(
+        val post: Post,
+        val index: Int
+    ) : ViewAllRow
+
+    data class AdRow(
+        val slotIndex: Int,
+        val ad: NativeAd
+    ) : ViewAllRow
 }
 
 /** 🔄 Convert Post → AIPrompt for reuse in AIPromptCard */
@@ -148,17 +259,3 @@ private fun Post.toAIPrompt(): AIPrompt = AIPrompt(
     isPopular   = this.isPopular,
     isFeatured  = this.isFeatured
 )
-
-@Composable
-fun NativeAdPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.LightGray.copy(alpha = 0.3f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(stringResource(R.string.ad_placeholder), color = Color.Gray)
-    }
-}
