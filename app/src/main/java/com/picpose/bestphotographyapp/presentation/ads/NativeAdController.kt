@@ -24,6 +24,7 @@ class NativeAdController(
     interface Callbacks {
         fun onLoaded(ad: NativeAd) {}
         fun onFailed(error: LoadAdError) {}
+        fun onUnavailable(reason: String) {}
         fun onImpression() {}
     }
 
@@ -42,13 +43,16 @@ class NativeAdController(
         }
 
         if (!AdsManager.canShowAds() || !AdsManager.shouldShowNow(placementKey)) {
-            AdsLog.i(logTag, "[AdMobNative] placement=$placementKey action=load status=SKIP reason=gate")
+            val reason = if (!AdsManager.canShowAds()) "ADS_DISABLED" else "FREQUENCY_BLOCK"
+            AdsLog.i(logTag, "[AdMobNative] placement=$placementKey action=load status=SKIP reason=$reason")
+            callbacks?.onUnavailable(reason)
             return
         }
 
         val adUnitId = AdsManager.getAdUnitId(placementKey)
         if (adUnitId.isNullOrBlank()) {
             AdsLog.w(logTag, "[AdMobNative] placement=$placementKey action=load status=SKIP reason=no_unit")
+            callbacks?.onUnavailable("NO_UNIT")
             return
         }
 

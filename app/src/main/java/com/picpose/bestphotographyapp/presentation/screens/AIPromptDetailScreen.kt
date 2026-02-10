@@ -127,6 +127,7 @@ import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.InterstitialAdController
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.core.utils.ShareUtils
@@ -200,47 +201,86 @@ fun AIPromptDetailScreen(
         interstitialController.preload(context)
     }
 
-    // Native Ad (single instance)
-    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    // Native Ad (loaded-only rendering; no reserved space on fail/disabled)
+    var nativeAdState by remember { mutableStateOf<NativeAdUiState>(NativeAdUiState.Disabled) }
     val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }
-    DisposableEffect(adsConfigState) {
-        if (adsConfigState is AdsConfigState.Loading) {
-            AdsLog.d(
-                AdsLog.TAG_UI,
-                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
-            )
-            onDispose { }
-        } else {
-            val canShowAds = AdsManager.canShowAds()
-            AdsLog.i(
-                AdsLog.TAG_UI,
-                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
-            )
-            if (canShowAds) {
-                nativeAdController.load(context = context, callbacks = object : NativeAdController.Callbacks {
-                    override fun onLoaded(ad: NativeAd) {
-                        AdsLog.i(
-                            AdsLog.TAG_UI,
-                            "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
-                        )
-                        nativeAd = ad
-                    }
-                })
-            } else {
-                AdsLog.i(
-                    AdsLog.TAG_UI,
-                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
-                )
-            }
-            onDispose {
+    LaunchedEffect(adsConfigState) {
+        when (adsConfigState) {
+            is AdsConfigState.Loading -> {
                 AdsLog.d(
                     AdsLog.TAG_UI,
-                    "[AdsUI] screen=AIPromptDetailScreen action=dispose_ads"
+                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
                 )
-                interstitialController.clear()
-                nativeAdController.clear()
-                nativeAd = null
             }
+
+            is AdsConfigState.Error -> {
+                nativeAdState = NativeAdUiState.Failed
+                AdsLog.w(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=CONFIG_ERROR"
+                )
+            }
+
+            is AdsConfigState.Ready -> {
+                val canShowAds = AdsManager.canShowAds()
+                AdsLog.i(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
+                )
+                if (!canShowAds) {
+                    nativeAdState = NativeAdUiState.Disabled
+                    AdsLog.i(
+                        AdsLog.TAG_UI,
+                        "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                    )
+                    return@LaunchedEffect
+                }
+
+                nativeAdState = NativeAdUiState.Loading
+                nativeAdController.load(
+                    context = context,
+                    callbacks = object : NativeAdController.Callbacks {
+                        override fun onLoaded(ad: NativeAd) {
+                            AdsLog.i(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
+                            )
+                            nativeAdState = NativeAdUiState.Loaded(ad)
+                        }
+
+                        override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
+                            AdsLog.w(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=failed domain=${error.domain} code=${error.code} message=${error.message}"
+                            )
+                            nativeAdState = NativeAdUiState.Failed
+                        }
+
+                        override fun onUnavailable(reason: String) {
+                            AdsLog.i(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=unavailable reason=$reason"
+                            )
+                            nativeAdState = if (reason == "ADS_DISABLED") {
+                                NativeAdUiState.Disabled
+                            } else {
+                                NativeAdUiState.Failed
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            AdsLog.d(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=AIPromptDetailScreen action=dispose_ads"
+            )
+            interstitialController.clear()
+            nativeAdController.clear()
+            nativeAdState = NativeAdUiState.Disabled
         }
     }
 
@@ -648,16 +688,12 @@ fun AIPromptDetailScreen(
                                         }
 
 
-                                        // 📢 One-Time Large Native Ad with Shimmer Placeholder
-                                        if (nativeAd == null) {
-                                            // ⏳ Shimmer while ad loads
-                                            LargeAdShimmerPlaceholder()
-                                        } else {
-                                            // 🎉 Real Large Ad
+                                        // Native Ad renders only when loaded; no placeholder/space on failure.
+                                        if (nativeAdState is NativeAdUiState.Loaded) {
+                                            val loaded = nativeAdState as NativeAdUiState.Loaded
                                             LargeNativeAdCard(
-                                                nativeAd = nativeAd,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
+                                                nativeAd = loaded.ad,
+                                                modifier = Modifier.fillMaxWidth()
                                             )
                                         }
 

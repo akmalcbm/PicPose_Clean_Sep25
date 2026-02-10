@@ -54,6 +54,7 @@ import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
 import com.picpose.bestphotographyapp.R
@@ -136,48 +137,87 @@ fun HomeScreen(
         }
     }
 
-    // Native Ad (single instance)
-    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    // Native Ad (single instance with explicit UI state)
+    var nativeAdState by remember { mutableStateOf<NativeAdUiState>(NativeAdUiState.Disabled) }
     val adsConfigState by AdsManager.configState.collectAsState()
     val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }
-    DisposableEffect(adsConfigState) {
-        if (adsConfigState is AdsConfigState.Loading) {
-            AdsLog.d(
-                AdsLog.TAG_UI,
-                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
-            )
-            onDispose { }
-        } else {
-            val canShowAds = AdsManager.canShowAds()
-            AdsLog.i(
-                AdsLog.TAG_UI,
-                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
-            )
-            if (canShowAds) {
-                nativeAdController.load(context = context, forceReload = false,
+    LaunchedEffect(adsConfigState) {
+        when (adsConfigState) {
+            is AdsConfigState.Loading -> {
+                AdsLog.d(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
+                )
+            }
+
+            is AdsConfigState.Error -> {
+                nativeAdState = NativeAdUiState.Failed
+                AdsLog.w(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=CONFIG_ERROR"
+                )
+            }
+
+            is AdsConfigState.Ready -> {
+                val canShowAds = AdsManager.canShowAds()
+                AdsLog.i(
+                    AdsLog.TAG_UI,
+                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
+                )
+                if (!canShowAds) {
+                    nativeAdState = NativeAdUiState.Disabled
+                    AdsLog.i(
+                        AdsLog.TAG_UI,
+                        "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                    )
+                    return@LaunchedEffect
+                }
+
+                nativeAdState = NativeAdUiState.Loading
+                nativeAdController.load(
+                    context = context,
+                    forceReload = false,
                     callbacks = object : NativeAdController.Callbacks {
                         override fun onLoaded(ad: NativeAd) {
                             AdsLog.i(
                                 AdsLog.TAG_UI,
                                 "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
                             )
-                            nativeAd = ad
+                            nativeAdState = NativeAdUiState.Loaded(ad)
                         }
-                    })
-            } else {
-                AdsLog.i(
-                    AdsLog.TAG_UI,
-                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+
+                        override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
+                            AdsLog.w(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=failed domain=${error.domain} code=${error.code} message=${error.message}"
+                            )
+                            nativeAdState = NativeAdUiState.Failed
+                        }
+
+                        override fun onUnavailable(reason: String) {
+                            AdsLog.i(
+                                AdsLog.TAG_UI,
+                                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=unavailable reason=$reason"
+                            )
+                            nativeAdState = if (reason == "ADS_DISABLED") {
+                                NativeAdUiState.Disabled
+                            } else {
+                                NativeAdUiState.Failed
+                            }
+                        }
+                    }
                 )
             }
-            onDispose {
-                AdsLog.d(
-                    AdsLog.TAG_UI,
-                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=dispose"
-                )
-                nativeAdController.clear()
-                nativeAd = null
-            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            AdsLog.d(
+                AdsLog.TAG_UI,
+                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=dispose"
+            )
+            nativeAdController.clear()
+            nativeAdState = NativeAdUiState.Disabled
         }
     }
 
@@ -352,26 +392,34 @@ fun HomeScreen(
                         )
                     }*/
 
-                    item {
-                        LaunchedEffect(nativeAd != null) {
-                            AdsLog.i(
-                                AdsLog.TAG_UI,
-                                "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=render hasAd=${nativeAd != null}"
-                            )
-                        }
-                        // 📢 One-Time Large Native Ad with Shimmer Placeholder
-                        if (nativeAd == null) {
-                            // ⏳ Shimmer while ad loads
+                    when (val state = nativeAdState) {
+                        is NativeAdUiState.Loading -> item {
+                            LaunchedEffect(Unit) {
+                                AdsLog.i(
+                                    AdsLog.TAG_UI,
+                                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=render state=Loading"
+                                )
+                            }
                             LargeAdShimmerPlaceholder()
-                        } else {
-                            // 🎉 Real Large Ad
+                        }
+
+                        is NativeAdUiState.Loaded -> item {
+                            LaunchedEffect(Unit) {
+                                AdsLog.i(
+                                    AdsLog.TAG_UI,
+                                    "[AdsUI] screen=HomeScreen placement=${AdsManager.KEY_NATIVE_AD} action=render state=Loaded"
+                                )
+                            }
                             LargeNativeAdCard(
-                                nativeAd = nativeAd,
+                                nativeAd = state.ad,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                             )
                         }
+
+                        NativeAdUiState.Failed,
+                        NativeAdUiState.Disabled -> Unit
                     }
 
                     // Categories
