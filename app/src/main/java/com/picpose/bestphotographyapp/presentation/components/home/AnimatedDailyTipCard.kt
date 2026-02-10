@@ -14,8 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
 
@@ -77,7 +80,7 @@ fun AnimatedDailyTipCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            //Spacer(modifier = Modifier.height(8.dp))
 
             // 🔹 Animated tip text with fade + slide
             AnimatedContent(
@@ -88,13 +91,34 @@ fun AnimatedDailyTipCard(
                 },
                 label = "TipTransition"
             ) { displayedTip ->
+                val annotatedText = buildAnnotatedString {
+                    val parts = displayedTip.split(":", limit = 2)
+
+                    // Bold heading (before :)
+                    withStyle(
+                        style = SpanStyle(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) {
+                        append(parts[0])
+                        append(":")
+                    }
+
+                    // Normal text (after :)
+                    if (parts.size > 1) {
+                        append("\n")
+                        append(parts[1].trim())
+                    }
+                }
+
                 Text(
-                    text = displayedTip,
+                    text = annotatedText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 3,
                     textAlign = TextAlign.Start
                 )
+
             }
 
             // 🔹 Read more / Show less control (only for long tips)
@@ -118,7 +142,7 @@ fun AnimatedDailyTipCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 🔹 Hint to user for interactivity
             Text(
