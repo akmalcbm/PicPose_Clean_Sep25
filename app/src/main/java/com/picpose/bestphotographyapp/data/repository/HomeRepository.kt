@@ -423,20 +423,20 @@ class HomeRepository(
             onSuccess = { wrapper ->
                 try {
                     val dtos = wrapper.data ?: emptyList()
-                    Log.d(TAG, "getGuidePosts: received ${dtos.size} DTOs from API")
-                    Log.d(TAG, "getGuidePosts: first DTO sample: ${dtos.firstOrNull()}")
+                    //Log.d(TAG, "getGuidePosts: received ${dtos.size} DTOs from API")
+                    //Log.d(TAG, "getGuidePosts: first DTO sample: ${dtos.firstOrNull()}")
 
                     val guidePosts = dtos.mapNotNull { dto ->
                         try {
                             val guidePost = dto.toGuidePost("https://picpose.iamakmal.in/")
-                            Log.d(TAG, "getGuidePosts: mapped DTO id=${dto.id} to GuidePost id=${guidePost.id}")
+                            //Log.d(TAG, "getGuidePosts: mapped DTO id=${dto.id} to GuidePost id=${guidePost.id}")
                             guidePost
                         } catch (e: Exception) {
                             Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
                             null
                         }
                     }
-                    Log.d(TAG, "getGuidePosts: successfully mapped ${guidePosts.size} guide posts")
+                    //Log.d(TAG, "getGuidePosts: successfully mapped ${guidePosts.size} guide posts")
 
                     // Try to extract meta if present (wrapper may have page/limit/total) - build best-effort MetaDto
                     val meta = try {
@@ -457,7 +457,7 @@ class HomeRepository(
 
                     emit(Result.success(PaginatedResult(items = guidePosts, meta = meta)))
                 } catch (e: Exception) {
-                    Log.e(TAG, "getGuidePosts: exception during mapping: ${e.message}")
+                    //Log.e(TAG, "getGuidePosts: exception during mapping: ${e.message}")
                     emit(Result.failure(e))
                 }
             },
@@ -507,7 +507,7 @@ class HomeRepository(
             apiResult.fold(
                 onSuccess = { response ->
                     if (response.success) {
-                        Log.d(TAG, "App settings fetched successfully from API")
+                        //Log.d(TAG, "App settings fetched successfully from API")
                         // Save to cache
                         withContext(Dispatchers.IO) {
                             appSettingsCache.saveSettings(response.data)
@@ -562,7 +562,7 @@ class HomeRepository(
      */
     suspend fun getCategories(): Flow<Result<List<Category>>> = flow {
         try {
-            Log.d(TAG, "getCategories: fetching from API...")
+            //Log.d(TAG, "getCategories: fetching from API...")
 
             val apiResult: Result<ApiResponse<List<CategoryDto>>> = safeApiCall {
                 callWithRetries {
