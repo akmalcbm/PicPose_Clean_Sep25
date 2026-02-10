@@ -640,7 +640,7 @@ class HomeRepository(
     suspend fun getLatestRecent5AiPosts(
         limit: Int = 5
     ): Flow<Result<List<AIPrompt>>> = flow {
-        Log.d(TAG, "getLatestRecent5AiPosts: fetching latest $limit posts")
+        //Log.d(TAG, "getLatestRecent5AiPosts: fetching latest $limit posts")
 
         val result: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
             callWithRetries {
@@ -736,7 +736,7 @@ class HomeRepository(
         limit: Int = 20,
         offset: Int = 0
     ): Flow<Result<List<AIPrompt>>> = flow {
-        Log.d(TAG, "getFeaturedAiPosts: fetching featured posts (is_featured = 1)")
+        //Log.d(TAG, "getFeaturedAiPosts: fetching featured posts (is_featured = 1)")
 
         val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
             callWithRetries {
@@ -773,7 +773,7 @@ class HomeRepository(
         limit: Int = 20,
         offset: Int = 0
     ): Flow<Result<List<AIPrompt>>> = flow {
-        Log.d(TAG, "getPopularAiPosts: fetching admin marked popular posts (is_popular = 1)")
+        //Log.d(TAG, "getPopularAiPosts: fetching admin marked popular posts (is_popular = 1)")
 
         val apiResult: Result<ApiResponse<List<AIPrompt>>> = safeApiCall {
             callWithRetries {
