@@ -1,9 +1,11 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,11 +32,17 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.models.GuideContentBlock
+import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
 import com.picpose.bestphotographyapp.presentation.viewmodels.GuidePostViewModel
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.picpose.bestphotographyapp.core.utils.setText
+
+private fun fullGuideImageUrl(path: String?): String? {
+    return MediaUrlResolver.resolve(path)
+}
 
 @Suppress("UNUSED_VALUE")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,17 +61,14 @@ fun GuideDetailScreen(
 
     // Dialog state: show full image
     var showImageDialog by remember { mutableStateOf(false) }
+    var blockImageDialogUrl by remember { mutableStateOf<String?>(null) }
 
-    // Find guide post in current cache first
-    val guidePostData = remember(guidePostId, uiState.guidePosts) {
-        viewModel.findGuidePostById(guidePostId)
-    }
+    val guidePostData = uiState.selectedGuidePost
+        ?: remember(guidePostId, uiState.guidePosts) { viewModel.findGuidePostById(guidePostId) }
+    val renderedBlocks = uiState.blocks
 
-    // Load guide posts if not already loaded
-    LaunchedEffect(Unit) {
-        if (uiState.guidePosts.isEmpty()) {
-            viewModel.loadGuidePosts()
-        }
+    LaunchedEffect(guidePostId) {
+        viewModel.loadGuidePostById(guidePostId)
     }
 
     // Handle error state
@@ -99,7 +104,7 @@ fun GuideDetailScreen(
                     .clickable { showImageDialog = false }
             ) {
                 SubcomposeAsyncImage(
-                    model = guidePostData.imageUrl,
+                    model = fullGuideImageUrl(guidePostData.imageUrl),
                     contentDescription = guidePostData.title,
                     modifier = Modifier
                         .fillMaxSize()
@@ -151,6 +156,43 @@ fun GuideDetailScreen(
         }
     }
 
+    if (!blockImageDialogUrl.isNullOrBlank()) {
+        Dialog(onDismissRequest = { blockImageDialogUrl = null }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { blockImageDialogUrl = null }
+            ) {
+                SubcomposeAsyncImage(
+                    model = fullGuideImageUrl(blockImageDialogUrl),
+                    contentDescription = stringResource(R.string.full_screen_image),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
+                ) {
+                    when (painter.state) {
+                        is AsyncImagePainter.State.Loading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
+                        is AsyncImagePainter.State.Error -> {
+                            Icon(
+                                Icons.Default.BrokenImage,
+                                contentDescription = stringResource(R.string.image_load_error),
+                                tint = Color.White,
+                                modifier = Modifier.size(96.dp)
+                            )
+                        }
+                        else -> SubcomposeAsyncImageContent()
+                    }
+                }
+            }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // Top App Bar
         TopAppBar(
@@ -195,7 +237,7 @@ fun GuideDetailScreen(
                                     .clickable { showImageDialog = true }
                             ) {
                                 SubcomposeAsyncImage(
-                                    model = guidePostData.imageUrl,
+                                    model = fullGuideImageUrl(guidePostData.imageUrl),
                                     contentDescription = guidePostData.title,
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -273,25 +315,7 @@ fun GuideDetailScreen(
                                     // Share button
                                     IconButton(
                                         onClick = {
-                                            val shareText = buildString {
-                                                append(context.getString(R.string.share_guide_intro, guidePostData.title))
-                                                append("\n\n")
-                                                append(guidePostData.excerpt.ifEmpty { guidePostData.content.take(150) })
-                                                if (guidePostData.difficultyLevel.isNotEmpty()) {
-                                                    append("\n\n")
-                                                    append(context.getString(R.string.difficulty_with_value, guidePostData.difficultyLevel))
-                                                }
-                                                if (guidePostData.estimatedReadTime > 0) {
-                                                    append("\n")
-                                                    append(context.getString(R.string.read_time_with_minutes, guidePostData.estimatedReadTime))
-                                                }
-                                                append("\n\n")
-                                                append(context.getString(R.string.share_hashtag_guide))
-                                            }
-                                        coroutineScope.launch {
-                                            clipboard.setText(shareText, label = "guide")
-                                        }
-                                            Toast.makeText(context, context.getString(R.string.guide_details_copied_to_clipboard), Toast.LENGTH_SHORT).show()
+                                            viewModel.shareGuidePost(context, guidePostData)
                                         },
                                         modifier = Modifier
                                             .background(
@@ -331,6 +355,29 @@ fun GuideDetailScreen(
                                     )
 
                                     Spacer(modifier = Modifier.height(8.dp))
+
+                                    if (guidePostData.isFeatured) {
+                                        SuggestionChip(
+                                            onClick = { },
+                                            label = { Text(stringResource(R.string.featured)) }
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+
+                                    if (guidePostData.category.isNotBlank()) {
+                                        AssistChip(
+                                            onClick = { },
+                                            label = { Text(guidePostData.category) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Category,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
 
                                     // Meta info
                                     Row(
@@ -415,56 +462,45 @@ fun GuideDetailScreen(
                             }
                         }
 
-                        // Content Card
                         item {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Article,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.guide_content),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Article,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.guide_content),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.background,
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(modifier = Modifier.padding(16.dp)) {
-                                            Text(
-                                                text = guidePostData.content,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                lineHeight = 24.sp,
-                                                color = MaterialTheme.colorScheme.onBackground
-                                            )
+                        itemsIndexed(
+                            items = renderedBlocks,
+                            key = { idx, block -> "${idx}_${block::class.simpleName}" }
+                        ) { _, block ->
+                            GuideContentBlockItem(
+                                block = block,
+                                onImageClick = { blockImageDialogUrl = it },
+                                onVideoClick = { url ->
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.error))
                                         }
                                     }
-                                }
-                            }
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
                         }
 
                         // Tags (if available)
@@ -503,7 +539,7 @@ fun GuideDetailScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            guidePostData.tags.take(3).forEach { tag ->
+                                            guidePostData.tags.take(6).forEach { tag ->
                                                 SuggestionChip(
                                                     onClick = { },
                                                     label = { Text(tag) }
@@ -551,7 +587,11 @@ fun GuideDetailScreen(
                                     onClick = {
                                         val fullContent = buildString {
                                             append("${guidePostData.title}\n\n")
-                                            append(guidePostData.content)
+                                            if (renderedBlocks.isNotEmpty()) {
+                                                append(renderedBlocks.joinToString("\n\n") { it.plainText() })
+                                            } else {
+                                                append(guidePostData.content)
+                                            }
                                             append("\n\n")
                                             append(context.getString(R.string.share_hashtag_guide))
                                         }
@@ -615,4 +655,174 @@ fun GuideDetailScreen(
             )
         }
     }
+}
+
+@Composable
+private fun GuideContentBlockItem(
+    block: GuideContentBlock,
+    onImageClick: (String) -> Unit,
+    onVideoClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (block) {
+        is GuideContentBlock.Heading -> {
+            val textStyle = when (block.level) {
+                1 -> MaterialTheme.typography.headlineSmall
+                2 -> MaterialTheme.typography.titleLarge
+                else -> MaterialTheme.typography.titleMedium
+            }
+            Text(
+                text = block.text,
+                style = textStyle,
+                fontWeight = FontWeight.Bold,
+                modifier = modifier.padding(top = 8.dp, bottom = 4.dp)
+            )
+        }
+
+        is GuideContentBlock.Paragraph -> {
+            Text(
+                text = block.text,
+                style = MaterialTheme.typography.bodyLarge,
+                lineHeight = 24.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = modifier.padding(vertical = 6.dp)
+            )
+        }
+
+        is GuideContentBlock.Image -> {
+            Card(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clickable { onImageClick(block.url) },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column {
+                    SubcomposeAsyncImage(
+                        model = fullGuideImageUrl(block.url),
+                        contentDescription = block.alt ?: block.caption ?: "Guide image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        contentScale = ContentScale.Crop
+                    ) {
+                        when (painter.state) {
+                            is AsyncImagePainter.State.Loading -> Box(
+                                Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                            is AsyncImagePainter.State.Error -> Box(
+                                Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.BrokenImage,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            else -> SubcomposeAsyncImageContent()
+                        }
+                    }
+                    if (!block.caption.isNullOrBlank()) {
+                        Text(
+                            text = block.caption,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        is GuideContentBlock.Video -> {
+            Card(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onVideoClick(block.url) }
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.PlayCircle, contentDescription = null)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = block.caption ?: "Open video",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "Provider: ${block.provider}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        is GuideContentBlock.Callout -> {
+            Card(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = block.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = block.text, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        is GuideContentBlock.OrderedList -> {
+            Column(modifier = modifier.padding(vertical = 6.dp)) {
+                block.items.forEachIndexed { index, item ->
+                    Text(
+                        text = "${index + 1}. $item",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        is GuideContentBlock.UnorderedList -> {
+            Column(modifier = modifier.padding(vertical = 6.dp)) {
+                block.items.forEach { item ->
+                    Text(
+                        text = "• $item",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        GuideContentBlock.Divider -> {
+            HorizontalDivider(modifier = modifier.padding(vertical = 8.dp))
+        }
+    }
+}
+
+private fun GuideContentBlock.plainText(): String = when (this) {
+    is GuideContentBlock.Heading -> text
+    is GuideContentBlock.Paragraph -> text
+    is GuideContentBlock.Image -> listOfNotNull(caption, url).joinToString(" ")
+    is GuideContentBlock.Video -> listOfNotNull(caption, url).joinToString(" ")
+    is GuideContentBlock.Callout -> "$title\n$text"
+    is GuideContentBlock.OrderedList -> items.joinToString("\n") { "- $it" }
+    is GuideContentBlock.UnorderedList -> items.joinToString("\n") { "- $it" }
+    GuideContentBlock.Divider -> ""
 }

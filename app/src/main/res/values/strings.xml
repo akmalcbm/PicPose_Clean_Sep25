@@ -248,6 +248,7 @@
     <string name="failed_to_load_app_settings">Failed to load app settings</string>
     <string name="failed_to_load_categories">Failed to load categories</string>
     <string name="failed_to_load_guide_posts">Failed to load guide posts</string>
+    <string name="no_guides_yet">No guides yet</string>
     <string name="failed_to_load_privacy_policy">Failed to load privacy policy</string>
     <string name="failed_to_load_prompts">Failed to load prompts</string>
     <string name="failed_to_load_terms_conditions">Failed to load terms conditions</string>

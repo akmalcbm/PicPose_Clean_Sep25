@@ -31,6 +31,11 @@ android {
             "API_KEY",
             "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
         )
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"https://picpose.iamakmal.in/\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -53,6 +58,11 @@ android {
                 "String",
                 "API_KEY",
                 "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+            )
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"https://picpose.iamakmal.in/\""
             )
         }
         debug {

@@ -403,62 +403,78 @@ class HomeRepository(
             return@flow
         }
 
-        // safeApiCall and callWithRetries helpers exist in this repo
-        val apiResult: Result<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>> = safeApiCall {
-            callWithRetries {
-                apiService.getGuidePosts(
-                    apiKey = requestApiKey,
-                    limit = limit,
-                    offset = (page - 1) * limit,
-                    page = page,
-                    q = search,
-                    featured = featured,
-                    popular = popular,
-                    status = status
-                )
+        fun mapResult(
+            wrapper: com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>,
+            requestPage: Int,
+            requestLimit: Int
+        ): Result<PaginatedResult<com.picpose.bestphotographyapp.data.models.GuidePost>> {
+            return try {
+                val dtos = wrapper.data ?: emptyList()
+                val guidePosts = dtos.mapNotNull { dto ->
+                    try {
+                        dto.toGuidePost("https://picpose.iamakmal.in/")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
+                        null
+                    }
+                }
+
+                val meta = try {
+                    val wrapperClass = wrapper::class.java
+                    val p = try { wrapperClass.getDeclaredField("page").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                    val l = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                    val t = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
+                    if (p != null || l != null || t != null) {
+                        com.picpose.bestphotographyapp.data.models.MetaDto(
+                            total = t ?: guidePosts.size,
+                            page = p ?: requestPage,
+                            limit = l ?: requestLimit,
+                            hasMore = ((p ?: requestPage) * (l ?: requestLimit)) < (t ?: guidePosts.size)
+                        )
+                    } else null
+                } catch (_: Throwable) { null }
+
+                Result.success(PaginatedResult(items = guidePosts, meta = meta))
+            } catch (e: Exception) {
+                Result.failure(e)
             }
         }
 
-        apiResult.fold(
+        suspend fun requestGuides(statusValue: String?): Result<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>> {
+            return safeApiCall {
+                callWithRetries {
+                    apiService.getGuidePosts(
+                        apiKey = requestApiKey,
+                        limit = limit,
+                        offset = (page - 1) * limit,
+                        page = page,
+                        q = search,
+                        featured = featured,
+                        popular = popular,
+                        status = statusValue
+                    )
+                }
+            }
+        }
+
+        val primary = requestGuides(status)
+        primary.fold(
             onSuccess = { wrapper ->
-                try {
-                    val dtos = wrapper.data ?: emptyList()
-                    //Log.d(TAG, "getGuidePosts: received ${dtos.size} DTOs from API")
-                    //Log.d(TAG, "getGuidePosts: first DTO sample: ${dtos.firstOrNull()}")
-
-                    val guidePosts = dtos.mapNotNull { dto ->
-                        try {
-                            val guidePost = dto.toGuidePost("https://picpose.iamakmal.in/")
-                            //Log.d(TAG, "getGuidePosts: mapped DTO id=${dto.id} to GuidePost id=${guidePost.id}")
-                            guidePost
-                        } catch (e: Exception) {
-                            Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
-                            null
+                val mapped = mapResult(wrapper, page, limit)
+                val shouldFallbackToActive = status.equals("published", ignoreCase = true) &&
+                    (mapped.getOrNull()?.items.isNullOrEmpty())
+                if (shouldFallbackToActive) {
+                    val fallback = requestGuides("active")
+                    fallback.fold(
+                        onSuccess = { fallbackWrapper ->
+                            emit(mapResult(fallbackWrapper, page, limit))
+                        },
+                        onFailure = { fallbackErr ->
+                            emit(Result.failure(fallbackErr))
                         }
-                    }
-                    //Log.d(TAG, "getGuidePosts: successfully mapped ${guidePosts.size} guide posts")
-
-                    // Try to extract meta if present (wrapper may have page/limit/total) - build best-effort MetaDto
-                    val meta = try {
-                        // try wrapper.page/wrapper.limit/wrapper.total if present
-                        val wrapperClass = wrapper::class.java
-                        val p = try { wrapperClass.getDeclaredField("page").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-                        val l = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-                        val t = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
-                        if (p != null || l != null || t != null) {
-                            com.picpose.bestphotographyapp.data.models.MetaDto(
-                                total = t ?: guidePosts.size,
-                                page = p ?: page,
-                                limit = l ?: limit,
-                                hasMore = ((p ?: page) * (l ?: limit)) < (t ?: guidePosts.size)
-                            )
-                        } else null
-                    } catch (_: Throwable) { null }
-
-                    emit(Result.success(PaginatedResult(items = guidePosts, meta = meta)))
-                } catch (e: Exception) {
-                    //Log.e(TAG, "getGuidePosts: exception during mapping: ${e.message}")
-                    emit(Result.failure(e))
+                    )
+                } else {
+                    emit(mapped)
                 }
             },
             onFailure = { err ->
@@ -467,6 +483,24 @@ class HomeRepository(
             }
         )
     }.flowOn(kotlinx.coroutines.Dispatchers.IO)
+
+    suspend fun getGuidePostById(guidePostId: String): Flow<Result<com.picpose.bestphotographyapp.data.models.GuidePost>> = flow {
+        try {
+            val response = apiService.getGuidePostById(
+                guidePostId = guidePostId,
+                apiKey = requestApiKey
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dto = response.body()?.data ?: throw Exception("Guide post not found")
+                emit(Result.success(dto.toGuidePost("https://picpose.iamakmal.in/")))
+            } else {
+                emit(Result.failure(Exception(response.body()?.message ?: "Guide post not found")))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
 
 
     // -------------------------

@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
@@ -48,6 +49,8 @@ data class HomeUiState(
     val categories: List<Category> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
     val guidePosts: List<GuidePost> = emptyList(),
+    val isGuideLoading: Boolean = false,
+    val guideError: String? = null,
     val favoritePromptsCount: Int = 0,
     val dailyTips: List<DailyTip> = emptyList(),
     val error: String? = null,
@@ -483,29 +486,42 @@ class HomeViewModel @Inject constructor (
     /**
      * Load guide posts from repository
      */
-    fun loadGuidePosts(page: Int = 1, limit: Int = 10, featured: Boolean? = true, status: String? = "published") {
+    fun loadGuidePosts(page: Int = 1, limit: Int = 10, featured: Boolean? = null, status: String? = "published") {
         Log.d(TAG, "loadGuidePosts: starting with page=$page, limit=$limit, featured=$featured, status=$status")
-        viewModelScope.launch {
+        guidePostsJob?.cancel()
+        guidePostsJob = viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isGuideLoading = true, guideError = null)
             try {
-                val flow = repository.getGuidePosts(page = page, limit = limit, featured = featured, status = status)
-                flow.collect { result ->
-                    result.fold(
-                        onSuccess = { pag ->
-                            Log.d(TAG, "loadGuidePosts: received ${pag.items.size} guide posts")
-                            Log.d(TAG, "loadGuidePosts: guide posts titles: ${pag.items.map { it.title }}")
-                            // update ui state
-                            _uiState.value = _uiState.value.copy(guidePosts = pag.items)
-                            Log.d(TAG, "loadGuidePosts: UI state updated with ${_uiState.value.guidePosts.size} guide posts")
-                        },
-                        onFailure = { err ->
-                            Log.e(TAG, "loadGuidePosts: failed with error: ${err.message}")
-                            _uiState.value = _uiState.value.copy(error = err.message)
-                        }
-                    )
-                }
+                repository.getGuidePosts(page = page, limit = limit, featured = featured, status = status)
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { pag ->
+                                cachedGuidePosts = pag.items
+                                _uiState.value = _uiState.value.copy(
+                                    guidePosts = pag.items,
+                                    isGuideLoading = false,
+                                    guideError = null
+                                )
+                            },
+                            onFailure = { err ->
+                                Log.e(TAG, "loadGuidePosts: failed with error: ${err.message}")
+                                _uiState.value = _uiState.value.copy(
+                                    guidePosts = cachedGuidePosts ?: emptyList(),
+                                    isGuideLoading = false,
+                                    guideError = err.message ?: appContext.getString(R.string.failed_to_load_guide_posts)
+                                )
+                            }
+                        )
+                    }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadGuidePosts: exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    guidePosts = cachedGuidePosts ?: emptyList(),
+                    isGuideLoading = false,
+                    guideError = e.message ?: appContext.getString(R.string.failed_to_load_guide_posts)
+                )
             }
         }
     }
@@ -517,12 +533,18 @@ class HomeViewModel @Inject constructor (
         viewModelScope.launch {
             try {
                 val updated = _uiState.value.guidePosts.map { gp ->
-                    if (gp.id == guidePostId) gp.copy(likes = gp.likes + 1) else gp
+                    if (gp.id == guidePostId) {
+                        val nowLiked = !gp.isLiked
+                        gp.copy(
+                            likes = if (nowLiked) gp.likes + 1 else (gp.likes - 1).coerceAtLeast(0),
+                            isLiked = nowLiked
+                        )
+                    } else gp
                 }
                 _uiState.value = _uiState.value.copy(guidePosts = updated)
                 // Optional: call repository to persist server-side
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(guideError = e.message)
             }
         }
     }
@@ -532,27 +554,21 @@ class HomeViewModel @Inject constructor (
      */
     fun shareGuidePost(context: Context, guidePost: GuidePost) {
         try {
+            val guideLink = guidePost.imageUrl.takeIf { it.startsWith("http://") || it.startsWith("https://") }
             val shareText = buildString {
-                append(context.getString(R.string.share_guide_intro, guidePost.title))
-                append("\n\n")
-                append(guidePost.excerpt.ifEmpty { guidePost.content.take(150) })
-                if (guidePost.difficultyLevel.isNotEmpty()) {
-                    append("\n\n")
-                    append(context.getString(R.string.difficulty_with_value, guidePost.difficultyLevel))
-                }
-                if (guidePost.estimatedReadTime > 0) {
-                    append("\n")
-                    append(context.getString(R.string.read_time_with_minutes, guidePost.estimatedReadTime))
-                }
-                append("\n\n")
-                append(context.getString(R.string.share_hashtag_guide))
+                append(guidePost.title.ifBlank { context.getString(R.string.guide_posts) })
+                val body = guidePost.excerpt.ifBlank { guidePost.description.ifBlank { guidePost.content.take(180) } }
+                if (body.isNotBlank()) append("\n\n$body")
+                if (!guideLink.isNullOrBlank()) append("\n\n$guideLink")
+                append("\n\n#PicPose #Guide")
             }
 
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText(context.getString(R.string.shared_guide_post_label), shareText)
-            clipboard.setPrimaryClip(clip)
-
-            Toast.makeText(context, context.getString(R.string.guide_post_details_copied_to_clipboard), Toast.LENGTH_SHORT).show()
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, guidePost.title.ifBlank { context.getString(R.string.guide_posts) })
+                putExtra(Intent.EXTRA_TEXT, shareText)
+            }
+            context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share)))
 
             // Optional: analytics or server call to record share
             viewModelScope.launch {
@@ -562,7 +578,7 @@ class HomeViewModel @Inject constructor (
             }
         } catch (e: Exception) {
             Log.w(TAG, "shareGuidePost failed: ${e.message}")
-            _uiState.value = _uiState.value.copy(error = e.message)
+            _uiState.value = _uiState.value.copy(guideError = e.message)
         }
     }
 

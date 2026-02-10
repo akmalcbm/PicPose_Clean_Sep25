@@ -1,5 +1,7 @@
 package com.picpose.bestphotographyapp.data.remote
 
+import androidx.annotation.Keep
+
 /**
  * Generic wrapper for API responses of the form:
  * {
@@ -9,6 +11,7 @@ package com.picpose.bestphotographyapp.data.remote
  *   "data": [...]
  * }
  */
+@Keep
 data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,

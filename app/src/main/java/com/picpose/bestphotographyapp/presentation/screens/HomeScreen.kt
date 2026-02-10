@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -505,30 +506,116 @@ fun HomeScreen(
                     }
 
                     // Guides
-                    if (uiState.guidePosts.isNotEmpty()) {
-                        item {
-                            SectionHeader(
-                                title = stringResource(R.string.photography_guides_title),
-                                subtitle = stringResource(R.string.photography_guides_subtitle),
-                                icon = Icons.Default.Book,
-                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp)
+                    item {
+                        SectionHeader(
+                            title = stringResource(R.string.photography_guides_title),
+                            subtitle = stringResource(R.string.photography_guides_subtitle),
+                            icon = Icons.Default.Book,
+                            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp)
+                        )
+                    }
+
+                    when {
+                        uiState.isGuideLoading -> item {
+                            GuidesLoadingRow()
+                        }
+
+                        uiState.guideError != null -> item {
+                            GuideErrorCard(
+                                error = uiState.guideError.orEmpty(),
+                                onRetry = { viewModel.loadGuidePosts() }
                             )
                         }
 
-                        item {
+                        uiState.guidePosts.isNotEmpty() -> item {
                             GuidePostsRow(
                                 guidePosts = uiState.guidePosts,
                                 onGuidePostClick = onNavigateToGuidePostDetail,
                                 onLikeClick = { viewModel.toggleGuidePostLike(it.id) },
                                 onShareClick = { viewModel.shareGuidePost(context, it) }
-                                //modifier = Modifier.padding(horizontal = 16.dp)
                             )
+                        }
+
+                        else -> item {
+                            GuideEmptyCard()
                         }
                     }
 
                     //item { AdmobInterstitialTrigger() }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun GuidesLoadingRow() {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        items(3) {
+            Card(
+                modifier = Modifier
+                    .width(220.dp)
+                    .height(140.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuideErrorCard(
+    error: String,
+    onRetry: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = error.ifBlank { stringResource(R.string.failed_to_load_guide_posts) },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            TextButton(onClick = onRetry) {
+                Text(text = stringResource(R.string.retry))
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuideEmptyCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = stringResource(R.string.no_guides_yet),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.check_back_later_for_new_content),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

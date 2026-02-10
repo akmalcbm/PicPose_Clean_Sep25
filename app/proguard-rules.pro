@@ -258,6 +258,12 @@
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
+# Guide API models used by Gson in release
+-keep class com.picpose.bestphotographyapp.data.remote.ApiResponse { *; }
+-keep class com.picpose.bestphotographyapp.data.models.GuidePostDto { *; }
+-keep class com.picpose.bestphotographyapp.data.models.ContentBlockDto { *; }
+-keep class com.picpose.bestphotographyapp.data.models.MetaDto { *; }
+
 # Warning suppression for libraries
 -dontwarn org.jetbrains.annotations.**
 -dontwarn javax.annotation.**

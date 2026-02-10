@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,7 +23,7 @@ fun GuidePostsRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
-        items(guidePosts, key = { it.id }) { guidePost ->
+        itemsIndexed(guidePosts, key = { index, item -> "${item.id}_$index" }) { _, guidePost ->
             GuidePostCards(
                 guidePost = guidePost,
                 onGuidePostClick = { onGuidePostClick(guidePost) },

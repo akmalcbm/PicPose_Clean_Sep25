@@ -19,13 +19,10 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.GuidePost
+import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
 import com.picpose.bestphotographyapp.core.utils.formatNumber
 import com.picpose.bestphotographyapp.R
 import kotlin.math.max
-
-// Helper: server base used to build absolute image URLs when API returns relative paths.
-// Adjust if your server domain changes.
-private const val SERVER_BASE_URL = "https://picpose.iamakmal.in/"
 
 /**
  * Ensure image url is absolute so Coil can load it.
@@ -33,13 +30,7 @@ private const val SERVER_BASE_URL = "https://picpose.iamakmal.in/"
  * If empty or null, returns null (Coil will show placeholder if configured).
  */
 private fun fullImageUrl(path: String?): String? {
-    if (path == null) return null
-    val trimmed = path.trim()
-    if (trimmed.isEmpty()) return null
-    if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
-        return trimmed
-    }
-    return SERVER_BASE_URL.trimEnd('/') + "/" + trimmed.trimStart('/')
+    return MediaUrlResolver.resolve(path)
 }
 
 @Composable
