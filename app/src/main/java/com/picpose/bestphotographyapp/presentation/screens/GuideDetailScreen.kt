@@ -39,6 +39,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
 import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
+import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
@@ -202,6 +203,7 @@ fun GuideDetailScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val adsConfigState by AdsManager.configState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -234,7 +236,9 @@ fun GuideDetailScreen(
         viewModel.loadGuidePostById(guidePostId)
     }
 
-    LaunchedEffect(guidePostData?.id, inlineAdSlots) {
+    LaunchedEffect(guidePostData?.id, inlineAdSlots, adsConfigState) {
+        if (adsConfigState !is AdsConfigState.Ready) return@LaunchedEffect
+
         val slotKeys = inlineAdSlots.map { it.key }.toSet()
         adControllers.keys.toList().forEach { key ->
             if (key !in slotKeys) {
