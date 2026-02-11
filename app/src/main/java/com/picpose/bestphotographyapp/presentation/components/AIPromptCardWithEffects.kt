@@ -36,6 +36,9 @@ import com.picpose.bestphotographyapp.core.utils.getBookmarkIconState
 import com.picpose.bestphotographyapp.core.utils.getLikeIconState
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.presentation.components.home.premiumListCardBorder
+import com.picpose.bestphotographyapp.presentation.components.home.premiumListCardColors
+import com.picpose.bestphotographyapp.presentation.components.home.premiumListCardElevation
 import kotlinx.coroutines.launch
 
 @Composable
@@ -133,7 +136,9 @@ fun AIPromptCardWithEffects(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = premiumListCardElevation(),
+        colors = premiumListCardColors(),
+        border = premiumListCardBorder()
     ) {
         Column {
 

@@ -52,6 +52,8 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.GuidePost
+import com.picpose.bestphotographyapp.presentation.components.home.premiumListCardBorder
+import com.picpose.bestphotographyapp.presentation.components.home.premiumListCardColors
 
 @Composable
 fun GuidePostCard(
@@ -70,7 +72,8 @@ fun GuidePostCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 12.dp else 6.dp),
-        //colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = premiumListCardColors(),
+        border = premiumListCardBorder()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 
