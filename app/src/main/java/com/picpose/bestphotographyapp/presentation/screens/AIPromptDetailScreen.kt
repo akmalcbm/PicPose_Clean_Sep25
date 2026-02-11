@@ -26,6 +26,7 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
@@ -104,6 +105,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -366,7 +368,7 @@ fun AIPromptDetailScreen(
     }
 
     if (showImageDialog) {
-        effectivePrompt?.imageUrl?.let {
+        (effectivePrompt?.imageUrl ?: effectivePrompt?.imageUrl2)?.let {
             FullScreenImageDialog(imageUrl = it, onDismiss = { showImageDialog = false })
         }
     }
@@ -453,47 +455,24 @@ fun AIPromptDetailScreen(
                     ) {
                         // 🖼 Image Header
                         item {
+                            val headerImageUrl = promptData.imageUrl ?: promptData.imageUrl2
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(380.dp)
                             ) {
-                                SubcomposeAsyncImage(
-                                    model = promptData.imageUrl,
+                                AdaptivePromptHeaderImage(
+                                    imageUrl = headerImageUrl,
                                     contentDescription = promptData.title,
+                                    onClick = { showImageDialog = true },
                                     modifier = Modifier
-                                        .fillMaxSize()
+                                        .fillMaxWidth()
                                         .clip(
                                             RoundedCornerShape(
                                                 bottomStart = 16.dp,
                                                 bottomEnd = 16.dp
                                             )
                                         )
-                                        .clickable { showImageDialog = true },
-                                    contentScale = ContentScale.Crop
-                                ) {
-                                    when (painter.state) {
-                                        is AsyncImagePainter.State.Loading -> {
-                                            Box(
-                                                Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator()
-                                            }
-                                        }
-
-                                        is AsyncImagePainter.State.Error -> {
-                                            Icon(
-                                                Icons.Default.BrokenImage,
-                                                contentDescription = stringResource(R.string.image_load_error),
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(64.dp)
-                                            )
-                                        }
-
-                                        else -> SubcomposeAsyncImageContent()
-                                    }
-                                }
+                                )
 
                                 // subtle gradient bottom overlay
                                 Box(
@@ -1347,6 +1326,97 @@ private fun SimilarPromptCard(
 
 
 @Composable
+private fun AdaptivePromptHeaderImage(
+    imageUrl: String?,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val fallbackRatio = 16f / 9f
+    var imageRatio by remember(imageUrl) { mutableStateOf(fallbackRatio) }
+    val configuration = LocalConfiguration.current
+    val minHeight = 180.dp
+    val maxHeight = (configuration.screenHeightDp.dp * 0.5f).coerceAtLeast(300.dp)
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val containerHeight = (maxWidth / imageRatio).coerceIn(minHeight, maxHeight)
+        val headerModifier = Modifier
+            .fillMaxWidth()
+            .height(containerHeight)
+            .let { base ->
+                if (!imageUrl.isNullOrBlank()) base.clickable { onClick() } else base
+            }
+
+        if (imageUrl.isNullOrBlank()) {
+            Box(
+                modifier = headerModifier.background(
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.BrokenImage,
+                    contentDescription = stringResource(R.string.image_error),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(72.dp)
+                )
+            }
+        } else {
+            SubcomposeAsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
+                modifier = headerModifier,
+                contentScale = ContentScale.Crop
+            ) {
+                when (val state = painter.state) {
+                    is AsyncImagePainter.State.Loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    is AsyncImagePainter.State.Error -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.BrokenImage,
+                                contentDescription = stringResource(R.string.image_load_error),
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+                    }
+
+                    is AsyncImagePainter.State.Success -> {
+                        val drawable = state.result.drawable
+                        val w = drawable.intrinsicWidth
+                        val h = drawable.intrinsicHeight
+                        if (w > 0 && h > 0) {
+                            val nextRatio = (w.toFloat() / h.toFloat()).coerceIn(0.45f, 2.5f)
+                            if (kotlin.math.abs(nextRatio - imageRatio) > 0.01f) {
+                                imageRatio = nextRatio
+                            }
+                        }
+                        SubcomposeAsyncImageContent()
+                    }
+
+                    else -> SubcomposeAsyncImageContent()
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -1443,6 +1513,11 @@ private fun DetailLoadingPlaceholder(innerPadding: PaddingValues) {
             shape = RoundedCornerShape(8.dp)
         )
 
+    val configuration = LocalConfiguration.current
+    val minHeaderHeight = 180.dp
+    val maxHeaderHeight = (configuration.screenHeightDp.dp * 0.6f).coerceAtLeast(300.dp)
+    val fallbackRatio = 16f / 9f
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1452,14 +1527,17 @@ private fun DetailLoadingPlaceholder(innerPadding: PaddingValues) {
     ) {
         // Image area shimmer
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(380.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = shimmerAlpha)
-                    )
-            )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val headerHeight = (maxWidth / fallbackRatio).coerceIn(minHeaderHeight, maxHeaderHeight)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(headerHeight)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = shimmerAlpha)
+                        )
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
