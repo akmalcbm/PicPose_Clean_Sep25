@@ -73,6 +73,10 @@ fun GuideDetailScreen(
         viewModel.loadGuidePostById(guidePostId)
     }
 
+    LaunchedEffect(guidePostData?.id) {
+        guidePostData?.id?.let { viewModel.registerGuideView(it) }
+    }
+
     // Handle error state
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
@@ -422,7 +426,7 @@ fun GuideDetailScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "${guidePostData.views}",
+                                                    text = "${uiState.displayViews}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )

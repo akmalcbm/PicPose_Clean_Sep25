@@ -28,6 +28,7 @@ data class GuidePostUiState(
     val blocks: List<GuideContentBlock> = emptyList(),
     val isLiked: Boolean = false,
     val displayLikes: Int = 0,
+    val displayViews: Int = 0,
     val readMinutes: Int = 0,
     val error: String? = null,
     val isRefreshing: Boolean = false
@@ -39,6 +40,7 @@ class GuidePostViewModel @Inject constructor(
     private val guideLikeStore: GuideLikeStore,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
+    private val viewedInSession = mutableSetOf<String>()
 
     private val _uiState = MutableStateFlow(GuidePostUiState())
     val uiState: StateFlow<GuidePostUiState> = _uiState.asStateFlow()
@@ -66,6 +68,7 @@ class GuidePostViewModel @Inject constructor(
                                 blocks = emptyList(),
                                 isLiked = false,
                                 displayLikes = 0,
+                                displayViews = 0,
                                 readMinutes = 0,
                                 error = null
                             )
@@ -112,7 +115,10 @@ class GuidePostViewModel @Inject constructor(
                                 buildFallbackBlocks(post)
                             }
                             val localLiked = guideLikeStore.isLiked(post.id)
+                            val localViewCount = guideLikeStore.getLocalViewCount(post.id)
                             val displayLikes = (post.likes.coerceAtLeast(0) + if (localLiked) 1 else 0)
+                                .coerceAtLeast(0)
+                            val displayViews = (post.views.coerceAtLeast(0) + localViewCount.coerceAtLeast(0))
                                 .coerceAtLeast(0)
                             val readMinutes = estimateReadMinutes(
                                 buildReadableContent(post, renderedBlocks)
@@ -123,6 +129,7 @@ class GuidePostViewModel @Inject constructor(
                                 blocks = renderedBlocks,
                                 isLiked = localLiked,
                                 displayLikes = displayLikes,
+                                displayViews = displayViews,
                                 readMinutes = readMinutes,
                                 error = null,
                                 guidePosts = if (_uiState.value.guidePosts.any { it.id == post.id }) {
@@ -140,6 +147,7 @@ class GuidePostViewModel @Inject constructor(
                                 blocks = emptyList(),
                                 isLiked = false,
                                 displayLikes = 0,
+                                displayViews = 0,
                                 readMinutes = 0,
                                 error = exception.message ?: appContext.getString(R.string.guide_post_not_found)
                             )
@@ -152,6 +160,7 @@ class GuidePostViewModel @Inject constructor(
                     blocks = emptyList(),
                     isLiked = false,
                     displayLikes = 0,
+                    displayViews = 0,
                     readMinutes = 0,
                     error = e.message ?: appContext.getString(R.string.unexpected_error_occurred)
                 )
@@ -207,6 +216,28 @@ class GuidePostViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "toggleGuidePostLikeLocal: failed", e)
                 _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    fun registerGuideView(guidePostId: String) {
+        if (guidePostId.isBlank() || viewedInSession.contains(guidePostId)) return
+        viewModelScope.launch {
+            try {
+                val current = _uiState.value
+                val selected = current.selectedGuidePost ?: return@launch
+                if (selected.id != guidePostId) return@launch
+
+                viewedInSession.add(guidePostId)
+                val localViewCount = guideLikeStore.incrementViewCount(guidePostId)
+                val displayViews = (selected.views.coerceAtLeast(0) + localViewCount.coerceAtLeast(0))
+                    .coerceAtLeast(0)
+
+                _uiState.value = current.copy(
+                    displayViews = displayViews
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "registerGuideView: failed", e)
             }
         }
     }
