@@ -2,10 +2,12 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.Context
 import android.content.Intent
+import android.text.Html
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.datastore.GuideLikeStore
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
@@ -24,6 +26,9 @@ data class GuidePostUiState(
     val guidePosts: List<GuidePost> = emptyList(),
     val selectedGuidePost: GuidePost? = null,
     val blocks: List<GuideContentBlock> = emptyList(),
+    val isLiked: Boolean = false,
+    val displayLikes: Int = 0,
+    val readMinutes: Int = 0,
     val error: String? = null,
     val isRefreshing: Boolean = false
 )
@@ -31,6 +36,7 @@ data class GuidePostUiState(
 @HiltViewModel
 class GuidePostViewModel @Inject constructor(
     private val repository: HomeRepository,
+    private val guideLikeStore: GuideLikeStore,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -58,6 +64,9 @@ class GuidePostViewModel @Inject constructor(
                                 isLoading = false,
                                 guidePosts = pagination.items,
                                 blocks = emptyList(),
+                                isLiked = false,
+                                displayLikes = 0,
+                                readMinutes = 0,
                                 error = null
                             )
                         },
@@ -102,15 +111,26 @@ class GuidePostViewModel @Inject constructor(
                             } else {
                                 buildFallbackBlocks(post)
                             }
+                            val localLiked = guideLikeStore.isLiked(post.id)
+                            val displayLikes = (post.likes.coerceAtLeast(0) + if (localLiked) 1 else 0)
+                                .coerceAtLeast(0)
+                            val readMinutes = estimateReadMinutes(
+                                buildReadableContent(post, renderedBlocks)
+                            )
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                selectedGuidePost = post,
+                                selectedGuidePost = post.copy(isLiked = localLiked),
                                 blocks = renderedBlocks,
+                                isLiked = localLiked,
+                                displayLikes = displayLikes,
+                                readMinutes = readMinutes,
                                 error = null,
                                 guidePosts = if (_uiState.value.guidePosts.any { it.id == post.id }) {
-                                    _uiState.value.guidePosts.map { if (it.id == post.id) post else it }
+                                    _uiState.value.guidePosts.map {
+                                        if (it.id == post.id) post.copy(isLiked = localLiked) else it
+                                    }
                                 } else {
-                                    _uiState.value.guidePosts + post
+                                    _uiState.value.guidePosts + post.copy(isLiked = localLiked)
                                 }
                             )
                         },
@@ -118,6 +138,9 @@ class GuidePostViewModel @Inject constructor(
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 blocks = emptyList(),
+                                isLiked = false,
+                                displayLikes = 0,
+                                readMinutes = 0,
                                 error = exception.message ?: appContext.getString(R.string.guide_post_not_found)
                             )
                         }
@@ -127,6 +150,9 @@ class GuidePostViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     blocks = emptyList(),
+                    isLiked = false,
+                    displayLikes = 0,
+                    readMinutes = 0,
                     error = e.message ?: appContext.getString(R.string.unexpected_error_occurred)
                 )
             }
@@ -158,34 +184,28 @@ class GuidePostViewModel @Inject constructor(
         }
     }
 
-    fun incrementLikes(guidePostId: String) {
+    fun toggleGuidePostLikeLocal(guidePostId: String) {
         viewModelScope.launch {
             try {
-                val updatedGuidePosts = _uiState.value.guidePosts.map { guide ->
-                    if (guide.id == guidePostId) {
-                        val nowLiked = !guide.isLiked
-                        guide.copy(
-                            likes = if (nowLiked) guide.likes + 1 else (guide.likes - 1).coerceAtLeast(0),
-                            isLiked = nowLiked
-                        )
-                    } else {
-                        guide
-                    }
-                }
-                _uiState.value = _uiState.value.copy(guidePosts = updatedGuidePosts)
-                _uiState.value.selectedGuidePost?.let { selected ->
-                    if (selected.id == guidePostId) {
-                        val nowLiked = !selected.isLiked
-                        _uiState.value = _uiState.value.copy(
-                            selectedGuidePost = selected.copy(
-                                likes = if (nowLiked) selected.likes + 1 else (selected.likes - 1).coerceAtLeast(0),
-                                isLiked = nowLiked
-                            )
-                        )
-                    }
-                }
+                val current = _uiState.value
+                val selected = current.selectedGuidePost ?: return@launch
+                if (selected.id != guidePostId) return@launch
+
+                val nowLiked = !current.isLiked
+                guideLikeStore.setLiked(guidePostId, nowLiked)
+                val displayLikes = (selected.likes.coerceAtLeast(0) + if (nowLiked) 1 else 0)
+                    .coerceAtLeast(0)
+
+                _uiState.value = current.copy(
+                    selectedGuidePost = selected.copy(isLiked = nowLiked),
+                    guidePosts = current.guidePosts.map { guide ->
+                        if (guide.id == guidePostId) guide.copy(isLiked = nowLiked) else guide
+                    },
+                    isLiked = nowLiked,
+                    displayLikes = displayLikes
+                )
             } catch (e: Exception) {
-                Log.e(TAG, "incrementLikes: failed", e)
+                Log.e(TAG, "toggleGuidePostLikeLocal: failed", e)
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
@@ -222,7 +242,7 @@ class GuidePostViewModel @Inject constructor(
 
     private fun buildFallbackBlocks(post: GuidePost): List<GuideContentBlock> {
         val blocks = mutableListOf<GuideContentBlock>()
-        val paragraphs = post.content
+        val paragraphs = stripHtmlToText(post.content)
             .split(Regex("\\n\\s*\\n+"))
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -245,6 +265,46 @@ class GuidePostViewModel @Inject constructor(
             blocks += GuideContentBlock.Paragraph(post.description.ifBlank { post.title })
         }
         return blocks
+    }
+
+    fun estimateReadMinutes(text: String): Int {
+        val readableText = stripHtmlToText(text).trim()
+        if (readableText.isBlank()) return 0
+        val words = readableText.split(Regex("\\s+")).count { it.isNotBlank() }
+        if (words <= 0) return 0
+        return kotlin.math.ceil(words / 200.0).toInt().coerceAtLeast(1)
+    }
+
+    private fun buildReadableContent(post: GuidePost, blocks: List<GuideContentBlock>): String {
+        val blockText = blocks.joinToString("\n") { block ->
+            when (block) {
+                is GuideContentBlock.Heading -> block.text
+                is GuideContentBlock.Paragraph -> block.text
+                is GuideContentBlock.Image -> listOfNotNull(block.caption, block.alt).joinToString(" ")
+                is GuideContentBlock.Video -> block.caption.orEmpty()
+                is GuideContentBlock.Callout -> "${block.title} ${block.text}"
+                is GuideContentBlock.OrderedList -> block.items.joinToString(" ")
+                is GuideContentBlock.UnorderedList -> block.items.joinToString(" ")
+                GuideContentBlock.Divider -> ""
+            }
+        }
+        return buildString {
+            append(post.shortDescription)
+            append('\n')
+            append(post.longDescriptionHtml)
+            append('\n')
+            append(post.content)
+            append('\n')
+            append(blockText)
+        }
+    }
+
+    private fun stripHtmlToText(input: String): String {
+        if (input.isBlank()) return ""
+        return Html.fromHtml(input, Html.FROM_HTML_MODE_LEGACY)
+            .toString()
+            .replace('\u00A0', ' ')
+            .trim()
     }
 
 

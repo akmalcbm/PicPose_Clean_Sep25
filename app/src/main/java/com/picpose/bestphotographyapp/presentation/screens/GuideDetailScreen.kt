@@ -1,7 +1,8 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.content.Intent
-import android.widget.Toast
+import android.text.method.LinkMovementMethod
+import android.widget.TextView
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,16 +19,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.text.HtmlCompat
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -38,7 +42,6 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.GuidePostViewModel
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.picpose.bestphotographyapp.core.utils.setText
 
 private fun fullGuideImageUrl(path: String?): String? {
     return MediaUrlResolver.resolve(path)
@@ -54,7 +57,6 @@ fun GuideDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -78,17 +80,6 @@ fun GuideDetailScreen(
                 message = error,
                 duration = SnackbarDuration.Short
             )
-        }
-    }
-
-    if (guidePostData == null && !uiState.isLoading) {
-        // Guide post not found and not loading
-        LaunchedEffect(Unit) {
-            snackbarHostState.showSnackbar(
-                message = context.getString(R.string.guide_post_not_found),
-                duration = SnackbarDuration.Short
-            )
-            onBack()
         }
     }
 
@@ -286,50 +277,6 @@ fun GuideDetailScreen(
                                         )
                                 )
 
-                                // Action buttons on image
-                                Row(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Favorite button
-                                    IconButton(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.toggleFavorite(guidePostData)
-                                        },
-                                        modifier = Modifier
-                                            .background(
-                                                Color.Black.copy(alpha = 0.5f),
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
-                                    ) {
-                                        Icon(
-                                            imageVector = if (guidePostData.isFavorited) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                            contentDescription = stringResource(R.string.favorite),
-                                            tint = if (guidePostData.isFavorited) Color.Red else Color.White
-                                        )
-                                    }
-
-                                    // Share button
-                                    IconButton(
-                                        onClick = {
-                                            viewModel.shareGuidePost(context, guidePostData)
-                                        },
-                                        modifier = Modifier
-                                            .background(
-                                                Color.Black.copy(alpha = 0.5f),
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Share,
-                                            contentDescription = stringResource(R.string.share),
-                                            tint = Color.White
-                                        )
-                                    }
-                                }
                             }
                         }
 
@@ -354,17 +301,26 @@ fun GuideDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
 
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    if (guidePostData.shortDescription.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = guidePostData.shortDescription,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            lineHeight = 24.sp
+                                        )
+                                    }
 
                                     if (guidePostData.isFeatured) {
+                                        Spacer(modifier = Modifier.height(10.dp))
                                         SuggestionChip(
                                             onClick = { },
                                             label = { Text(stringResource(R.string.featured)) }
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
                                     }
 
                                     if (guidePostData.category.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(10.dp))
                                         AssistChip(
                                             onClick = { },
                                             label = { Text(guidePostData.category) },
@@ -376,10 +332,25 @@ fun GuideDetailScreen(
                                                 )
                                             }
                                         )
+                                    }
+
+                                    if (guidePostData.longDescriptionHtml.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(14.dp))
+                                        Text(
+                                            text = "Long Description",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                         Spacer(modifier = Modifier.height(8.dp))
+                                        HtmlTextBlock(
+                                            html = guidePostData.longDescriptionHtml,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
                                     }
 
                                     // Meta info
+                                    Spacer(modifier = Modifier.height(14.dp))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -403,7 +374,7 @@ fun GuideDetailScreen(
                                                 }
                                             }
 
-                                            if (guidePostData.estimatedReadTime > 0) {
+                                            if (uiState.readMinutes > 0) {
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Icon(
@@ -414,7 +385,7 @@ fun GuideDetailScreen(
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
-                                                        text = stringResource(R.string.min_read, guidePostData.estimatedReadTime),
+                                                        text = "${uiState.readMinutes} min read",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
@@ -436,7 +407,7 @@ fun GuideDetailScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "${guidePostData.likes}",
+                                                    text = "${uiState.displayLikes}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -503,54 +474,6 @@ fun GuideDetailScreen(
                             )
                         }
 
-                        // Tags (if available)
-                        if (guidePostData.tags.isNotEmpty()) {
-                            item {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(20.dp)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.Tag,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.tags),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(12.dp))
-
-                                        // Tag chips
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            guidePostData.tags.take(6).forEach { tag ->
-                                                SuggestionChip(
-                                                    onClick = { },
-                                                    label = { Text(tag) }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
                         // Action buttons
                         item {
                             Row(
@@ -563,10 +486,14 @@ fun GuideDetailScreen(
                                 OutlinedButton(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.incrementLikes(guidePostData.id)
+                                        viewModel.toggleGuidePostLikeLocal(guidePostData.id)
                                         coroutineScope.launch {
                                             snackbarHostState.showSnackbar(
-                                                message = context.getString(R.string.guide_liked),
+                                                message = if (uiState.isLiked) {
+                                                    context.getString(R.string.removed_from_favorites)
+                                                } else {
+                                                    context.getString(R.string.guide_liked)
+                                                },
                                                 duration = SnackbarDuration.Short
                                             )
                                         }
@@ -574,41 +501,24 @@ fun GuideDetailScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
-                                        imageVector = if (guidePostData.isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
+                                        imageVector = if (uiState.isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
                                         contentDescription = stringResource(R.string.like),
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.like_with_count, guidePostData.likes))
+                                    Text("${uiState.displayLikes}")
                                 }
 
-                                // Copy content button
+                                // Share button
                                 FilledTonalButton(
                                     onClick = {
-                                        val fullContent = buildString {
-                                            append("${guidePostData.title}\n\n")
-                                            if (renderedBlocks.isNotEmpty()) {
-                                                append(renderedBlocks.joinToString("\n\n") { it.plainText() })
-                                            } else {
-                                                append(guidePostData.content)
-                                            }
-                                            append("\n\n")
-                                            append(context.getString(R.string.share_hashtag_guide))
-                                        }
-                                    coroutineScope.launch {
-                                        clipboard.setText(fullContent, label = "guide")
-                                    }
-                                        Toast.makeText(context, context.getString(R.string.guide_content_copied), Toast.LENGTH_SHORT).show()
+                                        viewModel.shareGuidePost(context, guidePostData)
                                     },
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = stringResource(R.string.copy),
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.copy))
+                                    Text(stringResource(R.string.share))
                                 }
                             }
                         }
@@ -639,10 +549,14 @@ fun GuideDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = stringResource(R.string.guide_could_not_be_loaded),
+                                text = uiState.error ?: stringResource(R.string.guide_could_not_be_loaded),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.loadGuidePostById(guidePostId) }) {
+                                Text(stringResource(R.string.retry))
+                            }
                         }
                     }
                 }
@@ -655,6 +569,36 @@ fun GuideDetailScreen(
             )
         }
     }
+}
+
+@Composable
+private fun HtmlTextBlock(
+    html: String,
+    modifier: Modifier = Modifier
+) {
+    val color = MaterialTheme.colorScheme.onSurface.toArgb()
+    val linkColor = MaterialTheme.colorScheme.primary.toArgb()
+    val isPreview = LocalInspectionMode.current
+    AndroidView(
+        factory = { context ->
+            TextView(context).apply {
+                textSize = 16f
+                setLineSpacing(0f, 1.4f)
+                movementMethod = LinkMovementMethod.getInstance()
+                linksClickable = true
+            }
+        },
+        update = { textView ->
+            textView.setTextColor(color)
+            textView.setLinkTextColor(linkColor)
+            val text = if (isPreview) html else HtmlCompat.fromHtml(
+                html,
+                HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+            textView.text = text
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -814,15 +758,4 @@ private fun GuideContentBlockItem(
             HorizontalDivider(modifier = modifier.padding(vertical = 8.dp))
         }
     }
-}
-
-private fun GuideContentBlock.plainText(): String = when (this) {
-    is GuideContentBlock.Heading -> text
-    is GuideContentBlock.Paragraph -> text
-    is GuideContentBlock.Image -> listOfNotNull(caption, url).joinToString(" ")
-    is GuideContentBlock.Video -> listOfNotNull(caption, url).joinToString(" ")
-    is GuideContentBlock.Callout -> "$title\n$text"
-    is GuideContentBlock.OrderedList -> items.joinToString("\n") { "- $it" }
-    is GuideContentBlock.UnorderedList -> items.joinToString("\n") { "- $it" }
-    GuideContentBlock.Divider -> ""
 }

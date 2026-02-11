@@ -15,6 +15,12 @@ data class GuidePostDto(
     @SerializedName("short_description") val short_description: String? = null,
     @SerializedName("shortDescription") val shortDescription: String? = null,
     @SerializedName("description") val description: String? = null,
+    @SerializedName("long_description") val long_description: String? = null,
+    @SerializedName("longDescription") val longDescription: String? = null,
+    @SerializedName("long_description_html") val long_description_html: String? = null,
+    @SerializedName("longDescriptionHtml") val longDescriptionHtml: String? = null,
+    @SerializedName("content_html") val content_html: String? = null,
+    @SerializedName("contentHtml") val contentHtml: String? = null,
     // image fields (some APIs return image_url1, some featured_image, some imageUrl)
     @SerializedName("image_url1") val image_url1: String? = null,
     @SerializedName("image_url") val image_url: String? = null,
@@ -101,6 +107,8 @@ data class GuidePost(
     val title: String,
     val content: String = "",
     val excerpt: String = "",
+    val shortDescription: String = "",
+    val longDescriptionHtml: String = "",
     val description: String = "",       // friendly alias used by UI components
     val image: String = "",
     val imageUrl: String = "",          // alias for image
@@ -198,7 +206,10 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
     // Compose content/excerpt/short_description in a sensible way
     val contentText = content ?: excerpt ?: short_description ?: ""
     val excerptText = excerpt ?: short_description ?: description ?: content?.take(150) ?: ""
-    val descriptionText = description ?: short_description ?: shortDescription ?: excerpt ?: content?.take(200) ?: ""
+    val shortDescriptionText = shortDescription ?: short_description ?: description ?: excerpt ?: ""
+    val longDescriptionHtmlText =
+        longDescriptionHtml ?: long_description_html ?: contentHtml ?: content_html ?: longDescription ?: long_description ?: ""
+    val descriptionText = description ?: shortDescriptionText.ifBlank { excerpt ?: content?.take(200) ?: "" }
 
     // Keep the API-provided path as-is. UI helpers can convert relative -> absolute when needed.
     val rawImage = (image ?: image_url1 ?: image_url ?: featured_image ?: imageUrl ?: "").trim()
@@ -245,6 +256,8 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
         title = title.ifBlank { "Untitled Guide" },
         content = contentText,
         excerpt = excerptText,
+        shortDescription = shortDescriptionText,
+        longDescriptionHtml = longDescriptionHtmlText,
         description = descriptionText,
         image = rawImage,
         imageUrl = rawImage,
