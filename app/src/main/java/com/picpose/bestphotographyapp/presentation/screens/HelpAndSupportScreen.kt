@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.widget.Toast
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -60,23 +61,28 @@ fun HelpAndSupportScreen(
     var isSubmitting by remember { mutableStateOf(false) }
 
     // 🔸 Contact info from settings or fallback
+    val fallbackSupportEmail = stringResource(R.string.help_support_email_fallback)
+    val fallbackSupportPhone = stringResource(R.string.help_support_phone_fallback)
     val supportEmail = when (appSettingsState) {
         is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings.contact.email
-        else -> "support@picpose.com"
+        else -> fallbackSupportEmail
     }
     val supportPhone = when (appSettingsState) {
         is AppSettingsUiState.Success -> (appSettingsState as AppSettingsUiState.Success).settings.contact.phone
-        else -> "+1-234-567-8900"
+        else -> fallbackSupportPhone
     }
 
     // ✅ Perfect edge-to-edge Scaffold setup
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.help_support_title), fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.help_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.help_back_content_description)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -110,13 +116,6 @@ fun HelpAndSupportScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    stringResource(R.string.help_intro_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = colorScheme.primary
-                )
-
-                Text(
                     stringResource(R.string.help_intro_description),
                     color = colorScheme.onSurfaceVariant
                 )
@@ -124,7 +123,8 @@ fun HelpAndSupportScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.help_your_name)) },
+                    label = { Text(stringResource(R.string.help_name_label)) },
+                    placeholder = { Text(stringResource(R.string.help_name_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -134,7 +134,8 @@ fun HelpAndSupportScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.help_your_email)) },
+                    label = { Text(stringResource(R.string.help_email_label)) },
+                    placeholder = { Text(stringResource(R.string.help_email_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -144,7 +145,8 @@ fun HelpAndSupportScreen(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text(stringResource(R.string.help_phone_optional)) },
+                    label = { Text(stringResource(R.string.help_phone_label)) },
+                    placeholder = { Text(stringResource(R.string.help_phone_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
@@ -154,8 +156,8 @@ fun HelpAndSupportScreen(
                 OutlinedTextField(
                     value = message,
                     onValueChange = { message = it },
-                    label = { Text(stringResource(R.string.help_message)) },
-                    placeholder = { Text(stringResource(R.string.help_message_placeholder)) },
+                    label = { Text(stringResource(R.string.help_message_label)) },
+                    placeholder = { Text(stringResource(R.string.help_message_hint)) },
                     maxLines = 6,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { /* Close keyboard */ }),
@@ -170,8 +172,18 @@ fun HelpAndSupportScreen(
                 // 🔘 Submit Button
                 Button(
                     onClick = {
-                        if (name.text.isBlank() || email.text.isBlank() || message.text.isBlank()) {
-                            Toast.makeText(context, context.getString(R.string.help_required_fields), Toast.LENGTH_SHORT).show()
+                        val trimmedName = name.text.trim()
+                        val trimmedEmail = email.text.trim()
+                        val trimmedPhone = phone.text.trim()
+                        val trimmedMessage = message.text.trim()
+                        val validationError = when {
+                            trimmedName.isEmpty() -> context.getString(R.string.help_error_name_required)
+                            !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> context.getString(R.string.help_error_invalid_email)
+                            trimmedMessage.isEmpty() -> context.getString(R.string.help_error_message_required)
+                            else -> null
+                        }
+                        if (validationError != null) {
+                            Toast.makeText(context, validationError, Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         isSubmitting = true
@@ -179,10 +191,10 @@ fun HelpAndSupportScreen(
                             try {
                                 val apiService = RetrofitClient.createService(ApiService::class.java)
                                 val request = SupportQueryRequest(
-                                    name = name.text.trim(),
-                                    email = email.text.trim(),
-                                    phone = phone.text.trim(),
-                                    message = message.text.trim(),
+                                    name = trimmedName,
+                                    email = trimmedEmail,
+                                    phone = trimmedPhone,
+                                    message = trimmedMessage,
                                     userId = currentUser?.id
                                 )
                                 val response = apiService.submitSupportQuery(
@@ -193,21 +205,21 @@ fun HelpAndSupportScreen(
                                 if (response.isSuccessful && response.body()?.success == true) {
                                     Toast.makeText(
                                         context,
-                                        response.body()?.message ?: context.getString(R.string.message_sent_successfully),
+                                        context.getString(R.string.help_success_message),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     message = TextFieldValue("")
                                 } else {
                                     Toast.makeText(
                                         context,
-                                        response.body()?.message ?: context.getString(R.string.failed_to_send_message),
+                                        context.getString(R.string.help_failure_message),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
                             } catch (e: Exception) {
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.error_with_message, e.message ?: ""),
+                                    context.getString(R.string.help_failure_message),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } finally {
@@ -226,31 +238,40 @@ fun HelpAndSupportScreen(
                             color = colorScheme.onPrimary
                         )
                     } else {
-                        Text(stringResource(R.string.submit), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.help_submit_button), fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 HorizontalDivider(thickness = 1.dp, color = colorScheme.outline.copy(alpha = 0.3f))
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.help_also_reach_us), color = colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(stringResource(R.string.help_contact_section_title), color = colorScheme.onSurfaceVariant)
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Email, contentDescription = stringResource(R.string.email), tint = colorScheme.primary)
+                    Icon(
+                        Icons.Filled.Email,
+                        contentDescription = stringResource(R.string.help_contact_email_content_description),
+                        tint = colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportEmail, color = colorScheme.onSurface)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Phone, contentDescription = stringResource(R.string.phone), tint = colorScheme.primary)
+                    Icon(
+                        Icons.Filled.Phone,
+                        contentDescription = stringResource(R.string.help_contact_phone_content_description),
+                        tint = colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(supportPhone, color = colorScheme.onSurface)
                 }
 
                 Text(
-                    stringResource(R.string.help_support_reply_time),
+                    stringResource(R.string.help_response_time_note),
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     color = colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic

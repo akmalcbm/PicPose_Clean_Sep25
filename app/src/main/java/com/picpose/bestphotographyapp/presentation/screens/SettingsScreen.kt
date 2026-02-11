@@ -133,7 +133,7 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = Icons.AutoMirrored.Filled.Logout,
                         title = stringResource(R.string.logout),
-                        subtitle = "Sign out from this device",
+                        subtitle = stringResource(R.string.logout_subtitle_device),
                         onClick = onLogout
                     )
                 }

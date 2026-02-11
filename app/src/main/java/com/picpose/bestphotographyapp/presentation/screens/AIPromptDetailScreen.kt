@@ -643,7 +643,7 @@ fun AIPromptDetailScreen(
 
                                                     Toast.makeText(
                                                         ctx,
-                                                        ctx.getString(R.string.prompt_copied_opening_gemini),
+                                                        ctx.getString(R.string.ai_prompt_toast_copied_opening_gemini),
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
@@ -660,20 +660,20 @@ fun AIPromptDetailScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.AutoAwesome,
-                                                contentDescription = stringResource(R.string.copy_prompts_open_gemini),
+                                                contentDescription = stringResource(R.string.ai_prompt_action_open),
                                                 modifier = Modifier.size(22.dp),
                                                 tint = MaterialTheme.colorScheme.onPrimary
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Column {
                                                 Text(
-                                                    text = stringResource(R.string.copy_prompts_open_gemini),
+                                                    text = stringResource(R.string.ai_prompt_action_open),
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimary
                                                 )
                                                 Text(
-                                                    text = stringResource(R.string.best_for_generating_results),
+                                                    text = stringResource(R.string.ai_prompt_open_subtitle),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                                                 )
@@ -703,13 +703,16 @@ fun AIPromptDetailScreen(
                                                 val textToCopy = promptData.fullPrompt ?: ""
                                                 if (textToCopy.isNotBlank()) {
                                                     coroutineScope.launch {
-                                                        clipboard.setText(textToCopy, label = "prompt")
+                                                        clipboard.setText(
+                                                            textToCopy,
+                                                            label = ctx.getString(R.string.ai_prompt_clipboard_label)
+                                                        )
                                                     }
                                                     localHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
                                                     Toast.makeText(
                                                         ctx,
-                                                        ctx.getString(R.string.prompt_copied_to_clipboard),
+                                                        ctx.getString(R.string.ai_prompt_toast_copied),
                                                         Toast.LENGTH_SHORT
                                                     ).show()
 
@@ -738,7 +741,7 @@ fun AIPromptDetailScreen(
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = stringResource(R.string.copy_prompt),
+                                                text = stringResource(R.string.ai_prompt_action_copy_prompt),
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -757,11 +760,11 @@ fun AIPromptDetailScreen(
                                         showGeminiDialog = false
                                         dontAskAgain = false
                                     },
-                                    title = { Text(stringResource(R.string.continue_in_gemini)) },
+                                    title = { Text(stringResource(R.string.ai_prompt_dialog_gemini_title)) },
                                     text = {
                                         Column {
                                             Text(
-                                                stringResource(R.string.gemini_continue_message)
+                                                stringResource(R.string.ai_prompt_dialog_gemini_message)
                                             )
 
                                             Spacer(modifier = Modifier.height(12.dp))
@@ -777,7 +780,7 @@ fun AIPromptDetailScreen(
                                                     onCheckedChange = { dontAskAgain = it }
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
-                                                Text(stringResource(R.string.dont_ask_again))
+                                                Text(stringResource(R.string.ai_prompt_dialog_dont_ask_again))
                                             }
                                         }
                                     },
@@ -796,7 +799,7 @@ fun AIPromptDetailScreen(
 
                                             Toast.makeText(
                                                 ctx,
-                                                ctx.getString(R.string.prompt_copied_opening_gemini),
+                                                ctx.getString(R.string.ai_prompt_toast_copied_opening_gemini),
                                                 Toast.LENGTH_SHORT
                                             ).show()
 
@@ -806,7 +809,7 @@ fun AIPromptDetailScreen(
 
                                             dontAskAgain = false
                                         }) {
-                                            Text(stringResource(R.string.continue_label))
+                                            Text(stringResource(R.string.ai_prompt_action_continue))
                                         }
                                     },
                                     dismissButton = {
@@ -814,7 +817,7 @@ fun AIPromptDetailScreen(
                                             showGeminiDialog = false
                                             dontAskAgain = false
                                         }) {
-                                            Text(stringResource(R.string.cancel))
+                                            Text(stringResource(R.string.ai_prompt_action_cancel))
                                         }
                                     }
                                 )
@@ -1652,7 +1655,7 @@ fun openGemini(context: Context, promptText: String) {
         val clipboard =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(
-            ClipData.newPlainText(context.getString(R.string.ai_prompt_label), promptText)
+            ClipData.newPlainText(context.getString(R.string.ai_prompt_clipboard_label), promptText)
         )
 
         // 2️⃣ Open Google App (Gemini lives here)
@@ -1744,7 +1747,7 @@ val geminiPackage = "com.google.android.apps.bard"
 val clipboard =
     context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 clipboard.setPrimaryClip(
-    ClipData.newPlainText(context.getString(R.string.ai_prompt_label), promptText)
+    ClipData.newPlainText(context.getString(R.string.ai_prompt_clipboard_label), promptText)
 )
 
 val pm = context.packageManager
