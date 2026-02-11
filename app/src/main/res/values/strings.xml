@@ -92,8 +92,8 @@
     <string name="no_favorite_prompts_title">No Favorite Prompts</string>
     <string name="no_favorite_prompts_description">Start exploring AI prompts and add your favorites here!</string>
     <string name="browse_prompts_button">Browse Prompts</string>
-    <string name="facebook_app_id" translatable="false">1158827679752112</string>
-    <string name="facebook_client_token" translatable="false">0656140dee77bb556f0f3eb80cbb7d67</string>
+    <string name="facebook_app_id">1158827679752112</string>
+    <string name="facebook_client_token">0656140dee77bb556f0f3eb80cbb7d67</string>
 
     <!-- Home / Sections -->
     <string name="trending">Trending</string>
@@ -348,7 +348,7 @@
     <string name="photography_guide_title">Photography Guide</string>
     <string name="photography_guides_subtitle">Learn from experts</string>
     <string name="photography_guides_title">Photography Guides</string>
-    <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
+    <string name="play_store_url">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
     <string name="please_check_back_later">Please check back later</string>
     <string name="please_enter_your_name">Please enter your name</string>
     <string name="please_login_to_edit_profile">Please login to edit profile</string>
@@ -458,6 +458,7 @@
     <string name="update_profile_information">Update profile information</string>
     <string name="user">User</string>
     <string name="version">Version</string>
+    <string name="view_details">View Details</string>
     <string name="view_all_posts_title">View all Posts</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">Watch ad for reward</string>

@@ -530,9 +530,7 @@ fun HomeScreen(
                         uiState.guidePosts.isNotEmpty() -> item {
                             GuidePostsRow(
                                 guidePosts = uiState.guidePosts,
-                                onGuidePostClick = onNavigateToGuidePostDetail,
-                                onLikeClick = { viewModel.toggleGuidePostLike(it.id) },
-                                onShareClick = { viewModel.shareGuidePost(context, it) }
+                                onGuidePostClick = onNavigateToGuidePostDetail
                             )
                         }
 

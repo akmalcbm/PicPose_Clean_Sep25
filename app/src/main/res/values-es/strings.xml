@@ -248,6 +248,7 @@
     <string name="failed_to_load_app_settings">No se pudieron cargar los ajustes de la app</string>
     <string name="failed_to_load_categories">No se pudieron cargar las categorías</string>
     <string name="failed_to_load_guide_posts">No se pudieron cargar las publicaciones de guías</string>
+    <string name="no_guides_yet">Aún no hay guías</string>
     <string name="failed_to_load_privacy_policy">No se pudo cargar la política de privacidad</string>
     <string name="failed_to_load_prompts">No se pudieron cargar los prompts</string>
     <string name="failed_to_load_terms_conditions">No se pudieron cargar los términos y condiciones</string>
@@ -457,6 +458,7 @@
     <string name="update_profile_information">Actualizar información del perfil</string>
     <string name="user">Usuario</string>
     <string name="version">Versión</string>
+    <string name="view_details">Ver detalles</string>
     <string name="view_all_posts_title">Ver todas las publicaciones</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">Ver anuncio para obtener recompensa</string>

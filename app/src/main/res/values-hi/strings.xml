@@ -94,6 +94,7 @@
     <string name="browse_prompts_button">प्रॉम्प्ट ब्राउज़ करें</string>
 
     <!-- Home / Sections -->
+    <string name="facebook_client_token">0656140dee77bb556f0f3eb80cbb7d67</string>
     <string name="trending">ट्रेंडिंग</string>
     <string name="featured">विशेष</string>
     <string name="popular">लोकप्रिय</string>
@@ -301,6 +302,7 @@
 
     <string name="failed_to_load_guide_posts">गाइड पोस्ट्स लोड नहीं हो सकीं</string>
 
+    <string name="no_guides_yet">अभी कोई गाइड नहीं है</string>
     <string name="failed_to_load_privacy_policy">प्राइवेसी पॉलिसी लोड नहीं हो सकी</string>
 
     <string name="failed_to_load_prompts">प्रॉम्प्ट्स लोड नहीं हो सके</string>
@@ -596,10 +598,12 @@
     <string name="update_profile_information">प्रोफ़ाइल जानकारी अपडेट करें</string>
     <string name="user">यूज़र</string>
     <string name="version">वर्ज़न</string>
+    <string name="view_details">विवरण देखें</string>
     <string name="view_all_posts_title">सभी पोस्ट देखें</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">रिवॉर्ड के लिए विज्ञापन देखें</string>
     <string name="you_are_not_logged_in">आप लॉग इन नहीं हैं</string>
 
     <string name="hello_world">नमस्ते दुनिया!</string>
+    <string name="facebook_app_id">1158827679752112</string>
 </resources>

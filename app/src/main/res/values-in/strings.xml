@@ -233,6 +233,7 @@
     <string name="failed_to_load_app_settings">Gagal memuat app settings</string>
     <string name="failed_to_load_categories">Gagal memuat categories</string>
     <string name="failed_to_load_guide_posts">Gagal memuat guide posts</string>
+    <string name="no_guides_yet">Belum ada panduan</string>
     <string name="failed_to_load_privacy_policy">Gagal memuat privacy policy</string>
     <string name="failed_to_load_prompts">Gagal memuat prompts</string>
     <string name="failed_to_load_terms_conditions">Gagal memuat terms conditions</string>
@@ -442,6 +443,7 @@
     <string name="update_profile_information">Perbarui info profil</string>
     <string name="user">Pengguna</string>
     <string name="version">Versi</string>
+    <string name="view_details">Lihat Detail</string>
     <string name="view_all_posts_title">Lihat semua postingan</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">Tonton iklan untuk hadiah</string>

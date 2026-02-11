@@ -35,16 +35,162 @@ import androidx.core.text.HtmlCompat
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.google.android.gms.ads.LoadAdError
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
 import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
+import com.picpose.bestphotographyapp.presentation.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.presentation.viewmodels.GuidePostViewModel
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private fun fullGuideImageUrl(path: String?): String? {
     return MediaUrlResolver.resolve(path)
+}
+
+private sealed interface GuideContentRow {
+    data class BlockRow(
+        val index: Int,
+        val block: GuideContentBlock
+    ) : GuideContentRow
+
+    data class AdRow(
+        val slotNumber: Int,
+        val key: String
+    ) : GuideContentRow
+}
+
+private data class GuideInlineAdSlot(
+    val slotNumber: Int,
+    val key: String,
+    val anchorAfterIndex: Int
+)
+
+private fun contentBlockWords(block: GuideContentBlock): Int {
+    val source = when (block) {
+        is GuideContentBlock.Heading -> block.text
+        is GuideContentBlock.Paragraph -> block.text
+        is GuideContentBlock.Image -> listOfNotNull(block.caption, block.alt).joinToString(" ")
+        is GuideContentBlock.Video -> block.caption.orEmpty()
+        is GuideContentBlock.Callout -> "${block.title} ${block.text}"
+        is GuideContentBlock.OrderedList -> block.items.joinToString(" ")
+        is GuideContentBlock.UnorderedList -> block.items.joinToString(" ")
+        GuideContentBlock.Divider -> ""
+    }
+    return source.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+}
+
+private fun readableWordCount(
+    post: com.picpose.bestphotographyapp.data.models.GuidePost,
+    blocks: List<GuideContentBlock>
+): Int {
+    val plainLongHtml = HtmlCompat.fromHtml(
+        post.longDescriptionHtml,
+        HtmlCompat.FROM_HTML_MODE_LEGACY
+    ).toString()
+    val source = buildString {
+        append(post.shortDescription)
+        append('\n')
+        append(plainLongHtml)
+        append('\n')
+        append(post.content)
+        append('\n')
+        append(blocks.joinToString("\n") {
+            when (it) {
+                is GuideContentBlock.Heading -> it.text
+                is GuideContentBlock.Paragraph -> it.text
+                is GuideContentBlock.Image -> listOfNotNull(it.caption, it.alt).joinToString(" ")
+                is GuideContentBlock.Video -> it.caption.orEmpty()
+                is GuideContentBlock.Callout -> "${it.title} ${it.text}"
+                is GuideContentBlock.OrderedList -> it.items.joinToString(" ")
+                is GuideContentBlock.UnorderedList -> it.items.joinToString(" ")
+                GuideContentBlock.Divider -> ""
+            }
+        })
+    }
+    return source.split(Regex("\\s+")).count { it.isNotBlank() }
+}
+
+private fun isPreferredAdAnchor(block: GuideContentBlock): Boolean = when (block) {
+    is GuideContentBlock.Paragraph,
+    is GuideContentBlock.OrderedList,
+    is GuideContentBlock.UnorderedList,
+    is GuideContentBlock.Callout -> true
+    else -> false
+}
+
+private fun computeGuideInlineAdSlots(
+    guidePostId: String,
+    blocks: List<GuideContentBlock>,
+    totalWords: Int
+): List<GuideInlineAdSlot> {
+    if (guidePostId.isBlank()) return emptyList()
+    val blockCount = blocks.size
+    if (blockCount < 8 || totalWords < 600) return emptyList()
+    val desiredCount = if (blockCount > 18 || totalWords > 1400) 2 else 1
+    val targetPercents = if (desiredCount == 2) listOf(0.35f, 0.70f) else listOf(0.45f)
+    val candidateIndices = (0 until blockCount).filter { idx ->
+        idx >= 2 &&
+            idx <= blockCount - 3 &&
+            isPreferredAdAnchor(blocks[idx])
+    }
+    if (candidateIndices.isEmpty()) return emptyList()
+
+    val blockWords = blocks.map(::contentBlockWords)
+    val cumulativeWords = IntArray(blockWords.size)
+    var running = 0
+    blockWords.forEachIndexed { index, words ->
+        running += words
+        cumulativeWords[index] = running
+    }
+
+    val selectedAnchors = mutableListOf<Int>()
+    targetPercents.forEachIndexed { slotIndex, pct ->
+        val target = (blockCount * pct).toInt().coerceIn(2, blockCount - 3)
+        val selected = candidateIndices
+            .filter { candidate ->
+                selectedAnchors.lastOrNull()?.let { prev ->
+                    val blocksApart = candidate - prev
+                    val wordsApart = cumulativeWords[candidate] - cumulativeWords[prev]
+                    blocksApart >= 6 || wordsApart >= 400
+                } ?: true
+            }
+            .minByOrNull { candidate -> abs(candidate - target) }
+        if (selected != null) {
+            selectedAnchors += selected
+        } else if (slotIndex == 0) {
+            return emptyList()
+        }
+    }
+
+    return selectedAnchors.mapIndexed { idx, anchor ->
+        GuideInlineAdSlot(
+            slotNumber = idx + 1,
+            key = "ad_${idx + 1}_$guidePostId",
+            anchorAfterIndex = anchor
+        )
+    }
+}
+
+private fun buildGuideContentRows(
+    blocks: List<GuideContentBlock>,
+    inlineAdSlots: List<GuideInlineAdSlot>
+): List<GuideContentRow> {
+    if (blocks.isEmpty()) return emptyList()
+    val slotsByAnchor = inlineAdSlots.associateBy { it.anchorAfterIndex }
+    return buildList {
+        blocks.forEachIndexed { index, block ->
+            add(GuideContentRow.BlockRow(index = index, block = block))
+            slotsByAnchor[index]?.let { slot ->
+                add(GuideContentRow.AdRow(slotNumber = slot.slotNumber, key = slot.key))
+            }
+        }
+    }
 }
 
 @Suppress("UNUSED_VALUE")
@@ -68,9 +214,72 @@ fun GuideDetailScreen(
     val guidePostData = uiState.selectedGuidePost
         ?: remember(guidePostId, uiState.guidePosts) { viewModel.findGuidePostById(guidePostId) }
     val renderedBlocks = uiState.blocks
+    val totalReadableWords = remember(guidePostData?.id, renderedBlocks) {
+        guidePostData?.let { readableWordCount(it, renderedBlocks) } ?: 0
+    }
+    val inlineAdSlots = remember(guidePostData?.id, renderedBlocks, totalReadableWords) {
+        computeGuideInlineAdSlots(
+            guidePostId = guidePostData?.id.orEmpty(),
+            blocks = renderedBlocks,
+            totalWords = totalReadableWords
+        )
+    }
+    val contentRows = remember(renderedBlocks, inlineAdSlots) {
+        buildGuideContentRows(renderedBlocks, inlineAdSlots)
+    }
+    val adStates = remember { mutableStateMapOf<String, NativeAdUiState>() }
+    val adControllers = remember { mutableStateMapOf<String, NativeAdController>() }
 
     LaunchedEffect(guidePostId) {
         viewModel.loadGuidePostById(guidePostId)
+    }
+
+    LaunchedEffect(guidePostData?.id, inlineAdSlots) {
+        val slotKeys = inlineAdSlots.map { it.key }.toSet()
+        adControllers.keys.toList().forEach { key ->
+            if (key !in slotKeys) {
+                adControllers.remove(key)?.clear()
+                adStates.remove(key)
+            }
+        }
+        inlineAdSlots.forEach { slot ->
+            val existingState = adStates[slot.key]
+            if (existingState is NativeAdUiState.Loaded || existingState is NativeAdUiState.Loading) {
+                return@forEach
+            }
+            adStates[slot.key] = NativeAdUiState.Loading
+            val controller = adControllers.getOrPut(slot.key) {
+                NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD)
+            }
+            controller.load(
+                context = context,
+                callbacks = object : NativeAdController.Callbacks {
+                    override fun onLoaded(ad: com.google.android.gms.ads.nativead.NativeAd) {
+                        adStates[slot.key] = NativeAdUiState.Loaded(ad)
+                    }
+
+                    override fun onFailed(error: LoadAdError) {
+                        adStates[slot.key] = NativeAdUiState.Failed
+                    }
+
+                    override fun onUnavailable(reason: String) {
+                        adStates[slot.key] = if (reason == "ADS_DISABLED") {
+                            NativeAdUiState.Disabled
+                        } else {
+                            NativeAdUiState.Failed
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    DisposableEffect(guidePostId) {
+        onDispose {
+            adControllers.values.forEach { it.clear() }
+            adControllers.clear()
+            adStates.clear()
+        }
     }
 
     LaunchedEffect(guidePostData?.id) {
@@ -433,24 +642,57 @@ fun GuideDetailScreen(
                         }
 
                         itemsIndexed(
-                            items = renderedBlocks,
-                            key = { idx, block -> "${idx}_${block::class.simpleName}" }
-                        ) { _, block ->
-                            GuideContentBlockItem(
-                                block = block,
-                                onImageClick = { blockImageDialogUrl = it },
-                                onVideoClick = { url ->
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.error))
+                            items = contentRows,
+                            key = { _, row ->
+                                when (row) {
+                                    is GuideContentRow.BlockRow -> "block_${row.index}_${row.block::class.simpleName}"
+                                    is GuideContentRow.AdRow -> row.key
+                                }
+                            }
+                        ) { _, row ->
+                            when (row) {
+                                is GuideContentRow.BlockRow -> {
+                                    GuideContentBlockItem(
+                                        block = row.block,
+                                        onImageClick = { blockImageDialogUrl = it },
+                                        onVideoClick = { url ->
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                                context.startActivity(intent)
+                                            } catch (_: Exception) {
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar(context.getString(R.string.error))
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+
+                                is GuideContentRow.AdRow -> {
+                                    when (val adState = adStates[row.key]) {
+                                        is NativeAdUiState.Loaded -> {
+                                            LargeNativeAdCard(
+                                                nativeAd = adState.ad,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
                                         }
+                                        NativeAdUiState.Loading -> {
+                                            LargeNativeAdCard(
+                                                nativeAd = null,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                        NativeAdUiState.Disabled,
+                                        NativeAdUiState.Failed,
+                                        null -> Unit
                                     }
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
+                                }
+                            }
                         }
 
                         // Action buttons

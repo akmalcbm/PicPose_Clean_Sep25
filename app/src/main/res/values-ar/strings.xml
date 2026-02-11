@@ -248,6 +248,7 @@
     <string name="failed_to_load_app_settings">تعذر تحميل إعدادات التطبيق</string>
     <string name="failed_to_load_categories">تعذر تحميل الفئات</string>
     <string name="failed_to_load_guide_posts">تعذر تحميل منشورات الأدلة</string>
+    <string name="no_guides_yet">لا توجد أدلة بعد</string>
     <string name="failed_to_load_privacy_policy">تعذر تحميل سياسة الخصوصية</string>
     <string name="failed_to_load_prompts">تعذر تحميل المطالبات</string>
     <string name="failed_to_load_terms_conditions">تعذر تحميل الشروط والأحكام</string>
@@ -457,6 +458,7 @@
     <string name="update_profile_information">تحديث معلومات الملف الشخصي</string>
     <string name="user">مستخدم</string>
     <string name="version">الإصدار</string>
+    <string name="view_details">عرض التفاصيل</string>
     <string name="view_all_posts_title">عرض كل المنشورات</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">شاهد إعلانًا للحصول على مكافأة</string>

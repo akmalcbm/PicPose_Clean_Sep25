@@ -247,6 +247,7 @@
     <string name="failed_to_load_app_settings">无法加载应用设置</string>
     <string name="failed_to_load_categories">无法加载分类</string>
     <string name="failed_to_load_guide_posts">无法加载指南帖子</string>
+    <string name="no_guides_yet">暂无指南</string>
     <string name="failed_to_load_privacy_policy">无法加载隐私政策</string>
     <string name="failed_to_load_prompts">无法加载提示词</string>
     <string name="failed_to_load_terms_conditions">无法加载条款与条件</string>
@@ -456,6 +457,7 @@
     <string name="update_profile_information">更新资料信息</string>
     <string name="user">用户</string>
     <string name="version">版本</string>
+    <string name="view_details">查看详情</string>
     <string name="view_all_posts_title">查看全部帖子</string>
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">观看广告获取奖励</string>
