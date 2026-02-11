@@ -228,44 +228,19 @@ fun GuideDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(300.dp)
+                                    .clip(
+                                        RoundedCornerShape(
+                                            bottomStart = 16.dp,
+                                            bottomEnd = 16.dp
+                                        )
+                                    )
                                     .clickable { showImageDialog = true }
                             ) {
-                                SubcomposeAsyncImage(
+                                AdaptiveGuideImage(
                                     model = fullGuideImageUrl(guidePostData.imageUrl),
                                     contentDescription = guidePostData.title,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(
-                                            RoundedCornerShape(
-                                                bottomStart = 16.dp,
-                                                bottomEnd = 16.dp
-                                            )
-                                        ),
-                                    contentScale = ContentScale.Crop
-                                ) {
-                                    when (painter.state) {
-                                        is AsyncImagePainter.State.Loading -> {
-                                            Box(
-                                                Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator()
-                                            }
-                                        }
-
-                                        is AsyncImagePainter.State.Error -> {
-                                            Icon(
-                                                Icons.Default.BrokenImage,
-                                                contentDescription = stringResource(R.string.image_load_error),
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(96.dp)
-                                            )
-                                        }
-
-                                        else -> SubcomposeAsyncImageContent()
-                                    }
-                                }
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
                                 // Gradient overlay for better text readability
                                 Box(
@@ -313,6 +288,24 @@ fun GuideDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             lineHeight = 24.sp
                                         )
+                                    }
+
+                                    if (uiState.readMinutes > 0) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.Schedule,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "${uiState.readMinutes} min read",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
 
                                     if (guidePostData.isFeatured) {
@@ -372,24 +365,6 @@ fun GuideDetailScreen(
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
                                                         text = guidePostData.difficultyLevel,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-
-                                            if (uiState.readMinutes > 0) {
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        Icons.Default.Schedule,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(16.dp),
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = "${uiState.readMinutes} min read",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
@@ -606,6 +581,64 @@ private fun HtmlTextBlock(
 }
 
 @Composable
+private fun AdaptiveGuideImage(
+    model: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    var aspectRatio by remember(model) { mutableFloatStateOf(4f / 3f) }
+
+    SubcomposeAsyncImage(
+        model = model,
+        contentDescription = contentDescription,
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio),
+        contentScale = ContentScale.Fit
+    ) {
+        when (val state = painter.state) {
+            is AsyncImagePainter.State.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is AsyncImagePainter.State.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.BrokenImage,
+                        contentDescription = stringResource(R.string.image_load_error),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
+            }
+
+            is AsyncImagePainter.State.Success -> {
+                val drawable = state.result.drawable
+                val width = drawable.intrinsicWidth
+                val height = drawable.intrinsicHeight
+                if (width > 0 && height > 0) {
+                    val nextRatio = width.toFloat() / height.toFloat()
+                    if (kotlin.math.abs(nextRatio - aspectRatio) > 0.01f) {
+                        aspectRatio = nextRatio
+                    }
+                }
+                SubcomposeAsyncImageContent()
+            }
+
+            else -> SubcomposeAsyncImageContent()
+        }
+    }
+}
+
+@Composable
 private fun GuideContentBlockItem(
     block: GuideContentBlock,
     onImageClick: (String) -> Unit,
@@ -646,32 +679,11 @@ private fun GuideContentBlockItem(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column {
-                    SubcomposeAsyncImage(
+                    AdaptiveGuideImage(
                         model = fullGuideImageUrl(block.url),
                         contentDescription = block.alt ?: block.caption ?: "Guide image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        contentScale = ContentScale.Crop
-                    ) {
-                        when (painter.state) {
-                            is AsyncImagePainter.State.Loading -> Box(
-                                Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) { CircularProgressIndicator() }
-                            is AsyncImagePainter.State.Error -> Box(
-                                Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.BrokenImage,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                            else -> SubcomposeAsyncImageContent()
-                        }
-                    }
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     if (!block.caption.isNullOrBlank()) {
                         Text(
                             text = block.caption,
