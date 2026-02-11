@@ -69,8 +69,8 @@ fun GuidePostCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 12.dp else 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 12.dp else 6.dp),
+        //colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 

@@ -1,16 +1,18 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,17 +20,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -45,13 +52,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
+import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 
 private data class LanguageOption(
     val code: String,
@@ -90,11 +103,6 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                //Use below code if you want same Bottom Nav Background Color
-                /*colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),*/
                 title = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -104,112 +112,126 @@ fun SettingsScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-
         },
-        // 🔥 IMPORTANT — SAME AS ProfileScreen
         contentWindowInsets = WindowInsets(0)
     ) { innerPadding ->
-
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(
-                top = 12.dp,
-                bottom = 32.dp // ✅ small & predictable
-            )
+            contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
         ) {
-
-            // ---------------------
-            // APPEARANCE
-            // ---------------------
-            item { SectionTitle(stringResource(R.string.section_appearance)) }
-
             item {
-                SettingItem(
-                    icon = Icons.Default.DarkMode,
-                    title = stringResource(R.string.dark_mode),
-                    subtitle = stringResource(R.string.dark_mode_subtitle),
-                    trailing = {
-                        Switch(
-                            checked = themeMode == "dark",
-                            onCheckedChange = {
-                                settingsViewModel.setThemeMode(
-                                    if (it) "dark" else "light"
-                                )
-                            }
-                        )
-                    }
-                )
+                SettingsSectionCard(title = stringResource(R.string.account_settings)) {
+                    SettingsRow(
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        title = stringResource(R.string.logout),
+                        subtitle = "Sign out from this device",
+                        onClick = onLogout
+                    )
+                }
             }
 
             item {
-                SettingItem(
-                    icon = Icons.Default.Language,
-                    title = stringResource(R.string.language),
-                    subtitle = languageLabel(language),
-                    onClick = { showLanguageDialog = true },
-                    trailing = {
-                        Icon(Icons.Default.ChevronRight, null)
-                    }
-                )
-            }
+                SettingsSectionCard(title = stringResource(R.string.section_appearance)) {
+                    ToggleSettingsRow(
+                        icon = Icons.Default.DarkMode,
+                        title = stringResource(R.string.dark_mode),
+                        subtitle = stringResource(R.string.dark_mode_subtitle),
+                        checked = themeMode == "dark",
+                        onCheckedChange = { checked ->
+                            settingsViewModel.setThemeMode(if (checked) "dark" else "light")
+                        }
+                    )
 
-            // ---------------------
-            // PREFERENCES
-            // ---------------------
-            item { SectionTitle(stringResource(R.string.section_preferences)) }
+                    SectionDivider()
 
-            item {
-                SettingItem(
-                    icon = Icons.Default.Notifications,
-                    title = stringResource(R.string.notifications),
-                    subtitle = stringResource(R.string.notifications_subtitle),
-                    trailing = {
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = {
-                                settingsViewModel.setNotificationsEnabled(it)
-                            }
-                        )
-                    }
-                )
+                    SettingsRow(
+                        icon = Icons.Default.Language,
+                        title = stringResource(R.string.language),
+                        subtitle = languageLabel(language),
+                        onClick = { showLanguageDialog = true },
+                        trailing = {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
             }
 
             item {
-                SettingItem(
-                    icon = Icons.Default.AutoAwesome,
-                    title = stringResource(R.string.gemini_confirmation),
-                    subtitle = if (skipGeminiDialog)
-                        stringResource(R.string.gemini_confirmation_disabled)
-                    else
-                        stringResource(R.string.gemini_confirmation_enabled),
-                    onClick = {
-                        if (skipGeminiDialog) showResetGeminiDialog = true
-                    },
-                    trailing = {
-                        Text(
-                            text = if (skipGeminiDialog)
-                                stringResource(R.string.reset)
-                            else
-                                stringResource(R.string.enabled),
-                            color = if (skipGeminiDialog)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                SettingsSectionCard(title = stringResource(R.string.section_preferences)) {
+                    ToggleSettingsRow(
+                        icon = Icons.Default.Notifications,
+                        title = stringResource(R.string.notifications),
+                        subtitle = stringResource(R.string.notifications_subtitle),
+                        checked = notificationsEnabled,
+                        onCheckedChange = settingsViewModel::setNotificationsEnabled
+                    )
+
+                    SectionDivider()
+
+                    SettingsRow(
+                        icon = Icons.Default.AutoAwesome,
+                        title = stringResource(R.string.gemini_confirmation),
+                        subtitle = if (skipGeminiDialog)
+                            stringResource(R.string.gemini_confirmation_disabled)
+                        else
+                            stringResource(R.string.gemini_confirmation_enabled),
+                        onClick = {
+                            if (skipGeminiDialog) showResetGeminiDialog = true
+                        },
+                        trailing = {
+                            Text(
+                                text = if (skipGeminiDialog)
+                                    stringResource(R.string.reset)
+                                else
+                                    stringResource(R.string.enabled),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (skipGeminiDialog)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    )
+                }
+            }
+
+            item {
+                SettingsSectionCard(title = stringResource(R.string.app_info)) {
+                    SettingsRow(
+                        icon = Icons.Default.Info,
+                        title = stringResource(R.string.version),
+                        subtitle = BuildConfig.VERSION_NAME
+                    )
+                }
+            }
+
+            item {
+                Text(
+                    text = "PicPose ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp)
                 )
             }
         }
 
-        // ---------------------
-        // RESET GEMINI DIALOG
-        // ---------------------
         if (showResetGeminiDialog) {
             AlertDialog(
                 onDismissRequest = { showResetGeminiDialog = false },
@@ -233,9 +255,6 @@ fun SettingsScreen(
             )
         }
 
-        // ---------------------
-        // LANGUAGE DIALOG
-        // ---------------------
         if (showLanguageDialog) {
             AlertDialog(
                 onDismissRequest = { showLanguageDialog = false },
@@ -264,60 +283,118 @@ fun SettingsScreen(
     }
 }
 
-// --------- Composables -----------
-
 @Composable
-fun SectionTitle(title: String) {
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = title.uppercase(),
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-    )
-}
-
-
-@Composable
-fun SettingItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun SettingsSectionCard(
     title: String,
-    subtitle: String,
-    onClick: (() -> Unit)? = null,
-    trailing: @Composable (() -> Unit)? = null
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
         ) {
-            Icon(
-                icon,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                Text(subtitle, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            trailing?.let {
-                Spacer(modifier = Modifier.width(8.dp))
-                it()
-            }
+            Column(modifier = Modifier.fillMaxWidth(), content = content)
         }
     }
 }
 
 @Composable
-fun RadioButtonItem(text: String, selected: Boolean, onClick: () -> Unit) {
+private fun SectionDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 56.dp, end = 16.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null
+) {
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+
+    ListItem(
+        modifier = rowModifier.heightIn(min = 56.dp),
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        headlineContent = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+        },
+        trailingContent = trailing
+    )
+}
+
+@Composable
+private fun ToggleSettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    SettingsRow(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        onClick = { onCheckedChange(!checked) },
+        trailing = {
+            Box(
+                modifier = Modifier
+                    .semantics { role = Role.Switch }
+                    .clickable { onCheckedChange(!checked) }
+                    .padding(start = 8.dp)
+            ) {
+                Switch(
+                    checked = checked,
+                    onCheckedChange = onCheckedChange
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun RadioButtonItem(text: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
