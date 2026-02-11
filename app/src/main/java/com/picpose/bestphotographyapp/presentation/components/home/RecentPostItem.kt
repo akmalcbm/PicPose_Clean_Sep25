@@ -69,6 +69,7 @@ fun RecentPostItem(
 
             Column(Modifier.weight(1f)) {
 
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = post.title,
                     style = MaterialTheme.typography.titleSmall,

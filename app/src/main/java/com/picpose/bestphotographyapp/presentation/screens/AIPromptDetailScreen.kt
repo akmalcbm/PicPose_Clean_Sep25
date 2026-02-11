@@ -93,7 +93,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -205,13 +204,24 @@ fun AIPromptDetailScreen(
 
     // Native Ad (loaded-only rendering; no reserved space on fail/disabled)
     var nativeAdState by remember { mutableStateOf<NativeAdUiState>(NativeAdUiState.Disabled) }
-    val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }
-    LaunchedEffect(adsConfigState) {
+    val nativePlacementKey = remember(adsConfigState) {
+        if (adsConfigState is AdsConfigState.Ready &&
+            AdsManager.getPlacement(AdsManager.KEY_NATIVE_2) != null
+        ) {
+            AdsManager.KEY_NATIVE_2
+        } else {
+            AdsManager.KEY_NATIVE_AD
+        }
+    }
+    val nativeAdController = remember(nativePlacementKey) {
+        NativeAdController(placementKey = nativePlacementKey)
+    }
+    LaunchedEffect(adsConfigState, promptId, nativePlacementKey) {
         when (adsConfigState) {
             is AdsConfigState.Loading -> {
                 AdsLog.d(
                     AdsLog.TAG_UI,
-                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=wait reason=CONFIG_LOADING"
+                    "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=wait reason=CONFIG_LOADING"
                 )
             }
 
@@ -219,7 +229,7 @@ fun AIPromptDetailScreen(
                 nativeAdState = NativeAdUiState.Failed
                 AdsLog.w(
                     AdsLog.TAG_UI,
-                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=CONFIG_ERROR"
+                    "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=skip reason=CONFIG_ERROR"
                 )
             }
 
@@ -227,13 +237,13 @@ fun AIPromptDetailScreen(
                 val canShowAds = AdsManager.canShowAds()
                 AdsLog.i(
                     AdsLog.TAG_UI,
-                    "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=request canShowAds=$canShowAds"
+                    "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=request canShowAds=$canShowAds promptId=$promptId"
                 )
                 if (!canShowAds) {
                     nativeAdState = NativeAdUiState.Disabled
                     AdsLog.i(
                         AdsLog.TAG_UI,
-                        "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=skip reason=global_gate"
+                        "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=skip reason=global_gate"
                     )
                     return@LaunchedEffect
                 }
@@ -245,7 +255,7 @@ fun AIPromptDetailScreen(
                         override fun onLoaded(ad: NativeAd) {
                             AdsLog.i(
                                 AdsLog.TAG_UI,
-                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=loaded"
+                                "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=loaded promptId=$promptId"
                             )
                             nativeAdState = NativeAdUiState.Loaded(ad)
                         }
@@ -253,7 +263,7 @@ fun AIPromptDetailScreen(
                         override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
                             AdsLog.w(
                                 AdsLog.TAG_UI,
-                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=failed domain=${error.domain} code=${error.code} message=${error.message}"
+                                "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=failed domain=${error.domain} code=${error.code} message=${error.message}"
                             )
                             nativeAdState = NativeAdUiState.Failed
                         }
@@ -261,9 +271,9 @@ fun AIPromptDetailScreen(
                         override fun onUnavailable(reason: String) {
                             AdsLog.i(
                                 AdsLog.TAG_UI,
-                                "[AdsUI] screen=AIPromptDetailScreen placement=${AdsManager.KEY_NATIVE_AD} action=unavailable reason=$reason"
+                                "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=unavailable reason=$reason"
                             )
-                            nativeAdState = if (reason == "ADS_DISABLED") {
+                            nativeAdState = if (reason == "ADS_DISABLED" || reason == "FREQUENCY_BLOCK" || reason == "NO_UNIT") {
                                 NativeAdUiState.Disabled
                             } else {
                                 NativeAdUiState.Failed
@@ -281,8 +291,12 @@ fun AIPromptDetailScreen(
                 "[AdsUI] screen=AIPromptDetailScreen action=dispose_ads"
             )
             interstitialController.clear()
-            nativeAdController.clear()
             nativeAdState = NativeAdUiState.Disabled
+        }
+    }
+    DisposableEffect(nativeAdController) {
+        onDispose {
+            nativeAdController.clear()
         }
     }
 
