@@ -1,17 +1,31 @@
 <resources>
     <string-array name="ai_bio_suggestions">
-        <item>Fotógrafo explorando retratos criativos e iluminação cinematográfica.</item>
-        <item>Entusiasta de prompts de IA compartilhando ideias para gerar melhores imagens.</item>
-        <item>Narrador visual inspirado por fotografia de rua, natureza e estúdio.</item>
-        <item>Experimenta composição, luz e cor todos os dias.</item>
-        <item>Cria prompts práticos para criadores e amantes da fotografia.</item>
+        <item>📸 Fotógrafo explorando retratos criativos e luz cinematográfica</item>
+        <item>🤖 Amante de prompts de IA para melhores imagens</item>
+        <item>🎬 Contador de histórias visuais inspirado na rua e no estúdio</item>
+        <item>🌈 Brincando com luz, cor e composição diariamente</item>
+        <item>🧠 Transformando ideias em prompts poderosos de IA</item>
+        <item>✨ Ajudando criadores a evoluir com prompts inteligentes</item>
+        <item>🖼️ Misturando fotografia, IA e criatividade</item>
+        <item>🚀 Explorando o futuro dos visuais gerados por IA</item>
+        <item>🎨 Criando prompts que geram imagens incríveis</item>
+        <item>📷 De fotos reais à arte criada por IA</item>
+        <item>🔥 Desenvolvendo prompts para criadores da nova geração</item>
+        <item>🌍 Inspirado por pessoas, lugares e imaginação</item>
+        <item>⚡ Experimentando IA, arte e estética</item>
+        <item>🪄 Melhorando visuais com o prompt certo</item>
+        <item>📖 Compartilhando ideias criativas de IA, um prompt por vez</item>
     </string-array>
 
+
     <string-array name="profile_fallback_bios">
-        <item>Amante de fotografia com paixão por cliques criativos.</item>
+        <item>Amante da fotografia com paixão por cliques criativos.</item>
         <item>Explorando diariamente prompts de IA e dicas de câmera.</item>
-        <item>Transforma ideias em imagens com luz e composição.</item>
+        <item>Transformando ideias em imagens com luz e composição.</item>
+        <item>Unindo criatividade, visual e boas técnicas.</item>
+        <item>Sempre aprendendo novas formas de criar visuais incríveis.</item>
     </string-array>
+
 
     <string-array name="photography_tips_fallback">
         <item>Use descrições mais específicas nos prompts para melhores resultados de IA.</item>

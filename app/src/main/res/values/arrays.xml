@@ -1,17 +1,30 @@
 <resources>
     <string-array name="ai_bio_suggestions">
-        <item>Photographer exploring creative portraits and cinematic lighting.</item>
-        <item>AI prompt enthusiast sharing ideas for better image generation.</item>
-        <item>Visual storyteller inspired by street, nature, and studio photography.</item>
-        <item>Experimenting daily with composition, light, and color.</item>
-        <item>Creating practical prompts for creators and photography lovers.</item>
+        <item>📸 Photographer exploring creative portraits &amp; cinematic light</item>
+        <item>🤖 AI prompt lover crafting better image generations</item>
+        <item>🎬 Visual storyteller inspired by street &amp; studio scenes</item>
+        <item>🌈 Playing with light, color &amp; composition daily</item>
+        <item>🧠 Turning ideas into powerful AI image prompts</item>
+        <item>✨ Helping creators level up with smart prompts</item>
+        <item>🖼️ Blending photography, AI &amp; creativity</item>
+        <item>🚀 Exploring the future of AI-generated visuals</item>
+        <item>🎨 Creating prompts that spark stunning images</item>
+        <item>📷 From real shots to AI-crafted art</item>
+        <item>🔥 Designing prompts for next-gen creators</item>
+        <item>🌍 Inspired by people, places &amp; imagination</item>
+        <item>⚡ Experimenting with AI, art &amp; aesthetics</item>
+        <item>🪄 Making visuals better with the right prompts</item>
+        <item>📖 Sharing creative AI ideas one prompt at a time</item>
     </string-array>
 
     <string-array name="profile_fallback_bios">
-        <item>Photography enthusiast who loves creative shots.</item>
-        <item>Exploring AI prompts and camera techniques every day.</item>
-        <item>Turning ideas into visuals through light and composition.</item>
+        <item>Photography lover with a passion for creative clicks.</item>
+        <item>Exploring AI prompts and camera tips every day.</item>
+        <item>Turning ideas into images with light and composition.</item>
+        <item>Blending creativity, visuals, and smart techniques.</item>
+        <item>Always learning new ways to create stunning visuals.</item>
     </string-array>
+
 
     <string-array name="photography_tips_fallback">
         <item>Use specific descriptive words in your prompts for better AI results.</item>

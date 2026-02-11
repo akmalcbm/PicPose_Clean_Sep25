@@ -1,17 +1,31 @@
 <resources>
     <string-array name="ai_bio_suggestions">
-        <item>Fotografer yang mengeksplorasi potret kreatif dan pencahayaan sinematik.</item>
-        <item>Penggemar prompt AI yang berbagi ide untuk menghasilkan gambar yang lebih baik.</item>
-        <item>Pencerita visual yang terinspirasi fotografi jalanan, alam, dan studio.</item>
-        <item>Bereksperimen setiap hari dengan komposisi, cahaya, dan warna.</item>
-        <item>Membuat prompt praktis untuk kreator dan pecinta fotografi.</item>
+        <item>📸 Fotografer yang mengeksplor potret kreatif &amp; cahaya sinematik</item>
+        <item>🤖 Pecinta prompt AI untuk hasil gambar yang lebih baik</item>
+        <item>🎬 Pencerita visual terinspirasi street &amp; studio</item>
+        <item>🌈 Bermain dengan cahaya, warna &amp; komposisi setiap hari</item>
+        <item>🧠 Mengubah ide menjadi prompt gambar AI yang kuat</item>
+        <item>✨ Membantu kreator berkembang dengan prompt cerdas</item>
+        <item>🖼️ Menggabungkan fotografi, AI &amp; kreativitas</item>
+        <item>🚀 Menjelajahi masa depan visual berbasis AI</item>
+        <item>🎨 Membuat prompt yang menghasilkan gambar menakjubkan</item>
+        <item>📷 Dari foto nyata ke seni berbasis AI</item>
+        <item>🔥 Merancang prompt untuk kreator generasi baru</item>
+        <item>🌍 Terinspirasi oleh orang, tempat &amp; imajinasi</item>
+        <item>⚡ Bereksperimen dengan AI, seni &amp; estetika</item>
+        <item>🪄 Membuat visual lebih baik dengan prompt yang tepat</item>
+        <item>📖 Berbagi ide kreatif AI, satu prompt demi satu</item>
     </string-array>
 
+
     <string-array name="profile_fallback_bios">
-        <item>Penggemar fotografi yang suka jepretan kreatif.</item>
-        <item>Menjelajahi prompt AI dan teknik kamera setiap hari.</item>
-        <item>Mengubah ide menjadi visual melalui cahaya dan komposisi.</item>
+        <item>Pecinta fotografi dengan passion pada hasil kreatif.</item>
+        <item>Menjelajahi prompt AI dan tips kamera setiap hari.</item>
+        <item>Mengubah ide menjadi gambar dengan cahaya dan komposisi.</item>
+        <item>Menggabungkan kreativitas dan visual.</item>
+        <item>Terus belajar cara baru membuat visual menarik.</item>
     </string-array>
+
 
     <string-array name="photography_tips_fallback">
         <item>Gunakan kata deskriptif yang spesifik dalam prompt Anda untuk hasil AI yang lebih baik.</item>

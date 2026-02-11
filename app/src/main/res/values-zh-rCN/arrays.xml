@@ -1,17 +1,31 @@
 <resources>
     <string-array name="ai_bio_suggestions">
-        <item>探索创意人像与电影感光影的摄影师。</item>
-        <item>AI 提示词爱好者，分享更好生成图片的创意。</item>
-        <item>受街拍、自然与棚拍启发的视觉讲述者。</item>
-        <item>每天尝试构图、光线与色彩。</item>
-        <item>为创作者与摄影爱好者打造实用提示词。</item>
+        <item>📸 探索创意人像与电影级灯光的摄影师</item>
+        <item>🤖 热爱 AI 提示词，打造更好的图像生成</item>
+        <item>🎬 灵感来自街头与影棚的视觉讲述者</item>
+        <item>🌈 每天玩转光影、色彩与构图</item>
+        <item>🧠 将想法转化为强大的 AI 图像提示词</item>
+        <item>✨ 用智能提示词帮助创作者成长</item>
+        <item>🖼️ 融合摄影、AI 与创意</item>
+        <item>🚀 探索 AI 生成视觉的未来</item>
+        <item>🎨 创作能激发惊艳画面的提示词</item>
+        <item>📷 从真实拍摄到 AI 艺术创作</item>
+        <item>🔥 为新一代创作者设计提示词</item>
+        <item>🌍 灵感源于人、地点与想象力</item>
+        <item>⚡ 实验 AI、艺术与美学</item>
+        <item>🪄 用正确的提示词让画面更出色</item>
+        <item>📖 一条提示词分享一个 AI 创意</item>
     </string-array>
 
+
     <string-array name="profile_fallback_bios">
-        <item>热爱创意拍摄的摄影爱好者。</item>
+        <item>热爱摄影，专注于创意拍摄。</item>
         <item>每天探索 AI 提示词与相机技巧。</item>
-        <item>用光线与构图把想法变成画面。</item>
+        <item>用光影与构图将想法变成画面。</item>
+        <item>融合创意与视觉表达。</item>
+        <item>持续学习，打造更出色的画面。</item>
     </string-array>
+
 
     <string-array name="photography_tips_fallback">
         <item>在提示词中使用更具体的描述词，AI 效果更好。</item>

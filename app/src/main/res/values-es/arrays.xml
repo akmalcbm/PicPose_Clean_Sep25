@@ -1,17 +1,31 @@
 <resources>
     <string-array name="ai_bio_suggestions">
-        <item>Fotógrafo que explora retratos creativos y luz cinematográfica.</item>
-        <item>Amante de los prompts de IA, compartiendo ideas para generar mejores imágenes.</item>
-        <item>Narrador visual inspirado por la fotografía urbana, la naturaleza y el estudio.</item>
-        <item>Cada día prueba composición, luz y color.</item>
-        <item>Crea prompts prácticos para creadores y amantes de la fotografía.</item>
+        <item>📸 Fotógrafo explorando retratos creativos y luz cinematográfica</item>
+        <item>🤖 Amante de prompts de IA para mejores imágenes</item>
+        <item>🎬 Narrador visual inspirado en escenas urbanas y de estudio</item>
+        <item>🌈 Jugando con luz, color y composición a diario</item>
+        <item>🧠 Convirtiendo ideas en potentes prompts de IA</item>
+        <item>✨ Ayudando a creadores a crecer con prompts inteligentes</item>
+        <item>🖼️ Mezclando fotografía, IA y creatividad</item>
+        <item>🚀 Explorando el futuro de los visuales con IA</item>
+        <item>🎨 Creando prompts que generan imágenes increíbles</item>
+        <item>📷 De fotos reales a arte creado con IA</item>
+        <item>🔥 Diseñando prompts para creadores de nueva generación</item>
+        <item>🌍 Inspirado por personas, lugares e imaginación</item>
+        <item>⚡ Experimentando con IA, arte y estética</item>
+        <item>🪄 Mejorando visuales con el prompt adecuado</item>
+        <item>📖 Compartiendo ideas creativas de IA, prompt a prompt</item>
     </string-array>
 
+
     <string-array name="profile_fallback_bios">
-        <item>Aficionado a la fotografía creativa.</item>
+        <item>Amante de la fotografía con pasión por tomas creativas.</item>
         <item>Explorando a diario prompts de IA y consejos de cámara.</item>
-        <item>Convierte ideas en imágenes con luz y composición.</item>
+        <item>Convirtiendo ideas en imágenes con luz y composición.</item>
+        <item>Uniendo creatividad, visuales y buenas técnicas.</item>
+        <item>Siempre aprendiendo a crear imágenes impactantes.</item>
     </string-array>
+
 
     <string-array name="photography_tips_fallback">
         <item>Usa descripciones más específicas en tus prompts para mejores resultados de IA.</item>
