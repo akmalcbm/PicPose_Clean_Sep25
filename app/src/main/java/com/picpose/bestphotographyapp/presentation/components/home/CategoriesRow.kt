@@ -51,7 +51,9 @@ private fun CategoryCard(
             .height(160.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = premiumHorizontalCardElevation(),
+        colors = premiumHorizontalCardColors(),
+        border = premiumHorizontalCardBorder()
     ) {
         Box {
             AsyncImage(
@@ -101,7 +103,14 @@ private fun CategoryCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.04f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+                            )
+                        )
+                    )
             )
         }
     }

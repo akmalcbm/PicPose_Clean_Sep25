@@ -166,7 +166,9 @@ fun TrendingFeaturedAndPopularCard(
             .width(220.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = premiumHorizontalCardElevation(),
+        colors = premiumHorizontalCardColors(),
+        border = premiumHorizontalCardBorder()
     ) {
 
         Column {

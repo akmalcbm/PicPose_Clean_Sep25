@@ -53,8 +53,9 @@ fun GuidePostCards(
             .height(340.dp)
             .clickable { onGuidePostClick() },
         shape = shape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        //colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = premiumListCardElevation(),
+        colors = premiumListCardColors(),
+        border = premiumListCardBorder()
     ) {
         Column(
             modifier = Modifier.fillMaxSize()

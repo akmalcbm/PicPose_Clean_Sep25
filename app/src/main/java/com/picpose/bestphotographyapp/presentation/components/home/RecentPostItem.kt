@@ -46,8 +46,9 @@ fun RecentPostItem(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        //colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = premiumListCardElevation(),
+        colors = premiumListCardColors(),
+        border = premiumListCardBorder()
     ) {
         Row(
             modifier = Modifier
