@@ -129,6 +129,12 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                     else
                         navController.navigate(Screen.Login.route)
                 },
+                onNavigateToExploreWithQuery = { query ->
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("home_search_query", query)
+                    navController.navigate(Screen.Explore.route) { launchSingleTop = true }
+                },
 
                 // ⭐ REQUIRED NEW PARAMETER
                 onRequestLogin = {
@@ -142,7 +148,20 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
 
         // 🔎 Explore Screen
         composable(route = Screen.Explore.route) {
+            val incomingQuery = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("home_search_query")
+
+            LaunchedEffect(incomingQuery) {
+                if (!incomingQuery.isNullOrBlank()) {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("home_search_query")
+                }
+            }
+
             ExploreScreen(
+                initialSearchQuery = incomingQuery,
                 onNavigateToPromptDetail = { aiPrompt ->
                     val safeId = Uri.encode(aiPrompt.id)
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }

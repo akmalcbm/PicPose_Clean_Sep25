@@ -503,4 +503,15 @@
     <string name="watch_ad_for_reward">Assistir anúncio para ganhar recompensa</string>
     <string name="you_are_not_logged_in">Você não está conectado</string>
     <string name="hello_world">Olá, mundo!</string>
+    <string name="home_quick_search_placeholder">Pesquisar prompts, guias e posts…</string>
+    <string name="home_search_results_title">Resultados da busca</string>
+    <string name="home_search_view_all">Ver tudo</string>
+    <string name="home_search_no_results_title">Nenhum resultado encontrado</string>
+    <string name="home_search_no_results_subtitle">Tente ajustar sua busca ou explorar palavras-chave diferentes.</string>
+    <string name="notification_channel_general_name">Atualizações gerais</string>
+    <string name="notification_channel_general_description">Atualizações gerais do app e anúncios</string>
+    <string name="notification_channel_guides_name">Guias</string>
+    <string name="notification_channel_guides_description">Notificações sobre novos guias de fotografia</string>
+    <string name="notification_channel_prompts_name">Prompts de IA</string>
+    <string name="notification_channel_prompts_description">Notificações sobre novos prompts de IA e recursos</string>
 </resources>

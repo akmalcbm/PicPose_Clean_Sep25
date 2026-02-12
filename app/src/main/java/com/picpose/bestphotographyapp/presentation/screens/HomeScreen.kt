@@ -19,29 +19,39 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.google.android.gms.ads.nativead.NativeAd
 import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.presentation.components.ads.*
@@ -56,6 +66,7 @@ import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdUiState
+import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
 import com.picpose.bestphotographyapp.R
@@ -73,6 +84,7 @@ fun HomeScreen(
     onNavigateToGuidePostDetail: (GuidePost) -> Unit,
     onNavigateToViewAll: (String) -> Unit,
     onNavigateToEditProfile: () -> Unit,
+    onNavigateToExploreWithQuery: (String) -> Unit,
     onRequestLogin: () -> Unit        // ✅ NEW — navigation callback
 ) {
     val context = LocalContext.current
@@ -95,6 +107,25 @@ fun HomeScreen(
     val isUserActive = isLoggedIn || hasSkippedAuth
     var hasCountedOpen by rememberSaveable { mutableStateOf(false) }
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val normalizedSearchQuery = remember(searchQuery) { SearchMatchers.normalizeQuery(searchQuery) }
+    val hasActiveSearch = normalizedSearchQuery.isNotBlank()
+    val quickPromptResults = remember(uiState.aiPrompts, normalizedSearchQuery) {
+        uiState.aiPrompts.filter { SearchMatchers.matchesAIPrompt(it, normalizedSearchQuery) }.take(3)
+    }
+    val quickGuideResults = remember(uiState.guidePosts, normalizedSearchQuery) {
+        uiState.guidePosts.filter { SearchMatchers.matchesGuidePost(it, normalizedSearchQuery) }.take(3)
+    }
+    val quickRecentPostResults = remember(uiState.recentPosts, normalizedSearchQuery) {
+        uiState.recentPosts.filter { SearchMatchers.matchesRecentPost(it, normalizedSearchQuery) }.take(3)
+    }
+    val quickCategoryResults = remember(uiState.categories, normalizedSearchQuery) {
+        uiState.categories.filter { SearchMatchers.matchesCategory(it, normalizedSearchQuery) }.take(6)
+    }
+    val hasQuickSearchResults = quickPromptResults.isNotEmpty() ||
+        quickGuideResults.isNotEmpty() ||
+        quickRecentPostResults.isNotEmpty() ||
+        quickCategoryResults.isNotEmpty()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -258,9 +289,10 @@ fun HomeScreen(
             HomeTopBar(
                 titleText = stringResource(R.string.app_name),
                 initialSearch = "",
+                showSearchAction = false,
                 userImage = currentUser?.displayProfilePicture,
-                onQueryChanged = { query -> viewModel.onSearchChanged(query) },
-                onSearchClick = { query -> viewModel.onSearchChanged(query) },
+                onQueryChanged = {},
+                onSearchClick = {},
 
                 // ⭐ Updated correct logic here
                 onProfileClick = {
@@ -298,6 +330,44 @@ fun HomeScreen(
                         bottom = 24.dp
                     )
                 ) {
+                    item {
+                        HomeQuickSearchBar(
+                            query = searchQuery,
+                            onQueryChange = viewModel::onSearchChanged,
+                            onSearchAction = { onNavigateToExploreWithQuery(normalizedSearchQuery) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    if (hasActiveSearch) {
+                        if (hasQuickSearchResults) {
+                            item {
+                                HomeQuickSearchResultsCard(
+                                    prompts = quickPromptResults,
+                                    guides = quickGuideResults,
+                                    posts = quickRecentPostResults,
+                                    categories = quickCategoryResults,
+                                    query = normalizedSearchQuery,
+                                    onPromptClick = onNavigateToPromptDetail,
+                                    onGuideClick = onNavigateToGuidePostDetail,
+                                    onPostClick = { post ->
+                                        val match = uiState.aiPrompts.firstOrNull { it.id.trim() == post.id.trim() }
+                                        if (match != null) onNavigateToPromptDetail(match) else onNavigateToPostDetail(post)
+                                    },
+                                    onCategoryClick = onNavigateToCategory,
+                                    onSeeAllClick = { onNavigateToExploreWithQuery(normalizedSearchQuery) },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
+                        } else {
+                            item {
+                                HomeSearchEmptyState(
+                                    onSeeAllClick = { onNavigateToExploreWithQuery(normalizedSearchQuery) },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
+                        }
+                    }
 
                     // Welcome Header
                     item { AnimatedWelcomeHeader() }
@@ -541,6 +611,259 @@ fun HomeScreen(
 
                     //item { AdmobInterstitialTrigger() }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearchAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusManager = LocalFocusManager.current
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        shape = RoundedCornerShape(18.dp),
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = stringResource(R.string.search)
+            )
+        },
+        trailingIcon = {
+            if (query.isNotBlank()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.clear)
+                    )
+                }
+            }
+        },
+        placeholder = { Text(stringResource(R.string.home_quick_search_placeholder)) },
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+            onSearch = {
+                focusManager.clearFocus()
+                onSearchAction()
+            }
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+    )
+}
+
+@Composable
+private fun HomeQuickSearchResultsCard(
+    prompts: List<AIPrompt>,
+    guides: List<GuidePost>,
+    posts: List<Post>,
+    categories: List<Category>,
+    query: String,
+    onPromptClick: (AIPrompt) -> Unit,
+    onGuideClick: (GuidePost) -> Unit,
+    onPostClick: (Post) -> Unit,
+    onCategoryClick: (Category) -> Unit,
+    onSeeAllClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_search_results_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "\"$query\"",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            prompts.forEach { prompt ->
+                HomeSearchResultRow(
+                    title = prompt.title,
+                    subtitle = prompt.category?.takeIf { it.isNotBlank() },
+                    imageUrl = prompt.imageUrl ?: prompt.imageUrl2,
+                    onClick = { onPromptClick(prompt) }
+                )
+                HorizontalDivider()
+            }
+
+            guides.forEach { guide ->
+                HomeSearchResultRow(
+                    title = guide.title,
+                    subtitle = stringResource(R.string.photography_guides_title),
+                    imageUrl = guide.image.ifBlank { guide.imageUrl },
+                    onClick = { onGuideClick(guide) }
+                )
+                HorizontalDivider()
+            }
+
+            posts.forEach { post ->
+                HomeSearchResultRow(
+                    title = post.title,
+                    subtitle = stringResource(R.string.recent_posts_title),
+                    imageUrl = post.image.ifBlank { post.image2 },
+                    onClick = { onPostClick(post) }
+                )
+                HorizontalDivider()
+            }
+
+            if (categories.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.categories_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { category ->
+                        AssistChip(
+                            onClick = { onCategoryClick(category) },
+                            label = { Text(category.name) }
+                        )
+                    }
+                }
+            }
+
+            TextButton(
+                onClick = onSeeAllClick,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text(stringResource(R.string.home_search_view_all))
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchResultRow(
+    title: String,
+    subtitle: String?,
+    imageUrl: String?,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SearchResultThumbnail(
+            imageUrl = imageUrl,
+            contentDescription = title
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultThumbnail(
+    imageUrl: String?,
+    contentDescription: String
+) {
+    Box(
+        modifier = Modifier
+            .size(68.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchEmptyState(
+    onSeeAllClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_search_no_results_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.home_search_no_results_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(
+                onClick = onSeeAllClick,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text(stringResource(R.string.home_search_view_all))
             }
         }
     }

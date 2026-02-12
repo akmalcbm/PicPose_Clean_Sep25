@@ -129,6 +129,11 @@
     <string name="search_prompts_guides_placeholder">
         Search prompts, guides…
     </string>
+    <string name="home_quick_search_placeholder">Search prompts, guides, posts…</string>
+    <string name="home_search_results_title">Quick results</string>
+    <string name="home_search_view_all">See all results in Explore</string>
+    <string name="home_search_no_results_title">No results found</string>
+    <string name="home_search_no_results_subtitle">Try a different term or open Explore for advanced filters.</string>
 
     <!-- Welcome -->
     <string name="welcome_to_picpose">Welcome to PicPose</string>
@@ -388,7 +393,7 @@
     <string name="photography_guide_title">Photography Guide</string>
     <string name="photography_guides_subtitle">Learn from experts</string>
     <string name="photography_guides_title">Photography Guides</string>
-    <string name="play_store_url">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
+    <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
     <string name="please_check_back_later">Please check back later</string>
     <string name="please_enter_your_name">Please enter your name</string>
     <string name="please_login_to_edit_profile">Please login to edit profile</string>

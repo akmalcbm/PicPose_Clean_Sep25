@@ -11,6 +11,7 @@ import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
@@ -321,10 +322,7 @@ class ExploreViewModel @Inject constructor(
     // ---------- filter / combine ----------
     private fun filterAIPrompts(prompts: List<AIPrompt>, state: ExploreUiState): List<AIPrompt> {
         return prompts.filter { prompt ->
-            val matchesSearch = state.searchQuery.isBlank() ||
-                    prompt.title?.contains(state.searchQuery, true) == true ||
-                    prompt.fullPrompt?.contains(state.searchQuery, true) == true ||
-                    prompt.shortPrompt?.contains(state.searchQuery, true) == true
+            val matchesSearch = SearchMatchers.matchesAIPrompt(prompt, state.searchQuery)
 
             val matchesCategory = state.selectedCategory == allCategoryLabel ||
                     prompt.category.equals(state.selectedCategory, ignoreCase = true)
@@ -335,9 +333,7 @@ class ExploreViewModel @Inject constructor(
 
     private fun filterGuidePosts(posts: List<GuidePost>, state: ExploreUiState): List<GuidePost> {
         return posts.filter { post ->
-            val matchesSearch = state.searchQuery.isBlank() ||
-                    post.title?.contains(state.searchQuery, true) == true ||
-                    post.content?.contains(state.searchQuery, true) == true
+            val matchesSearch = SearchMatchers.matchesGuidePost(post, state.searchQuery)
 
             val matchesCategory = state.selectedCategory == allCategoryLabel ||
                     post.category.equals(state.selectedCategory, ignoreCase = true)

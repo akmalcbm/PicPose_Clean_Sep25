@@ -645,4 +645,15 @@
 
     <string name="hello_world">नमस्ते दुनिया!</string>
     <string name="facebook_app_id">1158827679752112</string>
+    <string name="home_quick_search_placeholder">प्रॉम्प्ट, गाइड और पोस्ट खोजें…</string>
+    <string name="home_search_results_title">खोज परिणाम</string>
+    <string name="home_search_view_all">सभी देखें</string>
+    <string name="home_search_no_results_title">कोई परिणाम नहीं मिला</string>
+    <string name="home_search_no_results_subtitle">अपनी खोज में बदलाव करें या अलग कीवर्ड आज़माएँ।</string>
+    <string name="notification_channel_general_name">सामान्य अपडेट</string>
+    <string name="notification_channel_general_description">ऐप के सामान्य अपडेट और घोषणाएँ</string>
+    <string name="notification_channel_guides_name">गाइड्स</string>
+    <string name="notification_channel_guides_description">नई फ़ोटोग्राफी गाइड्स से जुड़ी सूचनाएँ</string>
+    <string name="notification_channel_prompts_name">एआई प्रॉम्प्ट्स</string>
+    <string name="notification_channel_prompts_description">नए एआई प्रॉम्प्ट्स और फीचर्स से जुड़ी सूचनाएँ</string>
 </resources>

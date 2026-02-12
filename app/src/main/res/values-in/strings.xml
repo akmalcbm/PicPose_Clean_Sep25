@@ -488,4 +488,16 @@
     <string name="watch_ad_for_reward">Tonton iklan untuk hadiah</string>
     <string name="you_are_not_logged_in">Anda belum masuk</string>
     <string name="hello_world">Halo Dunia!</string>
+    <string name="home_quick_search_placeholder">Cari prompt, panduan, postingan…</string>
+    <string name="home_search_results_title">Hasil pencarian</string>
+    <string name="home_search_view_all">Lihat semua</string>
+    <string name="home_search_no_results_title">Tidak ada hasil ditemukan</string>
+    <string name="home_search_no_results_subtitle">Coba sesuaikan pencarian Anda atau jelajahi kata kunci lain.</string>
+    <string name="error_with_message">Kesalahan: %1$s</string>
+    <string name="notification_channel_general_name">Pembaruan umum</string>
+    <string name="notification_channel_general_description">Pembaruan umum aplikasi dan pengumuman</string>
+    <string name="notification_channel_guides_name">Panduan</string>
+    <string name="notification_channel_guides_description">Notifikasi tentang panduan fotografi baru</string>
+    <string name="notification_channel_prompts_name">Prompt AI</string>
+    <string name="notification_channel_prompts_description">Notifikasi tentang prompt AI baru dan fitur terbaru</string>
 </resources>

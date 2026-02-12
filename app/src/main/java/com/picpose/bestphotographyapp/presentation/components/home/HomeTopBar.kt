@@ -27,9 +27,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.R
@@ -40,6 +42,7 @@ fun HomeTopBar(
     titleText: String,
     initialSearch: String = "",
     userImage: String? = null,       // 👈 NEW FIELD
+    showSearchAction: Boolean = true,
     onSearchClick: (String) -> Unit = {},
     onQueryChanged: (String) -> Unit = {},
     onProfileClick: () -> Unit = {}
@@ -122,8 +125,11 @@ fun HomeTopBar(
                 } else {
                     Text(
                         text = titleText,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Start
                     )
                 }
@@ -132,11 +138,13 @@ fun HomeTopBar(
         actions = {
             if (!isSearchExpanded) {
                 // 🔍 Search button
-                IconButton(onClick = { isSearchExpanded = true }) {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
-                }
+                if (showSearchAction) {
+                    IconButton(onClick = { isSearchExpanded = true }) {
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
+                    }
 
-                Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(8.dp))
+                }
 
                 // 👤 User Profile Photo (NEW)
                 Box(

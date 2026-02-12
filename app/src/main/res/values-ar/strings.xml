@@ -503,4 +503,15 @@
     <string name="watch_ad_for_reward">شاهد إعلانًا للحصول على مكافأة</string>
     <string name="you_are_not_logged_in">لم تسجّل الدخول</string>
     <string name="hello_world">مرحبًا بالعالم!</string>
+    <string name="home_quick_search_placeholder">ابحث في المطالبات والأدلة والمنشورات…</string>
+    <string name="home_search_results_title">نتائج البحث</string>
+    <string name="home_search_view_all">عرض الكل</string>
+    <string name="home_search_no_results_title">لم يتم العثور على نتائج</string>
+    <string name="home_search_no_results_subtitle">جرّب تعديل البحث أو استكشاف كلمات مفتاحية مختلفة.</string>
+    <string name="notification_channel_general_name">التحديثات العامة</string>
+    <string name="notification_channel_general_description">تحديثات التطبيق العامة والإعلانات</string>
+    <string name="notification_channel_guides_name">الأدلة</string>
+    <string name="notification_channel_guides_description">إشعارات حول أدلة التصوير الجديدة</string>
+    <string name="notification_channel_prompts_name">مطالبات الذكاء الاصطناعي</string>
+    <string name="notification_channel_prompts_description">إشعارات حول مطالبات الذكاء الاصطناعي والميزات الجديدة</string>
 </resources>

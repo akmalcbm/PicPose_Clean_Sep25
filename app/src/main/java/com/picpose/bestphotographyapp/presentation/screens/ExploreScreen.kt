@@ -113,6 +113,7 @@ private fun dynamicGap(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExploreScreen(
+    initialSearchQuery: String? = null,
     onNavigateToPromptDetail: (AIPrompt) -> Unit = {},
     onNavigateToGuidePostDetail: (GuidePost) -> Unit = {},
     exploreViewModel: ExploreViewModel = hiltViewModel()
@@ -123,6 +124,13 @@ fun ExploreScreen(
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
     val allCategoryLabel = stringResource(R.string.all)
+
+    LaunchedEffect(initialSearchQuery) {
+        val pendingQuery = initialSearchQuery?.trim().orEmpty()
+        if (pendingQuery.isNotBlank() && pendingQuery != uiState.searchQuery) {
+            exploreViewModel.updateSearchQuery(pendingQuery)
+        }
+    }
 
     // we use a local flag for manual refresh button animation control
     var manualRefreshInFlight by remember { mutableStateOf(false) }
