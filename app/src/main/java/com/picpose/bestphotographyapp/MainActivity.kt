@@ -96,6 +96,12 @@ class MainActivity : AppCompatActivity() {
         val normalized = deepLink.trim()
 
         when {
+            normalized == "app://home" || normalized == "app://home/" -> {
+                navController.navigate(Screen.Home.route) {
+                    launchSingleTop = true
+                }
+            }
+
             normalized.startsWith("app://prompts/") -> {
                 val id = normalized.removePrefix("app://prompts/")
                 navController.navigate(Screen.PromptDetail.createRoute(id)) {
@@ -146,6 +152,11 @@ class MainActivity : AppCompatActivity() {
         val promptId = intent.getStringExtra("prompt_id")
         if (!promptId.isNullOrBlank()) {
             return "app://prompts/$promptId"
+        }
+
+        val hasNotificationId = !intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_NOTIFICATION_ID).isNullOrBlank()
+        if (hasNotificationId) {
+            return "app://home"
         }
 
         return null

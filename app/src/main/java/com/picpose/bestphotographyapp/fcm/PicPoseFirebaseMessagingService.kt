@@ -75,6 +75,7 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
             ?: data["deeplink"]
             ?: data["route"]
             ?: buildDeepLinkFromIds(data)
+            ?: "app://home"
 
         val imageUrl = data["image_url"]
             ?: data["image"]
