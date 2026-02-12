@@ -374,8 +374,10 @@ class AIPromptViewModel @Inject constructor(
     /* ---------------------------------------------------------------------- */
 
     fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-        onSearchChanged(query)
+        val normalized = query.trimStart()
+        _searchQuery.value = normalized
+        _uiState.update { it.copy(searchQuery = normalized) }
+        onSearchChanged(normalized)
     }
 
     fun onCategorySelected(category: String) {
@@ -616,11 +618,11 @@ class AIPromptViewModel @Inject constructor(
         lastCacheTime = 0L
 
         loadAllJob = viewModelScope.launch {
-            delay(400)
+            delay(300)
             loadAllPrompts(
                 page = 1,
                 category = selectedCategoryServer,
-                search = query.ifBlank { null },
+                search = query.trim().ifBlank { null },
                 forceRefresh = true
             )
         }

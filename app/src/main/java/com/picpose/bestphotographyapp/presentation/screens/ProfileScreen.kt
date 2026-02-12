@@ -92,7 +92,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.profile), fontWeight = FontWeight.Bold) }
+                title = { Text(stringResource(R.string.profile), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
             )
         },
         contentWindowInsets = WindowInsets(0)

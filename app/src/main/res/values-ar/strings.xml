@@ -178,7 +178,7 @@
     <string name="all_content">كل المحتوى</string>
     <string name="all_favorites_copied">تم نسخ كل المفضلة</string>
     <string name="all_filters_and_content_refreshed">تم تحديث كل عوامل التصفية والمحتوى</string>
-    <string name="all_prompts_count">إجمالي المطالبات</string>
+    <string name="all_prompts_count">كل المطالبات (%1$d)</string>
     <string name="app_info">معلومات التطبيق</string>
     <string name="app_settings">إعدادات التطبيق</string>
     <string name="available_rewards">المكافآت المتاحة</string>
@@ -250,7 +250,7 @@
     <string name="earn_points_and_unlock_rewards">اكسب نقاطًا وافتح المكافآت</string>
     <string name="edit">تعديل</string>
     <string name="error">خطأ</string>
-    <string name="error_with_message">خطأ (مع رسالة)</string>
+    <string name="error_with_message">خطأ: %1$s</string>
     <string name="explore_all_ai_prompts">استكشف كل مطالبات الذكاء الاصطناعي</string>
     <string name="explore_title">استكشاف</string>
     <string name="facebook_login_failed">فشل تسجيل الدخول عبر Facebook</string>
@@ -404,9 +404,9 @@
     <string name="prompt_not_found">لم يتم العثور على المطلب</string>
     <string name="prompts">المطالبات</string>
     <string name="prompts_count">عدد المطالبات</string>
-    <string name="prompts_for_category_count">عدد المطالبات حسب الفئة</string>
+    <string name="prompts_for_category_count">مطالبات %1$s (%2$d)</string>
     <string name="quick_actions">إجراءات سريعة</string>
-    <string name="quick_stats_title">إحصاءات سريعة</string>
+    <string name="quick_stats_title">📊 إحصاءات سريعة</string>
     <string name="read_privacy_policy">قراءة سياسة الخصوصية</string>
     <string name="read_time_with_minutes">%1$d دقيقة قراءة</string>
     <string name="recent_posts_subtitle">محتوى حديث من المجتمع</string>
@@ -444,7 +444,7 @@
     <string name="share_guide_intro">مقدمة مشاركة الدليل</string>
     <string name="share_hashtag_guide">#دليل</string>
     <string name="share_hashtag_photography">#تصوير</string>
-    <string name="share_post_intro">مقدمة مشاركة المنشور</string>
+    <string name="share_post_intro">اطّلع على هذا المنشور: %1$s</string>
     <string name="share_prompt_header">🔥 PicPose: كتاب مطالبات الذكاء الاصطناعي 🔥</string>
     <string name="share_prompt_subheader">✨ جرّب تطبيق PicPose لمزيد من مطالبات الذكاء الاصطناعي الرائعة &amp; أفكار الوضعيات!</string>
     <string name="share_prompt_via">مشاركة المطلب عبر</string>

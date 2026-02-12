@@ -177,7 +177,7 @@
     <string name="all_content">全部内容</string>
     <string name="all_favorites_copied">已复制所有收藏</string>
     <string name="all_filters_and_content_refreshed">已刷新所有筛选与内容</string>
-    <string name="all_prompts_count">全部提示词数量</string>
+    <string name="all_prompts_count">全部提示词（%1$d）</string>
     <string name="app_info">应用信息</string>
     <string name="app_settings">应用设置</string>
     <string name="available_rewards">可用奖励</string>
@@ -249,7 +249,7 @@
     <string name="earn_points_and_unlock_rewards">赚取积分并解锁奖励</string>
     <string name="edit">编辑</string>
     <string name="error">错误</string>
-    <string name="error_with_message">错误（含消息）</string>
+    <string name="error_with_message">错误：%1$s</string>
     <string name="explore_all_ai_prompts">浏览全部 AI 提示词</string>
     <string name="explore_title">探索</string>
     <string name="facebook_login_failed">Facebook 登录失败</string>
@@ -403,9 +403,9 @@
     <string name="prompt_not_found">未找到提示词</string>
     <string name="prompts">提示词</string>
     <string name="prompts_count">提示词数量</string>
-    <string name="prompts_for_category_count">分类提示词数量</string>
+    <string name="prompts_for_category_count">%1$s 提示词（%2$d）</string>
     <string name="quick_actions">快捷操作</string>
-    <string name="quick_stats_title">快速统计</string>
+    <string name="quick_stats_title">📊 快速统计</string>
     <string name="read_privacy_policy">阅读隐私政策</string>
     <string name="read_time_with_minutes">%1$d 分钟阅读</string>
     <string name="recent_posts_subtitle">来自社区的最新内容</string>
@@ -443,7 +443,7 @@
     <string name="share_guide_intro">分享指南介绍</string>
     <string name="share_hashtag_guide">#指南</string>
     <string name="share_hashtag_photography">#摄影</string>
-    <string name="share_post_intro">分享帖子介绍</string>
+    <string name="share_post_intro">看看这条帖子：%1$s</string>
     <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
     <string name="share_prompt_subheader">✨ 试试 PicPose App，获取更多精彩 AI 提示词 &amp; 姿势灵感！</string>
     <string name="share_prompt_via">通过以下方式分享提示词</string>

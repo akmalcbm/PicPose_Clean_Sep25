@@ -87,6 +87,7 @@ import com.picpose.bestphotographyapp.presentation.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.core.utils.displayViews
 import com.picpose.bestphotographyapp.core.utils.setText
@@ -257,16 +258,10 @@ fun AllAIPromptsScreen(
             }
     }
 
-    val displayPrompts = remember(uiState.allPrompts, uiState.searchQuery, uiState.selectedCategory) {
+    val normalizedQuery = remember(uiState.searchQuery) { uiState.searchQuery.trim() }
+    val displayPrompts = remember(uiState.allPrompts, normalizedQuery) {
         uiState.allPrompts.filter { prompt ->
-            val matchesSearch = uiState.searchQuery.isBlank() ||
-                    prompt.title.contains(uiState.searchQuery, true) ||
-                    prompt.fullPrompt?.contains(uiState.searchQuery, true) == true ||
-                    prompt.shortPrompt?.contains(uiState.searchQuery, true) == true
-
-            val matchesCategory = true // server already filtering
-
-            matchesSearch && matchesCategory
+            SearchMatchers.matchesAIPrompt(prompt, normalizedQuery)
         }
     }
 
@@ -279,13 +274,13 @@ fun AllAIPromptsScreen(
                     val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
                     Text(
                         text = if (uiState.selectedCategory != "All")
-                            context.getString(
+                            stringResource(
                                 R.string.prompts_for_category_count,
                                 uiState.selectedCategory,
                                 displayPrompts.size
                             )
                         else
-                            context.getString(R.string.all_prompts_count, total)
+                            stringResource(R.string.all_prompts_count, total)
                     )
                 },
                 navigationIcon = {

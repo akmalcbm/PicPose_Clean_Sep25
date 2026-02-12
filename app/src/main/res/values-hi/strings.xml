@@ -185,7 +185,7 @@
     <string name="all_content">सभी कंटेंट</string>
     <string name="all_favorites_copied">सभी पसंदीदा कॉपी कर लिए गए</string>
     <string name="all_filters_and_content_refreshed">सभी फ़िल्टर और कंटेंट रिफ्रेश हो गए</string>
-    <string name="all_prompts_count">सभी प्रॉम्प्ट्स की संख्या</string>
+    <string name="all_prompts_count">सभी प्रॉम्प्ट्स (%1$d)</string>
 
     <string name="app_info">ऐप जानकारी</string>
     <string name="app_settings">ऐप सेटिंग्स</string>
@@ -297,7 +297,7 @@
     <string name="edit">एडिट करें</string>
 
     <string name="error">त्रुटि</string>
-    <string name="error_with_message">संदेश के साथ त्रुटि</string>
+    <string name="error_with_message">त्रुटि: %1$s</string>
 
     <string name="explore_all_ai_prompts">सभी AI प्रॉम्प्ट्स एक्सप्लोर करें</string>
     <string name="explore_title">एक्सप्लोर</string>
@@ -512,10 +512,10 @@
 
     <string name="prompts">प्रॉम्प्ट्स</string>
     <string name="prompts_count">प्रॉम्प्ट्स की संख्या</string>
-    <string name="prompts_for_category_count">कैटेगरी के अनुसार प्रॉम्प्ट्स</string>
+    <string name="prompts_for_category_count">%1$s के प्रॉम्प्ट्स (%2$d)</string>
 
     <string name="quick_actions">त्वरित क्रियाएँ</string>
-    <string name="quick_stats_title">त्वरित आँकड़े</string>
+    <string name="quick_stats_title">📊 त्वरित आँकड़े</string>
 
     <string name="read_privacy_policy">प्राइवेसी पॉलिसी पढ़ें</string>
     <string name="read_time_with_minutes">%1$d मिनट पढ़ने का समय</string>
@@ -572,7 +572,7 @@
     <string name="share_guide_intro">गाइड शेयर परिचय</string>
     <string name="share_hashtag_guide">गाइड हैशटैग शेयर करें</string>
     <string name="share_hashtag_photography">फोटोग्राफी हैशटैग शेयर करें</string>
-    <string name="share_post_intro">पोस्ट शेयर परिचय</string>
+    <string name="share_post_intro">यह पोस्ट देखें: %1$s</string>
 
     <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
     <string name="share_prompt_subheader">✨ और शानदार AI प्रॉम्प्ट्स और पोज़ आइडियाज़ के लिए PicPose ऐप आज़माएँ!</string>

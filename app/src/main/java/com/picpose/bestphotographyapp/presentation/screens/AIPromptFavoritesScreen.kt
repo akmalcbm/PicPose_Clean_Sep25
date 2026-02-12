@@ -9,10 +9,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +30,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
+import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,9 +50,23 @@ fun AIPromptFavoritesScreen(
     val clipboard = LocalClipboard.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var favoritesSearchQuery by rememberSaveable { mutableStateOf("") }
+    var debouncedFavoritesQuery by rememberSaveable { mutableStateOf("") }
 
     // ✅ ONLY THIS FIX: Add scroll state to maintain position
     val lazyListState = rememberLazyListState()
+
+    LaunchedEffect(favoritesSearchQuery) {
+        delay(300)
+        debouncedFavoritesQuery = favoritesSearchQuery
+    }
+
+    val normalizedFavoritesQuery = remember(debouncedFavoritesQuery) {
+        debouncedFavoritesQuery.trim()
+    }
+    val filteredFavoritePrompts = remember(favoritePrompts, normalizedFavoritesQuery) {
+        favoritePrompts.filter { SearchMatchers.matchesAIPrompt(it, normalizedFavoritesQuery) }
+    }
 
     LaunchedEffect(Unit) {
         Log.e("FAV_DEBUG", "FavoritesScreen OPENED - Count: ${favoritePrompts.size}")
@@ -68,8 +87,8 @@ fun AIPromptFavoritesScreen(
                     Text(
                         text = pluralStringResource(
                             R.plurals.favorites_count,
-                            favoritePrompts.size,
-                            favoritePrompts.size
+                            filteredFavoritePrompts.size,
+                            filteredFavoritePrompts.size
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -83,10 +102,10 @@ fun AIPromptFavoritesScreen(
                     }
                 },
                 actions = {
-                    if (favoritePrompts.isNotEmpty()) {
+                    if (filteredFavoritePrompts.isNotEmpty()) {
                         IconButton(
                             onClick = {
-                                val allPrompts = favoritePrompts.joinToString("\n\n") { prompt ->
+                                val allPrompts = filteredFavoritePrompts.joinToString("\n\n") { prompt ->
                                     "${prompt.title}\n${prompt.fullPrompt.orEmpty()}"
                                 }
                                 coroutineScope.launch {
@@ -145,62 +164,115 @@ fun AIPromptFavoritesScreen(
 
                 // ✅ Favorites list - WITH SCROLL STATE ONLY
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            top = 12.dp,
-                            bottom = 90.dp,
-                            start = 16.dp,
-                            end = 16.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        state = lazyListState // ✅ ONLY THIS CHANGE
-                    ) {
-                        items(
-                            items = favoritePrompts,
-                            key = { it.id }
-                        ) { prompt ->
-
-                            val local = localEngagementMap[prompt.id]
-
-                            AIPromptCard(
-                                prompt = prompt,
-                                localEngagement = local,
-
-                                onClick = {
-                                    onPromptClick(prompt.id)
-                                },
-
-                                onCopy = {
-                                    coroutineScope.launch {
-                                        clipboard.setText(
-                                            prompt.fullPrompt.orEmpty(),
-                                            label = "prompt"
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        OutlinedTextField(
+                            value = favoritesSearchQuery,
+                            onValueChange = { favoritesSearchQuery = it },
+                            placeholder = { Text(stringResource(R.string.search_prompts_placeholder)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (favoritesSearchQuery.isNotBlank()) {
+                                    IconButton(onClick = { favoritesSearchQuery = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = stringResource(R.string.clear)
                                         )
                                     }
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.prompt_copied_toast),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
+                                }
+                            },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
 
-                                onLikeClick = {
-                                    viewModel.onLikeClicked(prompt)
-                                },
-
-                                onFavoriteClick = {
-                                    viewModel.onFavoriteClicked(prompt)
-                                },
-
-                                showFavoriteIcon = true,
-                                isCompact = false
+                        if (normalizedFavoritesQuery.isNotBlank() && filteredFavoritePrompts.isEmpty()) {
+                            EmptyPromptsSearchState(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp)
                             )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    top = 12.dp,
+                                    bottom = 90.dp,
+                                    start = 16.dp,
+                                    end = 16.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                state = lazyListState
+                            ) {
+                                items(
+                                    items = filteredFavoritePrompts,
+                                    key = { it.id }
+                                ) { prompt ->
+
+                                    val local = localEngagementMap[prompt.id]
+
+                                    AIPromptCard(
+                                        prompt = prompt,
+                                        localEngagement = local,
+
+                                        onClick = {
+                                            onPromptClick(prompt.id)
+                                        },
+
+                                        onCopy = {
+                                            coroutineScope.launch {
+                                                clipboard.setText(
+                                                    prompt.fullPrompt.orEmpty(),
+                                                    label = "prompt"
+                                                )
+                                            }
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.prompt_copied_toast),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+
+                                        onLikeClick = {
+                                            viewModel.onLikeClicked(prompt)
+                                        },
+
+                                        onFavoriteClick = {
+                                            viewModel.onFavoriteClicked(prompt)
+                                        },
+
+                                        showFavoriteIcon = true,
+                                        isCompact = false
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyPromptsSearchState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = stringResource(R.string.no_results_found),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.try_different_search_terms_or_clear_filters),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
