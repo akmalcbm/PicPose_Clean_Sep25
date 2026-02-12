@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var authViewModel: AuthViewModel
 
     private val notificationDeepLinkState = mutableStateOf<String?>(null)
+    private var lastConsumedSignature: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
 
         intent?.data?.let { handleTwitterUri(it) }
-        notificationDeepLinkState.value = extractNotificationDeepLink(intent)
+        consumeNotificationIntent(intent, source = "onCreate")
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -134,6 +136,15 @@ class MainActivity : AppCompatActivity() {
     private fun extractNotificationDeepLink(intent: Intent?): String? {
         if (intent == null) return null
 
+        intent.dataString?.takeIf { it.startsWith("app://") }?.let {
+            return it
+        }
+
+        val deeplinkAlias = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_DEEPLINK_ALIAS)
+        if (!deeplinkAlias.isNullOrBlank()) {
+            return deeplinkAlias
+        }
+
         val fromExtra = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_DEEP_LINK)
         if (!fromExtra.isNullOrBlank()) {
             return fromExtra
@@ -142,6 +153,19 @@ class MainActivity : AppCompatActivity() {
         val route = intent.getStringExtra("route")
         if (!route.isNullOrBlank()) {
             return route
+        }
+
+        val extraTargetType = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_TYPE)
+            ?: intent.getStringExtra("target_type")
+        val extraTargetId = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_ID)
+            ?: intent.getStringExtra("target_id")
+            ?: intent.getStringExtra("id")
+
+        when (extraTargetType?.lowercase()) {
+            "prompt" -> if (!extraTargetId.isNullOrBlank()) return "app://prompts/$extraTargetId"
+            "guide" -> if (!extraTargetId.isNullOrBlank()) return "app://guides/$extraTargetId"
+            "category" -> if (!extraTargetId.isNullOrBlank()) return "app://category/$extraTargetId"
+            "home" -> return "app://home"
         }
 
         val guideId = intent.getStringExtra("guide_id")
@@ -162,6 +186,44 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
+    private fun consumeNotificationIntent(intent: Intent?, source: String) {
+        if (intent == null) return
+
+        val deepLink = extractNotificationDeepLink(intent)
+        val targetType = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_TYPE)
+        val targetId = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_ID)
+        val signature = listOf(
+            intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_NOTIFICATION_ID).orEmpty(),
+            deepLink.orEmpty(),
+            targetType.orEmpty(),
+            targetId.orEmpty(),
+            intent.dataString.orEmpty()
+        ).joinToString("|")
+
+        Log.i(
+            "NotifTap",
+            "source=$source data=${intent.dataString} deepLink=$deepLink targetType=$targetType targetId=$targetId extras=${intent.extras?.keySet()}"
+        )
+
+        if (!deepLink.isNullOrBlank() && signature != lastConsumedSignature) {
+            lastConsumedSignature = signature
+            notificationDeepLinkState.value = null
+            notificationDeepLinkState.value = deepLink
+        }
+
+        intent.removeExtra(PicPoseFirebaseMessagingService.EXTRA_DEEP_LINK)
+        intent.removeExtra(PicPoseFirebaseMessagingService.EXTRA_DEEPLINK_ALIAS)
+        intent.removeExtra(PicPoseFirebaseMessagingService.EXTRA_NOTIFICATION_ID)
+        intent.removeExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_TYPE)
+        intent.removeExtra(PicPoseFirebaseMessagingService.EXTRA_TARGET_ID)
+        intent.removeExtra("route")
+        intent.removeExtra("guide_id")
+        intent.removeExtra("prompt_id")
+        intent.removeExtra("target_type")
+        intent.removeExtra("target_id")
+        intent.removeExtra("deeplink")
+    }
+
     @Deprecated("onActivityResult is deprecated but required by Facebook SDK")
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -180,8 +242,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        notificationDeepLinkState.value = null
-        notificationDeepLinkState.value = extractNotificationDeepLink(intent)
+        consumeNotificationIntent(intent, source = "onNewIntent")
     }
 
     private fun handleTwitterUri(uri: Uri) {

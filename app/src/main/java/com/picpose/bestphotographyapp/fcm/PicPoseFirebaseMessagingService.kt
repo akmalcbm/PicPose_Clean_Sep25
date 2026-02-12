@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -58,6 +59,7 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
 
         val data = message.data
+        Log.i(TAG, "onMessageReceived data=$data notification=${message.notification != null}")
         val title = data["title"]
             ?: message.notification?.title
             ?: getString(R.string.app_name)
@@ -83,9 +85,11 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificationId = data["notification_id"] ?: data["campaign_id"]
         val channelId = resolveChannelId(data)
+        val targetType = resolveTargetType(data, deepLink)
+        val targetId = resolveTargetId(data, deepLink)
 
-        Log.i(TAG, "message parsed channel=$channelId deepLink=${deepLink ?: "none"}")
-        showNotification(title, body, deepLink, imageUrl, notificationId, channelId)
+        Log.i(TAG, "message parsed channel=$channelId deepLink=$deepLink targetType=$targetType targetId=$targetId")
+        showNotification(title, body, deepLink, imageUrl, notificationId, channelId, targetType, targetId)
     }
 
     private fun showNotification(
@@ -94,22 +98,31 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
         deepLink: String?,
         imageUrl: String?,
         notificationId: String?,
-        channelId: String
+        channelId: String,
+        targetType: String,
+        targetId: String?
     ) {
         createNotificationChannels()
 
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            action = Intent.ACTION_VIEW
+            data = deepLink?.let(Uri::parse)
             putExtra(EXTRA_DEEP_LINK, deepLink)
+            putExtra(EXTRA_DEEPLINK_ALIAS, deepLink)
             putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_TARGET_TYPE, targetType)
+            putExtra(EXTRA_TARGET_ID, targetId)
         }
 
+        val requestCode = (notificationId ?: System.currentTimeMillis().toString()).hashCode()
         val pendingIntent = PendingIntent.getActivity(
             this,
-            (notificationId ?: Random.nextInt().toString()).hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        Log.i(TAG, "pendingIntent target=MainActivity requestCode=$requestCode deepLink=$deepLink")
 
         val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_notification)
@@ -137,6 +150,30 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
                 )
             }
             notifySafely(notifyId, builder)
+        }
+    }
+
+    private fun resolveTargetType(data: Map<String, String>, deepLink: String): String {
+        data["target_type"]?.takeIf { it.isNotBlank() }?.let { return it }
+        data["type"]?.takeIf { it.isNotBlank() }?.let { return it }
+        return when {
+            deepLink.startsWith("app://prompts/") -> "prompt"
+            deepLink.startsWith("app://guides/") -> "guide"
+            deepLink.startsWith("app://category/") -> "category"
+            else -> "home"
+        }
+    }
+
+    private fun resolveTargetId(data: Map<String, String>, deepLink: String): String? {
+        data["target_id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        data["id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        data["prompt_id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        data["guide_id"]?.takeIf { it.isNotBlank() }?.let { return it }
+        return when {
+            deepLink.startsWith("app://prompts/") -> deepLink.removePrefix("app://prompts/").ifBlank { null }
+            deepLink.startsWith("app://guides/") -> deepLink.removePrefix("app://guides/").ifBlank { null }
+            deepLink.startsWith("app://category/") -> deepLink.removePrefix("app://category/").ifBlank { null }
+            else -> null
         }
     }
 
@@ -238,6 +275,9 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
         private const val CHANNEL_PROMPTS = "picpose_prompts"
 
         const val EXTRA_DEEP_LINK = "deep_link"
+        const val EXTRA_DEEPLINK_ALIAS = "deeplink"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
+        const val EXTRA_TARGET_TYPE = "target_type"
+        const val EXTRA_TARGET_ID = "target_id"
     }
 }
