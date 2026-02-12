@@ -374,8 +374,14 @@
     <string name="no_results_found">No results found</string>
     <string name="no_terms_conditions_available">No terms conditions available</string>
     <string name="not_logged_in">Not logged in</string>
-    <string name="notification_channel_description">Notification channel description</string>
-    <string name="notification_channel_name">Notification channel name</string>
+    <string name="notification_channel_name">PicPose notifications</string>
+    <string name="notification_channel_description">General PicPose notifications</string>
+    <string name="notification_channel_general_name">General updates</string>
+    <string name="notification_channel_general_description">Important updates and announcements</string>
+    <string name="notification_channel_guides_name">Guides</string>
+    <string name="notification_channel_guides_description">New and trending photography guides</string>
+    <string name="notification_channel_prompts_name">Prompts</string>
+    <string name="notification_channel_prompts_description">New AI prompts and creative ideas</string>
     <string name="oops_something_went_wrong">oops something went wrong</string>
     <string name="phone">Phone</string>
     <string name="photo_editor_coming_soon">Photo editor coming soon</string>

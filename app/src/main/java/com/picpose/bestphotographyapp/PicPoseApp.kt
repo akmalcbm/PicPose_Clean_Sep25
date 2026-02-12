@@ -11,11 +11,14 @@ import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
+import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.fcm.FcmTokenSyncManager
 import com.picpose.bestphotographyapp.presentation.ads.AdsInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
 
 @HiltAndroidApp
@@ -50,6 +53,9 @@ class PicPoseApp : Application(), ImageLoaderFactory {
 
         // 🔹 Firebase topic subscription
         subscribeToFirebaseTopics()
+
+        // 🔹 Token sync to backend (on app start / periodic refresh window)
+        syncFcmTokenOnAppStart()
     }
 
     /**
@@ -77,6 +83,18 @@ class PicPoseApp : Application(), ImageLoaderFactory {
             } catch (e: Exception) {
                 Log.e("FCM", "❌ Topic subscription failed", e)
             }
+        }
+    }
+
+    private fun syncFcmTokenOnAppStart() {
+        applicationScope.launch {
+            val userId = UserSessionManager(this@PicPoseApp).userId.firstOrNull()?.toIntOrNull()
+            FcmTokenSyncManager.syncCurrentToken(
+                context = this@PicPoseApp,
+                userId = userId,
+                reason = "app_start",
+                force = false
+            )
         }
     }
 
