@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -645,7 +646,13 @@ private fun HomeQuickSearchBar(
                 }
             }
         },
-        placeholder = { Text(stringResource(R.string.home_quick_search_placeholder)) },
+        placeholder = {
+            Text(
+                text = stringResource(R.string.search_prompts_guides_placeholder),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
             onSearch = {
@@ -661,7 +668,7 @@ private fun HomeQuickSearchBar(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 48.dp)
+            .height(56.dp)
     )
 }
 
