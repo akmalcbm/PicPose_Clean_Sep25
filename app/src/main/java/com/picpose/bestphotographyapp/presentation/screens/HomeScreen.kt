@@ -133,7 +133,7 @@ fun HomeScreen(
 
         if (shouldPrompt && lastPromptOpen != appOpenCount) {
             // Slight delay to let users engage with Home content first.
-            kotlinx.coroutines.delay(8_000)
+            kotlinx.coroutines.delay(5_000) //Notification Dialog Delay Timer
             showPermissionDialog = true
         }
     }
