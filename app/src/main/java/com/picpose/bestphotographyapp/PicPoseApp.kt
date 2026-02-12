@@ -54,6 +54,9 @@ class PicPoseApp : Application(), ImageLoaderFactory {
         // 🔹 Firebase topic subscription
         subscribeToFirebaseTopics()
 
+        // 🔹 Log current device token for admin-panel test sends
+        logCurrentFcmTokenForTesting()
+
         // 🔹 Token sync to backend (on app start / periodic refresh window)
         syncFcmTokenOnAppStart()
     }
@@ -82,6 +85,17 @@ class PicPoseApp : Application(), ImageLoaderFactory {
 
             } catch (e: Exception) {
                 Log.e("FCM", "❌ Topic subscription failed", e)
+            }
+        }
+    }
+
+    private fun logCurrentFcmTokenForTesting() {
+        applicationScope.launch {
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                Log.d("FCM_TOKEN", "Device FCM token: $token")
+            } catch (e: Exception) {
+                Log.e("FCM_TOKEN", "Failed to fetch device token", e)
             }
         }
     }
