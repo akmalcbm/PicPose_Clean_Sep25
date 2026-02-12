@@ -741,9 +741,13 @@ fun GuideDetailScreen(
                                     },
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.Share,
+                                        contentDescription = stringResource(R.string.share_guide_button),
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.share))
+                                    Text(stringResource(R.string.share_guide_button))
                                 }
                             }
                         }

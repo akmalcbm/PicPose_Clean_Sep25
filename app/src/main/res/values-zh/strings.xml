@@ -44,4 +44,11 @@
     <string name="help_title">帮助与支持</string>
     <string name="help_your_email">电子邮箱</string>
     <string name="help_your_name">姓名</string>
+    <string name="share_prompt_via">通过以下方式分享提示词</string>
+    <string name="share_guide_via">通过以下方式分享指南</string>
+    <string name="share_prompt_button">分享提示词</string>
+    <string name="share_guide_button">分享指南</string>
+    <string name="share_cta_title">✨ 在 PicPose 获取更多提示词和指南：</string>
+    <string name="share_cta_line">从 Play 商店下载：%1$s</string>
+    <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
 </resources>

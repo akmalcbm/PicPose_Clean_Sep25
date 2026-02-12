@@ -448,6 +448,11 @@
     <string name="share_prompt_header">🔥 PicPose: Livro de Prompts de IA 🔥</string>
     <string name="share_prompt_subheader">✨ Experimente o app PicPose para mais prompts incríveis de IA &amp; ideias de poses!</string>
     <string name="share_prompt_via">Compartilhar prompt via</string>
+    <string name="share_guide_via">Compartilhar guia via</string>
+    <string name="share_prompt_button">Compartilhar prompt</string>
+    <string name="share_guide_button">Compartilhar guia</string>
+    <string name="share_cta_title">✨ Obtenha mais prompts e guias no PicPose:</string>
+    <string name="share_cta_line">Baixe na Play Store: %1$s</string>
     <string name="shared_guide_post_label">Publicação de guia compartilhada</string>
     <string name="shared_post_label">Publicação compartilhada</string>
     <string name="show_filters">Mostrar filtros</string>

@@ -1,7 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.Context
-import android.content.Intent
 import android.text.Html
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -11,6 +10,8 @@ import com.picpose.bestphotographyapp.data.datastore.GuideLikeStore
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
+import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
+import com.picpose.bestphotographyapp.core.utils.ShareUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -243,25 +244,42 @@ class GuidePostViewModel @Inject constructor(
     }
 
     fun shareGuidePost(context: Context, guidePost: GuidePost) {
-        try {
-            val guideLink = guidePost.shareUrl
-                ?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
-                ?: guidePost.imageUrl.takeIf { it.startsWith("http://") || it.startsWith("https://") }
-            val shareText = buildString {
-                append(guidePost.title.ifBlank { context.getString(R.string.guide_posts) })
-                val body = guidePost.excerpt.ifBlank { guidePost.description.ifBlank { guidePost.content.take(180) } }
-                if (body.isNotBlank()) append("\n\n$body")
-                if (!guideLink.isNullOrBlank()) append("\n\n$guideLink")
-                append("\n\n#PicPose #Guide")
+        viewModelScope.launch {
+            try {
+                val body = guidePost.shortDescription
+                    .ifBlank { guidePost.excerpt }
+                    .ifBlank { guidePost.description }
+                    .ifBlank {
+                        stripHtmlToText(guidePost.longDescriptionHtml)
+                            .lineSequence()
+                            .map { it.trim() }
+                            .filter { it.isNotBlank() }
+                            .take(8)
+                            .joinToString("\n")
+                    }
+                    .ifBlank {
+                        stripHtmlToText(guidePost.content)
+                            .lineSequence()
+                            .map { it.trim() }
+                            .filter { it.isNotBlank() }
+                            .take(8)
+                            .joinToString("\n")
+                    }
+
+                val heroImage = MediaUrlResolver.resolve(
+                    guidePost.imageUrl.ifBlank { guidePost.image }
+                )
+
+                ShareUtils.sharePrompt(
+                    context = context,
+                    promptText = body,
+                    imageUrl = heroImage,
+                    title = guidePost.title.ifBlank { context.getString(R.string.guide_posts) },
+                    chooserTitle = context.getString(R.string.share_guide_via)
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message ?: appContext.getString(R.string.error))
             }
-            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_SUBJECT, guidePost.title.ifBlank { context.getString(R.string.guide_posts) })
-                putExtra(Intent.EXTRA_TEXT, shareText)
-            }
-            context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share)))
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(error = e.message ?: appContext.getString(R.string.error))
         }
     }
 

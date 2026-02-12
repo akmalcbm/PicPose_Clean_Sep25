@@ -397,19 +397,19 @@ fun AIPromptDetailScreen(
                     }
                 },
                 actions = {
-
-                    val seaGreen = Color(0xFF009688)
-
                     TopBarActionCircleButton(
                         icon = Icons.Default.Share,
-                        tint = seaGreen,
+                        tint = MaterialTheme.colorScheme.primary,
+                        contentDescription = stringResource(R.string.share_prompt_button),
                         onClick = {
                             effectivePrompt?.let { prompt ->
                                 coroutineScope.launch {
                                     ShareUtils.sharePrompt(
                                         context = context,
                                         promptText = prompt.fullPrompt ?: prompt.shortPrompt.orEmpty(),
-                                        imageUrl = prompt.imageUrl ?: prompt.imageUrl2
+                                        imageUrl = prompt.imageUrl ?: prompt.imageUrl2,
+                                        title = prompt.title.ifBlank { context.getString(R.string.ai_prompts) },
+                                        chooserTitle = context.getString(R.string.share_prompt_via)
                                     )
                                 }
                             }
@@ -1265,6 +1265,7 @@ private fun formatCompactNumber(number: Int): String {
 fun TopBarActionCircleButton(
     icon: ImageVector,
     tint: Color,
+    contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,      // 👈 Perfect for TopAppBar
@@ -1272,7 +1273,7 @@ fun TopBarActionCircleButton(
 ) {
     Surface(
         shape = CircleShape,
-        color = tint.copy(alpha = 0.02f),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f),
         modifier = modifier
             .size(size)
             .padding(end = 6.dp),
@@ -1283,7 +1284,7 @@ fun TopBarActionCircleButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = contentDescription,
                 tint = tint,
                 modifier = Modifier.size(iconSize)
             )

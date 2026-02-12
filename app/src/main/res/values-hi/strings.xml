@@ -577,6 +577,11 @@
     <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
     <string name="share_prompt_subheader">✨ और शानदार AI प्रॉम्प्ट्स और पोज़ आइडियाज़ के लिए PicPose ऐप आज़माएँ!</string>
     <string name="share_prompt_via">प्रॉम्प्ट शेयर करें</string>
+    <string name="share_guide_via">गाइड शेयर करें</string>
+    <string name="share_prompt_button">प्रॉम्प्ट शेयर करें</string>
+    <string name="share_guide_button">गाइड शेयर करें</string>
+    <string name="share_cta_title">✨ PicPose में और प्रॉम्प्ट्स और गाइड्स पाएँ:</string>
+    <string name="share_cta_line">Play Store से डाउनलोड करें: %1$s</string>
 
     <string name="shared_guide_post_label">शेयर की गई गाइड पोस्ट</string>
     <string name="shared_post_label">शेयर की गई पोस्ट</string>

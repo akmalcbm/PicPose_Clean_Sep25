@@ -433,6 +433,11 @@
     <string name="share_prompt_header">🔥 PicPose: Buku Prompt AI 🔥</string>
     <string name="share_prompt_subheader">✨ Coba aplikasi PicPose untuk lebih banyak prompt AI keren &amp; ide pose!</string>
     <string name="share_prompt_via">Bagikan prompt melalui</string>
+    <string name="share_guide_via">Bagikan panduan melalui</string>
+    <string name="share_prompt_button">Bagikan prompt</string>
+    <string name="share_guide_button">Bagikan panduan</string>
+    <string name="share_cta_title">✨ Dapatkan lebih banyak prompt dan panduan di PicPose:</string>
+    <string name="share_cta_line">Unduh dari Play Store: %1$s</string>
     <string name="shared_guide_post_label">Postingan panduan dibagikan</string>
     <string name="shared_post_label">Postingan dibagikan</string>
     <string name="show_filters">Tampilkan filter</string>

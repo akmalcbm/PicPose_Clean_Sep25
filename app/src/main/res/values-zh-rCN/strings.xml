@@ -447,6 +447,11 @@
     <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
     <string name="share_prompt_subheader">✨ 试试 PicPose App，获取更多精彩 AI 提示词 &amp; 姿势灵感！</string>
     <string name="share_prompt_via">通过以下方式分享提示词</string>
+    <string name="share_guide_via">通过以下方式分享指南</string>
+    <string name="share_prompt_button">分享提示词</string>
+    <string name="share_guide_button">分享指南</string>
+    <string name="share_cta_title">✨ 在 PicPose 获取更多提示词和指南：</string>
+    <string name="share_cta_line">从 Play 商店下载：%1$s</string>
     <string name="shared_guide_post_label">已分享的指南帖子</string>
     <string name="shared_post_label">已分享的帖子</string>
     <string name="show_filters">显示筛选</string>

@@ -448,6 +448,11 @@
     <string name="share_prompt_header">🔥 PicPose: كتاب مطالبات الذكاء الاصطناعي 🔥</string>
     <string name="share_prompt_subheader">✨ جرّب تطبيق PicPose لمزيد من مطالبات الذكاء الاصطناعي الرائعة &amp; أفكار الوضعيات!</string>
     <string name="share_prompt_via">مشاركة المطلب عبر</string>
+    <string name="share_guide_via">مشاركة الدليل عبر</string>
+    <string name="share_prompt_button">مشاركة المطلب</string>
+    <string name="share_guide_button">مشاركة الدليل</string>
+    <string name="share_cta_title">✨ احصل على المزيد من المطالبات والأدلة في PicPose:</string>
+    <string name="share_cta_line">حمّل من متجر Play: %1$s</string>
     <string name="shared_guide_post_label">منشور دليل تمت مشاركته</string>
     <string name="shared_post_label">منشور تمت مشاركته</string>
     <string name="show_filters">إظهار الفلاتر</string>

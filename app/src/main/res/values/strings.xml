@@ -447,7 +447,12 @@
     <string name="share_post_intro">Share post intro</string>
     <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
     <string name="share_prompt_subheader">✨ Try PicPose App for more amazing AI prompts &amp; pose ideas!</string>
-    <string name="share_prompt_via">Share Prompt via</string>
+    <string name="share_prompt_via">Share prompt via</string>
+    <string name="share_guide_via">Share guide via</string>
+    <string name="share_prompt_button">Share prompt</string>
+    <string name="share_guide_button">Share guide</string>
+    <string name="share_cta_title">✨ Get more prompts &amp; guides in PicPose:</string>
+    <string name="share_cta_line">Download from Play Store: %1$s</string>
     <string name="shared_guide_post_label">Shared guide post label</string>
     <string name="shared_post_label">Shared post label</string>
     <string name="show_filters">Show filters</string>
