@@ -8,7 +8,9 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +30,7 @@ import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.ads.AdsLog
 import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.AdBadge
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
 
 /**
@@ -98,18 +101,24 @@ fun NativeAdSection(
     }
 
     if (nativeAd != null && !hasError) {
-        AndroidView(
-            factory = { ctx -> createNativeAdView(ctx) },
-            update = { adView ->
-                nativeAd?.let {
-                    AdsLog.d(AdsLog.TAG_UI, "[AdsUI] component=NativeAdSection placement=$placementKey action=bind")
-                    bindNativeAdToView(adView, it)
-                }
-            },
+        Column(
             modifier = modifier
                 .fillMaxWidth()
+                .wrapContentHeight()
                 .padding(vertical = 8.dp)
-        )
+        ) {
+            AdBadge(modifier = Modifier.padding(bottom = 6.dp))
+            AndroidView(
+                factory = { ctx -> createNativeAdView(ctx) },
+                update = { adView ->
+                    nativeAd?.let {
+                        AdsLog.d(AdsLog.TAG_UI, "[AdsUI] component=NativeAdSection placement=$placementKey action=bind")
+                        bindNativeAdToView(adView, it)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 

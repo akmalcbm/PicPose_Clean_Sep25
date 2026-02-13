@@ -8,7 +8,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.Button
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -20,12 +19,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
@@ -36,6 +39,32 @@ import com.picpose.bestphotographyapp.R
    ENUM FOR AD STYLES
 -----------------------------------------------------------*/
 enum class NativeAdStyle { Compact, LargeMedia }
+
+@Composable
+fun AdBadge(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .wrapContentHeight()
+            .heightIn(min = 20.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = androidx.compose.ui.res.stringResource(R.string.sponsored),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip
+        )
+    }
+}
 
 /*-----------------------------------------------------------
    SHIMMER PLACEHOLDER (Universal)
@@ -74,9 +103,6 @@ fun LargeNativeAdCard(
     val headlineColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val advertiserColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val sponsoredTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val sponsoredBackground = MaterialTheme.colorScheme.primary.toArgb()
-
     // 🎨 Match app Primary Button
     val ctaBgColor = MaterialTheme.colorScheme.primary.toArgb()
     val ctaTextColor = MaterialTheme.colorScheme.onPrimary.toArgb()
@@ -93,29 +119,34 @@ fun LargeNativeAdCard(
         elevation = CardDefaults.cardElevation(3.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
     ) {
-        AndroidView(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            factory = { context ->
+                .wrapContentHeight()
+        ) {
+            AdBadge(modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 6.dp))
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                factory = { context ->
 
-                val adView = NativeAdView(context)
+                    val adView = NativeAdView(context)
 
-                val wrapper = FrameLayout(context)
-
-                val root = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                }
-
-                /** MediaView (180dp height + top margin 8dp) */
-                val media = MediaView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        200.toPx(context)
-                    ).apply {
-                        topMargin = 14.toPx(context)   // 🔥 Add ~14dp top margin
+                    val root = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        clipToPadding = false
+                        clipChildren = false
                     }
-                }
+
+                    /** MediaView */
+                    val media = MediaView(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            200.toPx(context)
+                        )
+                    }
 
 
                 /** Headline */
@@ -177,17 +208,6 @@ fun LargeNativeAdCard(
                 }
 
 
-                /** ⭐ Sponsored badge (TOP-LEFT) */
-                val badge = TextView(context).apply {
-                    text = context.getString(R.string.sponsored)
-                    textSize = 11f
-                    setPadding(10, -12, 10, 4)
-                    backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
-                    setTextColor(sponsoredTextColor)
-                    clipToOutline = true
-                    outlineProvider = roundedOutline(30f, context)
-                }
-
                 /** Add content */
                 root.apply {
                     addView(media)
@@ -197,35 +217,19 @@ fun LargeNativeAdCard(
                     addView(cta)
                 }
 
-                /** ⭐ Position badge TOP-LEFT above MediaView */
-                wrapper.apply {
-                    addView(root)
-                    addView(
-                        badge,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            Gravity.TOP or Gravity.START
-                        ).apply {
-                            setMargins(6, 6, 0, 0)   // 🔥 Very small margin from top-left
-                        }
-                    )
-                }
-
                 adView.apply {
-                    addView(wrapper)
+                    addView(root)
                     mediaView = media
                     headlineView = headline
                     bodyView = body
                     advertiserView = advertiser
                     callToActionView = cta
-                    tag = badge
                 }
 
                 adView
-            },
+                },
 
-            update = { adView ->
+                update = { adView ->
 
                 (adView.headlineView as? TextView)?.text = nativeAd.headline
 
@@ -243,9 +247,10 @@ fun LargeNativeAdCard(
 
                 (adView.callToActionView as? Button)?.text = nativeAd.callToAction
 
-                adView.setNativeAd(nativeAd)
-            }
-        )
+                    adView.setNativeAd(nativeAd)
+                }
+            )
+        }
     }
 }
 
@@ -264,9 +269,6 @@ fun LargeNativeAdCardForGrid(
     val headlineColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val advertiserColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val sponsoredTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val sponsoredBackground = MaterialTheme.colorScheme.primary.toArgb()
-
     val fade = remember { Animatable(0f) }
     LaunchedEffect(nativeAd) { fade.animateTo(1f, tween(320)) }
 
@@ -278,29 +280,34 @@ fun LargeNativeAdCardForGrid(
         elevation = CardDefaults.cardElevation(3.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
     ) {
-        AndroidView(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(6.dp),
-            factory = { context ->
+                .wrapContentHeight()
+        ) {
+            AdBadge(modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 6.dp))
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                factory = { context ->
 
-                val adView = NativeAdView(context)
+                    val adView = NativeAdView(context)
 
-                val wrapper = FrameLayout(context)
-
-                val root = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                }
-
-                /** MediaView (180dp height + top margin 8dp) */
-                val media = MediaView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        160.toPx(context)
-                    ).apply {
-                        topMargin = 8.toPx(context)   // 🔥 Add ~8dp top margin
+                    val root = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        clipToPadding = false
+                        clipChildren = false
                     }
-                }
+
+                    /** MediaView */
+                    val media = MediaView(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            160.toPx(context)
+                        )
+                    }
 
 
                 /** Headline */
@@ -329,17 +336,6 @@ fun LargeNativeAdCardForGrid(
                 /** CTA */
                 val cta = Button(context).apply { isAllCaps = false }
 
-                /** ⭐ Sponsored badge (TOP-LEFT) */
-                val badge = TextView(context).apply {
-                    text = context.getString(R.string.sponsored)
-                    textSize = 11f
-                    setPadding(10, -12, 10, 4)
-                    backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
-                    setTextColor(sponsoredTextColor)
-                    clipToOutline = true
-                    outlineProvider = roundedOutline(30f, context)
-                }
-
                 /** Add content */
                 root.apply {
                     addView(media)
@@ -349,35 +345,19 @@ fun LargeNativeAdCardForGrid(
                     addView(cta)
                 }
 
-                /** ⭐ Position badge TOP-LEFT above MediaView */
-                wrapper.apply {
-                    addView(root)
-                    addView(
-                        badge,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            Gravity.TOP or Gravity.START
-                        ).apply {
-                            setMargins(6, 6, 0, 0)   // 🔥 Very small margin from top-left
-                        }
-                    )
-                }
-
                 adView.apply {
-                    addView(wrapper)
+                    addView(root)
                     mediaView = media
                     headlineView = headline
                     bodyView = body
                     advertiserView = advertiser
                     callToActionView = cta
-                    tag = badge
                 }
 
                 adView
-            },
+                },
 
-            update = { adView ->
+                update = { adView ->
 
                 (adView.headlineView as? TextView)?.text = nativeAd.headline
 
@@ -395,9 +375,10 @@ fun LargeNativeAdCardForGrid(
 
                 (adView.callToActionView as? Button)?.text = nativeAd.callToAction
 
-                adView.setNativeAd(nativeAd)
-            }
-        )
+                    adView.setNativeAd(nativeAd)
+                }
+            )
+        }
     }
 }
 
@@ -424,9 +405,6 @@ fun InlineNativeAdCard(
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val advertiserColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
 
-    val sponsoredBackground = MaterialTheme.colorScheme.primary.toArgb()
-    val sponsoredTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-
     val ctaBackground = MaterialTheme.colorScheme.primary.toArgb()
     val ctaTextColor = MaterialTheme.colorScheme.onPrimary.toArgb()
 
@@ -436,13 +414,20 @@ fun InlineNativeAdCard(
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
-        AndroidView(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            factory = { context ->
+                .wrapContentHeight()
+        ) {
+            AdBadge(modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 6.dp))
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                factory = { context ->
 
-                val adView = NativeAdView(context)
+                    val adView = NativeAdView(context)
 
                 // Main horizontal row
                 val root = LinearLayout(context).apply {
@@ -499,55 +484,31 @@ fun InlineNativeAdCard(
                 textColumn.addView(advertiser)
                 textColumn.addView(cta)
 
-                /** Sponsored badge */
-                val badge = TextView(context).apply {
-                    text = context.getString(R.string.sponsored)
-                    textSize = 11f
-                    setPadding(10, -12, 10, 4)
-                    backgroundTintList = ColorStateList.valueOf(sponsoredBackground)
-                    setTextColor(sponsoredTextColor) // 🔥 Auto color
-                    clipToOutline = true
-                    outlineProvider = roundedOutline(30f, context)
-                }
-
-                val wrapper = FrameLayout(context).apply {
-                    addView(
-                        root.apply {
-                            addView(iconView)
-                            addView(
-                                textColumn,
-                                LinearLayout.LayoutParams(
-                                    0,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                                    1f
-                                )
+                    root.apply {
+                        addView(iconView)
+                        addView(
+                            textColumn,
+                            LinearLayout.LayoutParams(
+                                0,
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f
                             )
-                        }
-                    )
-                    addView(
-                        badge,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            Gravity.TOP or Gravity.END
                         )
-                    )
-                }
+                    }
 
                 adView.apply {
-                    addView(wrapper)
+                    addView(root)
                     headlineView = headline
                     bodyView = body
                     advertiserView = advertiser
                     callToActionView = cta
                     this.iconView = iconView
-                    tag = badge
                 }
 
                 adView
-            },
+                },
 
-            update = { adView ->
+                update = { adView ->
 
                 // Headline
                 (adView.headlineView as? TextView)?.text = nativeAd.headline
@@ -573,9 +534,10 @@ fun InlineNativeAdCard(
                 // CTA
                 (adView.callToActionView as? Button)?.text = nativeAd.callToAction
 
-                adView.setNativeAd(nativeAd)
-            }
-        )
+                    adView.setNativeAd(nativeAd)
+                }
+            )
+        }
     }
 }
 
@@ -585,15 +547,6 @@ fun InlineNativeAdCard(
 /*-----------------------------------------------------------
    HELPERS
 -----------------------------------------------------------*/
-private fun badgeLayout() =
-    FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        Gravity.TOP or Gravity.END
-    ).apply {
-        setMargins(12, 12, 12, 12)
-    }
-
 private fun roundedOutline(radiusDp: Float, context: Context) =
     object : ViewOutlineProvider() {
         override fun getOutline(v: View, outline: Outline) {

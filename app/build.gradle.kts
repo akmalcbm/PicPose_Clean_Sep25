@@ -11,7 +11,8 @@ plugins {
 }
 
 hilt {
-    enableAggregatingTask = false
+    // Keep Hilt aggregating task enabled so generated deps are tracked correctly by KSP.
+    enableAggregatingTask = true
 }
 
 android {

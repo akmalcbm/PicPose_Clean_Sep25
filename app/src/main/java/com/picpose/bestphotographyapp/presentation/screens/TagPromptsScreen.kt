@@ -37,6 +37,7 @@ import com.google.android.gms.ads.AdLoader
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.AIPrompt
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
+import com.picpose.bestphotographyapp.presentation.ads.AdBadge
 import com.picpose.bestphotographyapp.presentation.components.AIPromptCard
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import kotlinx.coroutines.launch
@@ -438,21 +439,27 @@ private fun TagShimmerList(
 // ---------------------------------------------
 @Composable
 private fun TagNativeAdCard(nativeAd: NativeAd) {
-    AndroidView(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp),
-        factory = { context ->
-            val adView = NativeAdView(context)
+            .wrapContentHeight()
+    ) {
+        AdBadge(modifier = Modifier.padding(bottom = 6.dp))
+        AndroidView(
+            modifier = Modifier.fillMaxWidth(),
+            factory = { context ->
+                val adView = NativeAdView(context)
 
-            val root = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(32, 32, 32, 32)
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
+                val root = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(32, 32, 32, 32)
+                    clipToPadding = false
+                    clipChildren = false
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                }
 
             val media = MediaView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -477,28 +484,29 @@ private fun TagNativeAdCard(nativeAd: NativeAd) {
             root.addView(body)
             root.addView(cta)
 
-            adView.apply {
-                addView(root)
-                mediaView = media
-                headlineView = headline
-                bodyView = body
-                callToActionView = cta
+                adView.apply {
+                    addView(root)
+                    mediaView = media
+                    headlineView = headline
+                    bodyView = body
+                    callToActionView = cta
+                }
+            },
+            update = { adView ->
+                (adView.headlineView as? TextView)?.text = nativeAd.headline
+                (adView.bodyView as? TextView)?.apply {
+                    text = nativeAd.body ?: ""
+                    visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
+                }
+                (adView.callToActionView as? Button)?.apply {
+                    text = nativeAd.callToAction ?: adView.context.getString(R.string.install)
+                    visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
+                }
+                adView.mediaView?.mediaContent = nativeAd.mediaContent
+                adView.setNativeAd(nativeAd)
             }
-        },
-        update = { adView ->
-            (adView.headlineView as? TextView)?.text = nativeAd.headline
-            (adView.bodyView as? TextView)?.apply {
-                text = nativeAd.body ?: ""
-                visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
-            }
-            (adView.callToActionView as? Button)?.apply {
-                text = nativeAd.callToAction ?: adView.context.getString(R.string.install)
-                visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
-            }
-            adView.mediaView?.mediaContent = nativeAd.mediaContent
-            adView.setNativeAd(nativeAd)
-        }
-    )
+        )
+    }
 }
 
 // ---------------------------------------------
