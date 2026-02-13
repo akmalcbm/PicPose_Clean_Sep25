@@ -379,7 +379,7 @@
     <string name="no_content_available">No content available</string>
     <string name="no_content_found_in_this_category">No content found in this category</string>
     <string name="no_data_available">No data available</string>
-    <string name="no_internet_connection">No internet connection</string>
+    <string name="no_internet_connection">Low or No internet connection</string>
     <string name="no_new_content_found">No new content found</string>
     <string name="no_privacy_policy_available">No privacy policy available</string>
     <string name="no_prompts_available">No prompts available</string>

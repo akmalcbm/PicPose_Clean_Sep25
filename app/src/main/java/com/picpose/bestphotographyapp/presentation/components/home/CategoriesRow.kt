@@ -18,9 +18,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.Category
+import com.picpose.bestphotographyapp.presentation.components.common.NetworkImageWithShimmer
 
 @Composable
 fun CategoriesRow(
@@ -56,7 +56,7 @@ private fun CategoryCard(
         border = premiumHorizontalCardBorder()
     ) {
         Box {
-            AsyncImage(
+            NetworkImageWithShimmer(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(category.image)
                     .crossfade(true)

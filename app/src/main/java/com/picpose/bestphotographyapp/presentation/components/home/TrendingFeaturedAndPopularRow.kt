@@ -29,10 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.components.common.NetworkImageWithShimmer
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -309,7 +309,7 @@ private fun AnimatedPanImage(imageUrl: String?, title: String?) {
         label = "offset"
     )
 
-    SubcomposeAsyncImage(
+    NetworkImageWithShimmer(
         model = ImageRequest.Builder(LocalContext.current).data(imageUrl).build(),
         contentDescription = title,
         contentScale = ContentScale.Crop,

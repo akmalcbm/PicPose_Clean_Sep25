@@ -20,12 +20,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.Post
 import com.picpose.bestphotographyapp.core.utils.displayFavorites
 import com.picpose.bestphotographyapp.core.utils.displayViews
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.components.common.NetworkImageWithShimmer
 
 @Composable
 fun RecentPostItem(
@@ -57,7 +57,7 @@ fun RecentPostItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            AsyncImage(
+            NetworkImageWithShimmer(
                 model = post.image,
                 contentDescription = post.title,
                 modifier = Modifier

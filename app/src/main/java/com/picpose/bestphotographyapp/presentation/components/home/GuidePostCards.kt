@@ -21,12 +21,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.core.utils.MediaUrlResolver
 import com.picpose.bestphotographyapp.core.utils.formatNumber
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.presentation.components.common.NetworkImageWithShimmer
 import kotlin.math.max
 
 /**
@@ -66,7 +66,7 @@ fun GuidePostCards(
                     .height(180.dp),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
-                AsyncImage(
+                NetworkImageWithShimmer(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(fullImageUrl(guidePost.image))
                         .crossfade(true)
@@ -159,7 +159,7 @@ fun CompactGuidePostCard(
                 modifier = Modifier.size(80.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                AsyncImage(
+                NetworkImageWithShimmer(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(fullImageUrl(guidePost.image))
                         .crossfade(true)
