@@ -1,0 +1,77 @@
+Array
+(
+    [csrf_token] => cdf12f45202c0a9006d8f922511f5531885b362a093a3e27ffecd496d93e399c
+    [admin_name] => akmalcbm
+    [app_name] => PicPose: AI Prompts Book & Photography Guide
+    [tagline] => Daily AI prompts, pose ideas & photography tips for stunning visuals.
+    [description] => PicPose helps creators, photographers & AI artists with daily pose ideas, AI prompts & photography guides. Whether you’re a beginner or a pro, find inspiration to capture perfect shots & generate stunning AI visuals.
+⚆ AI prompts for photography
+⚆ Best pose ideas for photoshoot
+⚆ AI art prompts & guides
+⚆ Creative photography tips
+⚆ AI generated photography ideas
+⚆ Pose guide for models & creators
+⚆ PicPose AI prompts and Pose Guides
+    [google_play_url] => Google Play URL Here
+    [admob_app_id] => ca-app-pub-3940256099942544~3347511713
+    [admob_banner1_id] => ca-app-pub-3940256099942544/6300978111
+    [admob_banner2_id] => ca-app-pub-3940256099942544/9214589741
+    [admob_interstitial1_id] => ca-app-pub-3940256099942544/1033173712
+    [admob_interstitial2_id] => ca-app-pub-3940256099942544/1033173712
+    [admob_native1_id] => ca-app-pub-3940256099942544/2247696110
+    [admob_native2_id] => ca-app-pub-3940256099942544/2247696110
+    [admob_native3_id] => ca-app-pub-3940256099942544/1044960115
+    [admob_rewarded1_id] => ca-app-pub-3940256099942544/5224354917
+    [privacy_policy] => <h2>Privacy Policy</h2><p>PicPose: AI Prompts Book</p><p><strong>Last Updated: [09 December 2025]</strong></p><p>Welcome to <strong>PicPose: AI Prompts Book</strong> (“PicPose”, “we”, “our”, or “us”).<br>We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application <strong>PicPose: AI Prompts Book</strong>.</p><p>By using our app, you agree to the practices described in this Privacy Policy.</p><p>&nbsp;</p><h2><strong>1. Information We Collect</strong></h2><p>We aim to collect <strong>minimal user data</strong>, only what is necessary to provide a smooth experience.</p><p>&nbsp;</p><h3><strong>1.1 Information You Provide</strong></h3><p><strong>User Account Details (optional)</strong>: If you sign in using Google, Facebook, or other platforms, we may receive basic profile information such as:</p><p>Name</p><p>Email address</p><p>Profile photo</p><p>This information is used only to personalize your app experience.</p><p>&nbsp;</p><h3><strong>1.2 Automatically Collected Information</strong></h3><p>When you use PicPose, we may automatically collect:</p><p>Device information (device model, OS version)</p><p>App activity data (features used, screens visited)</p><p>Log data (crashes, performance events)</p><p>Anonymous analytics information</p><p>This data helps us improve app performance and user experience.</p><p>&nbsp;</p><h3><strong>1.3 Photos &amp; Media</strong></h3><p>PicPose does <strong>not</strong> access your camera or photo gallery unless you voluntarily use features that require image selection.<br>We:</p><p>Do <strong>not</strong> store your photos on our servers</p><p>Do <strong>not</strong> use your photos for AI training</p><p>Do <strong>not</strong> share your images with third parties</p><p>Your selected images stay on your device.</p><p>&nbsp;</p><h2><strong>2. How We Use Your Information</strong></h2><p>We use collected data to:</p><p>Provide AI prompts, pose ideas, and creative photography guides</p><p>Improve app functionality and performance</p><p>Personalize your experience</p><p>Send notifications (if enabled)</p><p>Monitor analytics to improve content quality</p><p>Display ads (if applicable)</p><p>&nbsp;</p><h2><strong>3. Third-Party Services</strong></h2><p>PicPose may use trusted third-party tools, such as:</p><p>&nbsp;</p><h3><strong>3.1 Google Analytics / Firebase</strong></h3><p>Used to understand app usage and improve features.</p><p>&nbsp;</p><h3><strong>3.2 Ad Networks (AdMob / Meta Audience Network)</strong></h3><p>Ads may be shown within the app. These networks may collect:</p><p>Advertising identifiers</p><p>Approximate location</p><p>Device information</p><p>Ads are personalized only if you give permission through platform settings.</p><p>&nbsp;</p><h3><strong>3.3 Social Login (Google, Facebook, etc.)</strong></h3><p>If you sign in using a social platform, we receive only the information necessary for authentication.</p><p>&nbsp;</p><h2><strong>4. Data Sharing</strong></h2><p>We <strong>do not</strong> sell, rent, or trade your personal information.</p><p>We may share limited data only when required:</p><p>To comply with legal requests</p><p>To prevent fraud or misuse</p><p>With service providers who help run the app (analytics, ads) — but they cannot use your data for their own purposes</p><p>&nbsp;</p><h2><strong>5. Data Security</strong></h2><p>We use industry-standard measures to protect your data.<br>However, no method of transmission over the internet is fully secure. We cannot guarantee absolute protection.</p><p>&nbsp;</p><h2><strong>6. Children’s Privacy</strong></h2><p>PicPose is <strong>not intended for children under 13</strong>.<br>We do not knowingly collect information from children.<br>If we become aware of such data, we will delete it.</p><p>&nbsp;</p><h2><strong>7. Your Rights &amp; Choices</strong></h2><p>Depending on your region, you may have rights such as:</p><p>Requesting deletion of your account data</p><p>Updating personal information</p><p>Opting out of personalized ads</p><p>Disabling notifications</p><p>Revoking social login permissions</p><p>You can contact us anytime to request data removal.</p><p>&nbsp;</p><h2><strong>8. Changes to This Privacy Policy</strong></h2><p>We may update this Privacy Policy periodically.<br>The updated version will be posted within the app with the “Last Updated” date.</p><p>&nbsp;</p><h2><strong>9. Contact Us</strong></h2><p>If you have questions or requests regarding privacy, contact us at:</p><p><strong>Email:</strong> support@picpose.iamakmal.in<br><strong>App:</strong> PicPose: AI Prompts Book<br>&nbsp;</p>
+    [terms_conditions] => <h2>Terms &amp; Conditions</h2><p>PicPose: AI Prompts Book</p><p><strong>Last Updated: 09 December 2025</strong></p><p>Welcome to <strong>PicPose: AI Prompts Book</strong> (“PicPose”, “we”, “us”, or “our”).<br>These Terms &amp; Conditions (“Terms”) govern your use of our mobile application <strong>PicPose: AI Prompts Book</strong> (the “App”). By installing or using the App, you agree to these Terms.</p><p>If you do not agree, please discontinue using the App.</p><p>&nbsp;</p><h2><strong>1. Use of the App</strong></h2><p>PicPose provides:</p><p>AI prompts for photography</p><p>Pose ideas and model pose guides</p><p>Creative tips and photography inspiration</p><p>AI art prompts &amp; guidance</p><p>The app is intended for personal and non-commercial use unless otherwise permitted by us in writing.</p><p>&nbsp;</p><h2><strong>2. User Responsibilities</strong></h2><p>By using the App, you agree:</p><p>You will not misuse the App or use it for unlawful purposes.</p><p>You will not modify, copy, distribute, or resell content from the App.</p><p>You will not attempt to reverse-engineer or disrupt the App’s functioning.</p><p>You will comply with all applicable local and international laws.</p><p>&nbsp;</p><h2><strong>3. Intellectual Property</strong></h2><p>All content in the App—<br>including prompts, text, designs, graphics, UI elements, icons, and branding—is the property of <strong>PicPose</strong> or its content partners.</p><p>Users <strong>may not</strong>:</p><p>Copy or reproduce app content</p><p>Redistribute prompts or guides without permission</p><p>Create competing applications using PicPose content</p><p>Personal use is allowed; commercial use requires prior written consent.</p><p>&nbsp;</p><h2><strong>4. User-Generated Content</strong></h2><p>If the App allows you to upload, select, or use your own photos (e.g., for pose reference or inspiration):</p><p>You retain ownership of your photos.</p><p>You represent that you own the rights to the content you upload.</p><p>You agree that your content will not violate copyright or contain harmful or abusive material.</p><p>PicPose <strong>does not store, reuse, or train AI models</strong> using your personal images. All images remain on your device unless explicitly uploaded by you.</p><p>&nbsp;</p><h2><strong>5. Third-Party Services</strong></h2><p>PicPose may integrate or use third-party services such as:</p><p>Google Sign-In</p><p>Facebook Login</p><p>Firebase Analytics</p><p>AdMob / Meta Audience Network</p><p>Crash reporting tools</p><p>These services operate under their own terms and policies, which you agree to when using them.</p><p>We do not control third-party platforms and are not responsible for their actions.</p><p>&nbsp;</p><h2><strong>6. Advertisements</strong></h2><p>The App may display advertisements to support free content.<br>Some ads may be personalized based on device settings or user permissions.</p><p>You can limit personalized ads through your device’s ad settings.</p><p>&nbsp;</p><h2><strong>7. Subscriptions / In-App Purchases (If Added in Future)</strong></h2><p>If premium features, subscriptions, or paid content are introduced:</p><p>Payment will be handled by Google Play or another authorized payment gateway.</p><p>All purchases are subject to store policies (Google Play refund policy, etc.).</p><p>Unauthorized sharing of paid content is strictly prohibited.</p><p>(We will update this clause if monetization is added.)</p><p>&nbsp;</p><h2><strong>8. Disclaimer of Warranties</strong></h2><p>The App is provided <strong>“as is”</strong> and “as available.”<br>We do not guarantee that:</p><p>The App will always be available or error-free</p><p>Prompts or guides will meet your expectations</p><p>Content will be free from inaccuracies</p><p>Use the App at your own discretion and risk.</p><p>&nbsp;</p><h2><strong>9. Limitation of Liability</strong></h2><p>To the maximum extent permitted by law:</p><p>PicPose is <strong>not liable</strong> for:</p><p>Any damage to your device</p><p>Loss of data</p><p>Any direct or indirect damages arising from use of the App</p><p>Issues caused by third-party services or ads</p><p>Your sole remedy for dissatisfaction with the App is to stop using it.</p><p>&nbsp;</p><h2><strong>10. Termination</strong></h2><p>We may suspend or terminate access to the App if:</p><p>You violate these Terms</p><p>We discontinue or modify the App</p><p>You misuse the content or services</p><p>You may stop using the App at any time.</p><p>&nbsp;</p><h2><strong>11. Changes to Terms</strong></h2><p>We may update these Terms periodically.<br>Updated Terms will be posted within the App with a new “Last Updated” date.<br>Continued use of the App means you accept the new Terms.</p><p>&nbsp;</p><h2><strong>12. Governing Law</strong></h2><p>These Terms shall be governed by the laws of <strong>India</strong>, without regard to conflict of law principles.</p><p>Any disputes shall be resolved in courts located in <strong>[Your City / State]</strong>, India.</p><p>&nbsp;</p><h2><strong>13. Contact Us</strong></h2><p>For questions or concerns about these Terms, contact us:</p><p><strong>Email:</strong> support@picpose.iamakmal.in<br><strong>App:</strong> PicPose: AI Prompts Book<br>&nbsp;</p>
+    [support_email] => support@picpose.com
+    [support_phone] => +91 7007515828
+    [about] => Unlock your creativity with PicPose: AI Prompts Book & Photography Guide, the ultimate app for photographers, creators, influencers, and AI artists. Whether you're capturing real photos or generating AI visuals, PicPose gives you daily AI prompts, posing ideas, creative photography tips, model pose guides, and aesthetic concepts—all in one place.
+
+Perfect for beginners, professionals, and anyone who loves photography or AI art.
+
+✨ What PicPose Offers
+✔ Daily AI Prompts – Get fresh, unique, and trending AI prompts for Midjourney, DALL·E, Stable Diffusion, Leonardo AI, and more.
+✔ Photography Pose Ideas – Explore hundreds of pose references for men, women, couples, kids, friends, and fashion shoots.
+✔ AI Art Prompt Book – Discover powerful prompt styles for portraits, cinematic shots, fantasy art, landscapes, and concept visuals.
+✔ Photography Tips & Guides – Learn lighting setups, angles, composition tricks, and creative storytelling ideas.
+✔ Model Pose Guide – Perfect for influencers, models, and photographers looking to elevate their photoshoot game.
+✔ Creative Inspiration – Get ideas for Instagram photos, reels, modeling, lifestyle shoots, and professional portfolio building.
+✔ AI Generated Photo Ideas – Smartly curated inspiration using AI for every theme and aesthetic.
+
+📸 Why PicPose?
+
+PicPose helps you:
+
+🔹 Find the perfect pose for every situation
+🔹 Improve your photography skills with easy guides
+🔹 Generate stunning AI images with ready-made prompts
+🔹 Get daily inspiration for creative shoots
+🔹 Boost your social media photos with trending ideas
+🔹 Save time brainstorming concepts for your next photoshoot
+
+Whether you're a photographer, content creator, AI artist, or casual user—PicPose makes creativity simple and fun.
+
+🌟 Top Features
+
+• Huge library of AI prompts for photography & art
+• Best pose ideas for photoshoots
+• Creative photography tips and beginner-friendly guides
+• Sorted categories for effortless discovery
+• Save your favorite prompts and poses
+• Daily updates for endless inspiration
+• Lightweight, smooth, and fast app experience
+
+🎯 Who Is PicPose For?
+
+• Photographers (beginner to pro)
+• Instagram influencers & content creators
+• Models, fashion photographers & stylists
+• AI artists using Midjourney / DALL·E / SDXL
+• Creators planning reels, portraits, cinematic shots
+• Anyone looking for creative photo ideas
+
+🚀 Create Better. Capture Smarter. Inspire Daily.
+
+Download PicPose: AI Prompts Book & Photography Guide App today and transform your ideas into beautiful visuals—powered by creativity + AI!
+)

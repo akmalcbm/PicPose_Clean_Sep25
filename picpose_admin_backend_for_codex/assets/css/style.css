@@ -1,0 +1,261 @@
+/* assets/css/style.css - PicPose Admin final */
+
+/* ===========================
+   RESET & BASE
+=========================== */
+:root {
+    --sidebar-bg-start: #0f1724;
+    --sidebar-bg-end: #0b1220;
+    --sidebar-text: #e6eef8;
+    --muted: rgba(255,255,255,0.55);
+    --accent-start: #2563eb;
+    --accent-end: #7c3aed;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: #f6f8fb;
+    color: #213547;
+}
+
+/* ===========================
+   LAYOUT
+=========================== */
+.d-flex {
+    display: flex;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* ===========================
+   SIDEBAR
+=========================== */
+.sidebar {
+    min-width: 240px;
+    max-width: 300px;
+    background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+    color: var(--sidebar-text);
+    border-right: 1px solid rgba(255,255,255,0.03);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-y: auto; /* ✅ allows scrolling when menu grows */
+    overflow-x: hidden;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+/* ✅ Custom scrollbar for WebKit browsers */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.15);
+    border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255,255,255,0.25);
+}
+
+.sidebar .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    margin-bottom: 1rem;
+}
+.sidebar .brand img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+.sidebar .brand div { line-height: 1; }
+.sidebar .small-muted {
+    font-size: .78rem;
+    color: rgba(255,255,255,0.55);
+}
+
+/* ✅ Fade effect at the bottom for visual finish */
+.sidebar::after {
+    content: "";
+    position: sticky;
+    bottom: 0;
+    height: 30px;
+    background: linear-gradient(to top, rgba(11,18,32,1) 0%, rgba(11,18,32,0) 100%);
+    display: block;
+    pointer-events: none;
+}
+
+/* ===========================
+   LINKS & BUTTONS
+=========================== */
+.sidebar .nav-link,
+.sidebar .btn-post {
+    color: #d7e6fb;
+    padding: .55rem .6rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all .12s ease;
+    font-size: .95rem;
+}
+.sidebar .nav-link:hover,
+.sidebar .btn-post:hover {
+    background: rgba(255,255,255,0.03);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+.sidebar .nav-link.active,
+.sidebar .btn-post.nav-link.active {
+    background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+    color: white;
+    box-shadow: 0 6px 18px rgba(124,58,237,0.08);
+    border-color: rgba(255,255,255,0.04);
+}
+.sidebar .section-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.03);
+    padding: .6rem;
+    border-radius: 10px;
+}
+
+/* ===========================
+   BADGES
+=========================== */
+.badge-tip {
+    font-size: .72rem;
+    margin-left: auto;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+.bg-warning.text-dark.badge-tip {
+    background-color: #facc15 !important;
+    color: #1f1f1f !important;
+}
+
+/* ===========================
+   MAIN CONTENT
+=========================== */
+main#main-content {
+    flex: 1;
+    padding: 2rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+    box-sizing: border-box;
+}
+
+/* ===========================
+   MOBILE TOPBAR
+=========================== */
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    padding: .25rem 0;
+    background: transparent;
+}
+.mobile-topbar .sidebar-toggle { min-width: 40px; }
+
+/* ===========================
+   SIDEBAR OVERLAY (MOBILE)
+=========================== */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1055;
+    display: none;
+    transition: opacity .18s ease;
+    opacity: 0;
+}
+.sidebar-overlay.visible {
+    display: block;
+    opacity: 1;
+}
+
+/* ===========================
+   CARD & TYPOGRAPHY
+=========================== */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(21, 32, 43, 0.06);
+    border: none;
+}
+
+/* Helper text */
+.small-muted { font-size: .86rem; color: #6b7280; }
+
+/* ===========================
+   FOOTER
+=========================== */
+footer.site-footer {
+    background: #0b1220;
+    color: #e6eef8;
+    padding: .6rem;
+    text-align: center;
+    font-size: .9rem;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 991px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-110%);
+        transition: transform .22s ease;
+        z-index: 1060;
+        width: 280px;
+        overflow-y: auto;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    main#main-content { padding: 1rem; }
+}
+
+/* ===========================
+   ACCESSIBILITY
+=========================== */
+a:focus, .btn:focus {
+    outline: 3px solid rgba(37,99,235,0.18);
+    outline-offset: 2px;
+}
+
+/* ===========================
+   UTILITIES
+=========================== */
+.visually-hidden-focusable {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+.visually-hidden-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    left: 0;
+    top: 0;
+}
+
+.quick-stat-card:hover {
+    transform: translateY(-3px);
+    transition: all .2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
