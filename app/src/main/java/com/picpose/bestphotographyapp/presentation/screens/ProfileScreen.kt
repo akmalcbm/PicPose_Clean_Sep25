@@ -28,16 +28,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.home.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.components.home.QuickStatsCard
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
+import com.picpose.bestphotographyapp.presentation.components.common.ShimmerBox
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
@@ -268,23 +271,25 @@ private fun ProfileHeaderCard(
     currentUser: com.picpose.bestphotographyapp.data.models.User?,
     fallbackBio: String
 ) {
-    val context = LocalContext.current
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(28.dp),
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(10.dp)
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 7.dp)
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 28.dp, horizontal = 20.dp),
+                .widthIn(max = 460.dp)
+                .padding(vertical = 32.dp, horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -294,27 +299,38 @@ private fun ProfileHeaderCard(
             // ----------------------------
             Box(
                 modifier = Modifier
-                    .size(150.dp)
+                    .size(180.dp)
                     .padding(bottom = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
 
                 NeonGradientRing(
-                    size = 150.dp,
-                    borderWidth = 3.dp
+                    size = 180.dp,
+                    borderWidth = 4.dp
                 ) {
                     if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
-                        AsyncImage(
+                        SubcomposeAsyncImage(
                             model = currentUser.displayProfilePicture,
                             contentDescription = stringResource(R.string.profile_picture),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(140.dp)
+                                .size(168.dp)
                                 .clip(CircleShape)
-                        )
+                        ) {
+                            if (painter.state is coil.compose.AsyncImagePainter.State.Loading) {
+                                ShimmerBox(
+                                    modifier = Modifier
+                                        .size(168.dp)
+                                        .clip(CircleShape),
+                                    shape = CircleShape
+                                )
+                            } else {
+                                SubcomposeAsyncImageContent()
+                            }
+                        }
                     } else {
                         DefaultProfileImage(
-                            modifier = Modifier.size(140.dp)
+                            modifier = Modifier.size(168.dp)
                         )
                     }
                 }
@@ -328,10 +344,12 @@ private fun ProfileHeaderCard(
             // ----------------------------
             Text(
                 text = currentUser?.displayName ?: stringResource(R.string.guest_user),
-                fontSize = 26.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             // ----------------------------
@@ -339,10 +357,18 @@ private fun ProfileHeaderCard(
             // ----------------------------
             Text(
                 text = currentUser?.email ?: stringResource(R.string.not_logged_in),
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 2.dp)
+                modifier = Modifier.padding(top = 4.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(0.35f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             )
 
             // ----------------------------
@@ -350,13 +376,14 @@ private fun ProfileHeaderCard(
             // ----------------------------
             Text(
                 text = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .padding(top = 12.dp)
-                    .fillMaxWidth(0.90f)
+                    .fillMaxWidth(0.88f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
