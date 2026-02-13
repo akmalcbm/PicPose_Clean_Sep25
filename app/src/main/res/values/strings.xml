@@ -35,6 +35,11 @@
     <string name="section_appearance">Appearance</string>
     <string name="section_preferences">Preferences</string>
     <string name="dark_mode_subtitle">Enable or disable dark theme</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_description">Choose how the app looks.</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
     <string name="notifications_subtitle">Enable notifications</string>
     <string name="gemini_confirmation">Gemini confirmation</string>
     <string name="gemini_confirmation_disabled">Confirmation dialog disabled</string>

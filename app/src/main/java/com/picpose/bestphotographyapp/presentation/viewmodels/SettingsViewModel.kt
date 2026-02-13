@@ -3,6 +3,7 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
+import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,9 +21,9 @@ class SettingsViewModel @Inject constructor(
     private val settingsManager: SettingsManager
 ) : ViewModel() {
 
-    // THEME MODE: "system", "light", "dark"
-    val themeMode: StateFlow<String> = settingsManager.themeMode
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "system")
+    // THEME MODE: SYSTEM | LIGHT | DARK
+    val themeMode: StateFlow<ThemeMode> = settingsManager.themeMode
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.SYSTEM)
 
     // LANGUAGE
     val language: StateFlow<String> = settingsManager.language
@@ -56,9 +57,9 @@ class SettingsViewModel @Inject constructor(
     // ----------------------------
     // UPDATE THEME MODE
     // ----------------------------
-    fun setThemeMode(mode: String) {
+    fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
-            settingsManager.setThemeMode(mode) // system | light | dark
+            settingsManager.setThemeMode(mode)
         }
     }
 

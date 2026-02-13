@@ -33,6 +33,11 @@
     <string name="section_appearance">Tampilan</string>
     <string name="section_preferences">Preferensi</string>
     <string name="dark_mode_subtitle">Aktifkan atau nonaktifkan tema gelap</string>
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_description">Pilih tampilan aplikasi.</string>
+    <string name="settings_theme_system">Default sistem</string>
+    <string name="settings_theme_light">Terang</string>
+    <string name="settings_theme_dark">Gelap</string>
     <string name="notifications_subtitle">Aktifkan notifikasi</string>
     <string name="gemini_confirmation">Konfirmasi Gemini</string>
     <string name="gemini_confirmation_disabled">Dialog konfirmasi dinonaktifkan</string>

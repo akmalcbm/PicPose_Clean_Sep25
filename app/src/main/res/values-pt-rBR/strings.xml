@@ -35,6 +35,11 @@
     <string name="section_appearance">Aparência</string>
     <string name="section_preferences">Preferências</string>
     <string name="dark_mode_subtitle">Ative ou desative o tema escuro</string>
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_description">Escolha a aparência do app.</string>
+    <string name="settings_theme_system">Padrão do sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Escuro</string>
     <string name="notifications_subtitle">Ative as notificações</string>
     <string name="gemini_confirmation">Confirmação do Gemini</string>
     <string name="gemini_confirmation_disabled">Janela de confirmação desativada</string>

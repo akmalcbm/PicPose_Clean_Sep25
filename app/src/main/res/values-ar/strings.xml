@@ -35,6 +35,11 @@
     <string name="section_appearance">المظهر</string>
     <string name="section_preferences">التفضيلات</string>
     <string name="dark_mode_subtitle">تفعيل أو إيقاف السمة الداكنة</string>
+    <string name="settings_theme_title">السمة</string>
+    <string name="settings_theme_description">اختر مظهر التطبيق.</string>
+    <string name="settings_theme_system">إعداد النظام الافتراضي</string>
+    <string name="settings_theme_light">فاتح</string>
+    <string name="settings_theme_dark">داكن</string>
     <string name="notifications_subtitle">تفعيل الإشعارات</string>
     <string name="gemini_confirmation">تأكيد Gemini</string>
     <string name="gemini_confirmation_disabled">تم تعطيل نافذة التأكيد</string>

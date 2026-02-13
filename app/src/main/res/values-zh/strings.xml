@@ -65,6 +65,11 @@
     <string name="home_loading_content_banner">正在加载内容…</string>
     <string name="home_checking_connection_banner">正在检查网络连接…</string>
     <string name="home_offline_limited_content">你当前离线。正在显示有限内容。</string>
+    <string name="settings_theme_title">主题</string>
+    <string name="settings_theme_description">选择应用外观。</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
     <string name="section_load_error_message">无法加载%1$s。请检查网络连接。</string>
     <string name="no_community_highlights_yet">暂无社区精选内容。</string>
     <string name="no_categories_available_yet">暂无可用分类。</string>

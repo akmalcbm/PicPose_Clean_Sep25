@@ -28,6 +28,7 @@ import com.picpose.bestphotographyapp.presentation.navigation.AppRoot
 import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
+import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -55,15 +56,11 @@ class MainActivity : AppCompatActivity() {
 
             val themeMode by settingsViewModel.themeMode.collectAsState()
             val language by settingsViewModel.language.collectAsState()
-            val systemDark = isSystemInDarkTheme()
-
-            val requestedDarkTheme: Boolean? = when (themeMode.lowercase()) {
-                "light" -> false
-                "dark" -> true
-                else -> null
+            val finalDarkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
             }
-
-            val finalDarkTheme = requestedDarkTheme ?: systemDark
 
             var isApplyingLocale by remember { mutableStateOf(false) }
             LaunchedEffect(language) {

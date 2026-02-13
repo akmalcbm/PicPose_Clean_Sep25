@@ -34,6 +34,11 @@
     <string name="section_appearance">外观</string>
     <string name="section_preferences">偏好设置</string>
     <string name="dark_mode_subtitle">启用或关闭深色主题</string>
+    <string name="settings_theme_title">主题</string>
+    <string name="settings_theme_description">选择应用外观。</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
     <string name="notifications_subtitle">启用通知</string>
     <string name="gemini_confirmation">Gemini 确认</string>
     <string name="gemini_confirmation_disabled">已关闭确认弹窗</string>

@@ -35,9 +35,9 @@ class SettingsManager(private val context: Context) {
     }
 
     /** Theme mode flow */
-    val themeMode: Flow<String> = context.settingsDataStore.data
+    val themeMode: Flow<ThemeMode> = context.settingsDataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { prefs -> prefs[THEME_MODE_KEY] ?: "system" }
+        .map { prefs -> ThemeMode.fromStorage(prefs[THEME_MODE_KEY]) }
 
     /** Language flow */
     val language: Flow<String> = context.settingsDataStore.data
@@ -50,9 +50,9 @@ class SettingsManager(private val context: Context) {
         .map { prefs -> prefs[NOTIFICATIONS_ENABLED_KEY] ?: true }
 
     /** Save theme mode */
-    suspend fun setThemeMode(mode: String) {
+    suspend fun setThemeMode(mode: ThemeMode) {
         context.settingsDataStore.edit { prefs ->
-            prefs[THEME_MODE_KEY] = mode  // system | light | dark
+            prefs[THEME_MODE_KEY] = mode.storageValue
         }
     }
 

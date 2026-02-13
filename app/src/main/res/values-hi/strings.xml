@@ -62,6 +62,11 @@
     <string name="section_appearance">दिखावट</string>
     <string name="section_preferences">पसंद</string>
     <string name="dark_mode_subtitle">डार्क थीम चालू या बंद करें</string>
+    <string name="settings_theme_title">थीम</string>
+    <string name="settings_theme_description">ऐप का रूप चुनें।</string>
+    <string name="settings_theme_system">सिस्टम डिफ़ॉल्ट</string>
+    <string name="settings_theme_light">लाइट</string>
+    <string name="settings_theme_dark">डार्क</string>
     <string name="notifications_subtitle">सूचनाएं सक्षम करें</string>
     <string name="gemini_confirmation">जेमिनी पुष्टि</string>
     <string name="gemini_confirmation_disabled">पुष्टि संवाद बंद है</string>

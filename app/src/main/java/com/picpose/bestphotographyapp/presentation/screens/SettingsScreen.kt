@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 
 private data class LanguageOption(
@@ -141,14 +142,28 @@ fun SettingsScreen(
 
             item {
                 SettingsSectionCard(title = stringResource(R.string.section_appearance)) {
-                    ToggleSettingsRow(
+                    SettingsRow(
                         icon = Icons.Default.DarkMode,
-                        title = stringResource(R.string.dark_mode),
-                        subtitle = stringResource(R.string.dark_mode_subtitle),
-                        checked = themeMode == "dark",
-                        onCheckedChange = { checked ->
-                            settingsViewModel.setThemeMode(if (checked) "dark" else "light")
-                        }
+                        title = stringResource(R.string.settings_theme_title),
+                        subtitle = stringResource(R.string.settings_theme_description)
+                    )
+
+                    SectionDivider()
+
+                    ThemeModeOptionRow(
+                        text = stringResource(R.string.settings_theme_system),
+                        selected = themeMode == ThemeMode.SYSTEM,
+                        onClick = { settingsViewModel.setThemeMode(ThemeMode.SYSTEM) }
+                    )
+                    ThemeModeOptionRow(
+                        text = stringResource(R.string.settings_theme_light),
+                        selected = themeMode == ThemeMode.LIGHT,
+                        onClick = { settingsViewModel.setThemeMode(ThemeMode.LIGHT) }
+                    )
+                    ThemeModeOptionRow(
+                        text = stringResource(R.string.settings_theme_dark),
+                        selected = themeMode == ThemeMode.DARK,
+                        onClick = { settingsViewModel.setThemeMode(ThemeMode.DARK) }
                     )
 
                     SectionDivider()
@@ -405,5 +420,27 @@ private fun RadioButtonItem(text: String, selected: Boolean, onClick: () -> Unit
         RadioButton(selected = selected, onClick = onClick)
         Spacer(modifier = Modifier.width(8.dp))
         Text(text)
+    }
+}
+
+@Composable
+private fun ThemeModeOptionRow(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
