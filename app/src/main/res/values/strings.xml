@@ -431,7 +431,7 @@
     <string name="prompts_count">Prompts count</string>
     <string name="prompts_for_category_count">Prompts for %1$s (%2$d)</string>
     <string name="quick_actions">Quick Actions</string>
-    <string name="quick_stats_title">📊 Quick Stats</string>
+    <string name="quick_stats_title">📊 Quick Stats </string>
     <string name="read_privacy_policy">Read privacy policy</string>
     <string name="read_time_with_minutes">%1$d min read</string>
     <string name="recent_posts_subtitle">Latest from the community</string>
