@@ -81,6 +81,14 @@ android {
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        jniLibs {
+            // These dependency-provided .so files are not strip-compatible in release.
+            // Keep symbols to avoid strip warnings/failures in :app:stripReleaseDebugSymbols.
+            keepDebugSymbols += setOf(
+                "**/libandroidx.graphics.path.so",
+                "**/libdatastore_shared_counter.so"
+            )
+        }
     }
 
     compileOptions {
