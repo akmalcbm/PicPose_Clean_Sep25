@@ -630,18 +630,19 @@ fun GuideDetailScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     Icons.AutoMirrored.Filled.Article,
                                     contentDescription = null,
                                     modifier = Modifier.size(22.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
+                                Spacer(modifier = Modifier.width(6.dp))
+                                /*Text(
                                     text = stringResource(R.string.guide_content),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
-                                )
+                                )*/
                             }
                         }
 
