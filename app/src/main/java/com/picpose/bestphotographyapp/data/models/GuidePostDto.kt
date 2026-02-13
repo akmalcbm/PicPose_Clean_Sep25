@@ -41,8 +41,11 @@ data class GuidePostDto(
 
     // numeric counters are usually numbers; keep as Int with safe defaults
     @SerializedName("likes") val likes: Int = 0,
+    @SerializedName("likes_total") val likes_total: Int? = null,
     @SerializedName("favorites") val favorites: Int = 0,
     @SerializedName("views") val views: Int = 0,
+    @SerializedName("views_total") val views_total: Int? = null,
+    @SerializedName("is_liked_by_user") val is_liked_by_user: Any? = null,
 
     // Booleans can arrive as 0/1/"0"/"1"/true/false — accept Any? and coerce in mapper
     @SerializedName("is_featured") val is_featured: Any? = null,
@@ -239,9 +242,9 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
         val key = "${title.trim()}_${createdTime.trim()}_${rawImage}"
         "guide_${key.hashCode()}"
     }
-    val safeLikes = likes.coerceAtLeast(0)
+    val safeLikes = (likes_total ?: likes).coerceAtLeast(0)
     val safeFavorites = favorites.coerceAtLeast(0)
-    val safeViews = views.coerceAtLeast(0)
+    val safeViews = (views_total ?: views).coerceAtLeast(0)
     val mergedBlocks = (content_blocks ?: contentBlocks ?: emptyList()).mapNotNull { it.toDomainOrNull() }
     val mergedImages = parseStringListOrEmpty(images ?: emptyList<String>())
     val mergedVideoItems = parseVideos(videos)
@@ -279,7 +282,7 @@ fun GuidePostDto.toGuidePost(baseUrl: String? = null): GuidePost {
         authorId = author_id ?: "",
         createdAt = createdTime,
         updatedAt = updatedTime,
-        isLiked = false,
+        isLiked = anyToBoolean(is_liked_by_user),
         contentBlocks = mergedBlocks,
         images = mergedImages,
         videos = mergedVideos,

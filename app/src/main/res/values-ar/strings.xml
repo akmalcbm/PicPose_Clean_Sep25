@@ -287,6 +287,7 @@
     <string name="guide_details_copied_to_clipboard">تم نسخ تفاصيل الدليل إلى الحافظة</string>
     <string name="guide_label">دليل</string>
     <string name="guide_liked">تم الإعجاب بالدليل</string>
+    <string name="guide_unliked">لم يعجبك هذا الدليل</string>
     <string name="guide_not_found">لم يتم العثور على الدليل</string>
     <string name="guide_post_details_copied_to_clipboard">تم نسخ تفاصيل منشور الدليل إلى الحافظة</string>
     <string name="guide_post_not_found">لم يتم العثور على منشور الدليل</string>

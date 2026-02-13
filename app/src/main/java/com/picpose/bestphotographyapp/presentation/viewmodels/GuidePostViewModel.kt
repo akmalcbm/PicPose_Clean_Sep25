@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.R
-import com.picpose.bestphotographyapp.data.datastore.GuideLikeStore
+import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
 import com.picpose.bestphotographyapp.data.models.GuidePost
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
@@ -38,7 +38,7 @@ data class GuidePostUiState(
 @HiltViewModel
 class GuidePostViewModel @Inject constructor(
     private val repository: HomeRepository,
-    private val guideLikeStore: GuideLikeStore,
+    private val deviceIdStore: DeviceIdStore,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val viewedInSession = mutableSetOf<String>()
@@ -107,7 +107,8 @@ class GuidePostViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-                repository.getGuidePostById(id).collect { result ->
+                val deviceId = runCatching { deviceIdStore.getOrCreateDeviceId() }.getOrNull()
+                repository.getGuidePostById(id, deviceId = deviceId).collect { result ->
                     result.fold(
                         onSuccess = { post ->
                             val renderedBlocks = if (post.contentBlocks.isNotEmpty()) {
@@ -115,32 +116,30 @@ class GuidePostViewModel @Inject constructor(
                             } else {
                                 buildFallbackBlocks(post)
                             }
-                            val localLiked = guideLikeStore.isLiked(post.id)
-                            val localViewCount = guideLikeStore.getLocalViewCount(post.id)
-                            val displayLikes = (post.likes.coerceAtLeast(0) + if (localLiked) 1 else 0)
-                                .coerceAtLeast(0)
-                            val displayViews = (post.views.coerceAtLeast(0) + localViewCount.coerceAtLeast(0))
-                                .coerceAtLeast(0)
+                            val serverLiked = post.isLiked
+                            val displayLikes = post.likes.coerceAtLeast(0)
+                            val displayViews = post.views.coerceAtLeast(0)
                             val readMinutes = estimateReadMinutes(
                                 buildReadableContent(post, renderedBlocks)
                             )
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                selectedGuidePost = post.copy(isLiked = localLiked),
+                                selectedGuidePost = post,
                                 blocks = renderedBlocks,
-                                isLiked = localLiked,
+                                isLiked = serverLiked,
                                 displayLikes = displayLikes,
                                 displayViews = displayViews,
                                 readMinutes = readMinutes,
                                 error = null,
                                 guidePosts = if (_uiState.value.guidePosts.any { it.id == post.id }) {
                                     _uiState.value.guidePosts.map {
-                                        if (it.id == post.id) post.copy(isLiked = localLiked) else it
+                                        if (it.id == post.id) post else it
                                     }
                                 } else {
-                                    _uiState.value.guidePosts + post.copy(isLiked = localLiked)
+                                    _uiState.value.guidePosts + post
                                 }
                             )
+                            registerGuideView(post.id)
                         },
                         onFailure = { exception ->
                             _uiState.value = _uiState.value.copy(
@@ -194,29 +193,64 @@ class GuidePostViewModel @Inject constructor(
         }
     }
 
-    fun toggleGuidePostLikeLocal(guidePostId: String) {
+    fun toggleGuidePostLike(guidePostId: String) {
         viewModelScope.launch {
             try {
                 val current = _uiState.value
                 val selected = current.selectedGuidePost ?: return@launch
                 if (selected.id != guidePostId) return@launch
+                val guideIdInt = guidePostId.toIntOrNull() ?: run {
+                    _uiState.value = current.copy(error = appContext.getString(R.string.unexpected_error_occurred))
+                    return@launch
+                }
 
-                val nowLiked = !current.isLiked
-                guideLikeStore.setLiked(guidePostId, nowLiked)
-                val displayLikes = (selected.likes.coerceAtLeast(0) + if (nowLiked) 1 else 0)
-                    .coerceAtLeast(0)
+                val wasLiked = current.isLiked
+                val previousLikes = current.displayLikes.coerceAtLeast(0)
+                val optimisticLiked = !wasLiked
+                val optimisticLikes = (previousLikes + if (optimisticLiked) 1 else -1).coerceAtLeast(0)
 
                 _uiState.value = current.copy(
-                    selectedGuidePost = selected.copy(isLiked = nowLiked),
+                    selectedGuidePost = selected.copy(isLiked = optimisticLiked, likes = optimisticLikes),
                     guidePosts = current.guidePosts.map { guide ->
-                        if (guide.id == guidePostId) guide.copy(isLiked = nowLiked) else guide
+                        if (guide.id == guidePostId) guide.copy(isLiked = optimisticLiked, likes = optimisticLikes) else guide
                     },
-                    isLiked = nowLiked,
-                    displayLikes = displayLikes
+                    isLiked = optimisticLiked,
+                    displayLikes = optimisticLikes
+                )
+
+                val deviceId = deviceIdStore.getOrCreateDeviceId()
+                val serverState = repository.toggleGuideLike(guideIdInt, deviceId)
+                _uiState.value = _uiState.value.copy(
+                    selectedGuidePost = selected.copy(isLiked = serverState.isLiked, likes = serverState.likesTotal),
+                    guidePosts = _uiState.value.guidePosts.map { guide ->
+                        if (guide.id == guidePostId) {
+                            guide.copy(isLiked = serverState.isLiked, likes = serverState.likesTotal)
+                        } else {
+                            guide
+                        }
+                    },
+                    isLiked = serverState.isLiked,
+                    displayLikes = serverState.likesTotal.coerceAtLeast(0)
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "toggleGuidePostLikeLocal: failed", e)
-                _uiState.value = _uiState.value.copy(error = e.message)
+                Log.e(TAG, "toggleGuidePostLike: failed", e)
+                val current = _uiState.value
+                val selected = current.selectedGuidePost
+                if (selected != null && selected.id == guidePostId) {
+                    val rollbackLiked = !current.isLiked
+                    val rollbackLikes = (current.displayLikes + if (rollbackLiked) 1 else -1).coerceAtLeast(0)
+                    _uiState.value = current.copy(
+                        selectedGuidePost = selected.copy(isLiked = rollbackLiked, likes = rollbackLikes),
+                        guidePosts = current.guidePosts.map { guide ->
+                            if (guide.id == guidePostId) guide.copy(isLiked = rollbackLiked, likes = rollbackLikes) else guide
+                        },
+                        isLiked = rollbackLiked,
+                        displayLikes = rollbackLikes,
+                        error = e.message ?: appContext.getString(R.string.error)
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(error = e.message ?: appContext.getString(R.string.error))
+                }
             }
         }
     }
@@ -230,12 +264,15 @@ class GuidePostViewModel @Inject constructor(
                 if (selected.id != guidePostId) return@launch
 
                 viewedInSession.add(guidePostId)
-                val localViewCount = guideLikeStore.incrementViewCount(guidePostId)
-                val displayViews = (selected.views.coerceAtLeast(0) + localViewCount.coerceAtLeast(0))
-                    .coerceAtLeast(0)
+                val guideIdInt = guidePostId.toIntOrNull() ?: return@launch
+                val serverViews = repository.incrementGuideView(guideIdInt).coerceAtLeast(0)
 
                 _uiState.value = current.copy(
-                    displayViews = displayViews
+                    selectedGuidePost = selected.copy(views = serverViews, viewCount = serverViews),
+                    guidePosts = current.guidePosts.map { guide ->
+                        if (guide.id == guidePostId) guide.copy(views = serverViews, viewCount = serverViews) else guide
+                    },
+                    displayViews = serverViews
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "registerGuideView: failed", e)

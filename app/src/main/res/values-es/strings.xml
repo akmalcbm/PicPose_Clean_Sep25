@@ -287,6 +287,7 @@
     <string name="guide_details_copied_to_clipboard">Detalles de la guía copiados al portapapeles</string>
     <string name="guide_label">Guía</string>
     <string name="guide_liked">Guía marcada con “Me gusta”</string>
+    <string name="guide_unliked">No te gustó esta guía</string>
     <string name="guide_not_found">Guía no encontrada</string>
     <string name="guide_post_details_copied_to_clipboard">Detalles de la publicación de la guía copiados al portapapeles</string>
     <string name="guide_post_not_found">Publicación de la guía no encontrada</string>

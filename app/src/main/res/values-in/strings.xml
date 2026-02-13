@@ -272,6 +272,7 @@
     <string name="guide_details_copied_to_clipboard">Detail panduan disalin ke clipboard</string>
     <string name="guide_label">Panduan</string>
     <string name="guide_liked">Panduan disukai</string>
+    <string name="guide_unliked">Anda tidak menyukai panduan ini</string>
     <string name="guide_not_found">Panduan tidak ditemukan</string>
     <string name="guide_post_details_copied_to_clipboard">Detail postingan panduan disalin ke clipboard</string>
     <string name="guide_post_not_found">Postingan panduan tidak ditemukan</string>

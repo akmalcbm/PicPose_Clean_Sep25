@@ -33,6 +33,7 @@ private const val TAG = "HomeRepository"
 
 // Small wrapper for paginated responses
 data class PaginatedResult<T>(val items: List<T>, val meta: MetaDto? = null)
+data class GuideLikeToggleResult(val likesTotal: Int, val isLiked: Boolean)
 
 class HomeRepository(
     context: Context,
@@ -484,10 +485,14 @@ class HomeRepository(
         )
     }.flowOn(kotlinx.coroutines.Dispatchers.IO)
 
-    suspend fun getGuidePostById(guidePostId: String): Flow<Result<com.picpose.bestphotographyapp.data.models.GuidePost>> = flow {
+    suspend fun getGuidePostById(
+        guidePostId: String,
+        deviceId: String? = null
+    ): Flow<Result<com.picpose.bestphotographyapp.data.models.GuidePost>> = flow {
         try {
             val response = apiService.getGuidePostById(
                 guidePostId = guidePostId,
+                deviceId = deviceId,
                 apiKey = requestApiKey
             )
 
@@ -501,6 +506,33 @@ class HomeRepository(
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+    suspend fun incrementGuideView(guideId: Int): Int {
+        val response = apiService.incrementGuideView(
+            id = guideId,
+            apiKey = requestApiKey
+        )
+        if (response.isSuccessful && response.body()?.success == true) {
+            val payload = response.body()?.data ?: throw Exception("Empty view payload")
+            return (payload.viewsTotal.takeIf { it >= 0 } ?: payload.views).coerceAtLeast(0)
+        }
+        throw Exception("Guide view increment failed")
+    }
+
+    suspend fun toggleGuideLike(guideId: Int, deviceId: String): GuideLikeToggleResult {
+        val response = apiService.toggleGuideLike(
+            id = guideId,
+            deviceId = deviceId,
+            apiKey = requestApiKey
+        )
+        if (response.isSuccessful && response.body()?.success == true) {
+            val payload = response.body()?.data ?: throw Exception("Empty like payload")
+            val likesTotal = (payload.likesTotal.takeIf { it >= 0 } ?: payload.likes).coerceAtLeast(0)
+            val liked = payload.isLikedByUser || payload.liked
+            return GuideLikeToggleResult(likesTotal = likesTotal, isLiked = liked)
+        }
+        throw Exception("Guide like toggle failed")
+    }
 
 
     // -------------------------

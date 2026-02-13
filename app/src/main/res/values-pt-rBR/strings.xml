@@ -287,6 +287,7 @@
     <string name="guide_details_copied_to_clipboard">Detalhes do guia copiados para a área de transferência</string>
     <string name="guide_label">Guia</string>
     <string name="guide_liked">Guia curtido</string>
+    <string name="guide_unliked">Você não gostou deste guia</string>
     <string name="guide_not_found">Guia não encontrado</string>
     <string name="guide_post_details_copied_to_clipboard">Detalhes da publicação do guia copiados para a área de transferência</string>
     <string name="guide_post_not_found">Publicação do guia não encontrada</string>

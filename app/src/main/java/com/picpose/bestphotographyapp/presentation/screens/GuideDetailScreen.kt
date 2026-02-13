@@ -286,10 +286,6 @@ fun GuideDetailScreen(
         }
     }
 
-    LaunchedEffect(guidePostData?.id) {
-        guidePostData?.id?.let { viewModel.registerGuideView(it) }
-    }
-
     // Handle error state
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
@@ -592,21 +588,6 @@ fun GuideDetailScreen(
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(
-                                                    Icons.Default.ThumbUp,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(
-                                                    text = "${uiState.displayLikes}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
                                                     Icons.Default.Visibility,
                                                     contentDescription = null,
                                                     modifier = Modifier.size(16.dp),
@@ -615,6 +596,21 @@ fun GuideDetailScreen(
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
                                                     text = "${uiState.displayViews}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.Default.Favorite,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "${uiState.displayLikes}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -712,11 +708,12 @@ fun GuideDetailScreen(
                                 OutlinedButton(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.toggleGuidePostLikeLocal(guidePostData.id)
+                                        val wasLiked = uiState.isLiked
+                                        viewModel.toggleGuidePostLike(guidePostData.id)
                                         coroutineScope.launch {
                                             snackbarHostState.showSnackbar(
-                                                message = if (uiState.isLiked) {
-                                                    context.getString(R.string.removed_from_favorites)
+                                                message = if (wasLiked) {
+                                                    context.getString(R.string.guide_unliked)
                                                 } else {
                                                     context.getString(R.string.guide_liked)
                                                 },
@@ -727,7 +724,7 @@ fun GuideDetailScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
-                                        imageVector = if (uiState.isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
+                                        imageVector = if (uiState.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                         contentDescription = stringResource(R.string.like),
                                         modifier = Modifier.size(18.dp)
                                     )

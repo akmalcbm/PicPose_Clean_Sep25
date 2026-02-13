@@ -357,6 +357,7 @@
     <string name="guide_details_copied_to_clipboard">गाइड विवरण क्लिपबोर्ड में कॉपी किया गया</string>
     <string name="guide_label">गाइड लेबल</string>
     <string name="guide_liked">गाइड पसंद की गई</string>
+    <string name="guide_unliked">आपको यह गाइड पसंद नहीं आया</string>
     <string name="guide_not_found">गाइड नहीं मिली</string>
     <string name="guide_post_details_copied_to_clipboard">गाइड पोस्ट विवरण क्लिपबोर्ड में कॉपी किया गया</string>
     <string name="guide_post_not_found">गाइड पोस्ट नहीं मिली</string>

@@ -286,6 +286,7 @@
     <string name="guide_details_copied_to_clipboard">指南详情已复制到剪贴板</string>
     <string name="guide_label">指南</string>
     <string name="guide_liked">已点赞指南</string>
+    <string name="guide_unliked">您不喜欢这个指南</string>
     <string name="guide_not_found">未找到指南</string>
     <string name="guide_post_details_copied_to_clipboard">指南帖子详情已复制到剪贴板</string>
     <string name="guide_post_not_found">未找到指南帖子</string>

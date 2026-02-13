@@ -4,6 +4,8 @@ import com.picpose.bestphotographyapp.data.models.*
 import com.picpose.bestphotographyapp.data.remote.ApiResponse
 import com.picpose.bestphotographyapp.data.remote.CopyResponse
 import com.picpose.bestphotographyapp.data.remote.FavoriteResponse
+import com.picpose.bestphotographyapp.data.remote.GuideLikePayload
+import com.picpose.bestphotographyapp.data.remote.GuideViewPayload
 import com.picpose.bestphotographyapp.data.remote.LikeResponse
 import com.picpose.bestphotographyapp.data.remote.ViewResponse
 import retrofit2.Response
@@ -144,8 +146,24 @@ interface ApiService {
     @GET("api/guide_posts/get_guide_post.php")
     suspend fun getGuidePostById(
         @Query("id") guidePostId: String,
+        @Query("device_id") deviceId: String? = null,
         @Query("api_key") apiKey: String? = null
     ): Response<ApiResponse<GuidePostDto>>
+
+    @FormUrlEncoded
+    @POST("api/guide_posts/increment_guide_view.php")
+    suspend fun incrementGuideView(
+        @Field("id") id: Int,
+        @Field("api_key") apiKey: String? = null
+    ): Response<ApiResponse<GuideViewPayload>>
+
+    @FormUrlEncoded
+    @POST("api/guide_posts/toggle_guide_like.php")
+    suspend fun toggleGuideLike(
+        @Field("id") id: Int,
+        @Field("device_id") deviceId: String,
+        @Field("api_key") apiKey: String? = null
+    ): Response<ApiResponse<GuideLikePayload>>
 
     // -----------------------------------------------------------------------------------------
     // 🔹 Categories

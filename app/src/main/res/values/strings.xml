@@ -291,7 +291,8 @@
     <string name="guide_creation_coming_soon">Guide creation coming soon</string>
     <string name="guide_details_copied_to_clipboard">Guide details copied to clipboard</string>
     <string name="guide_label">Guide label</string>
-    <string name="guide_liked">Guide liked</string>
+    <string name="guide_liked">Post Liked</string>
+    <string name="guide_unliked">You didn’t like this guide post</string>
     <string name="guide_not_found">Guide not found</string>
     <string name="guide_post_details_copied_to_clipboard">Guide post details copied to clipboard</string>
     <string name="guide_post_not_found">Guide post not found</string>
