@@ -11,13 +11,16 @@ import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
+import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.fcm.FcmTokenSyncManager
+import com.picpose.bestphotographyapp.fcm.NotificationSettingsCoordinator
 import com.picpose.bestphotographyapp.presentation.ads.AdsInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
 
@@ -51,14 +54,8 @@ class PicPoseApp : Application(), ImageLoaderFactory {
             forceRefresh = false
         )
 
-        // 🔹 Firebase topic subscription
-        subscribeToFirebaseTopics()
+        setupNotificationsOnAppStart()
 
-        // 🔹 Log current device token for admin-panel test sends
-        logCurrentFcmTokenForTesting()
-
-        // 🔹 Token sync to backend (on app start / periodic refresh window)
-        syncFcmTokenOnAppStart()
     }
 
     /**
@@ -72,20 +69,31 @@ class PicPoseApp : Application(), ImageLoaderFactory {
         AppEventsLogger.activateApp(this)
     }
 
-    /**
-     * 🔵 Firebase topic subscriptions
-     */
-    private fun subscribeToFirebaseTopics() {
+    private fun setupNotificationsOnAppStart() {
         applicationScope.launch {
-            try {
-                FirebaseMessaging.getInstance().subscribeToTopic("all").await()
-                FirebaseMessaging.getInstance().subscribeToTopic("android").await()
+            val settingsManager = SettingsManager(this@PicPoseApp)
+            val notificationsEnabled = settingsManager.notificationsEnabled.first()
 
-                Log.d("FCM", "✅ Subscribed to default topics")
-
-            } catch (e: Exception) {
-                Log.e("FCM", "❌ Topic subscription failed", e)
+            if (!notificationsEnabled) {
+                Log.i("FCM", "Notifications disabled by app preference; skipping topic/token setup")
+                return@launch
             }
+
+            NotificationSettingsCoordinator.ensureNotificationChannels(this@PicPoseApp)
+            subscribeToTopics()
+            logCurrentFcmTokenForTesting()
+            syncFcmTokenOnAppStart()
+        }
+    }
+
+    private suspend fun subscribeToTopics() {
+        try {
+            listOf("all", "android", "general", "guides", "prompts").forEach { topic ->
+                FirebaseMessaging.getInstance().subscribeToTopic(topic).await()
+            }
+            Log.d("FCM", "✅ Subscribed to configured topics")
+        } catch (e: Exception) {
+            Log.e("FCM", "❌ Topic subscription failed", e)
         }
     }
 

@@ -1,13 +1,28 @@
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
+import com.picpose.bestphotographyapp.fcm.NotificationSettingsCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,7 +33,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     // THEME MODE: SYSTEM | LIGHT | DARK
@@ -35,6 +51,21 @@ class SettingsViewModel @Inject constructor(
 
     //SKIP GEMINI DIALOG
     val skipGeminiDialog = settingsManager.skipGeminiDialog
+
+    private val _notificationsToggleInProgress = MutableStateFlow(false)
+    val notificationsToggleInProgress = _notificationsToggleInProgress.asStateFlow()
+
+    private val _showSystemNotificationSettingsDialog = MutableStateFlow(false)
+    val showSystemNotificationSettingsDialog = _showSystemNotificationSettingsDialog.asStateFlow()
+
+    private val _showGeminiConfirmDialog = MutableStateFlow(false)
+    val showGeminiConfirmDialog = _showGeminiConfirmDialog.asStateFlow()
+
+    private val _pendingGeminiAction = MutableStateFlow<GeminiConfirmationAction?>(null)
+    val pendingGeminiAction = _pendingGeminiAction.asStateFlow()
+
+    private val _events = MutableSharedFlow<SettingsEvent>(extraBufferCapacity = 1)
+    val events = _events.asSharedFlow()
 
     // NOTIFICATION PERMISSION (OS)
     val notificationPermissionRequested: StateFlow<Boolean> =
@@ -76,19 +107,75 @@ class SettingsViewModel @Inject constructor(
     // ----------------------------
     // UPDATE NOTIFICATIONS
     // ----------------------------
-    fun setNotificationsEnabled(enabled: Boolean) {
+    fun onNotificationsToggleRequested(enabled: Boolean) {
+        if (_notificationsToggleInProgress.value) return
+
         viewModelScope.launch {
-            settingsManager.setNotificationsEnabled(enabled)
+            if (enabled) {
+                if (!isSystemNotificationsEnabled()) {
+                    settingsManager.setNotificationsEnabled(false)
+                    _showSystemNotificationSettingsDialog.value = true
+                    return@launch
+                }
+
+                _notificationsToggleInProgress.value = true
+                settingsManager.setNotificationsEnabled(true)
+                val userId = UserSessionManager(appContext).userId.firstOrNull()?.toIntOrNull()
+
+                NotificationSettingsCoordinator.enableNotifications(appContext, userId)
+                    .onSuccess {
+                        _events.tryEmit(SettingsEvent.ShowMessage(R.string.notifications_enabled_feedback))
+                    }
+                    .onFailure {
+                        settingsManager.setNotificationsEnabled(false)
+                        _events.tryEmit(SettingsEvent.ShowMessage(R.string.notifications_enable_failed))
+                    }
+
+                _notificationsToggleInProgress.value = false
+            } else {
+                _notificationsToggleInProgress.value = true
+                settingsManager.setNotificationsEnabled(false)
+                NotificationSettingsCoordinator.disableNotifications()
+                    .onSuccess {
+                        _events.tryEmit(SettingsEvent.ShowMessage(R.string.notifications_disabled_feedback))
+                    }
+                    .onFailure {
+                        _events.tryEmit(SettingsEvent.ShowMessage(R.string.notifications_disable_failed))
+                    }
+                _notificationsToggleInProgress.value = false
+            }
         }
     }
 
     // ----------------------------
     // UPDATE Gemini Dialog Box
     // ----------------------------
-    fun resetGeminiDialog() {
-        viewModelScope.launch {
-            settingsManager.setSkipGeminiDialog(false)
+    fun onGeminiConfirmationToggleRequested(enableConfirmation: Boolean) {
+        _pendingGeminiAction.value = if (enableConfirmation) {
+            GeminiConfirmationAction.ENABLE
+        } else {
+            GeminiConfirmationAction.DISABLE
         }
+        _showGeminiConfirmDialog.value = true
+    }
+
+    fun confirmGeminiAction() {
+        val action = _pendingGeminiAction.value ?: return
+        viewModelScope.launch {
+            when (action) {
+                GeminiConfirmationAction.ENABLE -> settingsManager.setSkipGeminiDialog(false)
+                GeminiConfirmationAction.DISABLE -> settingsManager.setSkipGeminiDialog(true)
+            }
+            clearGeminiDialogState()
+        }
+    }
+
+    fun dismissGeminiActionDialog() {
+        clearGeminiDialogState()
+    }
+
+    fun dismissSystemNotificationDialog() {
+        _showSystemNotificationSettingsDialog.value = false
     }
 
     // ----------------------------
@@ -118,6 +205,32 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private fun isSystemNotificationsEnabled(): Boolean {
+        val runtimePermissionGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                appContext,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        return runtimePermissionGranted && NotificationManagerCompat.from(appContext).areNotificationsEnabled()
+    }
+
+    private fun clearGeminiDialogState() {
+        _showGeminiConfirmDialog.value = false
+        _pendingGeminiAction.value = null
+    }
+
+    enum class GeminiConfirmationAction {
+        ENABLE,
+        DISABLE
+    }
+
+    sealed class SettingsEvent {
+        data class ShowMessage(val messageRes: Int) : SettingsEvent()
+    }
 
 
 }

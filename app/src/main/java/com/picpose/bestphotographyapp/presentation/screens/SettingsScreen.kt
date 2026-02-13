@@ -1,5 +1,7 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +41,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,11 +52,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -66,6 +73,7 @@ import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
+import kotlinx.coroutines.launch
 
 private data class LanguageOption(
     val code: String,
@@ -93,15 +101,34 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val language by settingsViewModel.language.collectAsState()
     val notificationsEnabled by settingsViewModel.notificationsEnabled.collectAsState()
     val skipGeminiDialog by settingsViewModel.skipGeminiDialog.collectAsState(initial = false)
+    val notificationsToggleInProgress by settingsViewModel.notificationsToggleInProgress.collectAsState()
+    val showSystemNotificationSettingsDialog by settingsViewModel.showSystemNotificationSettingsDialog.collectAsState()
+    val showGeminiConfirmDialog by settingsViewModel.showGeminiConfirmDialog.collectAsState()
+    val pendingGeminiAction by settingsViewModel.pendingGeminiAction.collectAsState()
 
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var showResetGeminiDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.events.collect { event ->
+            when (event) {
+                is SettingsViewModel.SettingsEvent.ShowMessage -> {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(context.getString(event.messageRes))
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Bold) },
@@ -191,35 +218,21 @@ fun SettingsScreen(
                         title = stringResource(R.string.notifications),
                         subtitle = stringResource(R.string.notifications_subtitle),
                         checked = notificationsEnabled,
-                        onCheckedChange = settingsViewModel::setNotificationsEnabled
+                        enabled = !notificationsToggleInProgress,
+                        onCheckedChange = settingsViewModel::onNotificationsToggleRequested
                     )
 
                     SectionDivider()
 
-                    SettingsRow(
+                    ToggleSettingsRow(
                         icon = Icons.Default.AutoAwesome,
                         title = stringResource(R.string.gemini_confirmation),
                         subtitle = if (skipGeminiDialog)
                             stringResource(R.string.gemini_confirmation_disabled)
                         else
                             stringResource(R.string.gemini_confirmation_enabled),
-                        onClick = {
-                            if (skipGeminiDialog) showResetGeminiDialog = true
-                        },
-                        trailing = {
-                            Text(
-                                text = if (skipGeminiDialog)
-                                    stringResource(R.string.reset)
-                                else
-                                    stringResource(R.string.enabled),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (skipGeminiDialog)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        checked = !skipGeminiDialog,
+                        onCheckedChange = settingsViewModel::onGeminiConfirmationToggleRequested
                     )
                 }
             }
@@ -247,24 +260,68 @@ fun SettingsScreen(
             }
         }
 
-        if (showResetGeminiDialog) {
+        if (showSystemNotificationSettingsDialog) {
             AlertDialog(
-                onDismissRequest = { showResetGeminiDialog = false },
-                title = { Text(stringResource(R.string.reset_gemini_title)) },
+                onDismissRequest = settingsViewModel::dismissSystemNotificationDialog,
+                title = { Text(stringResource(R.string.notifications_system_disabled_title)) },
                 text = {
-                    Text(stringResource(R.string.reset_gemini_message))
+                    Text(stringResource(R.string.notifications_system_disabled_message))
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        settingsViewModel.resetGeminiDialog()
-                        showResetGeminiDialog = false
+                        settingsViewModel.dismissSystemNotificationDialog()
+                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        }
+                        context.startActivity(intent)
                     }) {
-                        Text(stringResource(R.string.reset))
+                        Text(stringResource(R.string.open_settings))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetGeminiDialog = false }) {
+                    TextButton(onClick = settingsViewModel::dismissSystemNotificationDialog) {
                         Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        if (showGeminiConfirmDialog && pendingGeminiAction != null) {
+            val action = pendingGeminiAction
+            AlertDialog(
+                onDismissRequest = settingsViewModel::dismissGeminiActionDialog,
+                title = {
+                    Text(
+                        if (action == SettingsViewModel.GeminiConfirmationAction.ENABLE) {
+                            stringResource(R.string.settings_gemini_enable_title)
+                        } else {
+                            stringResource(R.string.settings_gemini_disable_title)
+                        }
+                    )
+                },
+                text = {
+                    Text(
+                        if (action == SettingsViewModel.GeminiConfirmationAction.ENABLE) {
+                            stringResource(R.string.settings_gemini_enable_message)
+                        } else {
+                            stringResource(R.string.settings_gemini_disable_message)
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = settingsViewModel::confirmGeminiAction) {
+                        Text(
+                            if (action == SettingsViewModel.GeminiConfirmationAction.ENABLE) {
+                                stringResource(R.string.action_enable)
+                            } else {
+                                stringResource(R.string.action_disable)
+                            }
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = settingsViewModel::dismissGeminiActionDialog) {
+                        Text(stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -385,22 +442,30 @@ private fun ToggleSettingsRow(
     title: String,
     subtitle: String? = null,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     SettingsRow(
         icon = icon,
         title = title,
         subtitle = subtitle,
-        onClick = { onCheckedChange(!checked) },
+        onClick = if (enabled) ({ onCheckedChange(!checked) }) else null,
         trailing = {
             Box(
                 modifier = Modifier
                     .semantics { role = Role.Switch }
-                    .clickable { onCheckedChange(!checked) }
+                    .then(
+                        if (enabled) {
+                            Modifier.clickable { onCheckedChange(!checked) }
+                        } else {
+                            Modifier
+                        }
+                    )
                     .padding(start = 8.dp)
             ) {
                 Switch(
                     checked = checked,
+                    enabled = enabled,
                     onCheckedChange = onCheckedChange
                 )
             }

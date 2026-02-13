@@ -19,6 +19,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.picpose.bestphotographyapp.MainActivity
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import java.net.HttpURLConnection
 import java.net.URL
@@ -29,6 +30,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -57,6 +59,14 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+
+        val appNotificationsEnabled = runBlocking {
+            SettingsManager(applicationContext).notificationsEnabled.firstOrNull() ?: true
+        }
+        if (!appNotificationsEnabled) {
+            Log.i(TAG, "message ignored because app notifications are disabled")
+            return
+        }
 
         val data = message.data
         Log.i(TAG, "onMessageReceived data=$data notification=${message.notification != null}")
@@ -178,6 +188,11 @@ class PicPoseFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun notifySafely(notificationId: Int, builder: NotificationCompat.Builder) {
+        if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+            Log.w(TAG, "notification skipped because system notifications are disabled")
+            return
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(
                 this,
