@@ -44,18 +44,50 @@ data class HomeUiState(
     val trendingPosts: List<Post> = emptyList(),
     val featuredPosts: List<Post> = emptyList(),
     val popularPosts: List<Post> = emptyList(), // ✅ NEW
+    val isTrendingLoading: Boolean = true,
+    val isFeaturedLoading: Boolean = true,
+    val isPopularLoading: Boolean = true,
+    val trendingError: String? = null,
+    val featuredError: String? = null,
+    val popularError: String? = null,
+    val trendingLoadedOnce: Boolean = false,
+    val featuredLoadedOnce: Boolean = false,
+    val popularLoadedOnce: Boolean = false,
     val selectedTab: HomeTab = HomeTab.Trending,
     val recentPosts: List<Post> = emptyList(),
+    val isRecentPostsLoading: Boolean = true,
+    val recentPostsError: String? = null,
+    val recentPostsLoadedOnce: Boolean = false,
     val categories: List<Category> = emptyList(),
+    val isCategoriesLoading: Boolean = true,
+    val categoriesError: String? = null,
+    val categoriesLoadedOnce: Boolean = false,
     val aiPrompts: List<AIPrompt> = emptyList(),
     val guidePosts: List<GuidePost> = emptyList(),
-    val isGuideLoading: Boolean = false,
+    val isGuideLoading: Boolean = true,
     val guideError: String? = null,
+    val guideLoadedOnce: Boolean = false,
     val favoritePromptsCount: Int = 0,
     val dailyTips: List<DailyTip> = emptyList(),
     val error: String? = null,
     val isRefreshing: Boolean = false
-)
+) {
+    val isAnyCriticalLoading: Boolean
+        get() = isTrendingLoading ||
+            isFeaturedLoading ||
+            isPopularLoading ||
+            isCategoriesLoading ||
+            isRecentPostsLoading ||
+            isGuideLoading
+
+    val hasAnyCriticalError: Boolean
+        get() = !trendingError.isNullOrBlank() ||
+            !featuredError.isNullOrBlank() ||
+            !popularError.isNullOrBlank() ||
+            !categoriesError.isNullOrBlank() ||
+            !recentPostsError.isNullOrBlank() ||
+            !guideError.isNullOrBlank()
+}
 
 enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
@@ -136,6 +168,15 @@ class HomeViewModel @Inject constructor (
     private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes cache
     private var cachedDailyTips: List<DailyTip>? = null
     private var cachedAIPrompts: List<AIPrompt>? = null
+
+    private fun finishRefreshingWhenDone() {
+        viewModelScope.launch {
+            while (_uiState.value.isAnyCriticalLoading) {
+                kotlinx.coroutines.delay(120)
+            }
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
     fun fetchDailyTips() {
         // Check cache first
         val now = System.currentTimeMillis()
@@ -342,7 +383,7 @@ class HomeViewModel @Inject constructor (
      * This method is throttled to avoid rapid repeated calls.
      * Includes proper cancellation handling.
      */
-    fun refresh() {
+    fun refreshHome() {
         val now = System.currentTimeMillis()
         if (now - lastRefreshTimestamp < MIN_REFRESH_INTERVAL_MS) {
             val diff = now - lastRefreshTimestamp
@@ -352,25 +393,19 @@ class HomeViewModel @Inject constructor (
         }
         lastRefreshTimestamp = now
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
-            try {
-                val jobs = listOf(
-                    launch { fetchDailyTips() },
-                    launch { loadAIPrompts() },
-                    launch { loadGuidePosts() },
-                    launch { loadFavoriteCount() },
-                    launch { loadCategories() },  // ✅ NEW
-                    launch { loadRecentPosts() }  // ✅ NEW
-                )
-                jobs.forEach { it.join() }
-            } catch (e: Exception) {
-                Log.e(TAG, "refresh exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
-            } finally {
-                _uiState.value = _uiState.value.copy(isRefreshing = false)
-            }
-        }
+        _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+        fetchDailyTips()
+        loadAIPrompts()
+        loadGuidePosts()
+        loadFavoriteCount()
+        loadCategories()
+        loadRecentPosts()
+        loadTrendingFeaturedAndPopularPosts()
+        finishRefreshingWhenDone()
+    }
+
+    fun refresh() {
+        refreshHome()
     }
 
     /**
@@ -490,7 +525,10 @@ class HomeViewModel @Inject constructor (
         Log.d(TAG, "loadGuidePosts: starting with page=$page, limit=$limit, featured=$featured, status=$status")
         guidePostsJob?.cancel()
         guidePostsJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isGuideLoading = true, guideError = null)
+            _uiState.value = _uiState.value.copy(
+                isGuideLoading = true,
+                guideError = null
+            )
             try {
                 repository.getGuidePosts(page = page, limit = limit, featured = featured, status = status)
                     .collect { result ->
@@ -500,7 +538,8 @@ class HomeViewModel @Inject constructor (
                                 _uiState.value = _uiState.value.copy(
                                     guidePosts = pag.items,
                                     isGuideLoading = false,
-                                    guideError = null
+                                    guideError = null,
+                                    guideLoadedOnce = true
                                 )
                             },
                             onFailure = { err ->
@@ -508,7 +547,8 @@ class HomeViewModel @Inject constructor (
                                 _uiState.value = _uiState.value.copy(
                                     guidePosts = cachedGuidePosts ?: emptyList(),
                                     isGuideLoading = false,
-                                    guideError = err.message ?: appContext.getString(R.string.failed_to_load_guide_posts)
+                                    guideError = err.message ?: appContext.getString(R.string.failed_to_load_guide_posts),
+                                    guideLoadedOnce = true
                                 )
                             }
                         )
@@ -520,7 +560,8 @@ class HomeViewModel @Inject constructor (
                 _uiState.value = _uiState.value.copy(
                     guidePosts = cachedGuidePosts ?: emptyList(),
                     isGuideLoading = false,
-                    guideError = e.message ?: appContext.getString(R.string.failed_to_load_guide_posts)
+                    guideError = e.message ?: appContext.getString(R.string.failed_to_load_guide_posts),
+                    guideLoadedOnce = true
                 )
             }
         }
@@ -587,55 +628,91 @@ class HomeViewModel @Inject constructor (
 // --------------------------------------------
     fun loadCategories() {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isCategoriesLoading = true,
+                categoriesError = null
+            )
             try {
                 Log.d(TAG, "loadCategories: fetching categories...")
                 repository.getCategories().collect { result ->
                     result.fold(
                         onSuccess = { categories ->
                             Log.d(TAG, "loadCategories: received ${categories.size} categories")
-                            _uiState.value = _uiState.value.copy(categories = categories)
+                            _uiState.value = _uiState.value.copy(
+                                categories = categories,
+                                isCategoriesLoading = false,
+                                categoriesError = null,
+                                categoriesLoadedOnce = true
+                            )
                         },
                         onFailure = { err ->
                             Log.e(TAG, "loadCategories failed: ${err.message}")
-                            _uiState.value = _uiState.value.copy(error = err.message)
+                            _uiState.value = _uiState.value.copy(
+                                isCategoriesLoading = false,
+                                categoriesError = err.message ?: appContext.getString(R.string.failed_to_load_categories),
+                                categoriesLoadedOnce = true
+                            )
                         }
                     )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "loadCategories exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    isCategoriesLoading = false,
+                    categoriesError = e.message ?: appContext.getString(R.string.failed_to_load_categories),
+                    categoriesLoadedOnce = true
+                )
             }
         }
     }
 
     fun loadRecentPosts(limit: Int = 5) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isRecentPostsLoading = true,
+                recentPostsError = null
+            )
 
             repository.getLatestRecent5AiPosts(limit).collect { result ->
-                result.onSuccess { aiPrompts ->
+                result.fold(
+                    onSuccess = { aiPrompts ->
+                        val posts = aiPrompts.map { aiPrompt ->
+                            Post(
+                                id = aiPrompt.id ?: "",
+                                title = aiPrompt.title ?: appContext.getString(R.string.untitled),
+                                description = aiPrompt.shortPrompt
+                                    ?: aiPrompt.fullPrompt
+                                    ?: "",
+                                image = aiPrompt.imageUrl ?: "",
+                                category = aiPrompt.category ?: "",
+                                createdAt = aiPrompt.createdAt ?: "",
+                                likes = aiPrompt.likes ?: 0,
+                                favorites = aiPrompt.favorites ?: 0,
+                                views = aiPrompt.views ?: 0,
+                                isPopular = aiPrompt.isPopular ?: false,
+                                isFeatured = aiPrompt.isFeatured ?: false
+                            )
+                        }
 
-                    val posts = aiPrompts.map { aiPrompt ->
-                        Post(
-                            id = aiPrompt.id ?: "",
-                            title = aiPrompt.title ?: appContext.getString(R.string.untitled),
-                            description = aiPrompt.shortPrompt
-                                ?: aiPrompt.fullPrompt
-                                ?: "",
-                            image = aiPrompt.imageUrl ?: "",
-                            category = aiPrompt.category ?: "",
-                            createdAt = aiPrompt.createdAt ?: "",
-                            likes = aiPrompt.likes ?: 0,
-                            favorites = aiPrompt.favorites ?: 0,
-                            views = aiPrompt.views ?: 0,
-                            isPopular = aiPrompt.isPopular ?: false,
-                            isFeatured = aiPrompt.isFeatured ?: false
-                        )
+                        _uiState.update {
+                            it.copy(
+                                recentPosts = posts,
+                                isRecentPostsLoading = false,
+                                recentPostsError = null,
+                                recentPostsLoadedOnce = true
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(
+                                isRecentPostsLoading = false,
+                                recentPostsError = err.message ?: appContext.getString(R.string.failed_to_load_prompts),
+                                recentPostsLoadedOnce = true
+                            )
+                        }
                     }
-
-                    _uiState.update {
-                        it.copy(recentPosts = posts)
-                    }
-                }
+                )
             }
         }
     }
@@ -649,7 +726,16 @@ class HomeViewModel @Inject constructor (
     fun loadTrendingFeaturedAndPopularPosts(limit: Int = 10) {
         viewModelScope.launch {
             Log.d(TAG, "🔄 Starting loadTrendingFeaturedAndPopularPosts (limit=$limit)...")
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                error = null,
+                isTrendingLoading = true,
+                isFeaturedLoading = true,
+                isPopularLoading = true,
+                trendingError = null,
+                featuredError = null,
+                popularError = null
+            )
 
             try {
                 // Launch all three fetches concurrently
@@ -672,12 +758,21 @@ class HomeViewModel @Inject constructor (
                                         isFeatured = aiPrompt.isFeatured ?: false
                                     )
                                 }.sortedByDescending { (it.likes + it.favorites) }
-                                _uiState.value = _uiState.value.copy(trendingPosts = trending)
+                                _uiState.value = _uiState.value.copy(
+                                    trendingPosts = trending,
+                                    isTrendingLoading = false,
+                                    trendingError = null,
+                                    trendingLoadedOnce = true
+                                )
                                 Log.d(TAG, "✅ Loaded ${trending.size} trending posts")
                             },
                             onFailure = { err ->
                                 Log.e(TAG, "❌ Failed to load trending posts: ${err.message}")
-                                _uiState.value = _uiState.value.copy(error = err.message)
+                                _uiState.value = _uiState.value.copy(
+                                    isTrendingLoading = false,
+                                    trendingError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                    trendingLoadedOnce = true
+                                )
                             }
                         )
                     }
@@ -702,12 +797,21 @@ class HomeViewModel @Inject constructor (
                                         isFeatured = true
                                     )
                                 }.sortedByDescending { it.createdAt } // sort newest featured first
-                                _uiState.value = _uiState.value.copy(featuredPosts = featured)
+                                _uiState.value = _uiState.value.copy(
+                                    featuredPosts = featured,
+                                    isFeaturedLoading = false,
+                                    featuredError = null,
+                                    featuredLoadedOnce = true
+                                )
                                 Log.d(TAG, "✅ Loaded ${featured.size} featured posts")
                             },
                             onFailure = { err ->
                                 Log.e(TAG, "❌ Failed to load featured posts: ${err.message}")
-                                _uiState.value = _uiState.value.copy(error = err.message)
+                                _uiState.value = _uiState.value.copy(
+                                    isFeaturedLoading = false,
+                                    featuredError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                    featuredLoadedOnce = true
+                                )
                             }
                         )
                     }
@@ -732,12 +836,21 @@ class HomeViewModel @Inject constructor (
                                         isFeatured = aiPrompt.isFeatured ?: false
                                     )
                                 }.sortedByDescending { it.views } // sort most viewed first
-                                _uiState.value = _uiState.value.copy(popularPosts = popular)
+                                _uiState.value = _uiState.value.copy(
+                                    popularPosts = popular,
+                                    isPopularLoading = false,
+                                    popularError = null,
+                                    popularLoadedOnce = true
+                                )
                                 Log.d(TAG, "✅ Loaded ${popular.size} popular posts")
                             },
                             onFailure = { err ->
                                 Log.e(TAG, "❌ Failed to load popular posts: ${err.message}")
-                                _uiState.value = _uiState.value.copy(error = err.message)
+                                _uiState.value = _uiState.value.copy(
+                                    isPopularLoading = false,
+                                    popularError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                    popularLoadedOnce = true
+                                )
                             }
                         )
                     }
@@ -748,12 +861,113 @@ class HomeViewModel @Inject constructor (
 
             } catch (e: Exception) {
                 Log.e(TAG, "🔥 loadTrendingFeaturedAndPopularPosts exception: ${e.message}")
-                _uiState.value = _uiState.value.copy(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    isTrendingLoading = false,
+                    isFeaturedLoading = false,
+                    isPopularLoading = false,
+                    trendingError = e.message ?: appContext.getString(R.string.no_posts_available),
+                    featuredError = e.message ?: appContext.getString(R.string.no_posts_available),
+                    popularError = e.message ?: appContext.getString(R.string.no_posts_available),
+                    trendingLoadedOnce = true,
+                    featuredLoadedOnce = true,
+                    popularLoadedOnce = true
+                )
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
+
+    fun refreshTrending() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTrendingLoading = true, trendingError = null) }
+            repository.getTrendingAiPosts(limit = 10).collect { result ->
+                result.fold(
+                    onSuccess = { list ->
+                        _uiState.update {
+                            it.copy(
+                                trendingPosts = list.map { ai -> ai.toPost() },
+                                isTrendingLoading = false,
+                                trendingError = null,
+                                trendingLoadedOnce = true
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(
+                                isTrendingLoading = false,
+                                trendingError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                trendingLoadedOnce = true
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    fun refreshFeatured() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isFeaturedLoading = true, featuredError = null) }
+            repository.getFeaturedAiPosts(limit = 10).collect { result ->
+                result.fold(
+                    onSuccess = { list ->
+                        _uiState.update {
+                            it.copy(
+                                featuredPosts = list.map { ai -> ai.toPost().copy(isFeatured = true) },
+                                isFeaturedLoading = false,
+                                featuredError = null,
+                                featuredLoadedOnce = true
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(
+                                isFeaturedLoading = false,
+                                featuredError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                featuredLoadedOnce = true
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    fun refreshPopular() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPopularLoading = true, popularError = null) }
+            repository.getPopularAiPosts(limit = 10).collect { result ->
+                result.fold(
+                    onSuccess = { list ->
+                        _uiState.update {
+                            it.copy(
+                                popularPosts = list.map { ai -> ai.toPost().copy(isPopular = true) },
+                                isPopularLoading = false,
+                                popularError = null,
+                                popularLoadedOnce = true
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(
+                                isPopularLoading = false,
+                                popularError = err.message ?: appContext.getString(R.string.no_posts_available),
+                                popularLoadedOnce = true
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    fun refreshGuides() = loadGuidePosts()
+    fun refreshCategories() = loadCategories()
+    fun refreshRecentPosts() = loadRecentPosts()
 
     val localEngagementStates: StateFlow<Map<String, EngagementEntity>> =
         engagementRepository

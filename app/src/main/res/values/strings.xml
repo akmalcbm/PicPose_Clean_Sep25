@@ -258,6 +258,14 @@
     <string name="error_with_message">Error: %1$s</string>
     <string name="explore_all_ai_prompts">Explore all AI prompts</string>
     <string name="explore_title">Explore</string>
+    <string name="home_loading_content_banner">Loading content…</string>
+    <string name="home_checking_connection_banner">Checking connection…</string>
+    <string name="home_offline_limited_content">You\'re offline. Showing limited content.</string>
+    <string name="section_load_error_message">Couldn\'t load %1$s. Check connection.</string>
+    <string name="no_community_highlights_yet">No community highlights available yet.</string>
+    <string name="no_categories_available_yet">No categories available yet.</string>
+    <string name="no_recent_posts_available_yet">No recent posts available yet.</string>
+    <string name="no_guides_available_yet">No guides available yet.</string>
     <string name="facebook_login_failed">Facebook login failed</string>
     <string name="facebook_null_token">Facebook returned null token</string>
     <string name="failed_to_copy_text">Failed to copy text</string>

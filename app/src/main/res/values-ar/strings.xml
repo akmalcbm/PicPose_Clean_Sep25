@@ -515,4 +515,12 @@
     <string name="notification_channel_guides_description">إشعارات حول أدلة التصوير الجديدة</string>
     <string name="notification_channel_prompts_name">مطالبات الذكاء الاصطناعي</string>
     <string name="notification_channel_prompts_description">إشعارات حول مطالبات الذكاء الاصطناعي والميزات الجديدة</string>
+    <string name="home_loading_content_banner">جارٍ تحميل المحتوى…</string>
+    <string name="home_checking_connection_banner">جارٍ التحقق من الاتصال…</string>
+    <string name="home_offline_limited_content">أنت غير متصل. نعرض محتوى محدودًا.</string>
+    <string name="section_load_error_message">تعذر تحميل %1$s. تحقّق من الاتصال.</string>
+    <string name="no_community_highlights_yet">لا توجد أبرز محتويات للمجتمع حتى الآن.</string>
+    <string name="no_categories_available_yet">لا توجد فئات متاحة حتى الآن.</string>
+    <string name="no_recent_posts_available_yet">لا توجد منشورات حديثة حتى الآن.</string>
+    <string name="no_guides_available_yet">لا توجد أدلة متاحة حتى الآن.</string>
 </resources>

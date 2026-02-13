@@ -501,4 +501,12 @@
     <string name="notification_channel_guides_description">Notifikasi tentang panduan fotografi baru</string>
     <string name="notification_channel_prompts_name">Prompt AI</string>
     <string name="notification_channel_prompts_description">Notifikasi tentang prompt AI baru dan fitur terbaru</string>
+    <string name="home_loading_content_banner">Memuat konten…</string>
+    <string name="home_checking_connection_banner">Memeriksa koneksi…</string>
+    <string name="home_offline_limited_content">Anda sedang offline. Menampilkan konten terbatas.</string>
+    <string name="section_load_error_message">Tidak dapat memuat %1$s. Periksa koneksi.</string>
+    <string name="no_community_highlights_yet">Belum ada sorotan komunitas.</string>
+    <string name="no_categories_available_yet">Belum ada kategori tersedia.</string>
+    <string name="no_recent_posts_available_yet">Belum ada posting terbaru.</string>
+    <string name="no_guides_available_yet">Belum ada panduan tersedia.</string>
 </resources>

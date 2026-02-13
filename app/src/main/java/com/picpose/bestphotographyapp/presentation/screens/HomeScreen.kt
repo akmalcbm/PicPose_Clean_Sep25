@@ -255,18 +255,32 @@ fun HomeScreen(
     }
 
 
-    var isRefreshing by remember { mutableStateOf(false) }
     var currentTipIndex by remember { mutableIntStateOf(0) }
+    var showNetworkBannerAfterDelay by remember { mutableStateOf(false) }
+    var bannerDismissed by rememberSaveable { mutableStateOf(false) }
 
-    // Initial shimmer loading logic
-    val isCompletelyEmpty =
-        uiState.aiPrompts.isEmpty() &&
-                uiState.trendingPosts.isEmpty() &&
-                uiState.recentPosts.isEmpty() &&
-                uiState.categories.isEmpty() &&
-                uiState.guidePosts.isEmpty()
+    val anyCriticalLoading = uiState.isAnyCriticalLoading
+    val anyCriticalError = uiState.hasAnyCriticalError
+    val shouldShowLoadingBanner = showNetworkBannerAfterDelay && anyCriticalLoading
+    val shouldShowErrorBanner = anyCriticalError
+    val shouldShowBanner = shouldShowLoadingBanner || shouldShowErrorBanner
 
-    val showShimmer = uiState.isLoading && isCompletelyEmpty
+    LaunchedEffect(anyCriticalLoading) {
+        if (anyCriticalLoading) {
+            kotlinx.coroutines.delay(800)
+            if (uiState.isAnyCriticalLoading) {
+                showNetworkBannerAfterDelay = true
+            }
+        } else {
+            showNetworkBannerAfterDelay = false
+        }
+    }
+
+    LaunchedEffect(anyCriticalError) {
+        if (anyCriticalError) {
+            bannerDismissed = false
+        }
+    }
 
     if (showPermissionDialog) {
         NotificationPermissionDialog(
@@ -309,28 +323,30 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            isRefreshing = isRefreshing,
+            isRefreshing = uiState.isRefreshing,
             onRefresh = {
-                coroutineScope.launch {
-                    isRefreshing = true
-                    viewModel.refresh()
-                    isRefreshing = false
-                }
+                viewModel.refreshHome()
             }
         ) {
-
-            if (showShimmer) {
-                ShimmerLoadingHomeScreen()
-            } else {
-
-                LazyColumn(
+            LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(
                         top = 12.dp,
                         bottom = 24.dp
                     )
-                ) {
+            ) {
+                    if (shouldShowBanner && (!bannerDismissed || anyCriticalLoading)) {
+                        item {
+                            HomeNetworkStatusBanner(
+                                isLoading = anyCriticalLoading,
+                                hasError = anyCriticalError,
+                                onDismiss = { if (!anyCriticalLoading) bannerDismissed = true },
+                                onRetry = { viewModel.refreshHome() },
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                     item {
                         HomeQuickSearchBar(
                             query = searchQuery,
@@ -400,57 +416,79 @@ fun HomeScreen(
                     }
 
                     // Trending & Featured & Popular
-                    if (uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty()) {
-                        item {
-                            SectionHeader(
-                                title = stringResource(R.string.community_highlights_title),
-                                subtitle = stringResource(R.string.community_highlights_subtitle),
-                                icon = Icons.Default.Star,
-                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
-                            )
+                    item {
+                        SectionHeader(
+                            title = stringResource(R.string.community_highlights_title),
+                            subtitle = stringResource(R.string.community_highlights_subtitle),
+                            icon = Icons.Default.Star,
+                            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
+                        )
+                    }
+
+                    when {
+                        (uiState.isTrendingLoading || uiState.isFeaturedLoading || uiState.isPopularLoading) &&
+                            uiState.trendingPosts.isEmpty() &&
+                            uiState.featuredPosts.isEmpty() &&
+                            uiState.popularPosts.isEmpty() -> {
+                            item { CommunityHighlightsLoadingRow() }
                         }
 
-                        item {
-                            TrendingFeaturedAndPopularRow(
-                                trendingPosts = uiState.trendingPosts,
-                                featuredPosts = uiState.featuredPosts,
-                                popularPosts = uiState.popularPosts,
-                                onPostClick = onNavigateToPostDetail,
-                                //onLikeClick = { viewModel.onPostLikeClicked(it.id) },
-                                onShareClick = { post ->
-                                    coroutineScope.launch {
+                        uiState.trendingPosts.isNotEmpty() || uiState.featuredPosts.isNotEmpty() || uiState.popularPosts.isNotEmpty() -> {
+                            item {
+                                TrendingFeaturedAndPopularRow(
+                                    trendingPosts = uiState.trendingPosts,
+                                    featuredPosts = uiState.featuredPosts,
+                                    popularPosts = uiState.popularPosts,
+                                    onPostClick = onNavigateToPostDetail,
+                                    onShareClick = { post ->
+                                        coroutineScope.launch {
+                                            val promptMatch = uiState.aiPrompts
+                                                .firstOrNull { it.id.trim() == post.id.trim() }
 
-                                        // 🔍 Try to resolve full AI Prompt first
-                                        val promptMatch = uiState.aiPrompts
-                                            .firstOrNull { it.id.trim() == post.id.trim() }
-
-                                        if (promptMatch != null) {
-                                            // ✅ FULL PROMPT SHARE (same as detail screen)
-                                            ShareUtils.sharePrompt(
-                                                context = context,
-                                                promptText =
-                                                    promptMatch.fullPrompt
-                                                        ?: promptMatch.shortPrompt
-                                                        ?: promptMatch.title,
-                                                imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
-                                            )
-                                        } else {
-                                            // 🔁 Fallback → normal post share
-                                            ShareUtils.sharePrompt(
-                                                context = context,
-                                                promptText =
-                                                    post.description
-                                                        .takeIf { it.isNotBlank() }
-                                                        ?: post.title,
-                                                imageUrl = post.image
-                                            )
+                                            if (promptMatch != null) {
+                                                ShareUtils.sharePrompt(
+                                                    context = context,
+                                                    promptText =
+                                                        promptMatch.fullPrompt
+                                                            ?: promptMatch.shortPrompt
+                                                            ?: promptMatch.title,
+                                                    imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
+                                                )
+                                            } else {
+                                                ShareUtils.sharePrompt(
+                                                    context = context,
+                                                    promptText =
+                                                        post.description
+                                                            .takeIf { it.isNotBlank() }
+                                                            ?: post.title,
+                                                    imageUrl = post.image
+                                                )
+                                            }
                                         }
+                                    },
+                                    onViewAllClick = { category ->
+                                        onNavigateToViewAll(category)
                                     }
-                                },
-                                onViewAllClick = { category ->
-                                    onNavigateToViewAll(category)
-                                }
-                            )
+                                )
+                            }
+                        }
+
+                        !uiState.trendingError.isNullOrBlank() || !uiState.featuredError.isNullOrBlank() || !uiState.popularError.isNullOrBlank() -> {
+                            item {
+                                SectionErrorCard(
+                                    message = stringResource(R.string.section_load_error_message, stringResource(R.string.community_highlights_title)),
+                                    onRetry = { viewModel.loadTrendingFeaturedAndPopularPosts() }
+                                )
+                            }
+                        }
+
+                        uiState.trendingLoadedOnce || uiState.featuredLoadedOnce || uiState.popularLoadedOnce -> {
+                            item {
+                                SectionEmptyCard(
+                                    title = stringResource(R.string.no_community_highlights_yet),
+                                    body = stringResource(R.string.check_back_later_for_new_content)
+                                )
+                            }
                         }
                     }
 
@@ -495,85 +533,111 @@ fun HomeScreen(
                     }
 
                     // Categories
-                    if (uiState.categories.isNotEmpty()) {
-                        item {
-                            SectionHeader(
-                                title = stringResource(R.string.categories_title),
-                                subtitle = stringResource(R.string.categories_subtitle),
-                                icon = Icons.Default.Category,
-                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp)
-                            )
+                    item {
+                        SectionHeader(
+                            title = stringResource(R.string.categories_title),
+                            subtitle = stringResource(R.string.categories_subtitle),
+                            icon = Icons.Default.Category,
+                            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp)
+                        )
+                    }
+                    when {
+                        uiState.isCategoriesLoading && uiState.categories.isEmpty() -> item {
+                            CategoriesLoadingRow()
                         }
-                        item {
+                        uiState.categories.isNotEmpty() -> item {
                             CategoriesRow(
                                 categories = uiState.categories,
                                 onCategoryClick = onNavigateToCategory,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
+                        !uiState.categoriesError.isNullOrBlank() -> item {
+                            SectionErrorCard(
+                                message = stringResource(R.string.section_load_error_message, stringResource(R.string.categories_title)),
+                                onRetry = { viewModel.refreshCategories() }
+                            )
+                        }
+                        uiState.categoriesLoadedOnce -> item {
+                            SectionEmptyCard(
+                                title = stringResource(R.string.no_categories_available_yet),
+                                body = stringResource(R.string.check_back_later_for_new_content)
+                            )
+                        }
                     }
 
                     // Recent Posts
-                    if (uiState.recentPosts.isNotEmpty()) {
-                        item {
-                            SectionHeader(
-                                title = stringResource(R.string.recent_posts_title),
-                                subtitle = stringResource(R.string.recent_posts_subtitle),
-                                icon = Icons.Default.Schedule,
-                                modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
-                            )
+                    item {
+                        SectionHeader(
+                            title = stringResource(R.string.recent_posts_title),
+                            subtitle = stringResource(R.string.recent_posts_subtitle),
+                            icon = Icons.Default.Schedule,
+                            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp)
+                        )
+                    }
+                    when {
+                        uiState.isRecentPostsLoading && uiState.recentPosts.isEmpty() -> item {
+                            RecentPostsLoadingList()
                         }
+                        uiState.recentPosts.isNotEmpty() -> {
+                            items(uiState.recentPosts.take(5)) { post ->
+                                val local = localEngagementStates[post.id]
 
-                        items(uiState.recentPosts.take(5)) { post ->
-                            val local = localEngagementStates[post.id]
+                                RecentPostItem(
+                                    post = post,
+                                    localEngagement = local,
+                                    onClick = {
+                                        val match = uiState.aiPrompts.find { it.id.trim() == post.id.trim() }
+                                        if (match != null)
+                                            onNavigateToPromptDetail(match)
+                                        else
+                                            onNavigateToPostDetail(post)
+                                    },
+                                    onLikeClick = {
+                                        viewModel.onPostLikeClicked(post.id)
+                                    },
+                                    onShareClick = {
+                                        coroutineScope.launch {
+                                            val promptMatch = uiState.aiPrompts
+                                                .firstOrNull { it.id.trim() == post.id.trim() }
 
-                            RecentPostItem(
-                                post = post,
-                                localEngagement = local,
-                                onClick = {
-                                    val match = uiState.aiPrompts.find { it.id.trim() == post.id.trim() }
-                                    if (match != null)
-                                        onNavigateToPromptDetail(match)
-                                    else
-                                        onNavigateToPostDetail(post)
-                                },
-                                onLikeClick = {
-                                    viewModel.onPostLikeClicked(post.id)
-                                },
-                                onShareClick = {
-                                    coroutineScope.launch {
-
-                                        // 1️⃣ Try to resolve full AI Prompt first
-                                        val promptMatch = uiState.aiPrompts
-                                            .firstOrNull { it.id.trim() == post.id.trim() }
-
-                                        if (promptMatch != null) {
-                                            // ✅ SHARE FULL AI PROMPT (same as detail screen)
-                                            ShareUtils.sharePrompt(
-                                                context = context,
-                                                promptText =
-                                                    promptMatch.fullPrompt
-                                                        ?: promptMatch.shortPrompt
-                                                        ?: promptMatch.title,
-                                                imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
-                                            )
-                                        } else {
-                                            // 2️⃣ Fallback → normal Post sharing
-                                            ShareUtils.sharePrompt(
-                                                context = context,
-                                                promptText =
-                                                    post.description
-                                                        .takeIf { it.isNotBlank() }
-                                                        ?: post.title,
-                                                imageUrl = post.image
-                                            )
+                                            if (promptMatch != null) {
+                                                ShareUtils.sharePrompt(
+                                                    context = context,
+                                                    promptText =
+                                                        promptMatch.fullPrompt
+                                                            ?: promptMatch.shortPrompt
+                                                            ?: promptMatch.title,
+                                                    imageUrl = promptMatch.imageUrl ?: promptMatch.imageUrl2
+                                                )
+                                            } else {
+                                                ShareUtils.sharePrompt(
+                                                    context = context,
+                                                    promptText =
+                                                        post.description
+                                                            .takeIf { it.isNotBlank() }
+                                                            ?: post.title,
+                                                    imageUrl = post.image
+                                                )
+                                            }
                                         }
-                                    }
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
+                        }
+                        !uiState.recentPostsError.isNullOrBlank() -> item {
+                            SectionErrorCard(
+                                message = stringResource(R.string.section_load_error_message, stringResource(R.string.recent_posts_title)),
+                                onRetry = { viewModel.refreshRecentPosts() }
                             )
                         }
-
+                        uiState.recentPostsLoadedOnce -> item {
+                            SectionEmptyCard(
+                                title = stringResource(R.string.no_recent_posts_available_yet),
+                                body = stringResource(R.string.check_back_later_for_new_content)
+                            )
+                        }
                     }
 
                     // Guides
@@ -587,14 +651,14 @@ fun HomeScreen(
                     }
 
                     when {
-                        uiState.isGuideLoading -> item {
+                        uiState.isGuideLoading && uiState.guidePosts.isEmpty() -> item {
                             GuidesLoadingRow()
                         }
 
                         uiState.guideError != null -> item {
                             GuideErrorCard(
                                 error = uiState.guideError.orEmpty(),
-                                onRetry = { viewModel.loadGuidePosts() }
+                                onRetry = { viewModel.refreshGuides() }
                             )
                         }
 
@@ -605,14 +669,13 @@ fun HomeScreen(
                             )
                         }
 
-                        else -> item {
+                        uiState.guideLoadedOnce -> item {
                             GuideEmptyCard()
                         }
                     }
 
                     //item { AdmobInterstitialTrigger() }
                 }
-            }
         }
     }
 }
@@ -877,6 +940,200 @@ private fun HomeSearchEmptyState(
 }
 
 @Composable
+private fun HomeNetworkStatusBanner(
+    isLoading: Boolean,
+    hasError: Boolean,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = if (hasError) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f)
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f)
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null
+                )
+            }
+
+            Text(
+                text = when {
+                    hasError -> stringResource(R.string.home_offline_limited_content)
+                    isLoading -> stringResource(R.string.home_loading_content_banner)
+                    else -> stringResource(R.string.home_checking_connection_banner)
+                },
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            TextButton(onClick = onRetry) {
+                Text(stringResource(R.string.retry))
+            }
+
+            if (!isLoading) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.dismiss)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionErrorCard(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            TextButton(onClick = onRetry) {
+                Text(stringResource(R.string.retry))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionEmptyCard(
+    title: String,
+    body: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CommunityHighlightsLoadingRow() {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        items(3) {
+            Card(
+                modifier = Modifier
+                    .width(230.dp)
+                    .height(170.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoriesLoadingRow() {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        items(8) {
+            Surface(
+                modifier = Modifier
+                    .height(34.dp)
+                    .width(86.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            ) {}
+        }
+    }
+}
+
+@Composable
+private fun RecentPostsLoadingList() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        repeat(3) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(98.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun GuidesLoadingRow() {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -912,7 +1169,11 @@ private fun GuideErrorCard(
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                text = error.ifBlank { stringResource(R.string.failed_to_load_guide_posts) },
+                text = if (error.isBlank()) {
+                    stringResource(R.string.section_load_error_message, stringResource(R.string.photography_guides_title))
+                } else {
+                    stringResource(R.string.section_load_error_message, stringResource(R.string.photography_guides_title))
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )
@@ -934,7 +1195,7 @@ private fun GuideEmptyCard() {
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                text = stringResource(R.string.no_guides_yet),
+                text = stringResource(R.string.no_guides_available_yet),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )

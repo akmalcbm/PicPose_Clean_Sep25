@@ -62,4 +62,12 @@
     <string name="notification_channel_guides_description">有关新摄影指南的通知</string>
     <string name="notification_channel_prompts_name">AI 提示词</string>
     <string name="notification_channel_prompts_description">有关新 AI 提示词和功能的通知</string>
+    <string name="home_loading_content_banner">正在加载内容…</string>
+    <string name="home_checking_connection_banner">正在检查网络连接…</string>
+    <string name="home_offline_limited_content">你当前离线。正在显示有限内容。</string>
+    <string name="section_load_error_message">无法加载%1$s。请检查网络连接。</string>
+    <string name="no_community_highlights_yet">暂无社区精选内容。</string>
+    <string name="no_categories_available_yet">暂无可用分类。</string>
+    <string name="no_recent_posts_available_yet">暂无最新帖子。</string>
+    <string name="no_guides_available_yet">暂无可用指南。</string>
 </resources>

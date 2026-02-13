@@ -657,4 +657,12 @@
     <string name="notification_channel_guides_description">नई फ़ोटोग्राफी गाइड्स से जुड़ी सूचनाएँ</string>
     <string name="notification_channel_prompts_name">एआई प्रॉम्प्ट्स</string>
     <string name="notification_channel_prompts_description">नए एआई प्रॉम्प्ट्स और फीचर्स से जुड़ी सूचनाएँ</string>
+    <string name="home_loading_content_banner">कंटेंट लोड हो रहा है…</string>
+    <string name="home_checking_connection_banner">कनेक्शन जाँचा जा रहा है…</string>
+    <string name="home_offline_limited_content">आप ऑफ़लाइन हैं। सीमित कंटेंट दिखाया जा रहा है।</string>
+    <string name="section_load_error_message">%1$s लोड नहीं हो सका। कनेक्शन जाँचें।</string>
+    <string name="no_community_highlights_yet">अभी कोई कम्युनिटी हाइलाइट्स उपलब्ध नहीं हैं।</string>
+    <string name="no_categories_available_yet">अभी कोई कैटेगरी उपलब्ध नहीं है।</string>
+    <string name="no_recent_posts_available_yet">अभी कोई हाल की पोस्ट उपलब्ध नहीं है।</string>
+    <string name="no_guides_available_yet">अभी कोई गाइड उपलब्ध नहीं है।</string>
 </resources>

@@ -515,4 +515,12 @@
     <string name="notification_channel_guides_description">Notificações sobre novos guias de fotografia</string>
     <string name="notification_channel_prompts_name">Prompts de IA</string>
     <string name="notification_channel_prompts_description">Notificações sobre novos prompts de IA e recursos</string>
+    <string name="home_loading_content_banner">Carregando conteúdo…</string>
+    <string name="home_checking_connection_banner">Verificando conexão…</string>
+    <string name="home_offline_limited_content">Você está offline. Exibindo conteúdo limitado.</string>
+    <string name="section_load_error_message">Não foi possível carregar %1$s. Verifique a conexão.</string>
+    <string name="no_community_highlights_yet">Ainda não há destaques da comunidade.</string>
+    <string name="no_categories_available_yet">Ainda não há categorias disponíveis.</string>
+    <string name="no_recent_posts_available_yet">Ainda não há posts recentes.</string>
+    <string name="no_guides_available_yet">Ainda não há guias disponíveis.</string>
 </resources>
