@@ -262,11 +262,12 @@ fun ExploreScreen(
                     )
                 }
                 ExploreLoadState.ERROR -> {
-                    EmptyStateSection(
-                        searchQuery = uiState.searchQuery,
-                        selectedCategory = uiState.selectedCategory,
-                        onClearFilters = { exploreViewModel.refresh(resetFilters = true) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 60.dp)
+                    ErrorStateSection(
+                        message = uiState.error ?: stringResource(R.string.error),
+                        onRetry = { exploreViewModel.refresh(resetFilters = false) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 40.dp, bottom = 60.dp)
                     )
                 }
                 ExploreLoadState.SUCCESS -> {
@@ -634,6 +635,55 @@ private fun LoadingSection() {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun ErrorStateSection(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = stringResource(R.string.error),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.no_internet_connection),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(onClick = onRetry) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.retry))
+                }
+            }
         }
     }
 }

@@ -52,9 +52,8 @@ enum class ContentFilter(@StringRes val labelRes: Int) {
 }
 
 data class ExploreUiState(
-    val isFirstLoad: Boolean = true,
-    val hasEverLoaded: Boolean = false,
-    val isLoading: Boolean = false,
+    val hasLoadedOnce: Boolean = false,
+    val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val content: List<ExploreContent> = emptyList(),
     val aiPrompts: List<AIPrompt> = emptyList(),
@@ -70,17 +69,17 @@ data class ExploreUiState(
 ) {
     val loadState: ExploreLoadState
         get() = when {
-            // Show full-screen shimmer when loading + first load OR loading with no existing content
-            isLoading && (isFirstLoad || content.isEmpty()) -> ExploreLoadState.INITIAL
+            // Initial open or first request in progress
+            isLoading && !hasLoadedOnce && content.isEmpty() -> ExploreLoadState.INITIAL
 
             // Loading while there is existing content -> show list + inline shimmer
             isLoading && content.isNotEmpty() -> ExploreLoadState.SUCCESS
 
             // Error with no data
-            error != null && content.isEmpty() -> ExploreLoadState.ERROR
+            !isLoading && error != null && content.isEmpty() -> ExploreLoadState.ERROR
 
-            // Empty only after we had at least one API attempt
-            !isLoading && content.isEmpty() && hasEverLoaded -> ExploreLoadState.EMPTY
+            // Empty only after first request completed successfully
+            !isLoading && hasLoadedOnce && error == null && content.isEmpty() -> ExploreLoadState.EMPTY
 
             else -> ExploreLoadState.SUCCESS
         }
@@ -101,6 +100,7 @@ class ExploreViewModel @Inject constructor(
     private val allCategoryLabel: String by lazy { appContext.getString(R.string.all) }
     private val _searchQuery = MutableStateFlow("")
     private var loadContentJob: Job? = null
+    private data class LoadSlice<T>(val data: List<T>, val failed: Boolean)
 
     // Cache
     private var cachedAIPrompts: List<AIPrompt>? = null
@@ -109,9 +109,6 @@ class ExploreViewModel @Inject constructor(
     private val CACHE_DURATION = 5 * 60 * 1000L // 5 minutes
 
     init {
-        // start in loading state
-        _uiState.update { it.copy(isLoading = true) }
-
         // default sort
         _uiState.update {
             it.copy(
@@ -203,13 +200,24 @@ class ExploreViewModel @Inject constructor(
                 val shouldLoadAI = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
                 val shouldLoadGuides = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.GUIDE_POSTS)
 
-                val aiPrompts = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else emptyList()
-                val guidePosts = if (shouldLoadGuides) loadGuidePosts(forceRefresh, state) else emptyList()
+                val aiSlice = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else LoadSlice(emptyList(), failed = false)
+                val guideSlice = if (shouldLoadGuides) loadGuidePosts(forceRefresh, state) else LoadSlice(emptyList(), failed = false)
+
+                val aiPrompts = aiSlice.data
+                val guidePosts = guideSlice.data
 
                 val mixed = combineAndSortContent(aiPrompts, guidePosts, state).distinctBy { it.id }
+                val anySourceFailed = aiSlice.failed || guideSlice.failed
+                val hasAnyData = mixed.isNotEmpty()
+                val shouldShowError = anySourceFailed && !hasAnyData
 
                 _uiState.update {
                     val newContent = if (append) (it.content + mixed).distinctBy { c -> c.id } else mixed
+                    val errorMessage = if (shouldShowError) {
+                        appContext.getString(R.string.error)
+                    } else {
+                        null
+                    }
 
                     it.copy(
                         isLoading = false,
@@ -218,9 +226,8 @@ class ExploreViewModel @Inject constructor(
                         aiPrompts = aiPrompts,
                         guidePosts = guidePosts,
                         hasMore = mixed.isNotEmpty(),
-                        hasEverLoaded = true,
-                        isFirstLoad = false,
-                        error = null
+                        hasLoadedOnce = true,
+                        error = errorMessage
                     )
                 }
 
@@ -234,9 +241,7 @@ class ExploreViewModel @Inject constructor(
                         isLoading = false,
                         isRefreshing = false,
                         error = e.message,
-                        // mark we've attempted a load so EMPTY shows correctly next time
-                        hasEverLoaded = true,
-                        isFirstLoad = false
+                        hasLoadedOnce = true
                     )
                 }
             }
@@ -244,7 +249,7 @@ class ExploreViewModel @Inject constructor(
     }
 
     // ---------- Data loaders (cache-aware) ----------
-    private suspend fun loadAIPrompts(forceRefresh: Boolean, state: ExploreUiState): List<AIPrompt> {
+    private suspend fun loadAIPrompts(forceRefresh: Boolean, state: ExploreUiState): LoadSlice<AIPrompt> {
         val now = System.currentTimeMillis()
         val limit = 20
         val category = if (state.selectedCategory == allCategoryLabel) null else state.selectedCategory
@@ -253,11 +258,12 @@ class ExploreViewModel @Inject constructor(
         // use cache only for first page and when not forcing refresh
         if (!forceRefresh && state.currentPage == 1 && cachedAIPrompts != null && (now - lastCacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached AI prompts (page=${state.currentPage})")
-            return filterAIPrompts(cachedAIPrompts!!, state)
+            return LoadSlice(data = filterAIPrompts(cachedAIPrompts!!, state), failed = false)
         }
 
         return try {
             var result: List<AIPrompt> = emptyList()
+            var failed = false
             val flow = when (state.selectedSortOption) {
                 SortOption.NEWEST -> homeRepository.getAiPostsSimple(page = state.currentPage, limit = limit, category = category, search = search)
                 SortOption.POPULAR -> homeRepository.getTrendingAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
@@ -280,26 +286,28 @@ class ExploreViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         Log.w(TAG, "Failed to load AI prompts: ${e.message}")
+                        failed = true
                     }
                 )
             }
 
             Log.d(TAG, "Loaded ${result.size} AI prompts (page=${state.currentPage})")
-            filterAIPrompts(result, state)
+            LoadSlice(data = filterAIPrompts(result, state), failed = failed)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading AI prompts: ${e.message}")
-            emptyList()
+            LoadSlice(data = emptyList(), failed = true)
         }
     }
 
-    private suspend fun loadGuidePosts(forceRefresh: Boolean, state: ExploreUiState): List<GuidePost> {
+    private suspend fun loadGuidePosts(forceRefresh: Boolean, state: ExploreUiState): LoadSlice<GuidePost> {
         val now = System.currentTimeMillis()
         if (!forceRefresh && cachedGuidePosts != null && (now - lastCacheTime) < CACHE_DURATION) {
-            return filterGuidePosts(cachedGuidePosts!!, state)
+            return LoadSlice(data = filterGuidePosts(cachedGuidePosts!!, state), failed = false)
         }
 
         return try {
             var result: List<GuidePost> = emptyList()
+            var failed = false
             homeRepository.getGuidePosts(page = state.currentPage, limit = 20, search = state.searchQuery.ifBlank { null })
                 .collect { apiResult ->
                     apiResult.fold(
@@ -308,14 +316,17 @@ class ExploreViewModel @Inject constructor(
                             lastCacheTime = now
                             result = data.items
                         },
-                        onFailure = { Log.w(TAG, "Guide posts load failed: ${it.message}") }
+                        onFailure = {
+                            failed = true
+                            Log.w(TAG, "Guide posts load failed: ${it.message}")
+                        }
                     )
                 }
 
-            filterGuidePosts(result, state)
+            LoadSlice(data = filterGuidePosts(result, state), failed = failed)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading guide posts: ${e.message}")
-            emptyList()
+            LoadSlice(data = emptyList(), failed = true)
         }
     }
 
