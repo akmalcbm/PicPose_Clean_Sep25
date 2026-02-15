@@ -2,6 +2,9 @@ package com.picpose.bestphotographyapp.presentation.screens
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -116,6 +119,7 @@ fun SettingsScreen(
     val showSystemNotificationSettingsDialog by settingsViewModel.showSystemNotificationSettingsDialog.collectAsState()
     val showGeminiConfirmDialog by settingsViewModel.showGeminiConfirmDialog.collectAsState()
     val pendingGeminiAction by settingsViewModel.pendingGeminiAction.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val isDeletingAccount by authViewModel.isDeletingAccount.collectAsState()
 
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -167,21 +171,49 @@ fun SettingsScreen(
         ) {
             item {
                 SettingsSectionCard(title = stringResource(R.string.account_settings)) {
-                    SettingsRow(
-                        icon = Icons.AutoMirrored.Filled.Logout,
-                        title = stringResource(R.string.logout),
-                        subtitle = stringResource(R.string.logout_subtitle_device),
-                        onClick = onLogout
-                    )
+                    AnimatedVisibility(
+                        visible = isLoggedIn,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Column {
+                            SettingsRow(
+                                icon = Icons.AutoMirrored.Filled.Logout,
+                                title = stringResource(R.string.logout),
+                                subtitle = stringResource(R.string.logout_subtitle_device),
+                                onClick = onLogout
+                            )
 
-                    SectionDivider()
+                            SectionDivider()
 
-                    SettingsRow(
-                        icon = Icons.Default.DeleteForever,
-                        title = stringResource(R.string.delete_account_title),
-                        subtitle = stringResource(R.string.delete_account_subtitle),
-                        onClick = { showDeleteAccountDialog = true }
-                    )
+                            SettingsRow(
+                                icon = Icons.Default.DeleteForever,
+                                title = stringResource(R.string.delete_account_title),
+                                subtitle = stringResource(R.string.delete_account_subtitle),
+                                onClick = { showDeleteAccountDialog = true }
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isLoggedIn,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 18.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.please_login_to_edit_profile),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
 
