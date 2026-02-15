@@ -100,7 +100,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.ic_logo_light),
@@ -108,7 +108,7 @@ fun LoginScreen(
                 modifier = Modifier.size(110.dp)
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = if (isLoginMode)
@@ -245,7 +245,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             AnimatedContent(
                 targetState = isLoginMode,
@@ -312,7 +312,7 @@ fun LoginScreen(
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             // SOCIAL LOGIN BUTTONS
             Row(
