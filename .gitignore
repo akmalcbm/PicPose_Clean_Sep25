@@ -24,3 +24,13 @@ picpose_admin_backend_for_codex/secure/firebase/service-account.json
 picpose_admin_backend_for_codex/secure/firebase/service-account.json
 picpose_admin_backend_for_codex/secure/firebase/service-account.json
 picpose_admin_backend_for_codex/secure/firebase/service-account.json
+
+# Backend operational/sensitive data
+picpose_admin_backend_for_codex/*.sql
+picpose_admin_backend_for_codex/logs/
+picpose_admin_backend_for_codex/last_post_debug.txt
+picpose_admin_backend_for_codex/uploads/users_profilepic/
+picpose_admin_backend_for_codex/uploads/ai_posts_pic/
+picpose_admin_backend_for_codex/uploads/guide_posts_pic/
+picpose_key
+picpose_admin_backend_for_codex/uploads/
