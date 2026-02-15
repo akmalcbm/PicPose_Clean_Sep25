@@ -186,7 +186,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    implementation(libs.canhub.image.cropper)
+    implementation("com.github.yalantis:ucrop:2.2.8")
 
     implementation(libs.play.services.ads)         // Google AdMob
     implementation(libs.facebook.audience.network) // Meta Audience Network

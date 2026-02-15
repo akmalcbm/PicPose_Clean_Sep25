@@ -1,10 +1,14 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.graphics.Bitmap
+import android.app.Activity
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,15 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.canhub.cropper.CropImageContract
-import com.canhub.cropper.CropImageContractOptions
-import com.canhub.cropper.CropImageOptions
-import com.canhub.cropper.CropImageView
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
+import com.picpose.bestphotographyapp.presentation.utils.ImageCropper
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -58,7 +61,9 @@ fun EditProfileScreen(
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var bio by remember { mutableStateOf(TextFieldValue("")) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    var isImageProcessing by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -81,62 +86,81 @@ fun EditProfileScreen(
         return
     }
 
-    // Crop launcher
-    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
-        if (result.isSuccessful) {
-            selectedImageUri = result.uriContent
-        } else {
-            Toast.makeText(context, result.error?.message ?: context.getString(R.string.crop_failed), Toast.LENGTH_SHORT).show()
+    // Crop launcher (uCrop)
+    val cropLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isImageProcessing = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            val output = result.data?.let(UCrop::getOutput)
+            if (output != null) {
+                selectedImageUri = output
+            } else {
+                Toast.makeText(context, context.getString(R.string.crop_failed), Toast.LENGTH_SHORT).show()
+            }
+        } else if (result.resultCode != Activity.RESULT_CANCELED) {
+            val error = result.data?.let(UCrop::getError)
+            Toast.makeText(
+                context,
+                error?.message ?: context.getString(R.string.crop_failed),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
-    // Build crop options safely
-    fun cropOptions(): CropImageOptions {
-        return CropImageOptions().apply {
-            fixAspectRatio = true
-            aspectRatioX = 1
-            aspectRatioY = 1
-            guidelines = CropImageView.Guidelines.ON
-            outputCompressFormat = Bitmap.CompressFormat.JPEG
-            outputCompressQuality = 85
+    fun launchCrop(sourceUri: Uri) {
+        val cropIntent = ImageCropper.createCropIntent(context, sourceUri)
+        if (cropIntent == null) {
+            isImageProcessing = false
+            Toast.makeText(context, context.getString(R.string.crop_failed), Toast.LENGTH_SHORT).show()
+            return
         }
+        isImageProcessing = true
+        cropLauncher.launch(cropIntent)
     }
 
-    // Gallery picker
+    // Android 13+ Photo Picker
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        PickVisualMedia()
+    ) { uri ->
+        uri?.let(::launchCrop)
+    }
+
+    // Legacy gallery fallback
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            cropLauncher.launch(
-                CropImageContractOptions(
-                    uri,
-                    cropOptions()
-                )
-            )
-        }
+        uri?.let(::launchCrop)
     }
 
-    // Camera launcher
+    // Camera launcher with content Uri output (no file://)
     val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bmp ->
-        if (bmp != null) {
-            scope.launch {
-                val uri = saveBitmapToCache(context.cacheDir, bmp)
-                if (uri != null) {
-                    cropLauncher.launch(
-                        CropImageContractOptions(
-                            uri,
-                            cropOptions()
-                        )
-                    )
-                }
-            }
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        val uri = pendingCameraUri
+        pendingCameraUri = null
+        if (success && uri != null) {
+            launchCrop(uri)
         }
     }
 
-    fun openCamera() = cameraLauncher.launch(null)
-    fun openGallery() = galleryLauncher.launch("image/*")
+    fun openCamera() {
+        val uri = ImageCropper.createTempImageUri(context, "camera_")
+        if (uri == null) {
+            Toast.makeText(context, context.getString(R.string.crop_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingCameraUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    fun openGallery() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            photoPickerLauncher.launch(PickVisualMediaRequest(ImageOnly))
+        } else {
+            galleryLauncher.launch("image/*")
+        }
+    }
 
     val aiBioSuggestions = remember {
         context.resources.getStringArray(R.array.ai_bio_suggestions).toList()
@@ -235,6 +259,15 @@ fun EditProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.onPrimary)
+                }
+
+                if (isImageProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(34.dp),
+                        strokeWidth = 3.dp
+                    )
                 }
             }
 
@@ -445,22 +478,6 @@ fun NotLoggedInScreen(
     }
 }
 
-
-/** Save bitmap to cache */
-private suspend fun saveBitmapToCache(dir: File, bmp: Bitmap): Uri? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val tmp = File(dir, "camera_${System.currentTimeMillis()}.jpg")
-            val out = FileOutputStream(tmp)
-            bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
-            out.close()
-            Uri.fromFile(tmp)
-        } catch (e: Exception) {
-            null
-        }
-    }
-}
-
 /** Compress an image Uri before upload */
 suspend fun compressUri(context: android.content.Context, uri: Uri, quality: Int = 80): Uri? {
     return withContext(Dispatchers.IO) {
@@ -471,10 +488,13 @@ suspend fun compressUri(context: android.content.Context, uri: Uri, quality: Int
 
             val file = File(context.cacheDir, "profile_${System.currentTimeMillis()}.jpg")
             val out = FileOutputStream(file)
-            bmp.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, out)
             out.close()
-
-            Uri.fromFile(file)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
         } catch (e: Exception) {
             null
         }

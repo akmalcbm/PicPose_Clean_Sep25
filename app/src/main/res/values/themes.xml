@@ -19,4 +19,10 @@
         <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.PicPose</item>
     </style>
+
+    <style name="Theme.PicPose.UCrop" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="android:statusBarColor">@color/purple_700</item>
+    </style>
 </resources>

@@ -231,10 +231,6 @@
 -keep class com.facebook.ads.** { *; }
 -dontwarn com.facebook.ads.**
 
-# CanHub Image Cropper
--keep class com.canhub.cropper.** { *; }
--dontwarn com.canhub.cropper.**
-
 # Keep constructors for activities, services, etc.
 -keepclasseswithmembers class * {
     public <init>(android.content.Context, android.util.AttributeSet);

@@ -109,6 +109,12 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.PicPose.UCrop" />
+
 
 
     </application>
