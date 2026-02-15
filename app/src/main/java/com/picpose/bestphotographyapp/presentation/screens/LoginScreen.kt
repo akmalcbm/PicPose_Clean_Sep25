@@ -1,7 +1,9 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -163,7 +169,7 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
             if (!hasAcceptedPrivacyTerms) {
                 Row(
@@ -239,18 +245,58 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
-            TextButton(onClick = { isLoginMode = !isLoginMode }) {
-                Text(
-                    if (isLoginMode)
-                        stringResource(R.string.dont_have_account_sign_up)
-                    else
-                        stringResource(R.string.already_have_account_login)
-                )
+            AnimatedContent(
+                targetState = isLoginMode,
+                label = "auth_mode_cta_transition"
+            ) { loginMode ->
+                val infoText = if (loginMode) {
+                    stringResource(R.string.dont_have_account)
+                } else {
+                    stringResource(R.string.already_have_account)
+                }
+                val actionText = if (loginMode) {
+                    stringResource(R.string.sign_up)
+                } else {
+                    stringResource(R.string.login)
+                }
+                val actionContentDescription = if (loginMode) {
+                    stringResource(R.string.dont_have_account_sign_up)
+                } else {
+                    stringResource(R.string.already_have_account_login)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = infoText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = actionText,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .wrapContentHeight(Alignment.CenterVertically)
+                            .clickable { isLoginMode = !isLoginMode }
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = actionContentDescription
+                            }
+                            .padding(horizontal = 8.dp)
+                    )
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            //Spacer(Modifier.height(16.dp))
 
             // Divider
             Row(

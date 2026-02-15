@@ -98,10 +98,12 @@ class PicPoseApp : Application(), ImageLoaderFactory {
     }
 
     private fun logCurrentFcmTokenForTesting() {
+        if (!BuildConfig.DEBUG) return
         applicationScope.launch {
             try {
                 val token = FirebaseMessaging.getInstance().token.await()
-                Log.d("FCM_TOKEN", "Device FCM token: $token")
+                val tokenPreview = token.take(8) + "..."
+                Log.d("FCM_TOKEN", "Device FCM token fetched: $tokenPreview")
             } catch (e: Exception) {
                 Log.e("FCM_TOKEN", "Failed to fetch device token", e)
             }
