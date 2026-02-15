@@ -185,7 +185,7 @@ class AdsRepository(
             global = GlobalConfig(
                 adsEnabled = true,
                 environment = "test",
-                cmpRequired = false,
+                cmpRequired = true,
                 defaultFrequencyPerHour = 2,
                 useTestAds = true,
                 configUpdatedAt = null

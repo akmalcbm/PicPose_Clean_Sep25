@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.data.network
 
 import android.util.Log
+import com.picpose.bestphotographyapp.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -13,12 +14,12 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     private const val TAG = "API"
-    private const val BASE_URL = "https://picpose.iamakmal.in/"
+    private val BASE_URL = BuildConfig.API_BASE_URL
     private const val CACHE_SIZE = 10L * 1024 * 1024 // 10MB
 
     // Global API key used everywhere unless overridden
     var defaultApiKey: String? =
-        "7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c"
+        BuildConfig.API_KEY.takeIf { it.isNotBlank() }
 
     private var cacheDir: java.io.File? = null
 
@@ -91,10 +92,12 @@ object RetrofitClient {
         val duration = System.currentTimeMillis() - start
         Log.d(TAG, "⬅️ ${response.code} (${duration}ms) ${response.request.url}")
 
-        try {
-            val copy = response.peekBody(1024 * 1024).string()
-            Log.d(TAG, "⬅️ BODY: $copy")
-        } catch (_: Exception) { }
+        if (BuildConfig.DEBUG) {
+            try {
+                val copy = response.peekBody(8 * 1024).string()
+                Log.d(TAG, "⬅️ BODY: $copy")
+            } catch (_: Exception) { }
+        }
 
         response
     }
@@ -106,7 +109,11 @@ object RetrofitClient {
     private val httpLogging = HttpLoggingInterceptor { msg ->
         Log.d(TAG, msg)
     }.apply {
-        level = HttpLoggingInterceptor.Level.BASIC
+        level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BASIC
+        } else {
+            HttpLoggingInterceptor.Level.NONE
+        }
     }
 
 

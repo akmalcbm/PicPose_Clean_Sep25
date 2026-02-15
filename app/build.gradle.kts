@@ -18,6 +18,9 @@ hilt {
 android {
     namespace = "com.picpose.bestphotographyapp"
     compileSdk = 36
+    val apiKey = (project.findProperty("PICPOSE_API_KEY") as String?)?.trim().orEmpty()
+    val apiBaseUrl = (project.findProperty("PICPOSE_API_BASE_URL") as String?)?.trim()
+        ?: "https://picpose.iamakmal.in/"
 
     defaultConfig {
         applicationId = "com.picpose.bestphotographyapp"
@@ -26,16 +29,16 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // API key in BuildConfig
+        // API key must come from local/CI gradle properties.
         buildConfigField(
             "String",
             "API_KEY",
-            "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+            "\"$apiKey\""
         )
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"https://picpose.iamakmal.in/\""
+            "\"$apiBaseUrl\""
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -58,12 +61,12 @@ android {
             buildConfigField(
                 "String",
                 "API_KEY",
-                "\"7a6f3c27a1b6d5e8e4c8a2b3f9e6d1f47c5b8a9d3e7f2c6a4b9e3d1c5f8a7b2c\""
+                "\"$apiKey\""
             )
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"https://picpose.iamakmal.in/\""
+                "\"$apiBaseUrl\""
             )
         }
         debug {

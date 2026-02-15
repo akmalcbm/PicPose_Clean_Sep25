@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
-    <!-- 1. Development domain for HTTP -->
-    <domain-config cleartextTrafficPermitted="true">
+    <!-- App domains must use HTTPS in production. -->
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">picpose.iamakmal.in</domain>
         <domain includeSubdomains="true">api.picpose.iamakmal.in</domain>
     </domain-config>
