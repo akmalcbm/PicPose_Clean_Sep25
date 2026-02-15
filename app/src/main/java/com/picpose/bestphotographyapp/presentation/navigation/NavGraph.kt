@@ -235,6 +235,12 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                             launchSingleTop = true
                         }
                     }
+                },
+                onAccountDeleted = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
         }

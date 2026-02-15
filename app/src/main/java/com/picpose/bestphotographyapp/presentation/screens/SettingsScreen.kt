@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
@@ -39,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -65,6 +67,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +75,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.ThemeMode
+import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -99,6 +103,8 @@ private fun languageLabel(languageCode: String): String =
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onAccountDeleted: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -110,8 +116,11 @@ fun SettingsScreen(
     val showSystemNotificationSettingsDialog by settingsViewModel.showSystemNotificationSettingsDialog.collectAsState()
     val showGeminiConfirmDialog by settingsViewModel.showGeminiConfirmDialog.collectAsState()
     val pendingGeminiAction by settingsViewModel.pendingGeminiAction.collectAsState()
+    val isDeletingAccount by authViewModel.isDeletingAccount.collectAsState()
 
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
+    var deleteConfirmInput by remember(showDeleteAccountDialog) { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -163,6 +172,15 @@ fun SettingsScreen(
                         title = stringResource(R.string.logout),
                         subtitle = stringResource(R.string.logout_subtitle_device),
                         onClick = onLogout
+                    )
+
+                    SectionDivider()
+
+                    SettingsRow(
+                        icon = Icons.Default.DeleteForever,
+                        title = stringResource(R.string.delete_account_title),
+                        subtitle = stringResource(R.string.delete_account_subtitle),
+                        onClick = { showDeleteAccountDialog = true }
                     )
                 }
             }
@@ -347,6 +365,83 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        if (showDeleteAccountDialog) {
+            val isDeletePhraseValid = deleteConfirmInput.trim() == "DELETE"
+            AlertDialog(
+                onDismissRequest = {
+                    if (!isDeletingAccount) showDeleteAccountDialog = false
+                },
+                title = { Text(stringResource(R.string.delete_account_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.delete_account_confirm_message))
+                        Text(
+                            text = stringResource(R.string.delete_account_type_delete_instruction),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = deleteConfirmInput,
+                            onValueChange = { deleteConfirmInput = it },
+                            singleLine = true,
+                            enabled = !isDeletingAccount,
+                            label = { Text(stringResource(R.string.delete_account_type_delete_label)) },
+                            placeholder = { Text("DELETE") },
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Characters
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isDeletingAccount && isDeletePhraseValid,
+                        onClick = {
+                            authViewModel.deleteAccount { result ->
+                                if (result.isSuccess) {
+                                    showDeleteAccountDialog = false
+                                    deleteConfirmInput = ""
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            context.getString(R.string.delete_account_success)
+                                        )
+                                    }
+                                    onAccountDeleted()
+                                } else {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            result.exceptionOrNull()?.message
+                                                ?: context.getString(R.string.delete_account_failed)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    ) {
+                        Text(
+                            if (isDeletingAccount) {
+                                stringResource(R.string.delete_account_in_progress)
+                            } else {
+                                stringResource(R.string.delete_account_action)
+                            }
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        enabled = !isDeletingAccount,
+                        onClick = {
+                            showDeleteAccountDialog = false
+                            deleteConfirmInput = ""
+                        }
+                    ) {
                         Text(stringResource(R.string.cancel))
                     }
                 }

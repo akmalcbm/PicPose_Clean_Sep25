@@ -151,6 +151,15 @@ data class RegisterRequest(
 )
 
 /**
+ * In-app account deletion request payload.
+ */
+data class DeleteAccountRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("reason") val reason: String? = null
+)
+
+/**
  * Auth Response wrapper
  */
 data class AuthResponse(

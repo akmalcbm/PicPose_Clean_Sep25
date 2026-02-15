@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.core.net.toFile
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.data.models.DeleteAccountRequest
 import com.picpose.bestphotographyapp.data.models.LoginRequest
 import com.picpose.bestphotographyapp.data.models.RegisterRequest
 import com.picpose.bestphotographyapp.data.models.SocialAuthData
@@ -219,6 +220,39 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Profile update exception: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // ---------------------------------------------------------
+    // DELETE ACCOUNT (IN-APP)
+    // ---------------------------------------------------------
+    suspend fun deleteAccount(reason: String = "user_requested_in_app"): Result<Unit> {
+        return try {
+            val userId = userSessionManager.userId.firstOrNull()
+                ?: return Result.failure(Exception("User not logged in"))
+            val email = userSessionManager.userEmail.firstOrNull()
+                ?: return Result.failure(Exception("Missing user email"))
+
+            val response = userApi.deleteAccount(
+                action = "delete_account",
+                request = DeleteAccountRequest(
+                    userId = userId,
+                    email = email,
+                    reason = reason
+                ),
+                apiKey = API_KEY
+            )
+
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true) {
+                userSessionManager.clearUserSession()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(safeServerError(response.errorBody()?.string(), body?.message)))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Delete account exception: ${e.message}")
             Result.failure(e)
         }
     }

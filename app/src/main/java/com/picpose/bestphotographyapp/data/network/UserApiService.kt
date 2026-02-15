@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.AuthResponse
+import com.picpose.bestphotographyapp.data.models.DeleteAccountRequest
 import com.picpose.bestphotographyapp.data.models.LoginRequest
 import com.picpose.bestphotographyapp.data.models.RegisterRequest
 import com.picpose.bestphotographyapp.data.models.SocialAuthData
@@ -67,5 +68,16 @@ interface UserApiService {
         @Part("account_type") accountType: RequestBody,
         @Part profile_picture: MultipartBody.Part?,
         @Part("api_key") apiKey: RequestBody
+    ): Response<AuthResponse>
+
+    // -------------------------------------------------------------------
+    // DELETE ACCOUNT (in-app user initiated)
+    // POST: /api/users.php?action=delete_account
+    // -------------------------------------------------------------------
+    @POST("api/users.php")
+    suspend fun deleteAccount(
+        @Query("action") action: String = "delete_account",
+        @Body request: DeleteAccountRequest,
+        @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 }

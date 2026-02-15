@@ -41,6 +41,15 @@ function html_to_text(?string $html): string {
     return trim((string)$stripped);
 }
 
+function normalize_support_email(?string $value): string {
+    $text = (string)($value ?? '');
+    return str_replace(
+        ['support@picpose.iamakmal.in', 'support@picpose.com'],
+        'picposeapp@gmail.com',
+        $text
+    );
+}
+
 try {
     if (!isset($conn) || !($conn instanceof mysqli)) {
         throw new RuntimeException('Database connection $conn not found.');
@@ -88,6 +97,10 @@ try {
         exit;
     }
 
+    $privacyHtml = normalize_support_email($row['privacy_policy'] ?? '');
+    $termsHtml = normalize_support_email($row['terms_conditions'] ?? '');
+    $supportEmail = normalize_support_email($row['support_email'] ?? '');
+
     // ---- Build JSON payload ----
     $payload = [
         'id' => (int)$row['id'],
@@ -111,15 +124,15 @@ try {
         // ],
 
         'contact' => [
-            'email' => $row['support_email'] ?? '',
+            'email' => $supportEmail,
             'phone' => $row['support_phone'] ?? '',
         ],
 
         'policies' => [
-            'privacy_policy_html' => $row['privacy_policy'] ?? '',
-            'terms_conditions_html' => $row['terms_conditions'] ?? '',
-            'privacy_policy_text' => html_to_text($row['privacy_policy'] ?? ''),
-            'terms_conditions_text' => html_to_text($row['terms_conditions'] ?? ''),
+            'privacy_policy_html' => $privacyHtml,
+            'terms_conditions_html' => $termsHtml,
+            'privacy_policy_text' => html_to_text($privacyHtml),
+            'terms_conditions_text' => html_to_text($termsHtml),
         ],
 
         'about' => [

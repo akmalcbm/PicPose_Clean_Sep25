@@ -223,6 +223,8 @@ class AuthViewModel @Inject constructor(
     // ----------------------------------------
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    private val _isDeletingAccount = MutableStateFlow(false)
+    val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
 
     val isLoggedIn = userSessionManager.isLoggedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -285,6 +287,26 @@ class AuthViewModel @Inject constructor(
             userSessionManager.setSkipAuth(false)
             _authState.value = AuthState.Idle
             onDone?.invoke()
+        }
+    }
+
+    fun deleteAccount(
+        reason: String = "user_requested_in_app",
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        if (_isDeletingAccount.value) return
+
+        viewModelScope.launch {
+            _isDeletingAccount.value = true
+            val result = authRepository.deleteAccount(reason)
+
+            if (result.isSuccess) {
+                userSessionManager.setSkipAuth(false)
+                _authState.value = AuthState.Idle
+            }
+
+            _isDeletingAccount.value = false
+            onResult(result)
         }
     }
 

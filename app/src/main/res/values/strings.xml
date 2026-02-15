@@ -541,5 +541,14 @@
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">Watch ad for reward</string>
     <string name="you_are_not_logged_in">You are not logged in</string>
+    <string name="delete_account_title">Delete account</string>
+    <string name="delete_account_subtitle">Permanently delete your account and data</string>
+    <string name="delete_account_action">Delete account</string>
+    <string name="delete_account_in_progress">Deleting...</string>
+    <string name="delete_account_success">Account deleted successfully</string>
+    <string name="delete_account_failed">Failed to delete account</string>
+    <string name="delete_account_confirm_message">This action is permanent and cannot be undone.\n\nYour PicPose account and associated profile data will be deleted. Some security and compliance records may be retained for up to 90 days.\n\nDo you want to continue?</string>
+    <string name="delete_account_type_delete_instruction">To continue, type DELETE below.</string>
+    <string name="delete_account_type_delete_label">Type DELETE to confirm</string>
     <string name="hello_world">Hello World!</string>
 </resources>

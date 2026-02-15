@@ -128,7 +128,7 @@ try {
 
     // ---------------------------------------------
     // 📧 Send Admin Notification (optional)
-    $adminEmail = "support@picpose.com"; // Change if needed
+    $adminEmail = "picposeapp@gmail.com"; // Support inbox
     $subject = "📩 New Support Query from $name";
     $body = "You have received a new support message from PicPose App:\n\n"
           . "Name: $name\n"

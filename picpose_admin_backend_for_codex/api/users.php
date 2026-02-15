@@ -118,6 +118,110 @@ if ($method === "POST" && $action === "register") {
 }
 
 // --------------------------
+// DELETE ACCOUNT (IN-APP)
+// --------------------------
+if ($method === "POST" && $action === "delete_account") {
+    $userId = intval($input["user_id"] ?? 0);
+    $email = trim((string)($input["email"] ?? ""));
+    $reason = trim((string)($input["reason"] ?? "user_requested_in_app"));
+
+    if ($userId <= 0 || $email === "") {
+        echo json_encode(["status" => "error", "message" => "user_id and email are required"]);
+        exit();
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(["status" => "error", "message" => "Invalid email"]);
+        exit();
+    }
+
+    $conn->begin_transaction();
+    try {
+        // Verify user ownership by user_id + email pair
+        $findStmt = $conn->prepare("SELECT id, profile_pic FROM users WHERE id = ? AND email = ? LIMIT 1");
+        if (!$findStmt) throw new Exception("Failed to prepare user lookup");
+        $findStmt->bind_param("is", $userId, $email);
+        $findStmt->execute();
+        $user = $findStmt->get_result()->fetch_assoc();
+        $findStmt->close();
+
+        if (!$user) {
+            throw new Exception("Account not found for provided details");
+        }
+
+        // Cleanup related rows that may contain user-linked data
+        $cleanupQueries = [
+            "DELETE FROM social_logins WHERE user_id = ?",
+            "DELETE FROM device_tokens WHERE user_id = ?",
+            "DELETE FROM comments WHERE user_id = ?",
+            "DELETE FROM notification_clicks WHERE user_id = ?"
+        ];
+
+        foreach ($cleanupQueries as $query) {
+            $stmt = $conn->prepare($query);
+            if (!$stmt) {
+                continue; // table may be absent in some deployments
+            }
+            $stmt->bind_param("i", $userId);
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        // Remove support queries linked by email (PII cleanup)
+        $supportStmt = $conn->prepare("DELETE FROM support_queries WHERE email = ?");
+        if ($supportStmt) {
+            $supportStmt->bind_param("s", $email);
+            $supportStmt->execute();
+            $supportStmt->close();
+        }
+
+        // Delete account row
+        $delStmt = $conn->prepare("DELETE FROM users WHERE id = ? LIMIT 1");
+        if (!$delStmt) throw new Exception("Failed to prepare account deletion");
+        $delStmt->bind_param("i", $userId);
+        $delStmt->execute();
+        $affected = $delStmt->affected_rows;
+        $delStmt->close();
+
+        if ($affected <= 0) {
+            throw new Exception("Failed to delete account");
+        }
+
+        // Best-effort local profile image cleanup
+        $profilePic = trim((string)($user["profile_pic"] ?? ""));
+        if ($profilePic !== "" && strpos($profilePic, "default.png") === false) {
+            $safePath = ltrim($profilePic, "/");
+            $absolute = realpath(__DIR__ . "/../" . $safePath);
+            $uploadsRoot = realpath(__DIR__ . "/../uploads");
+            if ($absolute && $uploadsRoot && strpos($absolute, $uploadsRoot) === 0 && is_file($absolute)) {
+                @unlink($absolute);
+            }
+        }
+
+        $conn->commit();
+
+        echo json_encode([
+            "status" => "success",
+            "message" => "Account deleted successfully",
+            "deleted" => [
+                "user_id" => $userId,
+                "email" => $email,
+                "reason" => $reason
+            ],
+            "retention_notice" => "Some security/compliance logs may be retained for up to 90 days."
+        ]);
+        exit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        echo json_encode([
+            "status" => "error",
+            "message" => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+// --------------------------
 // LOGIN
 // --------------------------
 if ($method === "POST" && $action === "login") {
