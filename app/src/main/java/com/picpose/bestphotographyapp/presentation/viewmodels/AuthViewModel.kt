@@ -232,6 +232,9 @@ class AuthViewModel @Inject constructor(
     val hasSkippedAuth = userSessionManager.hasSkippedAuth
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val hasAcceptedPrivacyTerms = userSessionManager.hasAcceptedPrivacyTerms
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     val currentUser: StateFlow<User?> = combine(
         userSessionManager.userId,
         userSessionManager.userEmail,
@@ -323,6 +326,12 @@ class AuthViewModel @Inject constructor(
 
     fun resetAuthState() {
         _authState.value = AuthState.Idle
+    }
+
+    fun setPrivacyTermsAccepted(accepted: Boolean = true) {
+        viewModelScope.launch {
+            userSessionManager.setPrivacyTermsAccepted(accepted)
+        }
     }
 
     // ----------------------------------------

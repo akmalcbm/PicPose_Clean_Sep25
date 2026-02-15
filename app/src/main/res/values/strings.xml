@@ -11,6 +11,7 @@
     <string name="sign_in_with_facebook">Sign in with Facebook</string>
     <string name="sign_in_with_twitter">Sign in with Twitter</string>
     <string name="or_login_with">Or login with</string>
+    <string name="login_consent_agree_text">I agree to the Privacy Policy and Terms.</string>
     <string name="dont_have_account">Don\'t have an account?</string>
     <string name="already_have_account">Already have an account?</string>
     <string name="sign_up">Sign Up</string>

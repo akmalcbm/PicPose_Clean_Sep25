@@ -1,8 +1,5 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
-import android.app.Activity
-import android.credentials.GetCredentialException
-import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,6 +33,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToTerms: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
@@ -45,8 +44,9 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
+    val hasAcceptedPrivacyTerms by authViewModel.hasAcceptedPrivacyTerms.collectAsState()
+    var consentChecked by remember(hasAcceptedPrivacyTerms) { mutableStateOf(hasAcceptedPrivacyTerms) }
     val context = LocalContext.current
-    val activity = LocalContext.current as Activity
     val scope = rememberCoroutineScope()
 
     // Reset skip state
@@ -165,17 +165,56 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            if (!hasAcceptedPrivacyTerms) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Checkbox(
+                        checked = consentChecked,
+                        onCheckedChange = { consentChecked = it }
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 11.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.login_consent_agree_text),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row {
+                            TextButton(
+                                onClick = onNavigateToPrivacy,
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
+                            ) {
+                                Text(stringResource(R.string.privacy_policy_title))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            TextButton(
+                                onClick = onNavigateToTerms,
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
+                            ) {
+                                Text(stringResource(R.string.terms_conditions_title))
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
             // Submit Button
             Button(
                 onClick = {
-                    if (isLoginMode) {
-                        authViewModel.login(email, password)
-                    } else {
-                        authViewModel.register(email, password, name)
+                    if (!hasAcceptedPrivacyTerms) {
+                        authViewModel.setPrivacyTermsAccepted(consentChecked)
                     }
+                    if (isLoginMode) authViewModel.login(email, password)
+                    else authViewModel.register(email, password, name)
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = authState !is AuthState.Loading
+                enabled = authState !is AuthState.Loading && (hasAcceptedPrivacyTerms || consentChecked)
             ) {
                 if (authState is AuthState.Loading) {
                     CircularProgressIndicator(
@@ -241,6 +280,10 @@ fun LoginScreen(
                     IconButton(
                         onClick = {
                             scope.launch {
+                                if (!hasAcceptedPrivacyTerms && !consentChecked) return@launch
+                                if (!hasAcceptedPrivacyTerms) {
+                                    authViewModel.setPrivacyTermsAccepted(true)
+                                }
                                 try {
                                     val response = authViewModel.startGoogleSignIn().getOrNull()
                                     authViewModel.finishGoogleSignIn(response) { }
@@ -255,7 +298,8 @@ fun LoginScreen(
                             .background(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 shape = MaterialTheme.shapes.medium
-                            )
+                            ),
+                        enabled = hasAcceptedPrivacyTerms || consentChecked
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_google),

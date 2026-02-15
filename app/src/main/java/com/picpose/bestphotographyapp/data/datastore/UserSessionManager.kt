@@ -29,6 +29,7 @@ class UserSessionManager(private val context: Context) {
 
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
         private val HAS_SKIPPED_AUTH_KEY = booleanPreferencesKey("has_skipped_auth")
+        private val PRIVACY_TERMS_ACCEPTED_KEY = booleanPreferencesKey("privacy_terms_accepted")
     }
 
     /** helper */
@@ -43,6 +44,10 @@ class UserSessionManager(private val context: Context) {
 
     val hasSkippedAuth: Flow<Boolean> = context.userDataStore.data.safeMap {
         it[HAS_SKIPPED_AUTH_KEY] ?: false
+    }
+
+    val hasAcceptedPrivacyTerms: Flow<Boolean> = context.userDataStore.data.safeMap {
+        it[PRIVACY_TERMS_ACCEPTED_KEY] ?: false
     }
 
     val userId: Flow<String?> = context.userDataStore.data.safeMap { it[USER_ID_KEY] }
@@ -122,12 +127,20 @@ class UserSessionManager(private val context: Context) {
         }
     }
 
+    suspend fun setPrivacyTermsAccepted(accepted: Boolean) {
+        context.userDataStore.edit { prefs ->
+            prefs[PRIVACY_TERMS_ACCEPTED_KEY] = accepted
+        }
+    }
+
     /**
      * Clear full session
      */
     suspend fun clearUserSession() {
         context.userDataStore.edit { prefs ->
+            val acceptedPrivacyTerms = prefs[PRIVACY_TERMS_ACCEPTED_KEY] ?: false
             prefs.clear()
+            prefs[PRIVACY_TERMS_ACCEPTED_KEY] = acceptedPrivacyTerms
             prefs[HAS_SKIPPED_AUTH_KEY] = false
         }
     }

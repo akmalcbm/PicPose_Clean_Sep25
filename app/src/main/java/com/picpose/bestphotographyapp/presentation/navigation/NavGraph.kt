@@ -253,7 +253,13 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                onNavigateToPrivacy = {
+                    navController.navigate(Screen.Privacy.route) { launchSingleTop = true }
+                },
+                onNavigateToTerms = {
+                    navController.navigate(Screen.Terms.route) { launchSingleTop = true }
+                },
             )
         }
 
