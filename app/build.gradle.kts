@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.bundling.Zip
 
 plugins {
     alias(libs.plugins.android.application)
@@ -52,6 +53,11 @@ android {
             isMinifyEnabled = true
             // Enable resource shrinking along with code shrinking
             isShrinkResources = true
+            ndk {
+                // Generate native debug symbols for Play Console Native debug symbols upload.
+                // Use "SYMBOL_TABLE" instead of "FULL" to reduce symbol artifact size.
+                debugSymbolLevel = "FULL"
+            }
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -127,6 +133,23 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
             )
         )
     }
+}
+
+val packageReleaseNativeDebugSymbols by tasks.registering(Zip::class) {
+    group = "distribution"
+    description = "Packages release native debug symbols for Play Console upload."
+    dependsOn("mergeReleaseNativeLibs")
+
+    from(layout.buildDirectory.dir("intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib")) {
+        into("lib")
+    }
+
+    destinationDirectory.set(layout.buildDirectory.dir("outputs/native-debug-symbols/release"))
+    archiveFileName.set("native-debug-symbols.zip")
+}
+
+tasks.matching { it.name == "bundleRelease" || it.name == "packageReleaseBundle" }.configureEach {
+    finalizedBy(packageReleaseNativeDebugSymbols)
 }
 
 dependencies {

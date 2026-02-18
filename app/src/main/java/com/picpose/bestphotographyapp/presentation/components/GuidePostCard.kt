@@ -224,8 +224,7 @@ fun GuidePostCard(
                     style = if (isCompact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = if (isCompact) 1 else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Color(0xFF1E293B)
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 // Description/Content preview
@@ -234,7 +233,6 @@ fun GuidePostCard(
                     Text(
                         text = guidePost.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
