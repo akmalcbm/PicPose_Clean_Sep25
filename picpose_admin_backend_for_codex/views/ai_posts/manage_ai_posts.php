@@ -5,13 +5,15 @@ require '../../config.php';
 if (!isset($_SESSION['admin'])) { header('Location: ../../login.php'); exit(); }
 
 include '../../includes/header.php';
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+$csrf = $_SESSION['csrf_token'];
 
 // search & pagination
 $q = trim($_GET['q'] ?? '');
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 15;
 $offset = ($page - 1) * $perPage;
-$filter = $_GET['filter'] ?? 'all'; // all | popular | featured | trending
+$filter = $_GET['filter'] ?? 'all'; // all | published | blocked | draft | archived | popular | featured | trending
 
 // Normalize search: allow users to search using hashtags like "#PicPose".
 $qForBind = $q !== '' ? str_replace('#', '', $q) : '';
@@ -36,6 +38,14 @@ if ($filter === 'popular') {
     $where .= " AND p.is_popular = 1";
 } elseif ($filter === 'featured') {
     $where .= " AND p.is_featured = 1";
+} elseif ($filter === 'published') {
+    $where .= " AND p.status = 'published'";
+} elseif ($filter === 'blocked') {
+    $where .= " AND p.status = 'blocked'";
+} elseif ($filter === 'draft') {
+    $where .= " AND p.status = 'draft'";
+} elseif ($filter === 'archived') {
+    $where .= " AND p.status = 'archived'";
 } elseif ($filter === 'trending') {
     // 🔥 Weighted Trending Score (same as API)
     // Only posts from the last 30 days are considered trending
@@ -107,6 +117,10 @@ function collect_images_from_row($row) {
 
 // --- Optimized Quick Counts for Filter Buttons (Single Query for Performance) ---
 $allCount = 0;
+$publishedCount = 0;
+$blockedCount = 0;
+$draftCount = 0;
+$archivedCount = 0;
 $popularCount = 0;
 $featuredCount = 0;
 $trendingCount = 0;
@@ -115,6 +129,10 @@ try {
     $res = $conn->query("
         SELECT 
             COUNT(*) AS allCount,
+            SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS publishedCount,
+            SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END) AS blockedCount,
+            SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draftCount,
+            SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) AS archivedCount,
             SUM(CASE WHEN status = 'published' AND is_popular = 1 THEN 1 ELSE 0 END) AS popularCount,
             SUM(CASE WHEN status = 'published' AND is_featured = 1 THEN 1 ELSE 0 END) AS featuredCount,
             SUM(
@@ -129,6 +147,10 @@ try {
     ");
     if ($res && $r = $res->fetch_assoc()) {
         $allCount = (int)$r['allCount'];
+        $publishedCount = (int)$r['publishedCount'];
+        $blockedCount = (int)$r['blockedCount'];
+        $draftCount = (int)$r['draftCount'];
+        $archivedCount = (int)$r['archivedCount'];
         $popularCount = (int)$r['popularCount'];
         $featuredCount = (int)$r['featuredCount'];
         $trendingCount = (int)$r['trendingCount'];
@@ -154,6 +176,26 @@ try {
         <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'all'])); ?>"
            class="btn btn-sm <?php echo $filter === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">
            All (<?= $allCount ?>)
+        </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'published'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'published' ? 'btn-success' : 'btn-outline-success'; ?>">
+           Published (<?= $publishedCount ?>)
+        </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'blocked'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'blocked' ? 'btn-danger' : 'btn-outline-danger'; ?>">
+           Blocked (<?= $blockedCount ?>)
+        </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'draft'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'draft' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">
+           Draft (<?= $draftCount ?>)
+        </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'archived'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'archived' ? 'btn-dark' : 'btn-outline-dark'; ?>">
+           Archived (<?= $archivedCount ?>)
         </a>
         
         <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'popular'])); ?>"
@@ -193,9 +235,23 @@ try {
     </div>
   <?php endif; ?>
 
+  <?php if ($filter === 'blocked'): ?>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="small text-muted">Select blocked prompts and republish to make them visible in the current app.</div>
+      <button type="button" id="publishSelectedBtn" class="btn btn-sm btn-success">
+        Publish Selected
+      </button>
+    </div>
+  <?php endif; ?>
+
   <table class="table table-striped table-bordered">
     <thead>
       <tr>
+        <th style="width:40px;">
+          <?php if ($filter === 'blocked'): ?>
+            <input type="checkbox" id="selectAllBlocked">
+          <?php endif; ?>
+        </th>
         <th>#</th>
         <th>Title / Short</th>
         <th>Category</th>
@@ -232,6 +288,11 @@ try {
           }
       ?>
         <tr>
+  <td>
+    <?php if (($row['status'] ?? '') === 'blocked'): ?>
+      <input type="checkbox" class="blocked-checkbox" value="<?php echo intval($row['id']); ?>">
+    <?php endif; ?>
+  </td>
   <td><?php echo $i++; ?></td>
   <td>
     <strong><?php echo htmlspecialchars($row['title']); ?></strong>
@@ -287,15 +348,33 @@ if ($trendingScore > 0):
     <?php endif; ?>
   </td>
 
-  <td><?php echo htmlspecialchars($row['status']); ?></td>
+  <td>
+    <?php
+      $status = strtolower((string)($row['status'] ?? ''));
+      $statusClass = 'bg-secondary';
+      if ($status === 'published') $statusClass = 'bg-success';
+      elseif ($status === 'blocked') $statusClass = 'bg-danger';
+      elseif ($status === 'draft') $statusClass = 'bg-warning text-dark';
+      elseif ($status === 'archived') $statusClass = 'bg-dark';
+    ?>
+    <span class="badge <?php echo $statusClass; ?>"><?php echo htmlspecialchars($row['status']); ?></span>
+  </td>
   <td><?php echo intval($row['priority']); ?></td>
 
   <td style="white-space:nowrap;">
     <a href="edit_ai_post.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary">Edit</a>
+    <?php if (($row['status'] ?? '') === 'blocked'): ?>
+      <form method="POST" action="process_ai_post.php" style="display:inline-block;" onsubmit="return confirm('Republish this blocked prompt?');">
+        <input type="hidden" name="action" value="publish_single">
+        <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
+        <button type="submit" class="btn btn-sm btn-success">Publish</button>
+      </form>
+    <?php endif; ?>
     <form method="POST" action="process_ai_post.php" style="display:inline-block;" onsubmit="return confirm('Delete this AI Prompt?');">
       <input type="hidden" name="action" value="delete">
       <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
       <button type="submit" class="btn btn-sm btn-danger">Delete</button>
     </form>
   </td>
@@ -425,8 +504,44 @@ if ($totalPages > 1):
   </div>
 </div>
 
+<form method="POST" action="process_ai_post.php" id="bulkPublishForm" style="display:none;">
+  <input type="hidden" name="action" value="publish_selected">
+  <input type="hidden" name="ids" id="bulkPublishIds" value="">
+  <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
+</form>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  var selectAll = document.getElementById('selectAllBlocked');
+  var publishBtn = document.getElementById('publishSelectedBtn');
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      document.querySelectorAll('.blocked-checkbox').forEach(function(chk) {
+        chk.checked = selectAll.checked;
+      });
+    });
+  }
+
+  if (publishBtn) {
+    publishBtn.addEventListener('click', function() {
+      var ids = Array.from(document.querySelectorAll('.blocked-checkbox:checked'))
+        .map(function(chk) { return chk.value; })
+        .filter(Boolean);
+
+      if (ids.length === 0) {
+        alert('Please select at least one blocked prompt.');
+        return;
+      }
+      if (!confirm('Republish selected blocked prompt(s)?')) return;
+
+      var idsField = document.getElementById('bulkPublishIds');
+      if (!idsField) return;
+      idsField.value = ids.join(',');
+      document.getElementById('bulkPublishForm').submit();
+    });
+  }
+
   document.querySelectorAll('.post-thumb').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var images = [];

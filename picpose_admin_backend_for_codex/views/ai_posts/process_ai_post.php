@@ -145,6 +145,43 @@ function normalize_tags_array($raw) {
 $action = strtolower(input_trim('action') ?: 'create');
 
 try {
+    if ($action === 'publish_single') {
+        $id = intval($_POST['id'] ?? 0);
+        if ($id <= 0) redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Invalid post id.', 'danger');
+
+        $stmt = $conn->prepare("UPDATE ai_posts SET status='published' WHERE id = ? LIMIT 1");
+        if (!$stmt) redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Database error.', 'danger');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+
+        if ($affected > 0) {
+            redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Blocked prompt republished successfully.', 'success');
+        }
+        redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Prompt was already published or not found.', 'warning');
+    }
+
+    if ($action === 'publish_selected') {
+        $idsRaw = $_POST['ids'] ?? '';
+        $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', (string)$idsRaw)))));
+        if (empty($ids)) {
+            redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Select at least one blocked prompt.', 'warning');
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('i', count($ids));
+        $sql = "UPDATE ai_posts SET status='published' WHERE status='blocked' AND id IN ($placeholders)";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) redirect_with_msg('manage_ai_posts.php?filter=blocked', 'Database error.', 'danger');
+        $stmt->bind_param($types, ...$ids);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+
+        redirect_with_msg('manage_ai_posts.php?filter=blocked', "Republished {$affected} blocked prompt(s).", 'success');
+    }
+
     if ($action === 'delete') {
         // deletion via POST (expects id)
         $id = intval($_POST['id'] ?? 0);
@@ -183,7 +220,7 @@ try {
     $short_description = input_trim('short_description');
     // prompt_text might be HTML from CKEditor
     $prompt_text_raw = $_POST['prompt_text'] ?? '';
-    $status = in_array($_POST['status'] ?? 'published', ['published','draft','archived']) ? $_POST['status'] : 'published';
+    $status = in_array($_POST['status'] ?? 'published', ['published','draft','archived','blocked']) ? $_POST['status'] : 'published';
     $priority = intval($_POST['priority'] ?? 0);
     $is_popular = !empty($_POST['is_popular']) ? 1 : 0;
     $is_featured = !empty($_POST['is_featured']) ? 1 : 0;

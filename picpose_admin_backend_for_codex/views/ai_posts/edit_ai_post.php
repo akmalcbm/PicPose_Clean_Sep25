@@ -192,6 +192,7 @@ include '../../includes/header.php';
           <label>Status</label>
           <select name="status" class="form-control">
             <option value="published" <?php echo ($post['status'] ?? '')=='published' ? 'selected' : ''; ?>>Published</option>
+            <option value="blocked" <?php echo ($post['status'] ?? '')=='blocked' ? 'selected' : ''; ?>>Blocked</option>
             <option value="draft" <?php echo ($post['status'] ?? '')=='draft' ? 'selected' : ''; ?>>Draft</option>
             <option value="archived" <?php echo ($post['status'] ?? '')=='archived' ? 'selected' : ''; ?>>Archived</option>
           </select>

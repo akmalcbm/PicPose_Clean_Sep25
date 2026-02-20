@@ -81,6 +81,7 @@ include '../../includes/header.php';
           <label>Status</label>
           <select name="status" class="form-control">
             <option value="published">Published</option>
+            <option value="blocked">Blocked</option>
             <option value="draft">Draft</option>
             <option value="archived">Archived</option>
           </select>
