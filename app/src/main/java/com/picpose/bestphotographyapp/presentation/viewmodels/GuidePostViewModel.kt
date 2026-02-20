@@ -5,6 +5,8 @@ import android.text.Html
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
 import com.picpose.bestphotographyapp.data.models.GuideContentBlock
@@ -39,6 +41,8 @@ data class GuidePostUiState(
 class GuidePostViewModel @Inject constructor(
     private val repository: HomeRepository,
     private val deviceIdStore: DeviceIdStore,
+    private val analyticsLogger: AnalyticsLogger,
+    private val crashReporter: CrashReporter,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val viewedInSession = mutableSetOf<String>()
@@ -139,6 +143,7 @@ class GuidePostViewModel @Inject constructor(
                                     _uiState.value.guidePosts + post
                                 }
                             )
+                            analyticsLogger.logGuideView(post.id, post.category)
                             registerGuideView(post.id)
                         },
                         onFailure = { exception ->
@@ -155,6 +160,7 @@ class GuidePostViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                crashReporter.recordUnexpectedNetworkFailure("guide_detail_load", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     blocks = emptyList(),
@@ -232,8 +238,10 @@ class GuidePostViewModel @Inject constructor(
                     isLiked = serverState.isLiked,
                     displayLikes = serverState.likesTotal.coerceAtLeast(0)
                 )
+                analyticsLogger.logGuideLike(guidePostId)
             } catch (e: Exception) {
                 Log.e(TAG, "toggleGuidePostLike: failed", e)
+                crashReporter.recordUnexpectedNetworkFailure("guide_like_toggle", e)
                 val current = _uiState.value
                 val selected = current.selectedGuidePost
                 if (selected != null && selected.id == guidePostId) {
@@ -314,7 +322,9 @@ class GuidePostViewModel @Inject constructor(
                     title = guidePost.title.ifBlank { context.getString(R.string.guide_posts) },
                     chooserTitle = context.getString(R.string.share_guide_via)
                 )
+                analyticsLogger.logShareGuide(guidePost.id)
             } catch (e: Exception) {
+                crashReporter.recordUnexpectedNetworkFailure("guide_share", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: appContext.getString(R.string.error))
             }
         }

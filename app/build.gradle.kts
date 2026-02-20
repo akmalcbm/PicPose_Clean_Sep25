@@ -9,11 +9,23 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 hilt {
     // Keep Hilt aggregating task enabled so generated deps are tracked correctly by KSP.
     enableAggregatingTask = true
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.google.android.gms" &&
+            requested.name.startsWith("play-services-measurement")
+        ) {
+            useVersion("23.0.0")
+            because("Align Measurement artifacts to a single version to avoid duplicate classes")
+        }
+    }
 }
 
 android {
@@ -74,11 +86,13 @@ android {
                 "API_BASE_URL",
                 "\"$apiBaseUrl\""
             )
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
         }
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
             // BuildConfig field is inherited from defaultConfig, but you can override if needed
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "false"
         }
 
     }
@@ -109,6 +123,10 @@ android {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
+    }
+
+    firebaseCrashlytics {
+        mappingFileUploadEnabled = true
     }
 }
 
@@ -162,6 +180,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.play.services.measurement.api)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
@@ -169,6 +188,8 @@ dependencies {
     // Firebase & Authentication
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
     implementation(libs.play.services.auth)
     implementation(libs.google.identity)
     // Firebase Messaging (FCM)

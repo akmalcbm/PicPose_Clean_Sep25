@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -92,6 +94,8 @@ enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
 class ExploreViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
     private val engagementRepository: EngagementRepository,
+    private val analyticsLogger: AnalyticsLogger,
+    private val crashReporter: CrashReporter,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExploreUiState())
@@ -99,6 +103,7 @@ class ExploreViewModel @Inject constructor(
 
     private val allCategoryLabel: String by lazy { appContext.getString(R.string.all) }
     private val _searchQuery = MutableStateFlow("")
+    private var lastTrackedSearchQuery: String? = null
     private var loadContentJob: Job? = null
     private data class LoadSlice<T>(val data: List<T>, val failed: Boolean)
 
@@ -121,6 +126,11 @@ class ExploreViewModel @Inject constructor(
         viewModelScope.launch {
             _searchQuery.debounce(300)
                 .collectLatest { query ->
+                    val normalized = query.trim()
+                    if (normalized.isNotBlank() && normalized != lastTrackedSearchQuery) {
+                        lastTrackedSearchQuery = normalized
+                        analyticsLogger.logSearchPerformed(normalized.length)
+                    }
                     _uiState.update { it.copy(searchQuery = query, currentPage = 1) }
                     loadContent(forceRefresh = true)
                 }
@@ -236,6 +246,7 @@ class ExploreViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadContent error: ${e.message}")
+                crashReporter.recordUnexpectedNetworkFailure("explore_load_content", e)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -470,11 +481,13 @@ class ExploreViewModel @Inject constructor(
                         likes = result.newLikes
                     )
                 }
+                analyticsLogger.logPromptLike(promptId)
 
                 Log.d(TAG, "✅ Like toggled: $promptId, liked: ${result.isLiked}, newLikes: ${result.newLikes}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Failed to toggle like: ${e.message}")
+                crashReporter.recordUnexpectedNetworkFailure("explore_toggle_prompt_like", e)
             }
         }
     }

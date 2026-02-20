@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.database.AppDatabase
 import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
 import com.picpose.bestphotographyapp.data.database.LikedPrompt
@@ -43,7 +44,8 @@ class HomeRepository(
     apiKey: String? = null,
 
     // Limit concurrent API calls (protect backend)
-    private val apiSemaphore: Semaphore = Semaphore(3)
+    private val apiSemaphore: Semaphore = Semaphore(3),
+    private val crashReporter: CrashReporter? = null
 
 ) {
     private val apiService: ApiService = RetrofitClient.apiService
@@ -86,6 +88,7 @@ class HomeRepository(
             }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e // important: propagate cancellation
+            crashReporter?.recordUnexpectedNetworkFailure("home_safe_api_call", e)
             Result.failure(e)
         }
     }
@@ -416,6 +419,7 @@ class HomeRepository(
                         dto.toGuidePost("https://picpose.iamakmal.in/")
                     } catch (e: Exception) {
                         Log.e(TAG, "getGuidePosts: failed to map DTO id=${dto.id}, error: ${e.message}")
+                        crashReporter?.recordParsingFailure("guide_post_dto_map", e)
                         null
                     }
                 }
@@ -480,6 +484,7 @@ class HomeRepository(
             },
             onFailure = { err ->
                 Log.e(TAG, "getGuidePosts: API call failed: ${err.message}")
+                crashReporter?.recordUnexpectedNetworkFailure("get_guide_posts", err)
                 emit(Result.failure(err))
             }
         )
@@ -503,6 +508,7 @@ class HomeRepository(
                 emit(Result.failure(Exception(response.body()?.message ?: "Guide post not found")))
             }
         } catch (e: Exception) {
+            crashReporter?.recordUnexpectedNetworkFailure("get_guide_post_by_id", e)
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)

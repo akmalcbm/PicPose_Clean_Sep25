@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.repository.PromptRepository
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
@@ -56,6 +58,8 @@ class AIPromptViewModel @Inject constructor(
     private val promptRepository: PromptRepository,
     private val api: ApiService,
     private val settingsManager: SettingsManager,
+    private val analyticsLogger: AnalyticsLogger,
+    private val crashReporter: CrashReporter,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -146,11 +150,13 @@ class AIPromptViewModel @Inject constructor(
 
                 // ✅ FIXED: Also update the prompt in promptRepository cache
                 updatePromptInRepositoryCache(id, result.isLiked, result.newLikes)
+                analyticsLogger.logPromptLike(id)
 
                 Log.d(TAG, "✅ Like handled: ${id}, liked: ${result.isLiked}, newLikes: ${result.newLikes}")
 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Failed to handle like: ${e.message}")
+                crashReporter.recordUnexpectedNetworkFailure("prompt_like", e)
             }
         }
     }
@@ -199,6 +205,10 @@ class AIPromptViewModel @Inject constructor(
             // Views should only be updated from server response
             // The displayViews() function will show server views automatically
         }
+    }
+
+    fun logPromptShare(promptId: String) {
+        analyticsLogger.logSharePrompt(promptId)
     }
 
     /* ---------------------------------------------------------------------- */
@@ -522,6 +532,10 @@ class AIPromptViewModel @Inject constructor(
                                 isLoading = false
                             )
                         }
+                        analyticsLogger.logPromptView(
+                            promptId = merged.id,
+                            category = merged.category
+                        )
 
                         merged.category?.let {
                             loadSimilarPrompts(it, merged.id)

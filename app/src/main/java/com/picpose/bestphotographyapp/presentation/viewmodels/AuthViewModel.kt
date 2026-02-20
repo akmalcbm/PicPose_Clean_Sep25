@@ -7,6 +7,8 @@ import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.facebook.CallbackManager
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
@@ -37,6 +39,8 @@ sealed class AuthState {
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userSessionManager: UserSessionManager,
+    private val analyticsLogger: AnalyticsLogger,
+    private val crashReporter: CrashReporter,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -92,6 +96,7 @@ class AuthViewModel @Inject constructor(
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
                 saveAndEmitSuccess(user)
+                analyticsLogger.logLoginSuccess("google")
                 onResult(Result.success(user))
             } else {
                 val msg = result.exceptionOrNull()?.message
@@ -139,6 +144,7 @@ class AuthViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 saveAndEmitSuccess(result.getOrNull()!!)
+                analyticsLogger.logLoginSuccess("facebook")
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.facebook_login_failed))
@@ -207,6 +213,7 @@ class AuthViewModel @Inject constructor(
 
                 if (loginResult.isSuccess) {
                     saveAndEmitSuccess(loginResult.getOrNull()!!)
+                    analyticsLogger.logLoginSuccess("twitter")
                 } else {
                     _authState.value =
                         AuthState.Error(loginResult.exceptionOrNull()?.message ?: appContext.getString(R.string.twitter_login_failed))
@@ -260,6 +267,7 @@ class AuthViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 saveAndEmitSuccess(result.getOrNull()!!)
+                analyticsLogger.logLoginSuccess("password")
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.login_failed))
@@ -274,6 +282,7 @@ class AuthViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 saveAndEmitSuccess(result.getOrNull()!!)
+                analyticsLogger.logSignupSuccess("password")
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.registration_failed))
@@ -287,6 +296,8 @@ class AuthViewModel @Inject constructor(
     fun logout(onDone: (() -> Unit)? = null) {
         viewModelScope.launch {
             authRepository.logout()
+            crashReporter.setUserIdentifier(null)
+            crashReporter.setAccountType("unknown")
             userSessionManager.setSkipAuth(false)
             _authState.value = AuthState.Idle
             onDone?.invoke()
@@ -384,6 +395,8 @@ class AuthViewModel @Inject constructor(
     private fun saveAndEmitSuccess(user: User) {
         viewModelScope.launch {
             saveSession(user)
+            crashReporter.setUserIdentifier(user.id)
+            crashReporter.setAccountType(user.accountType.value)
             _authState.value = AuthState.Success(user)
             _authEvents.emit(AuthState.Success(user))
         }

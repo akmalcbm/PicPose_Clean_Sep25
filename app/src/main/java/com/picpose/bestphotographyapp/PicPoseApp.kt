@@ -11,6 +11,7 @@ import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.messaging.FirebaseMessaging
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
@@ -30,6 +31,9 @@ class PicPoseApp : Application(), ImageLoaderFactory {
     @Inject
     lateinit var adsInitializer: AdsInitializer
 
+    @Inject
+    lateinit var crashReporter: CrashReporter
+
     /**
      * ✅ Application-wide safe coroutine scope
      */
@@ -39,6 +43,9 @@ class PicPoseApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+
+        crashReporter.configureCollection(enabled = !BuildConfig.DEBUG)
+        crashReporter.setAccountType("unknown")
 
         // 🔹 Retrofit cache
         RetrofitClient.initCache(this)
@@ -112,7 +119,10 @@ class PicPoseApp : Application(), ImageLoaderFactory {
 
     private fun syncFcmTokenOnAppStart() {
         applicationScope.launch {
-            val userId = UserSessionManager(this@PicPoseApp).userId.firstOrNull()?.toIntOrNull()
+            val userSessionManager = UserSessionManager(this@PicPoseApp)
+            val userIdRaw = userSessionManager.userId.firstOrNull()
+            val userId = userIdRaw?.toIntOrNull()
+            crashReporter.setUserIdentifier(userIdRaw)
             FcmTokenSyncManager.syncCurrentToken(
                 context = this@PicPoseApp,
                 userId = userId,

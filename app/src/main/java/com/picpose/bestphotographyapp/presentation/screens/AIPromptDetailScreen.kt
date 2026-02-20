@@ -411,6 +411,7 @@ fun AIPromptDetailScreen(
                                         title = prompt.title.ifBlank { context.getString(R.string.ai_prompts) },
                                         chooserTitle = context.getString(R.string.share_prompt_via)
                                     )
+                                    aiPromptViewModel.logPromptShare(prompt.id)
                                 }
                             }
                         }

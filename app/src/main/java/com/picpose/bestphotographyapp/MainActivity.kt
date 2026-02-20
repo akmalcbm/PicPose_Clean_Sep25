@@ -22,6 +22,8 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
 import com.picpose.bestphotographyapp.fcm.PicPoseFirebaseMessagingService
 import com.picpose.bestphotographyapp.presentation.navigation.AppRoot
@@ -31,9 +33,16 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
 import com.picpose.bestphotographyapp.data.datastore.ThemeMode
 import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var analyticsLogger: AnalyticsLogger
+
+    @Inject
+    lateinit var crashReporter: CrashReporter
 
     private lateinit var authViewModel: AuthViewModel
 
@@ -45,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
+        analyticsLogger.logAppOpen()
 
         intent?.data?.let { handleTwitterUri(it) }
         consumeNotificationIntent(intent, source = "onCreate")
@@ -81,6 +91,8 @@ class MainActivity : AppCompatActivity() {
                     AppRoot(
                         activity = this@MainActivity,
                         deepLink = notificationDeepLinkState.value,
+                        analyticsLogger = analyticsLogger,
+                        crashReporter = crashReporter,
                         onHandleNotificationDeepLink = ::handleNotificationDeepLink
                     )
                 }
@@ -204,6 +216,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!deepLink.isNullOrBlank() && signature != lastConsumedSignature) {
             lastConsumedSignature = signature
+            analyticsLogger.logNotificationOpen(deepLinkTypeFromUrl(deepLink))
             notificationDeepLinkState.value = null
             notificationDeepLinkState.value = deepLink
         }
@@ -245,6 +258,16 @@ class MainActivity : AppCompatActivity() {
     private fun handleTwitterUri(uri: Uri) {
         if (uri.toString().startsWith("com.picpose://oauth/twitter_callback")) {
             authViewModel.handleTwitterRedirect(uri)
+        }
+    }
+
+    private fun deepLinkTypeFromUrl(deepLink: String): String {
+        return when {
+            deepLink.startsWith("app://prompts/") -> "prompt"
+            deepLink.startsWith("app://guides/") -> "guide"
+            deepLink.startsWith("app://category/") -> "category"
+            deepLink.startsWith("app://home") -> "home"
+            else -> "unknown"
         }
     }
 }

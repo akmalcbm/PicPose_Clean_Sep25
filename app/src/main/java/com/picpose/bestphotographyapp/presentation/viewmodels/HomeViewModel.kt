@@ -8,6 +8,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
 import com.picpose.bestphotographyapp.data.models.AIPrompt
@@ -96,7 +98,9 @@ enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 class HomeViewModel @Inject constructor (
     @ApplicationContext private val appContext: Context,
     private val repository: HomeRepository,
-    private val engagementRepository: EngagementRepository
+    private val engagementRepository: EngagementRepository,
+    private val analyticsLogger: AnalyticsLogger,
+    private val crashReporter: CrashReporter
     ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -459,6 +463,9 @@ class HomeViewModel @Inject constructor (
         viewModelScope.launch {
 
             val isNowLiked = engagementRepository.toggleLike(postId)
+            if (isNowLiked) {
+                analyticsLogger.logPromptLike(postId)
+            }
 
             _uiState.update { state ->
                 state.copy(
@@ -503,10 +510,12 @@ class HomeViewModel @Inject constructor (
             viewModelScope.launch {
                 try {
                     // repository.recordShare(post.id)
+                    analyticsLogger.logSharePrompt(post.id)
                 } catch (_: Exception) { /* ignore */ }
             }
         } catch (e: Exception) {
             Log.w(TAG, "sharePost failed: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("home_share_prompt", e)
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }
@@ -615,10 +624,12 @@ class HomeViewModel @Inject constructor (
             viewModelScope.launch {
                 try {
                     // repository.recordGuidePostShare(guidePost.id)
+                    analyticsLogger.logShareGuide(guidePost.id)
                 } catch (_: Exception) { /* ignore */ }
             }
         } catch (e: Exception) {
             Log.w(TAG, "shareGuidePost failed: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("home_share_guide", e)
             _uiState.value = _uiState.value.copy(guideError = e.message)
         }
     }

@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.di
 
 import android.content.Context
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
 import com.picpose.bestphotographyapp.data.network.ApiService
 import com.picpose.bestphotographyapp.data.network.AdsApiService
@@ -81,10 +82,12 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideHomeRepository(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        crashReporter: CrashReporter
     ): HomeRepository {
         return HomeRepository(
-            context = context
+            context = context,
+            crashReporter = crashReporter
         )
     }
 

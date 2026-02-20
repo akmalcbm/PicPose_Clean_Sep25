@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toFile
+import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.DeleteAccountRequest
@@ -30,7 +31,8 @@ import kotlin.io.path.createTempFile
 @Singleton
 class AuthRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val crashReporter: CrashReporter
 ) {
 
     private val TAG = "AuthRepository"
@@ -62,6 +64,7 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Login exception: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_login", e)
             Result.failure(e)
         }
     }
@@ -89,6 +92,7 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Register exception: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_register", e)
             Result.failure(e)
         }
     }
@@ -132,6 +136,7 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Social login error: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_social_login", e)
             Result.failure(e)
         }
     }
@@ -164,6 +169,7 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Profile fetch exception: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_profile_fetch", e)
             Result.failure(e)
         }
     }
@@ -220,6 +226,7 @@ class AuthRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Profile update exception: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_profile_update", e)
             Result.failure(e)
         }
     }
@@ -253,6 +260,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Delete account exception: ${e.message}")
+            crashReporter.recordUnexpectedNetworkFailure("auth_delete_account", e)
             Result.failure(e)
         }
     }
@@ -276,6 +284,7 @@ class AuthRepository @Inject constructor(
             if (raw == null) fallback ?: "Unknown error"
             else JSONObject(raw).optString("message", fallback ?: "Unknown error")
         } catch (e: Exception) {
+            crashReporter.recordParsingFailure("auth_error_body", e)
             fallback ?: "Server error"
         }
     }
@@ -285,10 +294,15 @@ class AuthRepository @Inject constructor(
             try {
                 uri.toFile()
             } catch (e: Exception) {
-                val input = context.contentResolver.openInputStream(uri)
-                val file = createTempFile("upload_", ".jpg").toFile()
-                input?.use { it.copyTo(file.outputStream()) }
-                file
+                runCatching {
+                    val input = context.contentResolver.openInputStream(uri)
+                    val file = createTempFile("upload_", ".jpg").toFile()
+                    input?.use { it.copyTo(file.outputStream()) }
+                    file
+                }.getOrElse { fallbackError ->
+                    crashReporter.recordImageUploadFailure("profile_image_prepare", fallbackError)
+                    throw fallbackError
+                }
             }
         }
     }
