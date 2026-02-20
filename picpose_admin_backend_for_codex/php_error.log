@@ -1,0 +1,276 @@
+[15-Feb-2026 13:42:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:42:20 UTC] [2026-02-15T13:42:20+00:00] Uncaught Exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/index.php(59): require('/home/u85698706...')
+#2 {main}
+
+[15-Feb-2026 13:42:32 UTC] [2026-02-15T13:42:32+00:00] Uncaught Exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/index.php(59): require('/home/u85698706...')
+#2 {main}
+
+[15-Feb-2026 13:43:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_daily_tips.php(6): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_categories.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/guide_posts/get_guide_posts.php(3): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_post_by_trends.php(5): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_daily_tips.php(6): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_post_by_trends.php(5): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/guide_posts/get_guide_posts.php(3): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_categories.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:26 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_daily_tips.php(6): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_post_by_trends.php(5): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_categories.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/guide_posts/get_guide_posts.php(3): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:29 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_daily_tips.php(6): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:29 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_categories.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:29 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_post_by_trends.php(5): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/guide_posts/get_guide_posts.php(3): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/api/ai_posts/get_ai_posts.php(7): require('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:44:49 UTC] [2026-02-15T13:44:49+00:00] Uncaught Exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/index.php(59): require('/home/u85698706...')
+#2 {main}
+
+[15-Feb-2026 13:44:50 UTC] [2026-02-15T13:44:50+00:00] Uncaught Exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/index.php(59): require('/home/u85698706...')
+#2 {main}
+
+[15-Feb-2026 13:44:51 UTC] [2026-02-15T13:44:51+00:00] Uncaught Exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/index.php(59): require('/home/u85698706...')
+#2 {main}
+
+[15-Feb-2026 13:45:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:46:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:47:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:48:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:49:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:50:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:51:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:52:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[15-Feb-2026 13:53:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u856987069_picpose_un'@'localhost' (using password: YES) in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php:42
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php(42): mysqli->__construct()
+#1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
+#2 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42

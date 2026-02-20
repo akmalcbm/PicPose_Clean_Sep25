@@ -33,7 +33,7 @@ ini_set('error_log', __DIR__ . '/php_error.log');
    ======================= */
 $db_host = "localhost";
 $db_user = "u856987069_picpose_un";
-$db_pass = "w8Qm&y>aR*?";
+$db_pass = "@ks@M2025";
 $db_name = "u856987069_picpose_dbn";
 
 /* =======================
