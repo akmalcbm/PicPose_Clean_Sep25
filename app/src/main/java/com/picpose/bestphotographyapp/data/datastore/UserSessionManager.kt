@@ -26,6 +26,7 @@ class UserSessionManager(private val context: Context) {
         private val USER_PROFILE_PICTURE_KEY = stringPreferencesKey("user_profile_picture")
         private val USER_BIO_KEY = stringPreferencesKey("user_bio")  // nullable allowed
         private val USER_TOKEN_KEY = stringPreferencesKey("user_token")
+        private val USER_EMAIL_VERIFIED_KEY = booleanPreferencesKey("user_email_verified")
 
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
         private val HAS_SKIPPED_AUTH_KEY = booleanPreferencesKey("has_skipped_auth")
@@ -66,6 +67,10 @@ class UserSessionManager(private val context: Context) {
         it[USER_TOKEN_KEY]
     }
 
+    val userEmailVerified: Flow<Boolean> = context.userDataStore.data.safeMap {
+        it[USER_EMAIL_VERIFIED_KEY] ?: false
+    }
+
     /**
      * Save session after login or profile update
      * Empty bio is intentionally NOT saved (null stays null)
@@ -76,7 +81,8 @@ class UserSessionManager(private val context: Context) {
         name: String,
         profilePicture: String? = null,
         bio: String? = null,     // store real only
-        token: String? = null
+        token: String? = null,
+        emailVerified: Boolean = false
     ) {
         context.userDataStore.edit { prefs ->
 
@@ -94,6 +100,7 @@ class UserSessionManager(private val context: Context) {
             }
 
             token?.let { prefs[USER_TOKEN_KEY] = it }
+            prefs[USER_EMAIL_VERIFIED_KEY] = emailVerified
 
             prefs[IS_LOGGED_IN_KEY] = true
             prefs[HAS_SKIPPED_AUTH_KEY] = false
@@ -142,6 +149,7 @@ class UserSessionManager(private val context: Context) {
             prefs.clear()
             prefs[PRIVACY_TERMS_ACCEPTED_KEY] = acceptedPrivacyTerms
             prefs[HAS_SKIPPED_AUTH_KEY] = false
+            prefs[USER_EMAIL_VERIFIED_KEY] = false
         }
     }
 }

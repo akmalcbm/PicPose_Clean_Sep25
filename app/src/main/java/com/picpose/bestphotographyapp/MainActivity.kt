@@ -56,7 +56,11 @@ class MainActivity : AppCompatActivity() {
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
         analyticsLogger.logAppOpen()
 
-        intent?.data?.let { handleTwitterUri(it) }
+        intent?.data?.let {
+            if (!handleAuthUri(it)) {
+                handleTwitterUri(it)
+            }
+        }
         consumeNotificationIntent(intent, source = "onCreate")
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -107,6 +111,24 @@ class MainActivity : AppCompatActivity() {
         val normalized = deepLink.trim()
 
         when {
+            normalized.startsWith("app://reset-password?token=") -> {
+                val token = normalized.substringAfter("token=", "")
+                if (token.isNotBlank()) {
+                    navController.navigate(Screen.ResetPassword.createRoute(Uri.encode(token))) {
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            normalized.startsWith("app://verify-email?token=") -> {
+                val token = normalized.substringAfter("token=", "")
+                if (token.isNotBlank()) {
+                    navController.navigate(Screen.VerifyEmail.createRoute(Uri.encode(token))) {
+                        launchSingleTop = true
+                    }
+                }
+            }
+
             normalized == "app://home" || normalized == "app://home/" -> {
                 navController.navigate(Screen.Home.route) {
                     launchSingleTop = true
@@ -147,6 +169,26 @@ class MainActivity : AppCompatActivity() {
 
         intent.dataString?.takeIf { it.startsWith("app://") }?.let {
             return it
+        }
+
+        intent.data?.let { uri ->
+            val uriString = uri.toString()
+            if (uriString.startsWith("picpose://reset-password")) {
+                val token = uri.getQueryParameter("token")
+                if (!token.isNullOrBlank()) return "app://reset-password?token=$token"
+            }
+            if (uriString.startsWith("picpose://verify-email")) {
+                val token = uri.getQueryParameter("token")
+                if (!token.isNullOrBlank()) return "app://verify-email?token=$token"
+            }
+            if (uriString.contains("/reset-password")) {
+                val token = uri.getQueryParameter("token")
+                if (!token.isNullOrBlank()) return "app://reset-password?token=$token"
+            }
+            if (uriString.contains("/verify-email")) {
+                val token = uri.getQueryParameter("token")
+                if (!token.isNullOrBlank()) return "app://verify-email?token=$token"
+            }
         }
 
         val deeplinkAlias = intent.getStringExtra(PicPoseFirebaseMessagingService.EXTRA_DEEPLINK_ALIAS)
@@ -246,6 +288,9 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
 
         intent.data?.let { uri ->
+            if (handleAuthUri(uri)) {
+                return
+            }
             if (uri.toString().startsWith("com.picpose://oauth/twitter_callback")) {
                 authViewModel.handleTwitterRedirect(uri)
                 return
@@ -261,11 +306,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleAuthUri(uri: Uri): Boolean {
+        val uriString = uri.toString()
+        val token = uri.getQueryParameter("token")
+
+        if (token.isNullOrBlank()) return false
+
+        if (uriString.startsWith("picpose://reset-password") || uriString.contains("/reset-password")) {
+            notificationDeepLinkState.value = "app://reset-password?token=$token"
+            return true
+        }
+
+        if (uriString.startsWith("picpose://verify-email") || uriString.contains("/verify-email")) {
+            notificationDeepLinkState.value = "app://verify-email?token=$token"
+            return true
+        }
+
+        return false
+    }
+
     private fun deepLinkTypeFromUrl(deepLink: String): String {
         return when {
             deepLink.startsWith("app://prompts/") -> "prompt"
             deepLink.startsWith("app://guides/") -> "guide"
             deepLink.startsWith("app://category/") -> "category"
+            deepLink.startsWith("app://reset-password") -> "reset_password"
+            deepLink.startsWith("app://verify-email") -> "verify_email"
             deepLink.startsWith("app://home") -> "home"
             else -> "unknown"
         }

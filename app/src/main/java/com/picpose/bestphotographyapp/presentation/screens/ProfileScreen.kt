@@ -43,6 +43,7 @@ import com.picpose.bestphotographyapp.presentation.navigation.Screen
 import com.picpose.bestphotographyapp.presentation.components.common.ShimmerBox
 import com.picpose.bestphotographyapp.presentation.viewmodels.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
+import com.picpose.bestphotographyapp.presentation.viewmodels.OperationState
 import com.picpose.bestphotographyapp.presentation.viewmodels.StatsViewModel
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -64,6 +65,7 @@ fun ProfileScreen(
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val emailVerificationState by authViewModel.emailVerificationRequestState.collectAsState()
     val context = LocalContext.current
 
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -166,6 +168,54 @@ fun ProfileScreen(
                     ),
                     onClick = { onNavigateToEditProfile() }
                 )
+            }
+
+            if (isLoggedIn) {
+                item {
+                    SectionHeader(stringResource(R.string.email_verification))
+                }
+
+                item {
+                    val verified = currentUser?.isEmailVerified == true
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = if (verified) stringResource(R.string.email_verified_label) else stringResource(R.string.email_not_verified_label),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (!verified) {
+                                OutlinedButton(
+                                    onClick = { authViewModel.requestEmailVerification() }
+                                ) {
+                                    Text(stringResource(R.string.resend_verification_link))
+                                }
+                            }
+                            when (val state = emailVerificationState) {
+                                is OperationState.Success -> {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = state.message,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                is OperationState.Error -> {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = state.message,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                else -> Unit
+                            }
+                        }
+                    }
+                }
             }
 
             // ------------------------

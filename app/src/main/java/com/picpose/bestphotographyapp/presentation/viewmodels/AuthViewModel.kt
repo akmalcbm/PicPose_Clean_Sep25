@@ -35,6 +35,13 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
+sealed class OperationState {
+    object Idle : OperationState()
+    object Loading : OperationState()
+    data class Success(val message: String) : OperationState()
+    data class Error(val message: String) : OperationState()
+}
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
@@ -242,7 +249,7 @@ class AuthViewModel @Inject constructor(
     val hasAcceptedPrivacyTerms = userSessionManager.hasAcceptedPrivacyTerms
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val currentUser: StateFlow<User?> = combine(
+    private val baseCurrentUserFlow = combine(
         userSessionManager.userId,
         userSessionManager.userEmail,
         userSessionManager.userName,
@@ -250,12 +257,33 @@ class AuthViewModel @Inject constructor(
         userSessionManager.userBio
     ) { id, email, name, pic, bio ->
         if (!id.isNullOrBlank() && !email.isNullOrBlank() && !name.isNullOrBlank()) {
-            User(id, email, name, profilePicture = pic, bio = bio)
+            User(
+                id = id,
+                email = email,
+                nameRaw = name,
+                profilePicture = pic,
+                bio = bio
+            )
         } else null
+    }
+
+    val currentUser: StateFlow<User?> = combine(
+        baseCurrentUserFlow,
+        userSessionManager.userEmailVerified
+    ) { user, emailVerified ->
+        user?.copy(emailVerified = if (emailVerified) 1 else 0)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _authEvents = MutableSharedFlow<AuthState>()
     val authEvents = _authEvents.asSharedFlow()
+    private val _passwordResetRequestState = MutableStateFlow<OperationState>(OperationState.Idle)
+    val passwordResetRequestState: StateFlow<OperationState> = _passwordResetRequestState.asStateFlow()
+    private val _resetPasswordState = MutableStateFlow<OperationState>(OperationState.Idle)
+    val resetPasswordState: StateFlow<OperationState> = _resetPasswordState.asStateFlow()
+    private val _emailVerificationRequestState = MutableStateFlow<OperationState>(OperationState.Idle)
+    val emailVerificationRequestState: StateFlow<OperationState> = _emailVerificationRequestState.asStateFlow()
+    private val _verifyEmailTokenState = MutableStateFlow<OperationState>(OperationState.Idle)
+    val verifyEmailTokenState: StateFlow<OperationState> = _verifyEmailTokenState.asStateFlow()
 
     // ----------------------------------------
     // EMAIL + PASSWORD LOGIN
@@ -286,6 +314,69 @@ class AuthViewModel @Inject constructor(
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.registration_failed))
+            }
+        }
+    }
+
+    fun requestPasswordReset(email: String) {
+        viewModelScope.launch {
+            _passwordResetRequestState.value = OperationState.Loading
+            val result = authRepository.requestPasswordReset(email.trim())
+            _passwordResetRequestState.value = if (result.isSuccess) {
+                OperationState.Success(result.getOrNull() ?: appContext.getString(R.string.reset_password_email_sent_generic))
+            } else {
+                OperationState.Error(
+                    result.exceptionOrNull()?.message ?: appContext.getString(R.string.network_error_try_again)
+                )
+            }
+        }
+    }
+
+    fun resetPassword(token: String, newPassword: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = OperationState.Loading
+            val result = authRepository.resetPassword(token, newPassword)
+            _resetPasswordState.value = if (result.isSuccess) {
+                OperationState.Success(result.getOrNull() ?: appContext.getString(R.string.password_reset_success))
+            } else {
+                OperationState.Error(
+                    result.exceptionOrNull()?.message ?: appContext.getString(R.string.reset_token_invalid_or_expired)
+                )
+            }
+        }
+    }
+
+    fun requestEmailVerification() {
+        viewModelScope.launch {
+            val userId = userSessionManager.userId.firstOrNull()
+            if (userId.isNullOrBlank()) {
+                _emailVerificationRequestState.value = OperationState.Error(appContext.getString(R.string.not_logged_in))
+                return@launch
+            }
+            _emailVerificationRequestState.value = OperationState.Loading
+            val result = authRepository.requestEmailVerification(userId)
+            _emailVerificationRequestState.value = if (result.isSuccess) {
+                OperationState.Success(result.getOrNull() ?: appContext.getString(R.string.verification_email_sent))
+            } else {
+                OperationState.Error(
+                    result.exceptionOrNull()?.message ?: appContext.getString(R.string.network_error_try_again)
+                )
+            }
+        }
+    }
+
+    fun verifyEmailToken(token: String, onDone: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            _verifyEmailTokenState.value = OperationState.Loading
+            val result = authRepository.verifyEmailToken(token)
+            _verifyEmailTokenState.value = if (result.isSuccess) {
+                fetchCurrentUser()
+                onDone?.invoke()
+                OperationState.Success(result.getOrNull() ?: appContext.getString(R.string.email_verification_success))
+            } else {
+                OperationState.Error(
+                    result.exceptionOrNull()?.message ?: appContext.getString(R.string.email_verification_invalid_or_expired)
+                )
             }
         }
     }
@@ -337,6 +428,22 @@ class AuthViewModel @Inject constructor(
 
     fun resetAuthState() {
         _authState.value = AuthState.Idle
+    }
+
+    fun resetPasswordResetRequestState() {
+        _passwordResetRequestState.value = OperationState.Idle
+    }
+
+    fun resetResetPasswordState() {
+        _resetPasswordState.value = OperationState.Idle
+    }
+
+    fun resetEmailVerificationRequestState() {
+        _emailVerificationRequestState.value = OperationState.Idle
+    }
+
+    fun resetVerifyEmailTokenState() {
+        _verifyEmailTokenState.value = OperationState.Idle
     }
 
     fun setPrivacyTermsAccepted(accepted: Boolean = true) {
@@ -410,7 +517,8 @@ class AuthViewModel @Inject constructor(
                 name = user.displayName,
                 profilePicture = user.displayProfilePicture,
                 bio = user.bio,
-                token = null
+                token = null,
+                emailVerified = user.isEmailVerified
             )
         }
     }
@@ -422,10 +530,20 @@ class AuthViewModel @Inject constructor(
             val name = userSessionManager.userName.firstOrNull()
             val pic = userSessionManager.userProfilePicture.firstOrNull()
             val bio = userSessionManager.userBio.firstOrNull()
+            val emailVerified = userSessionManager.userEmailVerified.firstOrNull() ?: false
 
             if (!id.isNullOrBlank() && !email.isNullOrBlank() && !name.isNullOrBlank()) {
                 _authState.value =
-                    AuthState.Success(User(id, email, name, profilePicture = pic, bio = bio))
+                    AuthState.Success(
+                        User(
+                            id = id,
+                            email = email,
+                            nameRaw = name,
+                            profilePicture = pic,
+                            bio = bio,
+                            emailVerified = if (emailVerified) 1 else 0
+                        )
+                    )
             }
         }
     }

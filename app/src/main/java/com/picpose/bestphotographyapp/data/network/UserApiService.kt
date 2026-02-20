@@ -2,9 +2,13 @@ package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.AuthResponse
 import com.picpose.bestphotographyapp.data.models.DeleteAccountRequest
+import com.picpose.bestphotographyapp.data.models.ForgotPasswordRequest
 import com.picpose.bestphotographyapp.data.models.LoginRequest
+import com.picpose.bestphotographyapp.data.models.RequestEmailVerificationRequest
 import com.picpose.bestphotographyapp.data.models.RegisterRequest
+import com.picpose.bestphotographyapp.data.models.ResetPasswordRequest
 import com.picpose.bestphotographyapp.data.models.SocialAuthData
+import com.picpose.bestphotographyapp.data.models.VerifyEmailTokenRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -78,6 +82,30 @@ interface UserApiService {
     suspend fun deleteAccount(
         @Query("action") action: String = "delete_account",
         @Body request: DeleteAccountRequest,
+        @Header("X-API-Key") apiKey: String? = null
+    ): Response<AuthResponse>
+
+    @POST("api/auth/request_password_reset.php")
+    suspend fun requestPasswordReset(
+        @Body request: ForgotPasswordRequest,
+        @Header("X-API-Key") apiKey: String? = null
+    ): Response<AuthResponse>
+
+    @POST("api/auth/reset_password.php")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordRequest,
+        @Header("X-API-Key") apiKey: String? = null
+    ): Response<AuthResponse>
+
+    @POST("api/auth/request_email_verification.php")
+    suspend fun requestEmailVerification(
+        @Body request: RequestEmailVerificationRequest,
+        @Header("X-API-Key") apiKey: String? = null
+    ): Response<AuthResponse>
+
+    @POST("api/auth/verify_email_token.php")
+    suspend fun verifyEmailToken(
+        @Body request: VerifyEmailTokenRequest,
         @Header("X-API-Key") apiKey: String? = null
     ): Response<AuthResponse>
 }

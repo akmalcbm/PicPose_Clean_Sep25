@@ -8,10 +8,14 @@ import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.data.models.DeleteAccountRequest
+import com.picpose.bestphotographyapp.data.models.ForgotPasswordRequest
 import com.picpose.bestphotographyapp.data.models.LoginRequest
+import com.picpose.bestphotographyapp.data.models.RequestEmailVerificationRequest
 import com.picpose.bestphotographyapp.data.models.RegisterRequest
+import com.picpose.bestphotographyapp.data.models.ResetPasswordRequest
 import com.picpose.bestphotographyapp.data.models.SocialAuthData
 import com.picpose.bestphotographyapp.data.models.User
+import com.picpose.bestphotographyapp.data.models.VerifyEmailTokenRequest
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.network.UserApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -265,6 +269,78 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun requestPasswordReset(email: String): Result<String> {
+        return try {
+            val response = userApi.requestPasswordReset(
+                request = ForgotPasswordRequest(email = email),
+                apiKey = API_KEY
+            )
+            val body = response.body()
+            if (response.isSuccessful) {
+                Result.success(body?.message ?: "If an account exists, you'll receive instructions.")
+            } else {
+                Result.failure(Exception(safeServerError(response.errorBody()?.string(), body?.message)))
+            }
+        } catch (e: Exception) {
+            crashReporter.recordUnexpectedNetworkFailure("auth_request_password_reset", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun resetPassword(token: String, newPassword: String): Result<String> {
+        return try {
+            val response = userApi.resetPassword(
+                request = ResetPasswordRequest(token = token, newPassword = newPassword),
+                apiKey = API_KEY
+            )
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true) {
+                Result.success(body.message ?: "Password reset successful.")
+            } else {
+                Result.failure(Exception(safeServerError(response.errorBody()?.string(), body?.message)))
+            }
+        } catch (e: Exception) {
+            crashReporter.recordUnexpectedNetworkFailure("auth_reset_password", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun requestEmailVerification(userId: String): Result<String> {
+        return try {
+            val response = userApi.requestEmailVerification(
+                request = RequestEmailVerificationRequest(userId = userId),
+                apiKey = API_KEY
+            )
+            val body = response.body()
+            if (response.isSuccessful) {
+                Result.success(body?.message ?: "Verification email sent.")
+            } else {
+                Result.failure(Exception(safeServerError(response.errorBody()?.string(), body?.message)))
+            }
+        } catch (e: Exception) {
+            crashReporter.recordUnexpectedNetworkFailure("auth_request_email_verification", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifyEmailToken(token: String): Result<String> {
+        return try {
+            val response = userApi.verifyEmailToken(
+                request = VerifyEmailTokenRequest(token = token),
+                apiKey = API_KEY
+            )
+            val body = response.body()
+            if (response.isSuccessful && body?.isSuccessful() == true) {
+                Result.success(body.message ?: "Email verified successfully.")
+            } else {
+                Result.failure(Exception(safeServerError(response.errorBody()?.string(), body?.message)))
+            }
+        } catch (e: Exception) {
+            crashReporter.recordUnexpectedNetworkFailure("auth_verify_email_token", e)
+            Result.failure(e)
+        }
+    }
+
     // ---------------------------------------------------------
     // HELPERS
     // ---------------------------------------------------------
@@ -272,11 +348,12 @@ class AuthRepository @Inject constructor(
         userSessionManager.saveUserSession(
             userId = user.id,
             email = user.email,
-            name = user.displayName,
-            profilePicture = user.displayProfilePicture,
-            bio = user.bio,
-            token = token
-        )
+                name = user.displayName,
+                profilePicture = user.displayProfilePicture,
+                bio = user.bio,
+                token = token,
+                emailVerified = user.isEmailVerified
+            )
     }
 
     private fun safeServerError(raw: String?, fallback: String?): String {

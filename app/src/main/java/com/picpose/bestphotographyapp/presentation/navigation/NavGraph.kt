@@ -254,12 +254,54 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                         launchSingleTop = true
                     }
                 },
+                onNavigateToForgotPassword = {
+                    navController.navigate(Screen.ForgotPassword.route) { launchSingleTop = true }
+                },
                 onNavigateToPrivacy = {
                     navController.navigate(Screen.Privacy.route) { launchSingleTop = true }
                 },
                 onNavigateToTerms = {
                     navController.navigate(Screen.Terms.route) { launchSingleTop = true }
                 },
+            )
+        }
+
+        composable(route = Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.ResetPassword.route,
+            arguments = listOf(navArgument("token") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token").orEmpty()
+            ResetPasswordScreen(
+                token = token,
+                onBack = { navController.popBackStack() },
+                onResetSuccessNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.id) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.VerifyEmail.route,
+            arguments = listOf(navArgument("token") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token").orEmpty()
+            VerifyEmailScreen(
+                token = token,
+                onBack = { navController.popBackStack() },
+                onGoToProfile = {
+                    navController.navigate(Screen.Profile.route) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 

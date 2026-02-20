@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     onNavigateToTerms: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
@@ -168,6 +169,15 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            if (isLoginMode) {
+                TextButton(
+                    onClick = onNavigateToForgotPassword,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(stringResource(R.string.forgot_password))
+                }
+            }
 
             Spacer(Modifier.height(12.dp))
 

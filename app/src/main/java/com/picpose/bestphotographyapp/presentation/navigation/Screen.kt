@@ -7,6 +7,15 @@ sealed class Screen(val route: String) {
     // 🔹 Core App Screens
     object Splash : Screen("splash")
     object Login : Screen("login")
+    object ForgotPassword : Screen("forgot_password")
+    object ResetPassword : Screen("reset_password/{token}") {
+        private const val BASE = "reset_password"
+        fun createRoute(token: String) = "$BASE/$token"
+    }
+    object VerifyEmail : Screen("verify_email/{token}") {
+        private const val BASE = "verify_email"
+        fun createRoute(token: String) = "$BASE/$token"
+    }
     object Home : Screen("home")
     object Explore : Screen("explore")
     object Create : Screen("create")

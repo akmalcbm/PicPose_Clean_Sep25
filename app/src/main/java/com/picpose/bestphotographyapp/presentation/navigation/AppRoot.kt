@@ -26,7 +26,12 @@ import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.presentation.components.BottomNavigationBar
 
-private val authRoutes = setOf(Screen.Login.route)
+private val authRoutes = setOf(
+    Screen.Login.route,
+    Screen.ForgotPassword.route,
+    Screen.ResetPassword.route,
+    Screen.VerifyEmail.route
+)
 private val mainBottomBarRoutes = setOf(Screen.Home.route, Screen.Create.route, Screen.Explore.route, Screen.Rewards.route, Screen.Profile.route)
 
 @Composable

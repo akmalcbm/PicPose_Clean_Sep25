@@ -542,4 +542,27 @@
     <string name="no_categories_available_yet">لا توجد فئات متاحة حتى الآن.</string>
     <string name="no_recent_posts_available_yet">لا توجد منشورات حديثة حتى الآن.</string>
     <string name="no_guides_available_yet">لا توجد أدلة متاحة حتى الآن.</string>
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="enter_email_for_reset">Enter your email to receive reset instructions.</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="reset_password_email_sent_generic">If an account exists, instructions will be sent.</string>
+    <string name="network_error_try_again">Network error. Please try again.</string>
+    <string name="reset_password_title">Reset Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="password_strength_error">Use at least 8 characters with letters and numbers.</string>
+    <string name="passwords_do_not_match">Passwords do not match.</string>
+    <string name="reset_password_cta">Reset password</string>
+    <string name="reset_token_invalid_or_expired">Invalid or expired reset link.</string>
+    <string name="password_reset_success">Password reset successful. Please login again.</string>
+    <string name="verify_email">Verify Email</string>
+    <string name="verifying_email">Verifying your email...</string>
+    <string name="go_to_profile">Go to Profile</string>
+    <string name="verification_email_sent">Verification link sent.</string>
+    <string name="email_verification_success">Email verified successfully.</string>
+    <string name="email_verification_invalid_or_expired">Verification link is invalid or expired.</string>
+    <string name="email_verification">Email Verification</string>
+    <string name="email_verified_label">Verified</string>
+    <string name="email_not_verified_label">Not verified</string>
+    <string name="resend_verification_link">Resend verification link</string>
 </resources>

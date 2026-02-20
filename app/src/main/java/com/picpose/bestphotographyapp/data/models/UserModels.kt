@@ -46,12 +46,20 @@ data class User(
     @SerializedName("created_at")
     val createdAt: String? = null,
 
+    @SerializedName("email_verified")
+    val emailVerified: Int? = 0,
+
+    @SerializedName("email_verified_at")
+    val emailVerifiedAt: String? = null,
+
     @SerializedName("account_type")
     val accountType: AccountType = AccountType.NORMAL,
 
     @SerializedName("role")
     val role: UserRole = UserRole.USER
 ) {
+    val isEmailVerified: Boolean
+        get() = (emailVerified ?: 0) == 1
 
     /**
      * Unified safe display name
@@ -148,6 +156,23 @@ data class RegisterRequest(
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String,
     @SerializedName("name") val name: String
+)
+
+data class ForgotPasswordRequest(
+    @SerializedName("email") val email: String
+)
+
+data class ResetPasswordRequest(
+    @SerializedName("token") val token: String,
+    @SerializedName("new_password") val newPassword: String
+)
+
+data class VerifyEmailTokenRequest(
+    @SerializedName("token") val token: String
+)
+
+data class RequestEmailVerificationRequest(
+    @SerializedName("user_id") val userId: String
 )
 
 /**
