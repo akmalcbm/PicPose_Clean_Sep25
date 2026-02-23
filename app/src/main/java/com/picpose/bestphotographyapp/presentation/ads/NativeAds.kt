@@ -52,7 +52,7 @@ fun AdBadge(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                 shape = RoundedCornerShape(8.dp)
             )
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 6.dp, vertical = 3.dp)
     ) {
         Text(
             text = androidx.compose.ui.res.stringResource(R.string.sponsored),
@@ -95,7 +95,7 @@ fun LargeNativeAdCard(
     modifier: Modifier = Modifier
 ) {
     if (nativeAd == null) {
-        NativeAdShimmer(modifier.height(180.dp).padding(top = 8.dp), corner = 14)
+        NativeAdShimmer(modifier.height(180.dp).padding(top = 1.dp), corner = 14)
         return
     }
 
@@ -124,12 +124,12 @@ fun LargeNativeAdCard(
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
-            AdBadge(modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 6.dp))
+            AdBadge(modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 6.dp))
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 1.dp, bottom = 6.dp),
                 factory = { context ->
 
                     val adView = NativeAdView(context)
@@ -155,6 +155,8 @@ fun LargeNativeAdCard(
                     setTypeface(null, Typeface.BOLD)
                     setTextColor(headlineColor)
                     maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    //includeFontPadding = false
                 }
 
                 /** Body */
@@ -162,6 +164,8 @@ fun LargeNativeAdCard(
                     textSize = 14f
                     setTextColor(bodyColor)
                     maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    //includeFontPadding = false
                 }
 
                 /** Advertiser */
@@ -169,34 +173,15 @@ fun LargeNativeAdCard(
                     textSize = 12f
                     setTypeface(null, Typeface.ITALIC)
                     setTextColor(advertiserColor)
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
 
                 /** CTA (Clean, Flat, Compose-like) */
                 val cta = Button(context).apply {
-                    isAllCaps = false
-                    textSize = 14f
-                    typeface = Typeface.DEFAULT_BOLD
-
-                    // 🎯 App primary color
-                    backgroundTintList = ColorStateList.valueOf(ctaBgColor)
-                    setTextColor(ctaTextColor)
-
-                    // ❌ Remove default shadow / elevation
-                    elevation = 0f
-                    stateListAnimator = null
-
-                    // ✨ Rounded corners
-                    clipToOutline = true
-                    outlineProvider = roundedOutline(14f, context)
-
-                    // 📐 Clean padding (Compose-like)
-                    setPadding(
-                        16.toPx(context),
-                        12.toPx(context),
-                        16.toPx(context),
-                        12.toPx(context)
-                    )
+                    stylePrimaryCta(context, ctaBgColor, ctaTextColor, radiusDp = 14f)
                 }
 
                 /** ✅ ADD MARGIN TOP (6–8dp) */
@@ -269,6 +254,8 @@ fun LargeNativeAdCardForGrid(
     val headlineColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val advertiserColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val ctaBgColor = MaterialTheme.colorScheme.primary.toArgb()
+    val ctaTextColor = MaterialTheme.colorScheme.onPrimary.toArgb()
     val fade = remember { Animatable(0f) }
     LaunchedEffect(nativeAd) { fade.animateTo(1f, tween(320)) }
 
@@ -285,12 +272,12 @@ fun LargeNativeAdCardForGrid(
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
-            AdBadge(modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 6.dp))
+            AdBadge(modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 2.dp))
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                    .padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 4.dp),
                 factory = { context ->
 
                     val adView = NativeAdView(context)
@@ -312,29 +299,46 @@ fun LargeNativeAdCardForGrid(
 
                 /** Headline */
                 val headline = TextView(context).apply {
-                    textSize = 17f
+                    textSize = 15f
                     setTypeface(null, Typeface.BOLD)
                     setTextColor(headlineColor)
                     maxLines = 2
-
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    //includeFontPadding = false
                 }
 
                 /** Body */
                 val body = TextView(context).apply {
-                    textSize = 14f
+                    textSize = 12f
                     setTextColor(bodyColor)
-                    maxLines = 3
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
                 /** Advertiser */
                 val advertiser = TextView(context).apply {
-                    textSize = 12f
+                    textSize = 11f
                     setTypeface(null, Typeface.ITALIC)
                     setTextColor(advertiserColor)
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
                 /** CTA */
-                val cta = Button(context).apply { isAllCaps = false }
+                val cta = Button(context).apply {
+                    stylePrimaryCta(context, ctaBgColor, ctaTextColor, radiusDp = 12f, horizontalDp = 12, verticalDp = 8)
+                    textSize = 12f
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }
+                cta.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = 4.toPx(context)
+                }
 
                 /** Add content */
                 root.apply {
@@ -458,6 +462,7 @@ fun InlineNativeAdCard(
                     setTextColor(headlineColor)   // 🎨 Adaptive
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
                 val body = TextView(context).apply {
@@ -465,18 +470,21 @@ fun InlineNativeAdCard(
                     setTextColor(bodyColor)       // 🎨 Adaptive
                     maxLines = 2
                     ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
                 val advertiser = TextView(context).apply {
                     textSize = 12f
                     setTypeface(null, Typeface.ITALIC)
                     setTextColor(advertiserColor) // 🎨 Adaptive
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
                 }
 
                 val cta = Button(context).apply {
-                    isAllCaps = false
-                    setTextColor(ctaTextColor)  // 🔥 Auto Color
-                    backgroundTintList = ColorStateList.valueOf(ctaBackground)
+                    stylePrimaryCta(context, ctaBackground, ctaTextColor, radiusDp = 12f, horizontalDp = 12, verticalDp = 8)
+                    textSize = 13f
                 }
 
                 textColumn.addView(headline)
@@ -562,3 +570,27 @@ private fun roundedOutline(radiusDp: Float, context: Context) =
 
 private fun Int.toPx(context: Context): Int =
     (this * context.resources.displayMetrics.density).toInt()
+
+private fun Button.stylePrimaryCta(
+    context: Context,
+    bgColor: Int,
+    textColor: Int,
+    radiusDp: Float,
+    horizontalDp: Int = 16,
+    verticalDp: Int = 12
+) {
+    isAllCaps = false
+    typeface = Typeface.DEFAULT_BOLD
+    backgroundTintList = ColorStateList.valueOf(bgColor)
+    setTextColor(textColor)
+    elevation = 0f
+    stateListAnimator = null
+    clipToOutline = true
+    outlineProvider = roundedOutline(radiusDp, context)
+    setPadding(
+        horizontalDp.toPx(context),
+        verticalDp.toPx(context),
+        horizontalDp.toPx(context),
+        verticalDp.toPx(context)
+    )
+}
