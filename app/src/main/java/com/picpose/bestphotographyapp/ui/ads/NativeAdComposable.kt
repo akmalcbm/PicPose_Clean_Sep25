@@ -1,36 +1,20 @@
 package com.picpose.bestphotographyapp.ui.ads
 
-import android.graphics.Typeface
-import android.util.TypedValue
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdView
-import com.picpose.bestphotographyapp.R
-import com.picpose.bestphotographyapp.presentation.ads.AdsLog
 import com.picpose.bestphotographyapp.presentation.ads.AdsConfigState
+import com.picpose.bestphotographyapp.presentation.ads.AdsLog
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
-import com.picpose.bestphotographyapp.presentation.ads.AdBadge
+import com.picpose.bestphotographyapp.presentation.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.presentation.ads.NativeAdController
 
 /**
@@ -101,90 +85,9 @@ fun NativeAdSection(
     }
 
     if (nativeAd != null && !hasError) {
-        Column(
+        LargeNativeAdCard(
+            nativeAd = nativeAd,
             modifier = modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(vertical = 8.dp)
-        ) {
-            AdBadge(modifier = Modifier.padding(bottom = 6.dp))
-            AndroidView(
-                factory = { ctx -> createNativeAdView(ctx) },
-                update = { adView ->
-                    nativeAd?.let {
-                        AdsLog.d(AdsLog.TAG_UI, "[AdsUI] component=NativeAdSection placement=$placementKey action=bind")
-                        bindNativeAdToView(adView, it)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-private fun createNativeAdView(context: android.content.Context): NativeAdView {
-    val adView = NativeAdView(context)
-
-    val root = LinearLayout(context).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(32, 32, 32, 32)
-        layoutParams = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
         )
     }
-
-    val mediaView = MediaView(context).apply {
-        layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            (180 * context.resources.displayMetrics.density).toInt()
-        )
-    }
-
-    val headlineView = TextView(context).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-        setTypeface(typeface, Typeface.BOLD)
-        setPadding(0, 16, 0, 8)
-    }
-
-    val bodyView = TextView(context).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        setPadding(0, 0, 0, 16)
-    }
-
-    val ctaButton = Button(context).apply {
-        setPadding(32, 16, 32, 16)
-    }
-
-    root.addView(mediaView)
-    root.addView(headlineView)
-    root.addView(bodyView)
-    root.addView(ctaButton)
-
-    adView.apply {
-        addView(root)
-        this.mediaView = mediaView
-        this.headlineView = headlineView
-        this.bodyView = bodyView
-        this.callToActionView = ctaButton
-    }
-
-    return adView
-}
-
-private fun bindNativeAdToView(adView: NativeAdView, ad: NativeAd) {
-    (adView.headlineView as? TextView)?.text = ad.headline
-
-    (adView.bodyView as? TextView)?.apply {
-        text = ad.body ?: ""
-        visibility = if (ad.body.isNullOrBlank()) View.GONE else View.VISIBLE
-    }
-
-    (adView.callToActionView as? Button)?.apply {
-        text = ad.callToAction ?: adView.context.getString(R.string.learn_more)
-        visibility = if (ad.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
-    }
-
-    adView.mediaView?.mediaContent = ad.mediaContent
-    adView.setNativeAd(ad)
 }
