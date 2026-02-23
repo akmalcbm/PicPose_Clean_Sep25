@@ -117,4 +117,47 @@ class AdsConfigResponseParsingTest {
         assertEquals(1, domain.placements.size)
         assertTrue(domain.placements.first().units.isEmpty())
     }
+
+    @Test
+    fun parse_v2_map_placements_shape() {
+        val json = """
+            {
+              "success": true,
+              "data": {
+                "ads_enabled": true,
+                "env": "live",
+                "use_test_ads": false,
+                "admob_app_id": "ca-app-pub-1234567890123456~1234567890",
+                "interstitial_cooldown_seconds": 90,
+                "interstitial_show_every_n_actions": 4,
+                "placements": {
+                  "home_native": {
+                    "enabled": true,
+                    "ad_type": "native",
+                    "ad_unit_id": "ca-app-pub-1234567890123456/1234567890",
+                    "ad_unit_id_test": "ca-app-pub-1234567890123456/1111111111",
+                    "ad_unit_id_live": "ca-app-pub-1234567890123456/1234567890"
+                  },
+                  "interstitial_home": {
+                    "enabled": false,
+                    "ad_type": "interstitial",
+                    "ad_unit_id": ""
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+
+        val dto = gson.fromJson(json, AdsConfigResponse::class.java)
+        val domain = dto.toDomainOrNull()
+
+        assertNotNull(domain)
+        assertEquals("production", domain!!.global.environment)
+        assertEquals(false, domain.global.useTestAds)
+        assertEquals(90, domain.global.interstitialCooldownSeconds)
+        assertEquals(4, domain.global.interstitialShowEveryNActions)
+        assertEquals("ca-app-pub-1234567890123456~1234567890", domain.global.admobAppId)
+        assertEquals(2, domain.placements.size)
+        assertEquals("native", domain.findPlacement("home_native")?.adType)
+    }
 }

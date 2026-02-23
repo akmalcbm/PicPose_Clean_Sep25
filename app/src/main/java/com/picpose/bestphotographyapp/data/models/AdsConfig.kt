@@ -14,7 +14,12 @@ data class GlobalConfig(
     val cmpRequired: Boolean = false,
     val defaultFrequencyPerHour: Int = 2,
     val useTestAds: Boolean = true,
-    val configUpdatedAt: String? = null
+    val configUpdatedAt: String? = null,
+    val admobAppId: String? = null,
+    val admobAppIdTest: String? = null,
+    val admobAppIdLive: String? = null,
+    val interstitialCooldownSeconds: Int = 60,
+    val interstitialShowEveryNActions: Int = 3
 )
 
 data class PlacementConfig(

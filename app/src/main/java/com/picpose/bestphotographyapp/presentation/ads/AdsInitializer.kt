@@ -56,6 +56,10 @@ class AdsInitializer @Inject constructor(
         appScope.launch(Dispatchers.IO) {
             runCatching {
                 adsManager.warmUp(forceRefresh = forceRefresh)
+                val remoteAppId = adsManager.admobAppIdOverrideOrNull()
+                if (remoteAppId != null) {
+                    AdsLog.i(AdsLog.TAG_INIT, "[AdsInit] step=warmUpOnAppStart remoteAppId=available runtimeOverride=not_applied manifestFallback=true")
+                }
                 AdsLog.i(AdsLog.TAG_INIT, "[AdsInit] step=warmUpOnAppStart status=OK snapshot=${adsManager.debugSnapshot()}")
             }.onFailure {
                 AdsLog.e(AdsLog.TAG_INIT, "[AdsInit] step=warmUpOnAppStart status=FAIL error=${it.message}", it)

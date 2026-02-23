@@ -48,6 +48,12 @@ object AdsManager {
     const val KEY_DETAIL_INTERSTITIAL = "detail_interstitial"
     const val KEY_NATIVE_AD = "native_ad"
     const val KEY_REWARDED_AD = "rewarded_ad"
+    const val KEY_BANNER_HOME = "banner_home"
+    const val KEY_INTERSTITIAL_HOME = "interstitial_home"
+    const val KEY_INTERSTITIAL_DETAIL = "interstitial_detail"
+    const val KEY_HOME_NATIVE = "home_native"
+    const val KEY_DETAIL_NATIVE = "detail_native"
+    const val KEY_REWARDED = "rewarded"
 
     private const val REASON_PLACEMENT_NOT_FOUND = "PLACEMENT_NOT_FOUND"
     private const val REASON_PLACEMENT_DISABLED = "PLACEMENT_DISABLED"
@@ -263,7 +269,13 @@ object AdsManager {
 
     fun debugSnapshot(): String {
         val result = currentResult ?: return "state=${_configState.value} source=NONE version=NONE env=NONE ads_enabled=false placementsCount=0"
-        return "state=${_configState.value::class.simpleName} source=${result.source} version=${result.configVersion} env=${result.config.global.environment} ads_enabled=${result.config.global.adsEnabled} use_test_ads=${result.config.global.useTestAds} cmp_required=${result.config.global.cmpRequired} consent_ready=$consentReady placementsCount=${result.config.placements.size}"
+        val hasRemoteAppId = !result.config.global.admobAppId.isNullOrBlank()
+        return "state=${_configState.value::class.simpleName} source=${result.source} version=${result.configVersion} env=${result.config.global.environment} ads_enabled=${result.config.global.adsEnabled} use_test_ads=${result.config.global.useTestAds} cmp_required=${result.config.global.cmpRequired} consent_ready=$consentReady remote_app_id=$hasRemoteAppId placementsCount=${result.config.placements.size}"
+    }
+
+    fun admobAppIdOverrideOrNull(): String? {
+        val appId = currentResult?.config?.global?.admobAppId?.trim().orEmpty()
+        return appId.takeIf { it.matches(Regex("^ca-app-pub-[0-9]{16}~[0-9]{10}$")) }
     }
 
     private fun resolvePlacement(requestedKey: String, config: AdsConfig?): ResolvedPlacement? {
@@ -282,14 +294,20 @@ object AdsManager {
         val candidates = mutableListOf(key)
         when (key) {
             KEY_HOME_BANNER -> candidates += KEY_BANNER_1
+            KEY_BANNER_HOME -> candidates += listOf(KEY_HOME_BANNER, KEY_BANNER_1)
             KEY_BANNER_1 -> candidates += KEY_HOME_BANNER
             KEY_HOME_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
+            KEY_INTERSTITIAL_HOME -> candidates += listOf(KEY_HOME_INTERSTITIAL, KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
             KEY_DETAIL_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
+            KEY_INTERSTITIAL_DETAIL -> candidates += listOf(KEY_DETAIL_INTERSTITIAL, KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
             KEY_INTERSTITIAL_1 -> candidates += listOf(KEY_HOME_INTERSTITIAL, KEY_DETAIL_INTERSTITIAL)
             KEY_INTERSTITIAL_2 -> candidates += listOf(KEY_DETAIL_INTERSTITIAL, KEY_HOME_INTERSTITIAL)
             KEY_NATIVE_AD -> candidates += KEY_NATIVE_1
+            KEY_HOME_NATIVE -> candidates += listOf(KEY_NATIVE_AD, KEY_NATIVE_1, KEY_NATIVE_2)
+            KEY_DETAIL_NATIVE -> candidates += listOf(KEY_NATIVE_AD, KEY_NATIVE_1, KEY_NATIVE_2, KEY_NATIVE_3)
             KEY_NATIVE_1 -> candidates += KEY_NATIVE_AD
             KEY_REWARDED_AD -> candidates += KEY_REWARDED_1
+            KEY_REWARDED -> candidates += listOf(KEY_REWARDED_AD, KEY_REWARDED_1)
             KEY_REWARDED_1 -> candidates += KEY_REWARDED_AD
         }
         return candidates.distinct()

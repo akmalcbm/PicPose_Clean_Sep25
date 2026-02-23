@@ -112,8 +112,8 @@ include '../../includes/header.php';
             </div>
             
             <div class="btn-group">
-                <button type="button" class="btn btn-primary" onclick="location.href='global_settings.php'">
-                    <i class="bi bi-gear me-1"></i> Settings
+                <button type="button" class="btn btn-primary" onclick="location.href='ads_config.php'">
+                    <i class="bi bi-sliders me-1"></i> Ads Config
                 </button>
                 <button type="button" class="btn btn-success" onclick="location.href='analytics.php'">
                     <i class="bi bi-graph-up me-1"></i> Analytics
@@ -136,7 +136,7 @@ include '../../includes/header.php';
                 </p>
             </div>
             <div>
-                <a href="global_settings.php" class="btn btn-outline-<?php echo $global['ads_enabled'] ? 'success' : 'danger'; ?>">
+                <a href="ads_config.php" class="btn btn-outline-<?php echo $global['ads_enabled'] ? 'success' : 'danger'; ?>">
                     <i class="bi bi-sliders me-1"></i> Change Status
                 </a>
             </div>
@@ -251,13 +251,13 @@ include '../../includes/header.php';
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-3 col-6">
-                            <a href="global_settings.php" class="card action-card text-decoration-none">
+                            <a href="ads_config.php" class="card action-card text-decoration-none">
                                 <div class="card-body text-center">
                                     <div class="icon-wrapper-lg bg-primary mb-3">
-                                        <i class="bi bi-gear text-white"></i>
+                                        <i class="bi bi-sliders text-white"></i>
                                     </div>
-                                    <h6 class="mb-1">Global Settings</h6>
-                                    <small class="text-muted">Configure ads globally</small>
+                                    <h6 class="mb-1">Ads Config</h6>
+                                    <small class="text-muted">Global + placements</small>
                                 </div>
                             </a>
                         </div>
@@ -458,7 +458,7 @@ include '../../includes/header.php';
                         <a href="analytics.php" class="btn btn-outline-success">
                             <i class="bi bi-graph-up me-2"></i> View Analytics
                         </a>
-                        <a href="global_settings.php" class="btn btn-outline-primary">
+                        <a href="ads_config.php" class="btn btn-outline-primary">
                             <i class="bi bi-sliders me-2"></i> Change Settings
                         </a>
                     </div>
