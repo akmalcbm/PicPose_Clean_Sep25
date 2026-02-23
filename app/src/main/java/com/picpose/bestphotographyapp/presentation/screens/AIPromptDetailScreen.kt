@@ -204,15 +204,7 @@ fun AIPromptDetailScreen(
 
     // Native Ad (loaded-only rendering; no reserved space on fail/disabled)
     var nativeAdState by remember { mutableStateOf<NativeAdUiState>(NativeAdUiState.Disabled) }
-    val nativePlacementKey = remember(adsConfigState) {
-        if (adsConfigState is AdsConfigState.Ready &&
-            AdsManager.getPlacement(AdsManager.KEY_NATIVE_2) != null
-        ) {
-            AdsManager.KEY_NATIVE_2
-        } else {
-            AdsManager.KEY_NATIVE_AD
-        }
-    }
+    val nativePlacementKey = remember { AdsManager.KEY_DETAIL_NATIVE }
     val nativeAdController = remember(nativePlacementKey) {
         NativeAdController(placementKey = nativePlacementKey)
     }
@@ -305,10 +297,10 @@ fun AIPromptDetailScreen(
 
     if (!viewTracked) {
         LaunchedEffect(promptId) {
-            delay(4000)
+            delay(3000)
             aiPromptViewModel.registerView(promptId)
             viewTracked = true
-            Log.d(TAG_DETAIL, "✅ View registered after 4 seconds for prompt: $promptId")
+            Log.d(TAG_DETAIL, "✅ View registered after 3 seconds for prompt: $promptId")
         }
     }
 

@@ -35,7 +35,7 @@ sealed interface AdsConfigState {
 
 object AdsManager {
 
-    const val KEY_BANNER_1 = "banner_1"
+    const val KEY_BANNER_OTHER = "banner_other"
     const val KEY_BANNER_2 = "banner_2"
     const val KEY_INTERSTITIAL_1 = "interstitial_1"
     const val KEY_INTERSTITIAL_2 = "interstitial_2"
@@ -226,6 +226,8 @@ object AdsManager {
         return resolvePlacement(placementKey, config)?.placement
     }
 
+    fun getPlacement(placement: AdPlacement): PlacementConfig? = getPlacement(placement.key)
+
     fun shouldShowNow(placementKey: String): Boolean {
         val result = currentResult ?: run {
             AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_CONFIG_NOT_READY")
@@ -278,6 +280,18 @@ object AdsManager {
         return appId.takeIf { it.matches(Regex("^ca-app-pub-[0-9]{16}~[0-9]{10}$")) }
     }
 
+    fun isEnabled(placement: AdPlacement): Boolean {
+        val resolved = resolvePlacement(placement.key, currentResult?.config) ?: return false
+        return resolved.placement.enabled && !resolved.placement.autoDisabled
+    }
+
+    fun unitId(placement: AdPlacement): String? = getAdUnitId(placement.key)
+
+    fun canShowInterstitialNow(placement: AdPlacement): Boolean {
+        if (placement.format != AdFormat.INTERSTITIAL) return false
+        return shouldShowNow(placement.key)
+    }
+
     private fun resolvePlacement(requestedKey: String, config: AdsConfig?): ResolvedPlacement? {
         if (config == null) return null
         val candidates = candidateKeysFor(requestedKey)
@@ -291,26 +305,7 @@ object AdsManager {
     }
 
     private fun candidateKeysFor(key: String): List<String> {
-        val candidates = mutableListOf(key)
-        when (key) {
-            KEY_HOME_BANNER -> candidates += KEY_BANNER_1
-            KEY_BANNER_HOME -> candidates += listOf(KEY_HOME_BANNER, KEY_BANNER_1)
-            KEY_BANNER_1 -> candidates += KEY_HOME_BANNER
-            KEY_HOME_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
-            KEY_INTERSTITIAL_HOME -> candidates += listOf(KEY_HOME_INTERSTITIAL, KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
-            KEY_DETAIL_INTERSTITIAL -> candidates += listOf(KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
-            KEY_INTERSTITIAL_DETAIL -> candidates += listOf(KEY_DETAIL_INTERSTITIAL, KEY_INTERSTITIAL_1, KEY_INTERSTITIAL_2)
-            KEY_INTERSTITIAL_1 -> candidates += listOf(KEY_HOME_INTERSTITIAL, KEY_DETAIL_INTERSTITIAL)
-            KEY_INTERSTITIAL_2 -> candidates += listOf(KEY_DETAIL_INTERSTITIAL, KEY_HOME_INTERSTITIAL)
-            KEY_NATIVE_AD -> candidates += KEY_NATIVE_1
-            KEY_HOME_NATIVE -> candidates += listOf(KEY_NATIVE_AD, KEY_NATIVE_1, KEY_NATIVE_2)
-            KEY_DETAIL_NATIVE -> candidates += listOf(KEY_NATIVE_AD, KEY_NATIVE_1, KEY_NATIVE_2, KEY_NATIVE_3)
-            KEY_NATIVE_1 -> candidates += KEY_NATIVE_AD
-            KEY_REWARDED_AD -> candidates += KEY_REWARDED_1
-            KEY_REWARDED -> candidates += listOf(KEY_REWARDED_AD, KEY_REWARDED_1)
-            KEY_REWARDED_1 -> candidates += KEY_REWARDED_AD
-        }
-        return candidates.distinct()
+        return AdsPlacementRegistry.resolveCandidates(key)
     }
 
     private fun logPlacementNullDecision(
@@ -330,9 +325,18 @@ object AdsManager {
         reason: String
     ) {
         val result = currentResult
+        val config = result?.config
+        val env = config?.global?.environment ?: "unknown"
+        val useTestAds = config?.global?.useTestAds ?: true
+        val enabled = resolved.placement.enabled && !resolved.placement.autoDisabled
+        val selectedMasked = AdsLog.maskAdUnitId(selected?.adUnitId)
         AdsLog.i(
             AdsLog.TAG_MANAGER,
             "[AdsManager] placement=${resolved.requestedKey} resolved=${resolved.matchedKey} placementExists=true enabled=${resolved.placement.enabled} autoDisabled=${resolved.placement.autoDisabled} unitsCount=${resolved.placement.units.size} selectedUnit=${AdsLog.maskAdUnitId(selected?.adUnitId)} is_test=${selected?.isTest} is_live=${selected?.isLive} priority=${selected?.priority} refreshSeconds=${resolved.placement.refreshSeconds} frequency=${resolved.placement.frequency} reason=$reason source=${result?.source} version=${result?.configVersion} placementsCount=${result?.config?.placements?.size ?: 0}"
+        )
+        AdsLog.i(
+            AdsLog.TAG_MANAGER,
+            "[Ads] env=$env useTestAds=$useTestAds placement=${resolved.matchedKey} enabled=$enabled unit=$selectedMasked reason=$reason"
         )
     }
 
@@ -364,7 +368,7 @@ object AdsManager {
         markShown(placementKey)
     }
 
-    fun bannerIdOrNull(): String? = getAdUnitId(KEY_BANNER_1)
+    fun bannerIdOrNull(): String? = getAdUnitId(KEY_BANNER_OTHER)
     fun bannerId2OrNull(): String? = getAdUnitId(KEY_BANNER_2)
     fun interstitialIdOrNull(): String? = getAdUnitId(KEY_INTERSTITIAL_1)
     fun interstitialId2OrNull(): String? = getAdUnitId(KEY_INTERSTITIAL_2)
@@ -378,7 +382,7 @@ object AdsManager {
         currentResult = AdsConfigResult(
             config = localFallbackAdsConfig().copy(
                 placements = listOf(
-                    PlacementConfig(KEY_BANNER_1, "banner", true, null, null, false, listOf(UnitConfig(config.bannerId, 1, false, true, "admob", true))),
+                    PlacementConfig(KEY_BANNER_OTHER, "banner", true, null, null, false, listOf(UnitConfig(config.bannerId, 1, false, true, "admob", true))),
                     PlacementConfig(KEY_BANNER_2, "banner", true, null, null, false, listOf(UnitConfig(config.bannerId2, 1, false, true, "admob", true))),
                     PlacementConfig(KEY_INTERSTITIAL_1, "interstitial", true, null, null, false, listOf(UnitConfig(config.interstitialId, 1, false, true, "admob", true))),
                     PlacementConfig(KEY_INTERSTITIAL_2, "interstitial", true, null, null, false, listOf(UnitConfig(config.interstitialId2, 1, false, true, "admob", true))),

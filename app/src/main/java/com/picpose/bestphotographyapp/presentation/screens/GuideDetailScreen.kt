@@ -253,7 +253,7 @@ fun GuideDetailScreen(
             }
             adStates[slot.key] = NativeAdUiState.Loading
             val controller = adControllers.getOrPut(slot.key) {
-                NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD)
+                NativeAdController(placementKey = AdsManager.KEY_DETAIL_NATIVE)
             }
             controller.load(
                 context = context,

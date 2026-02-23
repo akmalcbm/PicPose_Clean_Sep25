@@ -200,7 +200,7 @@ fun AiPromptDetailsScreen( //Currently Not Used AnyWhere
                             prompt = uiState.currentPrompt!!,
                             similarPrompts = uiState.similarPrompts,
                             isLoadingMore = uiState.isLoadingMore,
-                            nativePlacementKey = AdsManager.KEY_NATIVE_AD,
+                            nativePlacementKey = AdsManager.KEY_DETAIL_NATIVE,
                             listState = listState,
                             onImageClick = { showImageDialog = true },
                             onCopyPrompt = {
