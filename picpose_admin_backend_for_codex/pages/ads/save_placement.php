@@ -2,208 +2,258 @@
 session_start();
 require '../../config.php';
 
-// DEBUG: Log what's being received
-error_log("=== SAVE PLACEMENT START ===");
-error_log("POST Data: " . print_r($_POST, true));
-error_log("Session: " . print_r($_SESSION, true));
+function isAjaxRequest(): bool {
+    $xrw = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+    if (strtolower($xrw) === 'xmlhttprequest') {
+        return true;
+    }
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return stripos($accept, 'application/json') !== false;
+}
 
+function respondPlacement(bool $ok, string $message, int $code = 200, array $extra = []): void {
+    if (isAjaxRequest()) {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(array_merge([
+            'success' => $ok,
+            'message' => $message
+        ], $extra), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit();
+    }
 
-// Use the SAME session check as main admin panel
+    if ($ok) {
+        $_SESSION['success'] = $message;
+    } else {
+        $_SESSION['error'] = $message;
+    }
+    header('Location: placements.php');
+    exit();
+}
+
 if (!isset($_SESSION['admin']) || empty($_SESSION['admin'])) {
-    // Redirect to main admin login if not logged in
-    header("Location: " . BASE_URL . "/login.php");
+    error_log('save_placement unauthorized: missing admin session');
+    header('Location: ' . BASE_URL . '/login.php');
     exit();
 }
 
-// CSRF validation
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
-    error_log("CSRF token mismatch. POST: " . ($_POST['csrf_token'] ?? 'none') . ", SESSION: " . ($_SESSION['csrf_token'] ?? 'none'));
-    $_SESSION['error'] = "CSRF token validation failed";
-    header("Location: placements.php");
-    exit();
+    error_log('save_placement csrf_failed admin_id=' . (int)($_SESSION['admin_id'] ?? 0));
+    respondPlacement(false, 'CSRF token validation failed', 403);
 }
 
-error_log("CSRF validation passed.");
-
-// Validate and sanitize inputs
-$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-$key_name = trim(cleanInput($_POST['key_name'] ?? ''));
-$ad_type = cleanInput($_POST['ad_type'] ?? '');
-$screen_hint = trim(cleanInput($_POST['screen_hint'] ?? ''));
+$id = (int)($_POST['id'] ?? 0);
+$keyName = strtolower(trim(cleanInput($_POST['key_name'] ?? '')));
+$adType = strtolower(trim(cleanInput($_POST['ad_type'] ?? '')));
+$screenHint = trim(cleanInput($_POST['screen_hint'] ?? ''));
 $enabled = isset($_POST['enabled']) ? 1 : 0;
-$auto_disabled = isset($_POST['auto_disabled']) ? 1 : 0;
-$refresh_seconds = isset($_POST['refresh_seconds']) && $_POST['refresh_seconds'] !== '' ? (int)$_POST['refresh_seconds'] : null;
-$frequency_override = isset($_POST['frequency_override']) && $_POST['frequency_override'] !== '' ? (int)$_POST['frequency_override'] : null;
+$autoDisabled = isset($_POST['auto_disabled']) ? 1 : 0;
+$refreshSeconds = isset($_POST['refresh_seconds']) && $_POST['refresh_seconds'] !== '' ? (int)$_POST['refresh_seconds'] : null;
+$frequencyOverride = isset($_POST['frequency_override']) && $_POST['frequency_override'] !== '' ? (int)$_POST['frequency_override'] : null;
 
-error_log("Processed Data - ID: $id, Key: $key_name, Type: $ad_type, Enabled: $enabled");
-
-// Validate required fields
-if (empty($key_name) || empty($ad_type)) {
-    $_SESSION['error'] = "Placement key and ad type are required";
-    header("Location: placements.php");
-    exit();
+if ($keyName === '' || $adType === '') {
+    respondPlacement(false, 'Placement key and ad type are required', 422);
 }
 
-// Validate key name format
-if (!preg_match('/^[a-z][a-z0-9_]*$/', $key_name)) {
-    $_SESSION['error'] = "Placement key must start with lowercase letter and contain only lowercase letters, numbers, and underscores";
-    header("Location: placements.php");
-    exit();
+if (!preg_match('/^[a-z][a-z0-9_]*$/', $keyName)) {
+    respondPlacement(false, 'Placement key must be lowercase snake_case and start with a letter', 422);
 }
 
-// Validate ad type
-$allowed_ad_types = ['banner', 'interstitial', 'native', 'rewarded'];
-if (!in_array($ad_type, $allowed_ad_types)) {
-    $_SESSION['error'] = "Invalid ad type";
-    header("Location: placements.php");
-    exit();
+$allowedTypes = ['banner', 'interstitial', 'native', 'rewarded'];
+if (!in_array($adType, $allowedTypes, true)) {
+    respondPlacement(false, 'Invalid ad type', 422);
 }
 
-// Validate refresh seconds
-if ($refresh_seconds !== null && ($refresh_seconds < 0 || $refresh_seconds > 3600)) {
-    $_SESSION['error'] = "Refresh seconds must be between 0 and 3600";
-    header("Location: placements.php");
-    exit();
+if ($refreshSeconds !== null && ($refreshSeconds < 0 || $refreshSeconds > 3600)) {
+    respondPlacement(false, 'Refresh seconds must be between 0 and 3600', 422);
 }
 
-// Validate frequency override
-if ($frequency_override !== null && ($frequency_override < 0 || $frequency_override > 20)) {
-    $_SESSION['error'] = "Frequency override must be between 0 and 20";
-    header("Location: placements.php");
-    exit();
+if ($frequencyOverride !== null && ($frequencyOverride < 0 || $frequencyOverride > 20)) {
+    respondPlacement(false, 'Frequency override must be between 0 and 20', 422);
+}
+
+// Optional validation when legacy UI sends network_id / ad_unit_id with placement payload.
+$networkId = isset($_POST['network_id']) && $_POST['network_id'] !== '' ? (int)$_POST['network_id'] : null;
+if ($networkId !== null && $networkId > 0) {
+    $netStmt = $conn->prepare('SELECT id FROM ad_networks WHERE id = ? LIMIT 1');
+    if ($netStmt) {
+        $netStmt->bind_param('i', $networkId);
+        $netStmt->execute();
+        $exists = $netStmt->get_result()->num_rows > 0;
+        $netStmt->close();
+        if (!$exists) {
+            respondPlacement(false, 'Selected network does not exist', 422);
+        }
+    }
 }
 
 try {
     $conn->begin_transaction();
-    
-    if ($id > 0) {
-        // Update existing placement
-        // Check if key name is being changed
-        $check_stmt = $conn->prepare("SELECT key_name FROM ad_placements WHERE id = ?");
-        $check_stmt->bind_param("i", $id);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
-        $old_placement = $check_result->fetch_assoc();
-        $check_stmt->close();
-        
-        if ($old_placement['key_name'] !== $key_name) {
-            // Key name changed - check if new key already exists
-            $duplicate_stmt = $conn->prepare("SELECT id FROM ad_placements WHERE key_name = ? AND id != ?");
-            $duplicate_stmt->bind_param("si", $key_name, $id);
-            $duplicate_stmt->execute();
-            $duplicate_result = $duplicate_stmt->get_result();
-            
-            if ($duplicate_result->num_rows > 0) {
-                throw new Exception("Placement key already exists");
-            }
-            $duplicate_stmt->close();
-        }
-        
-        $update_stmt = $conn->prepare("
-            UPDATE ad_placements 
-            SET key_name = ?,
-                ad_type = ?,
-                screen_hint = ?,
-                enabled = ?,
-                auto_disabled = ?,
-                refresh_seconds = ?,
-                frequency_override = ?,
-                updated_at = NOW()
-            WHERE id = ?
-        ");
-        
-        $update_stmt->bind_param(
-            "sssiiiiii",
-            $key_name,
-            $ad_type,
-            $screen_hint,
-            $enabled,
-            $auto_disabled,
-            $refresh_seconds,
-            $frequency_override,
-            $id
-        );
-        
-        $action = "updated";
-    } else {
-        // Insert new placement
-        // Check if key already exists
-        $check_stmt = $conn->prepare("SELECT id FROM ad_placements WHERE key_name = ?");
-        $check_stmt->bind_param("s", $key_name);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
-        
-        if ($check_result->num_rows > 0) {
-            throw new Exception("Placement key already exists");
-        }
-        $check_stmt->close();
-        
-        $insert_stmt = $conn->prepare("
-            INSERT INTO ad_placements 
-                (key_name, ad_type, screen_hint, enabled, auto_disabled, refresh_seconds, frequency_override)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $insert_stmt->bind_param(
-            "sssiiii",
-            $key_name,
-            $ad_type,
-            $screen_hint,
-            $enabled,
-            $auto_disabled,
-            $refresh_seconds,
-            $frequency_override
-        );
-        
-        $action = "created";
-    }
-    
-    // Execute the query
-    if ($id > 0) {
-        if (!$update_stmt->execute()) {
-            throw new Exception("Failed to update placement: " . $update_stmt->error);
-        }
-        $update_stmt->close();
-        $placement_id = $id;
-    } else {
-        if (!$insert_stmt->execute()) {
-            throw new Exception("Failed to create placement: " . $insert_stmt->error);
-        }
-        $placement_id = $insert_stmt->insert_id;
-        $insert_stmt->close();
-    }
-    
-    // Increment config version
-    $conn->query("UPDATE ads_global_settings SET config_version = config_version + 1 WHERE id = 1");
-    
-    // Log the action
-    $admin_id = $_SESSION['admin_id'] ?? 0;
-    $action_details = "Placement $action: $key_name ($ad_type)";
-    
-    $log_stmt = $conn->prepare("
-        INSERT INTO admin_logs (admin_id, action, details, ip_address, user_agent)
-        VALUES (?, 'placement_$action', ?, ?, ?)
-    ");
-    $log_stmt->bind_param(
-        "isss",
-        $admin_id,
-        $action_details,
-        $_SERVER['REMOTE_ADDR'],
-        $_SERVER['HTTP_USER_AGENT'] ?? ''
-    );
-    $log_stmt->execute();
-    $log_stmt->close();
-    
-    $conn->commit();
-    
-    $_SESSION['success'] = "Placement " . ($id > 0 ? "updated" : "created") . " successfully!";
-    
-} catch (Exception $e) {
-    $conn->rollback();
-    error_log("Save Placement Error: " . $e->getMessage());
-    $_SESSION['error'] = $e->getMessage();
-}
 
-// Redirect back
-header("Location: placements.php");
-exit();
+    if ($id > 0) {
+        $checkStmt = $conn->prepare('SELECT key_name FROM ad_placements WHERE id = ? LIMIT 1');
+        if (!$checkStmt) {
+            throw new RuntimeException('Failed to prepare placement lookup: ' . $conn->error);
+        }
+        $checkStmt->bind_param('i', $id);
+        $checkStmt->execute();
+        $oldPlacement = $checkStmt->get_result()->fetch_assoc();
+        $checkStmt->close();
+
+        if (!$oldPlacement) {
+            throw new RuntimeException('Placement not found for update');
+        }
+
+        if ((string)$oldPlacement['key_name'] !== $keyName) {
+            $dupStmt = $conn->prepare('SELECT id FROM ad_placements WHERE key_name = ? AND id != ? LIMIT 1');
+            if (!$dupStmt) {
+                throw new RuntimeException('Failed to prepare duplicate check: ' . $conn->error);
+            }
+            $dupStmt->bind_param('si', $keyName, $id);
+            $dupStmt->execute();
+            $hasDuplicate = $dupStmt->get_result()->num_rows > 0;
+            $dupStmt->close();
+
+            if ($hasDuplicate) {
+                throw new RuntimeException('Placement key already exists');
+            }
+        }
+
+        if ($refreshSeconds !== null && $frequencyOverride !== null) {
+            $updateStmt = $conn->prepare(
+                'UPDATE ad_placements
+                 SET key_name = ?, ad_type = ?, screen_hint = ?, enabled = ?, auto_disabled = ?, refresh_seconds = ?, frequency_override = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            if (!$updateStmt) {
+                throw new RuntimeException('Failed to prepare placement update: ' . $conn->error);
+            }
+            $updateStmt->bind_param('sssiiiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $refreshSeconds, $frequencyOverride, $id);
+        } elseif ($refreshSeconds !== null) {
+            $updateStmt = $conn->prepare(
+                'UPDATE ad_placements
+                 SET key_name = ?, ad_type = ?, screen_hint = ?, enabled = ?, auto_disabled = ?, refresh_seconds = ?, frequency_override = NULL, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            if (!$updateStmt) {
+                throw new RuntimeException('Failed to prepare placement update: ' . $conn->error);
+            }
+            $updateStmt->bind_param('sssiiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $refreshSeconds, $id);
+        } elseif ($frequencyOverride !== null) {
+            $updateStmt = $conn->prepare(
+                'UPDATE ad_placements
+                 SET key_name = ?, ad_type = ?, screen_hint = ?, enabled = ?, auto_disabled = ?, refresh_seconds = NULL, frequency_override = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            if (!$updateStmt) {
+                throw new RuntimeException('Failed to prepare placement update: ' . $conn->error);
+            }
+            $updateStmt->bind_param('sssiiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $frequencyOverride, $id);
+        } else {
+            $updateStmt = $conn->prepare(
+                'UPDATE ad_placements
+                 SET key_name = ?, ad_type = ?, screen_hint = ?, enabled = ?, auto_disabled = ?, refresh_seconds = NULL, frequency_override = NULL, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            if (!$updateStmt) {
+                throw new RuntimeException('Failed to prepare placement update: ' . $conn->error);
+            }
+            $updateStmt->bind_param('sssiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $id);
+        }
+
+        if (!$updateStmt->execute()) {
+            throw new RuntimeException('Failed to update placement: ' . $updateStmt->error);
+        }
+        $updateStmt->close();
+
+        $action = 'updated';
+        $placementId = $id;
+    } else {
+        $checkStmt = $conn->prepare('SELECT id FROM ad_placements WHERE key_name = ? LIMIT 1');
+        if (!$checkStmt) {
+            throw new RuntimeException('Failed to prepare duplicate check: ' . $conn->error);
+        }
+        $checkStmt->bind_param('s', $keyName);
+        $checkStmt->execute();
+        $exists = $checkStmt->get_result()->num_rows > 0;
+        $checkStmt->close();
+
+        if ($exists) {
+            throw new RuntimeException('Placement key already exists');
+        }
+
+        if ($refreshSeconds !== null && $frequencyOverride !== null) {
+            $insertStmt = $conn->prepare(
+                'INSERT INTO ad_placements (key_name, ad_type, screen_hint, enabled, auto_disabled, refresh_seconds, frequency_override)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            );
+            if (!$insertStmt) {
+                throw new RuntimeException('Failed to prepare placement insert: ' . $conn->error);
+            }
+            $insertStmt->bind_param('sssiiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $refreshSeconds, $frequencyOverride);
+        } elseif ($refreshSeconds !== null) {
+            $insertStmt = $conn->prepare(
+                'INSERT INTO ad_placements (key_name, ad_type, screen_hint, enabled, auto_disabled, refresh_seconds, frequency_override)
+                 VALUES (?, ?, ?, ?, ?, ?, NULL)'
+            );
+            if (!$insertStmt) {
+                throw new RuntimeException('Failed to prepare placement insert: ' . $conn->error);
+            }
+            $insertStmt->bind_param('sssiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $refreshSeconds);
+        } elseif ($frequencyOverride !== null) {
+            $insertStmt = $conn->prepare(
+                'INSERT INTO ad_placements (key_name, ad_type, screen_hint, enabled, auto_disabled, refresh_seconds, frequency_override)
+                 VALUES (?, ?, ?, ?, ?, NULL, ?)'
+            );
+            if (!$insertStmt) {
+                throw new RuntimeException('Failed to prepare placement insert: ' . $conn->error);
+            }
+            $insertStmt->bind_param('sssiii', $keyName, $adType, $screenHint, $enabled, $autoDisabled, $frequencyOverride);
+        } else {
+            $insertStmt = $conn->prepare(
+                'INSERT INTO ad_placements (key_name, ad_type, screen_hint, enabled, auto_disabled, refresh_seconds, frequency_override)
+                 VALUES (?, ?, ?, ?, ?, NULL, NULL)'
+            );
+            if (!$insertStmt) {
+                throw new RuntimeException('Failed to prepare placement insert: ' . $conn->error);
+            }
+            $insertStmt->bind_param('sssii', $keyName, $adType, $screenHint, $enabled, $autoDisabled);
+        }
+
+        if (!$insertStmt->execute()) {
+            throw new RuntimeException('Failed to create placement: ' . $insertStmt->error);
+        }
+        $placementId = (int)$insertStmt->insert_id;
+        $insertStmt->close();
+
+        $action = 'created';
+    }
+
+    $conn->query('UPDATE ads_global_settings SET config_version = config_version + 1, updated_at = NOW() WHERE id = 1');
+
+    $adminId = (int)($_SESSION['admin_id'] ?? 0);
+    $actionDetails = "Placement {$action}: {$keyName} ({$adType})";
+    $ipAddress = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    $userAgent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+    $logStmt = $conn->prepare(
+        "INSERT INTO admin_logs (admin_id, action, details, ip_address, user_agent)
+         VALUES (?, 'placement_{$action}', ?, ?, ?)"
+    );
+    if ($logStmt) {
+        $logStmt->bind_param('isss', $adminId, $actionDetails, $ipAddress, $userAgent);
+        $logStmt->execute();
+        $logStmt->close();
+    }
+
+    $conn->commit();
+
+    respondPlacement(true, 'Placement ' . ($id > 0 ? 'updated' : 'created') . ' successfully!', 200, [
+        'placement_id' => $placementId,
+        'action' => $action
+    ]);
+} catch (Throwable $e) {
+    $conn->rollback();
+    error_log('save_placement failed admin_id=' . (int)($_SESSION['admin_id'] ?? 0) . ' placement_id=' . $id . ' key=' . $keyName . ' type=' . $adType . ' error=' . $e->getMessage());
+    respondPlacement(false, $e->getMessage(), 500);
+}
