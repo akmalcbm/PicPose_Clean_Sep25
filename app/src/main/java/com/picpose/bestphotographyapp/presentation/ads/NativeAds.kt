@@ -128,7 +128,7 @@ fun LargeNativeAdCard(
         modifier = modifier
             .alpha(fade.value)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
@@ -173,7 +173,7 @@ fun LargeNativeAdCardForGrid(
         modifier = modifier
             .alpha(fade.value)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -247,10 +247,10 @@ private fun createNativeAdView(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             Gravity.START or Gravity.TOP
         ).apply {
-            setMargins(if (variant == NativeCardVariant.PREMIUM) 2.toPx(context) else 3.toPx(context), if (variant == NativeCardVariant.PREMIUM) 2.toPx(context) else 3.toPx(context), 2, 2)
+            setMargins(if (variant == NativeCardVariant.PREMIUM) 1.toPx(context) else 2.toPx(context), if (variant == NativeCardVariant.PREMIUM) 1.toPx(context) else 2.toPx(context), 2, 2)
         }
         setBackgroundResource(R.drawable.native_ad_badge_bg)
-        setPadding(2.toPx(context), 2.toPx(context), 4.toPx(context), 4.toPx(context))
+        setPadding(4.toPx(context), 3.toPx(context), 4.toPx(context), 4.toPx(context))
         text = context.getString(R.string.sponsored)
         textSize = if (variant == NativeCardVariant.PREMIUM) 14f else 12f
         setTypeface(typeface, Typeface.BOLD)
