@@ -250,6 +250,15 @@ object AdsManager {
             return false
         }
 
+        val adType = resolved.placement.adType.trim().lowercase()
+        if (adType == "native") {
+            AdsLog.i(
+                AdsLog.TAG_MANAGER,
+                "[AdsManager] placement=$placementKey resolved=${resolved.matchedKey} shouldShow=true reason=OK_NATIVE_NO_FREQUENCY"
+            )
+            return true
+        }
+
         val limit = resolved.placement.frequency?.takeIf { it > 0 } ?: result.config.global.defaultFrequencyPerHour
         val canShow = AdsFrequencyManager.canShow(resolved.matchedKey, limit.coerceAtLeast(1))
         AdsLog.i(

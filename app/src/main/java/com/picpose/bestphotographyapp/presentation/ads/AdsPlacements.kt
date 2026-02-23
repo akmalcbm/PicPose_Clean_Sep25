@@ -57,9 +57,13 @@ object AdsPlacementRegistry {
 
     private val aliasesToCanonical: Map<String, String> = buildMap {
         AdPlacement.values().forEach { placement ->
+            // Canonical keys must always resolve to themselves.
             put(placement.key, placement.key)
+        }
+        AdPlacement.values().forEach { placement ->
+            // Preserve first alias winner to avoid unstable remapping collisions.
             placement.aliases.forEach { alias ->
-                put(alias, placement.key)
+                putIfAbsent(alias, placement.key)
             }
         }
     }
