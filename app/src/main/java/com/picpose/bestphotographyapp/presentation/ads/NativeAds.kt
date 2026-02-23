@@ -111,7 +111,7 @@ fun LargeNativeAdCard(
     modifier: Modifier = Modifier
 ) {
     if (nativeAd == null) {
-        NativeAdShimmer(modifier.height(220.dp), corner = 16)
+        NativeAdShimmer(modifier.height(220.dp), corner = 12)
         return
     }
 
@@ -250,9 +250,9 @@ private fun createNativeAdView(
             setMargins(if (variant == NativeCardVariant.PREMIUM) 1.toPx(context) else 2.toPx(context), if (variant == NativeCardVariant.PREMIUM) 1.toPx(context) else 2.toPx(context), 2, 2)
         }
         setBackgroundResource(R.drawable.native_ad_badge_bg)
-        setPadding(4.toPx(context), 3.toPx(context), 4.toPx(context), 4.toPx(context))
+        setPadding(4.toPx(context), 3.toPx(context), 4.toPx(context), 3.toPx(context))
         text = context.getString(R.string.sponsored)
-        textSize = if (variant == NativeCardVariant.PREMIUM) 14f else 12f
+        textSize = if (variant == NativeCardVariant.PREMIUM) 13f else 11f
         setTypeface(typeface, Typeface.BOLD)
         setTextColor(0xFF232531.toInt())
     }
