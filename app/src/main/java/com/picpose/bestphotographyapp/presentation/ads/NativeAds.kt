@@ -304,7 +304,7 @@ private fun createNativeAdView(
         }
 
         val headline = TextView(context).apply {
-            textSize = 18f
+            textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(headlineColor)
             maxLines = 2
@@ -312,7 +312,7 @@ private fun createNativeAdView(
         }
 
         val body = TextView(context).apply {
-            textSize = 14f
+            textSize = 13f
             setTextColor(bodyColor)
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
@@ -383,7 +383,7 @@ private fun createNativeAdView(
         }
 
         val headline = TextView(context).apply {
-            textSize = 16f
+            textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(headlineColor)
             maxLines = 2
@@ -409,7 +409,7 @@ private fun createNativeAdView(
 
         val cta = Button(context).apply {
             stylePrimaryCta(context, ctaBgColor, ctaTextColor, radiusDp = 10f, horizontalDp = 14, verticalDp = 8)
-            textSize = 12f
+            textSize = 14f
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(

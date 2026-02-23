@@ -23,7 +23,7 @@ enum class AdPlacement(
         key = "detail_native",
         format = AdFormat.NATIVE,
         description = "Prompt/guide detail native ad",
-        aliases = listOf("native_ad", "native_1", "native_2", "native_3")
+        aliases = listOf("home_native", "native_ad", "native_1", "native_2", "native_3")
     ),
     HOME_INTERSTITIAL(
         key = "interstitial_home",

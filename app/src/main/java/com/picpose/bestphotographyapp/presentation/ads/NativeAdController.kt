@@ -34,6 +34,7 @@ class NativeAdController(
     private var retryAttempt = 0
     private var retryJob: Job? = null
     private var nativeAd: NativeAd? = null
+    private var hasMarkedImpressionForCurrentAd: Boolean = false
 
     fun load(context: Context, forceReload: Boolean = false, callbacks: Callbacks? = null) {
         if (!forceReload && nativeAd != null) {
@@ -64,6 +65,7 @@ class NativeAdController(
         if (forceReload) {
             nativeAd?.destroy()
             nativeAd = null
+            hasMarkedImpressionForCurrentAd = false
         }
 
         AdsLog.i(logTag, "[AdMobNative] placement=$placementKey action=load status=REQUESTED unit=${AdsLog.maskAdUnitId(adUnitId)}")
@@ -73,8 +75,8 @@ class NativeAdController(
                 retryAttempt = 0
                 nativeAd?.destroy()
                 nativeAd = loadedAd
+                hasMarkedImpressionForCurrentAd = false
                 callbacks?.onLoaded(loadedAd)
-                AdsManager.markShown(placementKey)
                 AdsLog.i(logTag, "[AdMobNative] placement=$placementKey action=load status=LOADED")
             }
             .withAdListener(object : AdListener() {
@@ -87,6 +89,10 @@ class NativeAdController(
 
                 override fun onAdImpression() {
                     callbacks?.onImpression()
+                    if (!hasMarkedImpressionForCurrentAd) {
+                        AdsManager.markShown(placementKey)
+                        hasMarkedImpressionForCurrentAd = true
+                    }
                     AdsLog.d(logTag, "[AdMobNative] placement=$placementKey action=impression")
                 }
             })
@@ -117,6 +123,7 @@ class NativeAdController(
         isLoading.set(false)
         nativeAd?.destroy()
         nativeAd = null
+        hasMarkedImpressionForCurrentAd = false
         AdsLog.d(logTag, "[AdMobNative] placement=$placementKey action=clear")
     }
 }

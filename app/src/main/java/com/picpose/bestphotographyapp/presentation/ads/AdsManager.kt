@@ -187,7 +187,7 @@ object AdsManager {
             return null
         }
 
-        val resolved = resolvePlacement(placementKey, result.config) ?: run {
+        val resolved = resolvePlacement(placementKey, result.config, requireUnits = true) ?: run {
             logPlacementNullDecision(
                 placementKey = placementKey,
                 reason = REASON_PLACEMENT_NOT_FOUND
@@ -237,7 +237,7 @@ object AdsManager {
             AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_CMP_NOT_READY")
             return false
         }
-        val resolved = resolvePlacement(placementKey, result.config) ?: run {
+        val resolved = resolvePlacement(placementKey, result.config, requireUnits = true) ?: run {
             AdsLog.i(AdsLog.TAG_MANAGER, "[AdsManager] placement=$placementKey shouldShow=false reason=$REASON_PLACEMENT_NOT_FOUND")
             return false
         }
@@ -292,12 +292,19 @@ object AdsManager {
         return shouldShowNow(placement.key)
     }
 
-    private fun resolvePlacement(requestedKey: String, config: AdsConfig?): ResolvedPlacement? {
+    private fun resolvePlacement(
+        requestedKey: String,
+        config: AdsConfig?,
+        requireUnits: Boolean = false
+    ): ResolvedPlacement? {
         if (config == null) return null
         val candidates = candidateKeysFor(requestedKey)
         for (candidate in candidates) {
             val placement = config.findPlacement(candidate)
             if (placement != null) {
+                if (requireUnits && placement.units.isEmpty()) {
+                    continue
+                }
                 return ResolvedPlacement(requestedKey = requestedKey, matchedKey = candidate, placement = placement)
             }
         }
