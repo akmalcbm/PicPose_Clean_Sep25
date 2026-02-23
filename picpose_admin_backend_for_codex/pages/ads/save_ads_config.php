@@ -21,7 +21,7 @@ $action = $_POST['action'] ?? '';
 try {
     $conn->begin_transaction();
 
-    if ($action === 'save_global') {
+    if ($action === 'save_global' || $action === 'save_admob') {
         $adsEnabled = isset($_POST['ads_enabled']) ? 1 : 0;
         $environment = normalize_ads_env((string)($_POST['environment'] ?? 'test'));
         $useTestAds = isset($_POST['use_test_ads']) ? 1 : 0;
@@ -35,6 +35,21 @@ try {
         }
         if ($admobAppIdLive !== '' && !is_valid_admob_app_id($admobAppIdLive)) {
             throw new RuntimeException('Invalid live AdMob App ID format. Expected ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY');
+        }
+
+        if ($action === 'save_admob') {
+            $currentStmt = $conn->prepare("SELECT ads_enabled, environment, use_test_ads, interstitial_cooldown_seconds, interstitial_show_every_n_actions FROM ads_global_settings WHERE id = 1 LIMIT 1");
+            if ($currentStmt && $currentStmt->execute()) {
+                $current = $currentStmt->get_result()->fetch_assoc();
+                if ($current) {
+                    $adsEnabled = (int)$current['ads_enabled'];
+                    $environment = normalize_ads_env((string)$current['environment']);
+                    $useTestAds = (int)$current['use_test_ads'];
+                    $cooldown = (int)$current['interstitial_cooldown_seconds'];
+                    $showEvery = (int)$current['interstitial_show_every_n_actions'];
+                }
+                $currentStmt->close();
+            }
         }
 
         $stmt = $conn->prepare("\n            UPDATE ads_global_settings\n            SET ads_enabled = ?,\n                environment = ?,\n                use_test_ads = ?,\n                admob_app_id_test = NULLIF(?, ''),\n                admob_app_id_live = NULLIF(?, ''),\n                interstitial_cooldown_seconds = ?,\n                interstitial_show_every_n_actions = ?,\n                config_version = config_version + 1,\n                updated_at = NOW()\n            WHERE id = 1\n        ");
@@ -56,7 +71,9 @@ try {
         }
         $stmt->close();
 
-        $_SESSION['success'] = 'Global ads configuration saved.';
+        $_SESSION['success'] = $action === 'save_admob'
+            ? 'AdMob app IDs saved.'
+            : 'Global ads configuration saved.';
 
     } elseif ($action === 'add_placement' || $action === 'update_placement') {
         $id = (int)($_POST['id'] ?? 0);
