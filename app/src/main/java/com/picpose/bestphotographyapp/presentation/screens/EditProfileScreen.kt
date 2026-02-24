@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,7 +70,10 @@ fun EditProfileScreen(
 
     val scrollState = rememberScrollState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val bioSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val showPhotoSheet = remember { mutableStateOf(false) }
+    var showBioSheet by remember { mutableStateOf(false) }
+    var bioSearch by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     // Prefill name + bio
@@ -166,8 +171,14 @@ fun EditProfileScreen(
     val aiBioSuggestions = remember {
         context.resources.getStringArray(R.array.ai_bio_suggestions).toList()
     }
-
-    var showBioMenu by remember { mutableStateOf(false) }
+    val filteredBioSuggestions = remember(aiBioSuggestions, bioSearch) {
+        val query = bioSearch.trim()
+        if (query.isEmpty()) {
+            aiBioSuggestions
+        } else {
+            aiBioSuggestions.filter { it.contains(query, ignoreCase = true) }
+        }
+    }
 
     EdgeToEdgeScaffold(
         topBar = {
@@ -289,7 +300,7 @@ fun EditProfileScreen(
                     value = bio,
                     onValueChange = { bio = it },
                     label = { Text(stringResource(R.string.bio)) },
-                    placeholder = { Text(stringResource(R.string.bio_select_hint)) },
+                    placeholder = { Text(stringResource(R.string.bio_search_hint)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 120.dp),
@@ -297,38 +308,53 @@ fun EditProfileScreen(
                     maxLines = 4,
                     supportingText = {
                         Text(
-                            text = stringResource(R.string.bio_select_hint),
+                            text = stringResource(R.string.bio_style_hint),
                             style = MaterialTheme.typography.bodySmall
                         )
                     },
                     trailingIcon = {
-                        IconButton(onClick = { showBioMenu = true }) {
-                            Icon(Icons.Default.Lightbulb, contentDescription = stringResource(R.string.ai_bio), tint = MaterialTheme.colorScheme.primary)
+                        IconButton(
+                            onClick = { showBioSheet = true },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Lightbulb,
+                                contentDescription = stringResource(R.string.bio_pick_idea),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 )
-
-                DropdownMenu(
-                    expanded = showBioMenu,
-                    onDismissRequest = { showBioMenu = false }
-                ) {
-                    Text(
-                        stringResource(R.string.ai_bio_suggestions),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    aiBioSuggestions.forEach { suggestion ->
-                        DropdownMenuItem(
-                            text = { Text(suggestion) },
-                            onClick = {
-                                bio = TextFieldValue(suggestion)
-                                showBioMenu = false
-                            }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
+                    onClick = { showBioSheet = true },
+                    label = { Text(stringResource(R.string.bio_pick_idea)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Lightbulb,
+                            contentDescription = stringResource(R.string.bio_pick_idea)
                         )
                     }
-                }
+                )
+
+                AssistChip(
+                    onClick = {
+                        val suggestion = aiBioSuggestions.randomOrNull() ?: return@AssistChip
+                        bio = TextFieldValue(suggestion)
+                    },
+                    label = { Text(stringResource(R.string.bio_random)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Shuffle,
+                            contentDescription = stringResource(R.string.bio_random)
+                        )
+                    }
+                )
             }
 
             // Save Button
@@ -432,6 +458,93 @@ fun EditProfileScreen(
                         scope.launch { sheetState.hide() }
                     }
                 )
+            }
+        }
+    }
+
+    if (showBioSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showBioSheet = false
+                bioSearch = ""
+                scope.launch { bioSheetState.hide() }
+            },
+            sheetState = bioSheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.bio_ideas_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.bio_ideas_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = bioSearch,
+                    onValueChange = { bioSearch = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.bio_search_hint))
+                    },
+                    placeholder = { Text(stringResource(R.string.bio_search_hint)) },
+                    singleLine = true
+                )
+
+                FilledTonalButton(
+                    onClick = {
+                        val suggestion = filteredBioSuggestions.randomOrNull() ?: aiBioSuggestions.randomOrNull()
+                            ?: return@FilledTonalButton
+                        bio = TextFieldValue(suggestion)
+                        showBioSheet = false
+                        bioSearch = ""
+                        scope.launch { bioSheetState.hide() }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Default.Shuffle,
+                        contentDescription = stringResource(R.string.bio_random)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.bio_random))
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 180.dp, max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(filteredBioSuggestions) { suggestion ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    bio = TextFieldValue(suggestion)
+                                    showBioSheet = false
+                                    bioSearch = ""
+                                    scope.launch { bioSheetState.hide() }
+                                },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        ) {
+                            Text(
+                                text = suggestion,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

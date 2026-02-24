@@ -209,6 +209,12 @@
     <string name="available_rewards">Available Rewards</string>
     <string name="best_for_generating_results">Best for generating results</string>
     <string name="bio">Bio</string>
+    <string name="bio_ideas_title">Bio ideas</string>
+    <string name="bio_ideas_subtitle">Tap one to apply</string>
+    <string name="bio_pick_idea">Pick a bio idea</string>
+    <string name="bio_random">Random</string>
+    <string name="bio_search_hint">Search bio ideas</string>
+    <string name="bio_style_hint">Make it fun &amp; creator-style</string>
     <string name="bio_select_hint">Tap the bulb to select from existing bio suggestions</string>
     <string name="by_author">by %1$s</string>
     <string name="camera_feature_coming_soon">Camera feature coming soon</string>
