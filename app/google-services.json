@@ -14,6 +14,38 @@
       },
       "oauth_client": [
         {
+          "client_id": "424655024692-aqmku76escgiuucgg9pciheqg652v23s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.picpose.bestphotographyapp",
+            "certificate_hash": "f32b91355c452694a0f082ff0910921bd7243e37"
+          }
+        },
+        {
+          "client_id": "424655024692-mh0drup0subieeg9fcmfom3lq277svsg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.picpose.bestphotographyapp",
+            "certificate_hash": "3af59fcb095a63d0ffff055825e6e0fcc7c71f32"
+          }
+        },
+        {
+          "client_id": "424655024692-ob6nv09hilkaournfddogjm9c7gbl5g9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.picpose.bestphotographyapp",
+            "certificate_hash": "209510646842eab24cf60fe441331d0b817ed1d0"
+          }
+        },
+        {
+          "client_id": "424655024692-qgmlf5smvccva9kjm1vpnupidkdai0on.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.picpose.bestphotographyapp",
+            "certificate_hash": "12bc0f1cf92945005d0665d0a98c0c3604182876"
+          }
+        },
+        {
           "client_id": "424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com",
           "client_type": 3
         }

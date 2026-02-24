@@ -36,6 +36,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.models.AccountType
 import com.picpose.bestphotographyapp.presentation.components.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.presentation.utils.ImageCropper
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
@@ -288,11 +289,18 @@ fun EditProfileScreen(
                     value = bio,
                     onValueChange = { bio = it },
                     label = { Text(stringResource(R.string.bio)) },
+                    placeholder = { Text(stringResource(R.string.bio_select_hint)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 120.dp),
                     shape = RoundedCornerShape(12.dp),
                     maxLines = 4,
+                    supportingText = {
+                        Text(
+                            text = stringResource(R.string.bio_select_hint),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     trailingIcon = {
                         IconButton(onClick = { showBioMenu = true }) {
                             Icon(Icons.Default.Lightbulb, contentDescription = stringResource(R.string.ai_bio), tint = MaterialTheme.colorScheme.primary)
@@ -338,12 +346,13 @@ fun EditProfileScreen(
                         scope.launch {
                             val finalUri = selectedImageUri?.let { compressUri(context, it) }
                             val finalBio = bio.text.trim().ifBlank { null }
+                            val safeAccountType = runCatching { user.accountType }.getOrDefault(AccountType.NORMAL)
 
                             authViewModel.updateProfile(
                                 name = name.text.trim(),
                                 bio = finalBio,
                                 profilePictureUri = finalUri,
-                                accountType = user.accountType
+                                accountType = safeAccountType
                             ) { result ->
                                 isSaving = false
                                 result.onSuccess {

@@ -209,6 +209,7 @@
     <string name="available_rewards">Available Rewards</string>
     <string name="best_for_generating_results">Best for generating results</string>
     <string name="bio">Bio</string>
+    <string name="bio_select_hint">Tap the bulb to select from existing bio suggestions</string>
     <string name="by_author">by %1$s</string>
     <string name="camera_feature_coming_soon">Camera feature coming soon</string>
     <string name="categories_subtitle">Explore different styles</string>
@@ -311,6 +312,9 @@
     <string name="go_back">go back</string>
     <string name="google_credential_missing">Google credential missing</string>
     <string name="google_login_failed">Google login failed</string>
+    <string name="google_sign_in_cancelled">Google sign-in was cancelled</string>
+    <string name="google_no_credentials_available">No Google account credential found on this device. Add a Google account and try again.</string>
+    <string name="google_token_missing">Google sign-in token is missing</string>
     <string name="google_play">Google play</string>
     <string name="guest_user">Guest user</string>
     <string name="guide_content">Guide content</string>
@@ -424,6 +428,7 @@
     <string name="photography_guides_title">Photography Guides</string>
     <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
     <string name="please_check_back_later">Please check back later</string>
+    <string name="please_accept_terms_to_continue">Please accept Terms to continue</string>
     <string name="please_enter_your_name">Please enter your name</string>
     <string name="please_login_to_edit_profile">Please login to edit profile</string>
     <string name="please_wait_before_refreshing_again">Please wait before refreshing again</string>
@@ -455,6 +460,8 @@
     <string name="redeem">Redeem</string>
     <string name="refresh">Refresh</string>
     <string name="registration_failed">Registration failed</string>
+    <string name="auth_action_in_progress">Authentication is already in progress</string>
+    <string name="auth_invalid_user_data">Invalid user data received. Please try again.</string>
     <string name="remove">Remove</string>
     <string name="remove_from_favorites">Remove from favorites</string>
     <string name="remove_photo">Remove photo</string>

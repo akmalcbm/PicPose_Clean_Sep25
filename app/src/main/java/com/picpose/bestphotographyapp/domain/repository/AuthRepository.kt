@@ -195,8 +195,9 @@ class AuthRepository @Inject constructor(
             val userIdPart = userId.toRequestBody("text/plain".toMediaTypeOrNull())
             val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
             val bioPart = (bio ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
-            val accountTypePart =
-                accountType.name.lowercase().toRequestBody("text/plain".toMediaTypeOrNull())
+            val safeAccountType = runCatching { accountType.name.lowercase() }
+                .getOrDefault(AccountType.NORMAL.value)
+            val accountTypePart = safeAccountType.toRequestBody("text/plain".toMediaTypeOrNull())
             val apiKeyPart = (API_KEY ?: "")
                 .toRequestBody("text/plain".toMediaTypeOrNull())
 

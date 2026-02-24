@@ -2,6 +2,13 @@ package com.picpose.bestphotographyapp.data.network
 
 import android.util.Log
 import com.picpose.bestphotographyapp.BuildConfig
+import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.data.models.UserRole
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -9,6 +16,7 @@ import okhttp3.CacheControl
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
@@ -22,6 +30,23 @@ object RetrofitClient {
         BuildConfig.API_KEY.takeIf { it.isNotBlank() }
 
     private var cacheDir: java.io.File? = null
+
+    private val accountTypeDeserializer =
+        JsonDeserializer<AccountType> { json: JsonElement?, _: Type, _: JsonDeserializationContext ->
+            AccountType.from(json?.asString)
+        }
+
+    private val userRoleDeserializer =
+        JsonDeserializer<UserRole> { json: JsonElement?, _: Type, _: JsonDeserializationContext ->
+            UserRole.from(json?.asString)
+        }
+
+    private val gson: Gson by lazy {
+        GsonBuilder()
+            .registerTypeAdapter(AccountType::class.java, accountTypeDeserializer)
+            .registerTypeAdapter(UserRole::class.java, userRoleDeserializer)
+            .create()
+    }
 
     fun initCache(context: android.content.Context) {
         cacheDir = java.io.File(context.cacheDir, "http_cache")
@@ -149,7 +174,7 @@ object RetrofitClient {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 

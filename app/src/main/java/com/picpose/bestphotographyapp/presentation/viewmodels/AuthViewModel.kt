@@ -3,15 +3,22 @@ package com.picpose.bestphotographyapp.presentation.viewmodels
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.facebook.CallbackManager
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.AccountType
+import com.picpose.bestphotographyapp.data.models.UserRole
 import com.picpose.bestphotographyapp.data.models.User
 import com.picpose.bestphotographyapp.domain.repository.AuthRepository
 import com.picpose.bestphotographyapp.core.utils.PKCEUtil
@@ -22,6 +29,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -57,19 +66,44 @@ class AuthViewModel @Inject constructor(
     private var googleClient: GoogleAuthUiClient? = null
     private val facebookClient = FacebookAuthClient()
     private val twitterClient = TwitterAuthClient()
+    private val authActionMutex = Mutex()
 
     // ----------------------------------------
     // GOOGLE LOGIN
     // ----------------------------------------
     fun initGoogleClient(context: Context) {
         googleClient = GoogleAuthUiClient(context)
+        debugLog("google_client_initialized")
     }
 
     suspend fun startGoogleSignIn(): Result<GetCredentialResponse?> {
+        val google = googleClient
+        if (google == null) {
+            debugLog("google_sign_in_not_initialized")
+            return Result.failure(IllegalStateException(appContext.getString(R.string.google_login_failed)))
+        }
+        if (_authState.value is AuthState.Loading) {
+            debugLog("google_sign_in_ignored_loading")
+            return Result.failure(IllegalStateException(appContext.getString(R.string.auth_action_in_progress)))
+        }
+
         return try {
-            val response = googleClient?.signIn()
+            debugLog("google_sign_in_launching")
+            val response = google.signIn()
+            debugLog("google_sign_in_response_received hasResponse=${response != null}")
             Result.success(response)
+        } catch (e: NoCredentialException) {
+            val msg = appContext.getString(R.string.google_no_credentials_available)
+            debugLog("google_sign_in_no_credentials")
+            _authState.value = AuthState.Error(msg)
+            Result.failure(IllegalStateException(msg, e))
+        } catch (e: GetCredentialCancellationException) {
+            val msg = appContext.getString(R.string.google_sign_in_cancelled)
+            debugLog("google_sign_in_cancelled")
+            _authState.value = AuthState.Error(msg)
+            Result.failure(IllegalStateException(msg, e))
         } catch (e: Exception) {
+            Log.e("AuthViewModel", buildGoogleSignInErrorLog("startGoogleSignIn", e), e)
             Result.failure(e)
         }
     }
@@ -78,23 +112,43 @@ class AuthViewModel @Inject constructor(
         response: GetCredentialResponse?,
         onResult: (Result<User>) -> Unit
     ) {
+        debugLog("google_sign_in_finish_called hasResponse=${response != null}")
+        if (response == null) {
+            val err = appContext.getString(R.string.google_sign_in_cancelled)
+            _authState.value = AuthState.Error(err)
+            onResult(Result.failure(Exception(err)))
+            return
+        }
+
         val googleData = try {
             googleClient?.parseGoogleCredential(response)
         } catch (e: Exception) {
+            Log.e("AuthViewModel", buildGoogleSignInErrorLog("finishGoogleSignIn.parseCredential", e), e)
             null
         }
 
         if (googleData == null) {
-            onResult(Result.failure(Exception(appContext.getString(R.string.google_credential_missing))))
+            val err = appContext.getString(R.string.google_credential_missing)
+            _authState.value = AuthState.Error(err)
+            onResult(Result.failure(Exception(err)))
+            return
+        }
+
+        val idToken = googleData.idToken?.trim().orEmpty()
+        if (idToken.isBlank()) {
+            val err = appContext.getString(R.string.google_token_missing)
+            _authState.value = AuthState.Error(err)
+            onResult(Result.failure(Exception(err)))
             return
         }
 
         _authState.value = AuthState.Loading
 
         viewModelScope.launch {
+            debugLog("google_social_login_request emailPresent=${!googleData.email.isNullOrBlank()} namePresent=${!googleData.displayName.isNullOrBlank()}")
             val result = authRepository.socialLogin(
                 provider = "google",
-                token = googleData.idToken ?: "",
+                token = idToken,
                 email = googleData.email ?: "",
                 name = googleData.displayName ?: "",
                 profilePicture = googleData.profilePictureUrl
@@ -102,16 +156,38 @@ class AuthViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
-                saveAndEmitSuccess(user)
-                analyticsLogger.logLoginSuccess("google")
-                onResult(Result.success(user))
+                saveAndEmitSuccess(user, fallbackAccountType = AccountType.NORMAL)
+                    .onSuccess { safeUser ->
+                        analyticsLogger.logLoginSuccess("google")
+                        onResult(Result.success(safeUser))
+                    }
+                    .onFailure { error ->
+                        onResult(Result.failure(error))
+                    }
             } else {
                 val msg = result.exceptionOrNull()?.message
                     ?: appContext.getString(R.string.google_login_failed)
+                Log.e("AuthViewModel", "Google authRepository.socialLogin failed: $msg")
                 _authState.value = AuthState.Error(msg)
                 onResult(Result.failure(Exception(msg)))
             }
         }
+    }
+
+    private fun buildGoogleSignInErrorLog(stage: String, throwable: Throwable): String {
+        val apiException = throwable.findApiException()
+        val statusDetails = apiException?.let {
+            " apiStatusCode=${it.statusCode} apiStatusName=${CommonStatusCodes.getStatusCodeString(it.statusCode)}"
+        }.orEmpty()
+        return "Google Sign-In failure stage=$stage class=${throwable.javaClass.simpleName} message=${throwable.localizedMessage}$statusDetails"
+    }
+
+    private fun Throwable.findApiException(): ApiException? {
+        if (this is ApiException) return this
+        val directCause = cause
+        if (directCause is ApiException) return directCause
+        val nestedCause = directCause?.cause
+        return nestedCause as? ApiException
     }
 
     // ----------------------------------------
@@ -121,6 +197,7 @@ class AuthViewModel @Inject constructor(
         facebookClient.getCallbackManager()
 
     fun startFacebookLogin(activity: Activity) {
+        if (_authState.value is AuthState.Loading) return
         _authState.value = AuthState.Loading
 
         facebookClient.startLogin(
@@ -150,8 +227,10 @@ class AuthViewModel @Inject constructor(
             )
 
             if (result.isSuccess) {
-                saveAndEmitSuccess(result.getOrNull()!!)
-                analyticsLogger.logLoginSuccess("facebook")
+                saveAndEmitSuccess(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+                    .onSuccess {
+                        analyticsLogger.logLoginSuccess("facebook")
+                    }
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.facebook_login_failed))
@@ -219,8 +298,10 @@ class AuthViewModel @Inject constructor(
                 )
 
                 if (loginResult.isSuccess) {
-                    saveAndEmitSuccess(loginResult.getOrNull()!!)
-                    analyticsLogger.logLoginSuccess("twitter")
+                    saveAndEmitSuccess(loginResult.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+                        .onSuccess {
+                            analyticsLogger.logLoginSuccess("twitter")
+                        }
                 } else {
                     _authState.value =
                         AuthState.Error(loginResult.exceptionOrNull()?.message ?: appContext.getString(R.string.twitter_login_failed))
@@ -289,13 +370,17 @@ class AuthViewModel @Inject constructor(
     // EMAIL + PASSWORD LOGIN
     // ----------------------------------------
     fun login(email: String, password: String) {
+        if (_authState.value is AuthState.Loading) return
         viewModelScope.launch {
             _authState.value = AuthState.Loading
+            debugLog("email_login_request emailPresent=${email.isNotBlank()}")
             val result = authRepository.login(email, password)
 
             if (result.isSuccess) {
-                saveAndEmitSuccess(result.getOrNull()!!)
-                analyticsLogger.logLoginSuccess("password")
+                saveAndEmitSuccess(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+                    .onSuccess {
+                        analyticsLogger.logLoginSuccess("password")
+                    }
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.login_failed))
@@ -304,13 +389,17 @@ class AuthViewModel @Inject constructor(
     }
 
     fun register(email: String, password: String, name: String) {
+        if (_authState.value is AuthState.Loading) return
         viewModelScope.launch {
             _authState.value = AuthState.Loading
+            debugLog("email_signup_request emailPresent=${email.isNotBlank()} namePresent=${name.isNotBlank()}")
             val result = authRepository.register(email, password, name)
 
             if (result.isSuccess) {
-                saveAndEmitSuccess(result.getOrNull()!!)
-                analyticsLogger.logSignupSuccess("password")
+                saveAndEmitSuccess(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+                    .onSuccess {
+                        analyticsLogger.logSignupSuccess("password")
+                    }
             } else {
                 _authState.value =
                     AuthState.Error(result.exceptionOrNull()?.message ?: appContext.getString(R.string.registration_failed))
@@ -468,8 +557,9 @@ class AuthViewModel @Inject constructor(
             val result = authRepository.getUserProfile(userId)
             if (result.isSuccess) {
                 val user = result.getOrNull()!!
-                saveSession(user)
-                _authState.value = AuthState.Success(user)
+                val safeUser = normalizeAuthUser(user, fallbackAccountType = AccountType.NORMAL)
+                saveSession(safeUser)
+                _authState.value = AuthState.Success(safeUser)
             } else {
                 refreshUserFromSession()
             }
@@ -489,7 +579,8 @@ class AuthViewModel @Inject constructor(
             )
 
             if (result.isSuccess) {
-                saveSession(result.getOrNull()!!)
+                val safeUser = normalizeAuthUser(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+                saveSession(safeUser)
             }
 
             onResult(result)
@@ -501,25 +592,71 @@ class AuthViewModel @Inject constructor(
     // ----------------------------------------
     private fun saveAndEmitSuccess(user: User) {
         viewModelScope.launch {
-            saveSession(user)
-            crashReporter.setUserIdentifier(user.id)
-            crashReporter.setAccountType(user.accountType.value)
-            _authState.value = AuthState.Success(user)
-            _authEvents.emit(AuthState.Success(user))
+            saveAndEmitSuccess(user, fallbackAccountType = AccountType.NORMAL)
         }
     }
 
-    private fun saveSession(user: User) {
-        viewModelScope.launch {
-            userSessionManager.saveUserSession(
-                userId = user.id,
-                email = user.email,
-                name = user.displayName,
-                profilePicture = user.displayProfilePicture,
-                bio = user.bio,
-                token = null,
-                emailVerified = user.isEmailVerified
+    private suspend fun saveAndEmitSuccess(
+        user: User,
+        fallbackAccountType: AccountType
+    ): Result<User> = authActionMutex.withLock {
+        try {
+            val safeUser = normalizeAuthUser(user, fallbackAccountType)
+            val accountTypeValue = runCatching { safeUser.accountType.value }
+                .getOrDefault(fallbackAccountType.value)
+            debugLog(
+                "save_and_emit_success id=${safeUser.id} " +
+                    "emailPresent=${safeUser.email.isNotBlank()} " +
+                    "accountType=$accountTypeValue provider=${safeUser.provider ?: "unknown"}"
             )
+
+            saveSession(safeUser)
+            crashReporter.setUserIdentifier(safeUser.id)
+            crashReporter.setAccountType(accountTypeValue)
+            _authState.value = AuthState.Success(safeUser)
+            _authEvents.emit(AuthState.Success(safeUser))
+            Result.success(safeUser)
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "saveAndEmitSuccess failed", e)
+            val msg = e.localizedMessage ?: appContext.getString(R.string.auth_invalid_user_data)
+            _authState.value = AuthState.Error(msg)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun saveSession(user: User) {
+        userSessionManager.saveUserSession(
+            userId = user.id,
+            email = user.email,
+            name = user.displayName,
+            profilePicture = user.displayProfilePicture,
+            bio = user.bio,
+            token = null,
+            emailVerified = user.isEmailVerified
+        )
+    }
+
+    private fun normalizeAuthUser(user: User, fallbackAccountType: AccountType): User {
+        val safeId = user.id.trim()
+        val safeEmail = user.email.trim()
+
+        if (safeId.isEmpty() || safeEmail.isEmpty()) {
+            throw IllegalStateException(appContext.getString(R.string.auth_invalid_user_data))
+        }
+
+        val safeAccountType = runCatching { user.accountType }.getOrNull() ?: fallbackAccountType
+        val safeRole = runCatching { user.role }.getOrNull() ?: UserRole.USER
+        return user.copy(
+            id = safeId,
+            email = safeEmail,
+            accountType = safeAccountType,
+            role = safeRole
+        )
+    }
+
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d("AuthFlow", message)
         }
     }
 

@@ -5,6 +5,10 @@ import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
@@ -31,9 +35,23 @@ class GoogleAuthUiClient(private val context: Context) {
                 .build()
 
             credentialManager.getCredential(context = context, request = request)
+        } catch (e: NoCredentialException) {
+            Log.w("GoogleAuthUiClient", "signIn no credentials available: ${e.localizedMessage}")
+            throw e
+        } catch (e: GetCredentialCancellationException) {
+            Log.i("GoogleAuthUiClient", "signIn cancelled by user")
+            throw e
         } catch (e: Exception) {
-            Log.e("GoogleAuthUiClient", "signIn error: ${e.localizedMessage}")
-            null
+            val apiException = e as? ApiException ?: e.cause as? ApiException
+            val statusText = apiException?.let {
+                " apiStatusCode=${it.statusCode} apiStatusName=${CommonStatusCodes.getStatusCodeString(it.statusCode)}"
+            }.orEmpty()
+            Log.e(
+                "GoogleAuthUiClient",
+                "signIn error class=${e.javaClass.simpleName} message=${e.localizedMessage}$statusText",
+                e
+            )
+            throw e
         }
     }
 
@@ -48,7 +66,11 @@ class GoogleAuthUiClient(private val context: Context) {
                 idToken = googleCred.idToken
             )
         } catch (e: Exception) {
-            Log.e("GoogleAuthUiClient", "parseGoogleCredential error: ${e.localizedMessage}")
+            Log.e(
+                "GoogleAuthUiClient",
+                "parseGoogleCredential error class=${e.javaClass.simpleName} message=${e.localizedMessage}",
+                e
+            )
             null
         }
     }

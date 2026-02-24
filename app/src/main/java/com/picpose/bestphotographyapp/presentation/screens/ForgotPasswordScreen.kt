@@ -86,7 +86,7 @@ fun ForgotPasswordScreen(
                     authViewModel.requestPasswordReset(email)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = opState !is OperationState.Loading
+                enabled = opState !is OperationState.Loading && email.trim().isNotEmpty()
             ) {
                 if (opState is OperationState.Loading) {
                     CircularProgressIndicator()

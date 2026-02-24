@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthState
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
@@ -55,6 +57,7 @@ fun LoginScreen(
     var consentChecked by remember(hasAcceptedPrivacyTerms) { mutableStateOf(hasAcceptedPrivacyTerms) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Reset skip state
     LaunchedEffect(Unit) {
@@ -72,6 +75,7 @@ fun LoginScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -223,14 +227,33 @@ fun LoginScreen(
             // Submit Button
             Button(
                 onClick = {
+                    if (authState is AuthState.Loading) return@Button
+                    if (!hasAcceptedPrivacyTerms && !consentChecked) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.please_accept_terms_to_continue)
+                            )
+                        }
+                        if (BuildConfig.DEBUG) {
+                            Log.d("AuthFlow", "email_click_blocked_terms agreeChecked=false")
+                        }
+                        return@Button
+                    }
+
                     if (!hasAcceptedPrivacyTerms) {
                         authViewModel.setPrivacyTermsAccepted(consentChecked)
+                    }
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            "AuthFlow",
+                            "email_click mode=${if (isLoginMode) "login" else "signup"} agreeChecked=$consentChecked hasAccepted=$hasAcceptedPrivacyTerms"
+                        )
                     }
                     if (isLoginMode) authViewModel.login(email, password)
                     else authViewModel.register(email, password, name)
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = authState !is AuthState.Loading && (hasAcceptedPrivacyTerms || consentChecked)
+                enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
                     CircularProgressIndicator(
@@ -336,15 +359,44 @@ fun LoginScreen(
                     IconButton(
                         onClick = {
                             scope.launch {
-                                if (!hasAcceptedPrivacyTerms && !consentChecked) return@launch
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(
+                                        "AuthFlow",
+                                        "google_click agreeChecked=$consentChecked hasAccepted=$hasAcceptedPrivacyTerms loading=${authState is AuthState.Loading}"
+                                    )
+                                }
+                                if (authState is AuthState.Loading) return@launch
+                                if (!hasAcceptedPrivacyTerms && !consentChecked) {
+                                    snackbarHostState.showSnackbar(
+                                        message = context.getString(R.string.please_accept_terms_to_continue)
+                                    )
+                                    return@launch
+                                }
                                 if (!hasAcceptedPrivacyTerms) {
                                     authViewModel.setPrivacyTermsAccepted(true)
                                 }
                                 try {
-                                    val response = authViewModel.startGoogleSignIn().getOrNull()
-                                    authViewModel.finishGoogleSignIn(response) { }
+                                    val startResult = authViewModel.startGoogleSignIn()
+                                    val response = startResult.getOrElse { error ->
+                                        snackbarHostState.showSnackbar(
+                                            message = error.localizedMessage
+                                                ?: context.getString(R.string.google_login_failed)
+                                        )
+                                        return@launch
+                                    }
+                                    authViewModel.finishGoogleSignIn(response) { result ->
+                                        result.exceptionOrNull()?.localizedMessage?.let { message ->
+                                            scope.launch { snackbarHostState.showSnackbar(message) }
+                                        }
+                                    }
                                 } catch (e: Exception) {
-                                    e.printStackTrace()
+                                    if (BuildConfig.DEBUG) {
+                                        Log.e("AuthFlow", "google_click_exception", e)
+                                    }
+                                    snackbarHostState.showSnackbar(
+                                        message = e.localizedMessage
+                                            ?: context.getString(R.string.google_login_failed)
+                                    )
                                 }
 
                             }
@@ -355,7 +407,7 @@ fun LoginScreen(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 shape = MaterialTheme.shapes.medium
                             ),
-                        enabled = hasAcceptedPrivacyTerms || consentChecked
+                        enabled = authState !is AuthState.Loading
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_google),
