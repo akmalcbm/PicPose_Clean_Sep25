@@ -21,21 +21,21 @@ val bottomNavItems = listOf(
         route = Screen.Explore.route,
         icon = Icons.Default.Explore
     ),
-    /*BottomNavItem(
-        name = "Create",
+    BottomNavItem(
+        nameRes = R.string.create,
         route = Screen.Create.route,
         icon = Icons.Default.Add
-    ),*/
+    ),
     BottomNavItem(
         nameRes = R.string.home,
         route = Screen.Home.route,
         icon = Icons.Default.Home
     ),
-    /*BottomNavItem(
-        name = "Rewards",
+    BottomNavItem(
+        nameRes = R.string.rewards,
         route = Screen.Rewards.route,
         icon = Icons.Default.Star
-    ), */
+    ),
     BottomNavItem(
         nameRes = R.string.profile,
         route = Screen.Profile.route,
