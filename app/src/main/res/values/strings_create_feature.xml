@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="remove_bg">Remove BG</string>
+    <string name="pick_image">Pick Image</string>
+    <string name="pick_image_to_start">Pick an image to start</string>
+    <string name="remove_bg_card_desc">Use AI to remove image backgrounds with online quality or offline fallback.</string>
+    <string name="remove_bg_disclosure_title">Cloud processing disclosure</string>
+    <string name="remove_bg_disclosure_body">High-quality background removal may upload your image to our server for processing.</string>
+    <string name="continue_action">Continue</string>
+    <string name="remove_bg_preview_title">Background Removal Preview</string>
+    <string name="before">Before</string>
+    <string name="after">After</string>
+    <string name="bg_options">Background options</string>
+    <string name="transparent_bg">Transparent</string>
+    <string name="blur_bg">Blur original</string>
+    <string name="quality_mode">Quality mode</string>
+    <string name="high_quality_online">High quality (online)</string>
+    <string name="offline_basic">Offline (basic)</string>
+    <string name="remove_bg_processing">Removing background...</string>
+    <string name="save_png">Save PNG</string>
+    <string name="apply">Apply</string>
+</resources>

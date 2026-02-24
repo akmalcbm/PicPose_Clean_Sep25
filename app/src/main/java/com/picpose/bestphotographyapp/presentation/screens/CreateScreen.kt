@@ -1,34 +1,120 @@
 package com.picpose.bestphotographyapp.presentation.screens
 
+import android.graphics.Color
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ViewQuilt
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterVintage
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.rembg.BgBackgroundMode
+import com.picpose.bestphotographyapp.data.rembg.BgBackgroundOption
+import com.picpose.bestphotographyapp.data.rembg.BgRemovalQualityMode
+import com.picpose.bestphotographyapp.presentation.viewmodels.CreateUiEvent
+import com.picpose.bestphotographyapp.presentation.viewmodels.CreateUiState
+import com.picpose.bestphotographyapp.presentation.viewmodels.CreateViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateScreen() {
+fun CreateScreen(
+    viewModel: CreateViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        viewModel.onImageSelected(uri)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is CreateUiEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
     val creationCategories = listOf(
         CreationCategory(
             title = context.getString(R.string.create_category_photography),
@@ -45,7 +131,7 @@ fun CreateScreen() {
                     context.getString(R.string.create_option_upload_photo_desc),
                     Icons.Filled.PhotoLibrary
                 ) {
-                    Toast.makeText(context, context.getString(R.string.gallery_picker_coming_soon), Toast.LENGTH_SHORT).show()
+                    galleryLauncher.launch("image/*")
                 },
                 CreateOption(
                     context.getString(R.string.create_option_photo_editor),
@@ -125,6 +211,7 @@ fun CreateScreen() {
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -133,6 +220,14 @@ fun CreateScreen() {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                },
+                actions = {
+                    IconButton(onClick = viewModel::onClickRemoveBg) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = stringResource(R.string.remove_bg)
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -144,12 +239,7 @@ fun CreateScreen() {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(
-                    WindowInsets.safeDrawing
-                        .only(WindowInsetsSides.Horizontal)
-                        .asPaddingValues()
-                ),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -157,7 +247,6 @@ fun CreateScreen() {
                 bottom = 24.dp
             )
         ) {
-            // 🧠 Header
             item {
                 Row(
                     modifier = Modifier
@@ -186,16 +275,20 @@ fun CreateScreen() {
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // 🧩 Categories
+            item {
+                RemoveBgCard(
+                    uiState = uiState,
+                    onPickImage = { galleryLauncher.launch("image/*") },
+                    onRemoveBg = viewModel::onClickRemoveBg
+                )
+            }
+
             items(creationCategories) { category ->
                 CategorySection(category = category)
             }
 
-            // ⭐ Coming Soon Section
             item {
                 Card(
                     modifier = Modifier
@@ -230,6 +323,347 @@ fun CreateScreen() {
                             textAlign = TextAlign.Center
                         )
                     }
+                }
+            }
+        }
+    }
+
+    if (uiState.showDisclosureDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDisclosureCancelled,
+            title = { Text(stringResource(R.string.remove_bg_disclosure_title)) },
+            text = { Text(stringResource(R.string.remove_bg_disclosure_body)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::onDisclosureAccepted) {
+                    Text(stringResource(R.string.continue_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onDisclosureCancelled) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.showPreviewSheet) {
+        ModalBottomSheet(
+            onDismissRequest = viewModel::onCancelBgRemoval
+        ) {
+            RemoveBgPreviewSheet(
+                uiState = uiState,
+                onToggleBeforeAfter = viewModel::onPreviewToggle,
+                onSetBackgroundOption = viewModel::onSetBackgroundOption,
+                onConfirmMode = viewModel::onConfirmBgRemoval,
+                onRetry = viewModel::onRetry,
+                onApply = viewModel::onApplyRemovedBg,
+                onSavePng = viewModel::onSavePreviewAsPng,
+                onCancel = viewModel::onCancelBgRemoval
+            )
+        }
+    }
+}
+
+@Composable
+private fun RemoveBgCard(
+    uiState: CreateUiState,
+    onPickImage: () -> Unit,
+    onRemoveBg: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.remove_bg),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(R.string.remove_bg_card_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            CheckerboardPreview(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                imageUri = uiState.selectedImageUri
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onPickImage, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Upload, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.pick_image))
+                }
+
+                Button(
+                    onClick = onRemoveBg,
+                    modifier = Modifier.weight(1f),
+                    enabled = uiState.selectedImageUri != null
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.remove_bg))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RemoveBgPreviewSheet(
+    uiState: CreateUiState,
+    onToggleBeforeAfter: (Boolean) -> Unit,
+    onSetBackgroundOption: (BgBackgroundOption) -> Unit,
+    onConfirmMode: (BgRemovalQualityMode) -> Unit,
+    onRetry: () -> Unit,
+    onApply: () -> Unit,
+    onSavePng: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val beforeUri = uiState.selectedImageUri
+    val afterUri = uiState.removeBgPreviewUri
+    val currentUri = if (uiState.previewShowBefore) beforeUri else (afterUri ?: beforeUri)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.remove_bg_preview_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        CheckerboardPreview(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+            imageUri = currentUri
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = uiState.previewShowBefore,
+                onClick = { onToggleBeforeAfter(true) },
+                label = { Text(stringResource(R.string.before)) }
+            )
+            FilterChip(
+                selected = !uiState.previewShowBefore,
+                onClick = { onToggleBeforeAfter(false) },
+                label = { Text(stringResource(R.string.after)) }
+            )
+        }
+
+        Text(
+            text = stringResource(R.string.bg_options),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = uiState.backgroundOption.mode == BgBackgroundMode.TRANSPARENT,
+                onClick = {
+                    onSetBackgroundOption(BgBackgroundOption(mode = BgBackgroundMode.TRANSPARENT))
+                },
+                label = { Text(stringResource(R.string.transparent_bg)) }
+            )
+            FilterChip(
+                selected = uiState.backgroundOption.mode == BgBackgroundMode.BLUR_ORIGINAL,
+                onClick = {
+                    onSetBackgroundOption(BgBackgroundOption(mode = BgBackgroundMode.BLUR_ORIGINAL))
+                },
+                label = { Text(stringResource(R.string.blur_bg)) }
+            )
+        }
+
+        ColorPresetRow(
+            selectedColor = uiState.backgroundOption.solidColor,
+            onColorPicked = { colorInt ->
+                onSetBackgroundOption(
+                    BgBackgroundOption(
+                        mode = BgBackgroundMode.SOLID_COLOR,
+                        solidColor = colorInt
+                    )
+                )
+            }
+        )
+
+        Text(
+            text = stringResource(R.string.quality_mode),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = uiState.qualityMode == BgRemovalQualityMode.HIGH_QUALITY_ONLINE,
+                onClick = { onConfirmMode(BgRemovalQualityMode.HIGH_QUALITY_ONLINE) },
+                label = { Text(stringResource(R.string.high_quality_online)) }
+            )
+            FilterChip(
+                selected = uiState.qualityMode == BgRemovalQualityMode.OFFLINE_BASIC,
+                onClick = { onConfirmMode(BgRemovalQualityMode.OFFLINE_BASIC) },
+                label = { Text(stringResource(R.string.offline_basic)) }
+            )
+        }
+
+        if (uiState.isRemovingBg) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text(stringResource(R.string.remove_bg_processing))
+            }
+        }
+
+        if (!uiState.removeBgError.isNullOrBlank()) {
+            Text(
+                text = uiState.removeBgError.orEmpty(),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onRetry, enabled = !uiState.isRemovingBg, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.retry))
+            }
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = onSavePng,
+                enabled = !uiState.isRemovingBg && uiState.removeBgPreviewUri != null,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.save_png))
+            }
+            Button(
+                onClick = onApply,
+                enabled = !uiState.isRemovingBg && uiState.removeBgPreviewUri != null,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.apply))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun ColorPresetRow(
+    selectedColor: Int,
+    onColorPicked: (Int) -> Unit
+) {
+    val colors = listOf(
+        Color.WHITE,
+        Color.BLACK,
+        Color.parseColor("#E3F2FD"),
+        Color.parseColor("#FFF3E0"),
+        Color.parseColor("#E8F5E9")
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        colors.forEach { colorInt ->
+            val selected = colorInt == selectedColor
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(ComposeColor(colorInt))
+                    .border(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        shape = CircleShape
+                    )
+                    .clickable { onColorPicked(colorInt) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckerboardPreview(
+    modifier: Modifier,
+    imageUri: Any?
+) {
+    Box(modifier = modifier) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cellSize = 24.dp.toPx()
+            val light = ComposeColor(0xFFE9E9E9)
+            val dark = ComposeColor(0xFFD6D6D6)
+            var y = 0f
+            var row = 0
+            while (y < size.height) {
+                var x = 0f
+                var col = row % 2
+                while (x < size.width) {
+                    drawRect(
+                        color = if (col % 2 == 0) light else dark,
+                        topLeft = Offset(x, y),
+                        size = androidx.compose.ui.geometry.Size(cellSize, cellSize)
+                    )
+                    x += cellSize
+                    col++
+                }
+                y += cellSize
+                row++
+            }
+        }
+
+        if (imageUri != null) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(ComposeColor(0x44FFFFFF), ComposeColor(0x11000000))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.pick_image_to_start),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
