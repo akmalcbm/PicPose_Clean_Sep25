@@ -23,6 +23,8 @@ class SettingsManager(private val context: Context) {
 
         // 🔥 NEW — Gemini dialog preference
         private val SKIP_GEMINI_DIALOG_KEY = booleanPreferencesKey("skip_gemini_dialog")
+        private val BG_REMOVAL_DISCLOSURE_ACCEPTED_KEY =
+            booleanPreferencesKey("bg_removal_disclosure_accepted")
 
         // 🔔 Notification permission tracking
         private val NOTIFICATION_PERMISSION_REQUESTED_KEY =
@@ -82,6 +84,11 @@ class SettingsManager(private val context: Context) {
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { prefs -> prefs[NOTIFICATION_PERMISSION_REQUESTED_KEY] ?: false }
 
+    /** Background-removal cloud processing disclosure */
+    val bgRemovalDisclosureAccepted: Flow<Boolean> = context.settingsDataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs -> prefs[BG_REMOVAL_DISCLOSURE_ACCEPTED_KEY] ?: false }
+
     /** App open count */
     val appOpenCount: Flow<Int> = context.settingsDataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -137,6 +144,12 @@ class SettingsManager(private val context: Context) {
     suspend fun setNotificationPermissionLastPromptOpen(openCount: Int) {
         context.settingsDataStore.edit { prefs ->
             prefs[NOTIFICATION_PERMISSION_LAST_PROMPT_OPEN_KEY] = openCount
+        }
+    }
+
+    suspend fun setBgRemovalDisclosureAccepted(accepted: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[BG_REMOVAL_DISCLOSURE_ACCEPTED_KEY] = accepted
         }
     }
 
