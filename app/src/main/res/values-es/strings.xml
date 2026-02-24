@@ -272,6 +272,7 @@
     <string name="error_with_message">Error: %1$s</string>
     <string name="explore_all_ai_prompts">Explorar todos los prompts de IA</string>
     <string name="explore_title">Explorar</string>
+    <string name="create">Crear</string>
     <string name="facebook_login_failed">Error al iniciar sesión con Facebook</string>
     <string name="facebook_null_token">Facebook devolvió un token vacío</string>
     <string name="failed_to_copy_text">No se pudo copiar</string>

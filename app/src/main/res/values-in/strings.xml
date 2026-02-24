@@ -257,6 +257,7 @@
     <string name="error">Kesalahan</string>
     <string name="explore_all_ai_prompts">Jelajahi semua prompt AI</string>
     <string name="explore_title">Jelajahi</string>
+    <string name="create">Buat</string>
     <string name="facebook_login_failed">Masuk Facebook gagal</string>
     <string name="facebook_null_token">Facebook mengembalikan token kosong</string>
     <string name="failed_to_copy_text">Gagal menyalin</string>

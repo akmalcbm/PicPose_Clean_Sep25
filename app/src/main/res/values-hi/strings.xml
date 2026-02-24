@@ -320,6 +320,7 @@
 
     <string name="explore_all_ai_prompts">सभी AI प्रॉम्प्ट्स एक्सप्लोर करें</string>
     <string name="explore_title">एक्सप्लोर</string>
+    <string name="create">क्रिएट</string>
 
     <string name="facebook_login_failed">Facebook लॉगिन विफल</string>
     <string name="facebook_null_token">Facebook से null टोकन मिला</string>

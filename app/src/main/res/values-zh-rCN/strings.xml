@@ -271,6 +271,7 @@
     <string name="error_with_message">错误：%1$s</string>
     <string name="explore_all_ai_prompts">浏览全部 AI 提示词</string>
     <string name="explore_title">探索</string>
+    <string name="create">创建</string>
     <string name="facebook_login_failed">Facebook 登录失败</string>
     <string name="facebook_null_token">Facebook 返回空令牌</string>
     <string name="failed_to_copy_text">复制失败</string>

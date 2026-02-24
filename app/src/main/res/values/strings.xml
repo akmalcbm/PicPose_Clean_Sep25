@@ -285,6 +285,7 @@
     <string name="error_with_message">Error: %1$s</string>
     <string name="explore_all_ai_prompts">Explore all AI prompts</string>
     <string name="explore_title">Explore</string>
+    <string name="create">Create</string>
     <string name="home_loading_content_banner">Loading content…</string>
     <string name="home_checking_connection_banner">Checking connection…</string>
     <string name="home_offline_limited_content">You\'re offline. Showing limited content.</string>

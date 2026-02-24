@@ -272,6 +272,7 @@
     <string name="error_with_message">خطأ: %1$s</string>
     <string name="explore_all_ai_prompts">استكشف كل مطالبات الذكاء الاصطناعي</string>
     <string name="explore_title">استكشاف</string>
+    <string name="create">إنشاء</string>
     <string name="facebook_login_failed">فشل تسجيل الدخول عبر Facebook</string>
     <string name="facebook_null_token">أعاد Facebook رمزًا مميزًا فارغًا</string>
     <string name="failed_to_copy_text">تعذر النسخ</string>

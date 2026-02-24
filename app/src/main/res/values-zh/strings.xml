@@ -51,6 +51,11 @@
     <string name="share_cta_title">✨ 在 PicPose 获取更多提示词和指南：</string>
     <string name="share_cta_line">从 Play 商店下载：%1$s</string>
     <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
+    <string name="explore_title">探索</string>
+    <string name="create">创建</string>
+    <string name="home">首页</string>
+    <string name="rewards">奖励</string>
+    <string name="profile">个人资料</string>
     <string name="home_quick_search_placeholder">搜索提示词、指南、帖子…</string>
     <string name="home_search_results_title">搜索结果</string>
     <string name="home_search_view_all">查看全部</string>
