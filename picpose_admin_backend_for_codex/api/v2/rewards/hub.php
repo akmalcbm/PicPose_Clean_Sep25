@@ -344,6 +344,24 @@ if ($referralStatsStmt) {
     }
 }
 
+$refereeReferralStatus = null;
+$refereeStatusStmt = $conn->prepare("
+    SELECT status
+    FROM referrals
+    WHERE referee_id = ?
+    LIMIT 1
+");
+if ($refereeStatusStmt) {
+    $refereeStatusStmt->bind_param('i', $userId);
+    $refereeStatusStmt->execute();
+    $refereeStatusRes = $refereeStatusStmt->get_result();
+    $refereeStatusRow = $refereeStatusRes ? $refereeStatusRes->fetch_assoc() : null;
+    $refereeStatusStmt->close();
+    if ($refereeStatusRow && !empty($refereeStatusRow['status'])) {
+        $refereeReferralStatus = (string)$refereeStatusRow['status'];
+    }
+}
+
 $activePacks = [];
 $packIds = [];
 $packsRes = $conn->query("
@@ -507,6 +525,12 @@ json_ok([
     'rewards_schedule' => $rewardsSchedule,
     'prompt_of_the_day' => $potdPayload,
     'referral' => [
+        'my_code' => $referralCode,
+        'status' => $refereeReferralStatus,
+        'referred_count' => (int)($referralStats['total'] ?? 0),
+        'rewarded_count' => (int)($referralStats['rewarded'] ?? 0),
+        'pending_count' => (int)($referralStats['pending'] ?? 0),
+        'qualified_count' => (int)($referralStats['qualified'] ?? 0),
         'code' => $referralCode,
         'stats' => $referralStats,
     ],

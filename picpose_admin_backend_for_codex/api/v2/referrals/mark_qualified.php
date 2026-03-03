@@ -3,6 +3,11 @@ require_once __DIR__ . '/../lib/v2_auth.php';
 
 function referral_mark_qualified(mysqli $conn, int $refereeId): bool
 {
+    return mark_referral_qualified($conn, $refereeId);
+}
+
+function mark_referral_qualified(mysqli $conn, int $refereeId): bool
+{
     $stmt = $conn->prepare("
         UPDATE referrals
         SET status = 'QUALIFIED'
@@ -26,7 +31,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
     }
 
     $user = require_user($conn);
-    $qualified = referral_mark_qualified($conn, (int)$user['id']);
+    $qualified = mark_referral_qualified($conn, (int)$user['id']);
 
     json_ok([
         'success' => true,

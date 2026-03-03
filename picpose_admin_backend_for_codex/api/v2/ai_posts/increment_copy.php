@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../lib/v2_progress.php';
 require_once __DIR__ . '/../lib/v2_personalization.php';
+require_once __DIR__ . '/../referrals/mark_qualified.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_err('Method Not Allowed', 405);
@@ -62,6 +63,10 @@ if ($userId) {
     } catch (Throwable $e) {
         $conn->rollback();
         error_log('increment_copy xp award failed: ' . $e->getMessage());
+    }
+
+    if ((int)$row['copies'] >= 5) {
+        mark_referral_qualified($conn, $userId);
     }
 }
 

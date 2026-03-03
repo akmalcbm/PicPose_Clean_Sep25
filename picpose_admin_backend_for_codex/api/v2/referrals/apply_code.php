@@ -52,9 +52,11 @@ if ($existing) {
         json_ok([
             'success' => true,
             'already_applied' => true,
+            'already_claimed' => true,
+            'message' => 'You can apply only one code',
         ]);
     }
-    json_err('Referral already linked to another code', 409);
+    json_err('You can apply only one code', 409);
 }
 
 $insertStmt = $conn->prepare("
@@ -74,6 +76,8 @@ if (!$ok) {
         json_ok([
             'success' => true,
             'already_applied' => true,
+            'already_claimed' => true,
+            'message' => 'You can apply only one code',
         ]);
     }
     json_err('Failed to apply referral code', 500);
@@ -81,4 +85,5 @@ if (!$ok) {
 
 json_ok([
     'success' => true,
+    'message' => 'Code applied successfully',
 ]);

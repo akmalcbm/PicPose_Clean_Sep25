@@ -219,6 +219,7 @@ try {
 
     json_ok([
         'success' => true,
+        'message' => 'Reward credited to your wallet',
         'referrer_points_added' => $referrerReward,
         'referee_points_added' => $refereeReward,
     ]);
@@ -233,7 +234,7 @@ try {
             json_err('Referral already rewarded', 409);
         }
         if ($e->getMessage() === 'not_qualified') {
-            json_err('Referral is not qualified yet', 409);
+            json_err('Reward will unlock after your first premium unlock', 409);
         }
     }
 

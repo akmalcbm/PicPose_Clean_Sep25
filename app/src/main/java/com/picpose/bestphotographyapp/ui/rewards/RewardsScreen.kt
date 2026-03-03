@@ -2,6 +2,7 @@ package com.picpose.bestphotographyapp.ui.rewards
 
 import android.content.Intent
 import android.app.Activity
+import com.picpose.bestphotographyapp.BuildConfig
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -234,11 +235,15 @@ fun RewardsScreen(
                     ReferralCard(
                         isLoggedIn = isLoggedIn,
                         code = uiState.referralCode,
-                        stats = uiState.referralStats,
+                        status = uiState.referralStatus,
+                        referredCount = uiState.referralReferredCount,
+                        rewardedCount = uiState.referralRewardedCount,
+                        pendingCount = uiState.referralPendingCount,
                         onShare = { code ->
+                            val appLink = BuildConfig.API_BASE_URL.trimEnd('/')
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "Join PicPose with my referral code: $code")
+                                putExtra(Intent.EXTRA_TEXT, "Join PicPose: $appLink\nUse my referral code: $code")
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Share referral code"))
                         },
@@ -401,11 +406,22 @@ private fun PromptOfDayCard(
 private fun ReferralCard(
     isLoggedIn: Boolean,
     code: String?,
-    stats: com.picpose.bestphotographyapp.data.models.v2.ReferralStatsDto?,
+    status: String?,
+    referredCount: Int,
+    rewardedCount: Int,
+    pendingCount: Int,
     onShare: (String) -> Unit,
     onApply: () -> Unit,
     onClaimReward: () -> Unit,
 ) {
+    val normalizedStatus = status?.uppercase()
+    val statusText = when (normalizedStatus) {
+        "PENDING" -> "Reward will unlock after your first premium unlock"
+        "QUALIFIED" -> "Referral qualified. Claim your reward now."
+        "REWARDED" -> "Reward credited to your wallet"
+        else -> if (isLoggedIn) "Apply a referral code to earn bonus credits after your first premium unlock." else "Login to generate and claim referral rewards."
+    }
+
     Card {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -414,12 +430,14 @@ private fun ReferralCard(
                 Text("Referrals", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text(if (isLoggedIn) "My code: ${code ?: "Loading..."}" else "Login to generate and claim referral rewards.")
+            Text(if (isLoggedIn) "My referral code: ${code ?: "Loading..."}" else "Login to generate and claim referral rewards.")
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(statusText, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text("Pending: ${stats?.pending ?: 0}") })
-                AssistChip(onClick = {}, label = { Text("Qualified: ${stats?.qualified ?: 0}") })
-                AssistChip(onClick = {}, label = { Text("Rewarded: ${stats?.rewarded ?: 0}") })
+                AssistChip(onClick = {}, label = { Text("Referred: $referredCount") })
+                AssistChip(onClick = {}, label = { Text("Pending: $pendingCount") })
+                AssistChip(onClick = {}, label = { Text("Rewarded: $rewardedCount") })
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -437,10 +455,16 @@ private fun ReferralCard(
             Spacer(modifier = Modifier.height(10.dp))
             FilledTonalButton(
                 onClick = onClaimReward,
-                enabled = isLoggedIn,
+                enabled = isLoggedIn && normalizedStatus == "QUALIFIED",
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Claim reward")
+                Text(
+                    when (normalizedStatus) {
+                        "REWARDED" -> "Reward claimed"
+                        "QUALIFIED" -> "Claim reward"
+                        else -> "Claim after qualifying"
+                    }
+                )
             }
         }
     }

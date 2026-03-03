@@ -7,7 +7,6 @@ import com.picpose.bestphotographyapp.data.models.v2.BasicV2Response
 import com.picpose.bestphotographyapp.data.models.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.models.v2.ProgressEventDto
 import com.picpose.bestphotographyapp.data.models.v2.PromptOfDayInHubDto
-import com.picpose.bestphotographyapp.data.models.v2.ReferralStatsDto
 import com.picpose.bestphotographyapp.data.models.v2.RewardsHubDto
 import com.picpose.bestphotographyapp.data.models.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.RewardsRepository
@@ -38,7 +37,10 @@ data class RewardsUiState(
     val promptOfDayMode: String? = null,
     val promptOfDayCost: Int = 0,
     val referralCode: String? = null,
-    val referralStats: ReferralStatsDto? = null,
+    val referralStatus: String? = null,
+    val referralReferredCount: Int = 0,
+    val referralRewardedCount: Int = 0,
+    val referralPendingCount: Int = 0,
     val packs: List<PackSummaryDto> = emptyList(),
     val ownedPackCount: Int = 0,
     val level: Int = 1,
@@ -97,16 +99,17 @@ class RewardsViewModel @Inject constructor(
                 .onSuccess { response ->
                     _uiState.update {
                         it.copy(
-                            statusMessage = when {
-                                response.alreadyClaimed == true -> "Referral code already applied."
-                                else -> response.message ?: "Referral code applied."
+                            statusMessage = if (response.alreadyApplied == true || response.alreadyClaimed == true) {
+                                "You can apply only one code"
+                            } else {
+                                "Code applied successfully. Reward will unlock after your first premium unlock"
                             }
                         )
                     }
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
-                    _uiState.update { it.copy(statusMessage = throwable.message ?: "Failed to apply referral code.") }
+                    _uiState.update { it.copy(statusMessage = referralApplyErrorMessage(throwable)) }
                 }
         }
     }
@@ -116,12 +119,12 @@ class RewardsViewModel @Inject constructor(
             rewardsRepository.claimReferralReward()
                 .onSuccess {
                     _uiState.update { state ->
-                        state.copy(statusMessage = "Referral reward claimed.")
+                        state.copy(statusMessage = "Reward credited to your wallet")
                     }
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
-                    _uiState.update { it.copy(statusMessage = throwable.message ?: "Referral reward is not ready yet.") }
+                    _uiState.update { it.copy(statusMessage = referralClaimErrorMessage(throwable)) }
                 }
         }
     }
@@ -204,7 +207,10 @@ class RewardsViewModel @Inject constructor(
                 todayClaimed = false,
                 rewardsSchedule = DEFAULT_STREAK_REWARDS,
                 referralCode = null,
-                referralStats = null,
+                referralStatus = null,
+                referralReferredCount = 0,
+                referralRewardedCount = 0,
+                referralPendingCount = 0,
                 packs = emptyList(),
                 ownedPackCount = 0,
                 level = 1,
@@ -253,8 +259,11 @@ class RewardsViewModel @Inject constructor(
                 publicPromptOfTheDay = hub.promptOfTheDay?.post,
                 promptOfDayMode = hub.promptOfTheDay?.potdMode,
                 promptOfDayCost = hub.promptOfTheDay?.potdUnlockCostPoints ?: 0,
-                referralCode = hub.referral?.code,
-                referralStats = hub.referral?.stats,
+                referralCode = hub.referral?.myCode ?: hub.referral?.code,
+                referralStatus = hub.referral?.status,
+                referralReferredCount = hub.referral?.referredCount ?: hub.referral?.stats?.qualified ?: 0,
+                referralRewardedCount = hub.referral?.rewardedCount ?: hub.referral?.stats?.rewarded ?: 0,
+                referralPendingCount = hub.referral?.pendingCount ?: hub.referral?.stats?.pending ?: 0,
                 packs = hub.packs?.active.orEmpty(),
                 ownedPackCount = hub.packs?.ownedCount ?: 0,
                 level = hub.progress?.level ?: current.level,
@@ -275,6 +284,24 @@ class RewardsViewModel @Inject constructor(
                     else -> response.message
                 },
             )
+        }
+    }
+
+    private fun referralApplyErrorMessage(throwable: Throwable): String {
+        val message = throwable.message.orEmpty()
+        return when {
+            message.contains("one code", ignoreCase = true) -> "You can apply only one code"
+            message.contains("already applied", ignoreCase = true) -> "You can apply only one code"
+            else -> throwable.message ?: "Failed to apply referral code."
+        }
+    }
+
+    private fun referralClaimErrorMessage(throwable: Throwable): String {
+        val message = throwable.message.orEmpty()
+        return when {
+            message.contains("first premium unlock", ignoreCase = true) -> "Reward will unlock after your first premium unlock"
+            message.contains("already rewarded", ignoreCase = true) -> "Reward credited to your wallet"
+            else -> throwable.message ?: "Referral reward is not ready yet."
         }
     }
 }

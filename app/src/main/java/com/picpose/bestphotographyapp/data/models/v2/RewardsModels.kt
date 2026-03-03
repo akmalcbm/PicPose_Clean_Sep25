@@ -9,6 +9,7 @@ data class BasicV2Response(
     @SerializedName("message") val message: String? = null,
     @SerializedName("claimed") val claimed: Boolean? = null,
     @SerializedName("already_claimed") val alreadyClaimed: Boolean? = null,
+    @SerializedName("already_applied") val alreadyApplied: Boolean? = null,
     @SerializedName("unlocked") val unlocked: Boolean? = null,
     @SerializedName("points_added") val pointsAdded: Int? = null,
     @SerializedName("points_balance") val pointsBalance: Int? = null,
@@ -61,6 +62,12 @@ data class PromptOfDayInHubDto(
 
 @Keep
 data class ReferralHubDto(
+    @SerializedName("my_code") val myCode: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("referred_count") val referredCount: Int = 0,
+    @SerializedName("rewarded_count") val rewardedCount: Int = 0,
+    @SerializedName("pending_count") val pendingCount: Int = 0,
+    @SerializedName("qualified_count") val qualifiedCount: Int = 0,
     @SerializedName("code") val code: String? = null,
     @SerializedName("stats") val stats: ReferralStatsDto? = null,
 )
