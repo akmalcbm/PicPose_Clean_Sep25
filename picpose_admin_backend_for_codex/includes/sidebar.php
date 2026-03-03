@@ -129,6 +129,15 @@ $isAiManage = $isAiSection && (strpos($current_page, 'manage') !== false);
 $isAiAdd = $isAiSection && ($current_page === 'add_ai_post.php');
 $isGuideManage = $isGuideSection && (strpos($current_page, 'manage') !== false);
 $isGuideAdd = $isGuideSection && ($current_page === 'add_guide_post.php');
+
+$monetizationPath = ($BASE_HREF !== '' ? $BASE_HREF : '') . '/views/monetization/';
+$isMonetizationSection = (strpos($current_path, $monetizationPath) !== false);
+$isMonetizationWallets = $isMonetizationSection && ($current_page === 'user_wallets.php');
+$isMonetizationLedger = $isMonetizationSection && ($current_page === 'user_ledger.php');
+$isMonetizationUnlocks = $isMonetizationSection && ($current_page === 'user_unlocks.php');
+$isMonetizationAdjust = $isMonetizationSection && ($current_page === 'adjust_points.php');
+$isMonetizationStreak = $isMonetizationSection && ($current_page === 'streak_config.php');
+$isMonetizationPacks = $isMonetizationSection && ($current_page === 'premium_packs.php');
 ?>
 <style>
 /* Sidebar (inline override kept minimal to avoid future conflicts) */
@@ -199,6 +208,25 @@ $isGuideAdd = $isGuideSection && ($current_page === 'add_guide_post.php');
             <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/users.php'); ?>" class="nav-link d-flex <?php echo ($current_page === 'users.php') ? 'active' : ''; ?>">
                 <span>👥</span><span style="flex:1">Users</span>
             </a>
+        </div>
+
+        <div class="mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center">
+                    <span style="margin-right:.5rem">💰</span>
+                    <strong style="font-size:.98rem">Monetization</strong>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="d-grid gap-1">
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/user_wallets.php'); ?>" class="btn btn-post <?php echo $isMonetizationWallets ? 'nav-link active' : 'btn-outline-light text-white'; ?>">👛 User Wallets</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/streak_config.php'); ?>" class="btn btn-post <?php echo $isMonetizationStreak ? 'nav-link active' : 'btn-outline-light text-white'; ?>">📅 Streak Config</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/premium_packs.php'); ?>" class="btn btn-post <?php echo $isMonetizationPacks ? 'nav-link active' : 'btn-outline-light text-white'; ?>">📦 Premium Packs</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/user_ledger.php'); ?>" class="btn btn-post <?php echo $isMonetizationLedger ? 'nav-link active' : 'btn-outline-light text-white'; ?>">🧾 Ledger</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/user_unlocks.php'); ?>" class="btn btn-post <?php echo $isMonetizationUnlocks ? 'nav-link active' : 'btn-outline-light text-white'; ?>">🔓 Unlocks</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/monetization/adjust_points.php'); ?>" class="btn btn-post <?php echo $isMonetizationAdjust ? 'nav-link active' : 'btn-outline-light text-white'; ?>">🛠 Adjust Points</a>
+                </div>
+            </div>
         </div>
 
         <div class="mb-2">

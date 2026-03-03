@@ -274,3 +274,920 @@ Stack trace:
 #1 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/workers/notification_worker.php(10): require_once('/home/u85698706...')
 #2 {main}
   thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/config.php on line 42
+[20-Feb-2026 20:35:06 UTC] [auth] password_reset_requested {"user_id":17,"ip":"2401:4900:884a:28bc:68ff:777:be10:51b8","mail_sent":1}
+[20-Feb-2026 20:36:14 UTC] [auth] password_reset_success {"user_id":17,"ip":"2401:4900:884a:28bc:68ff:777:be10:51b8"}
+[23-Feb-2026 07:25:52 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:25:52 UTC] Units found: 5
+[23-Feb-2026 07:34:10 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:34:10 UTC] Units found: 5
+[23-Feb-2026 07:36:36 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:36:36 UTC] Units found: 1
+[23-Feb-2026 07:36:38 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:36:38 UTC] Units found: 1
+[23-Feb-2026 07:37:00 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:37:00 UTC] Units found: 5
+[23-Feb-2026 07:38:41 UTC] === SAVE PLACEMENT START ===
+[23-Feb-2026 07:38:41 UTC] POST Data: Array
+(
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+    [id] => 0
+    [key_name] => home_banner
+    [ad_type] => banner
+    [screen_hint] => Home Screen
+    [refresh_seconds] => 
+    [frequency_override] => 
+    [enabled] => 1
+)
+
+[23-Feb-2026 07:38:41 UTC] Session: Array
+(
+    [admin] => akmalcbm@gmail.com
+    [admin_id] => 1
+    [admin_email] => akmalcbm@gmail.com
+    [admin_username] => akmalcbm
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+    [error] => Placement key and ad type are required
+)
+
+[23-Feb-2026 07:38:41 UTC] CSRF validation passed.
+[23-Feb-2026 07:38:41 UTC] Processed Data - ID: 0, Key: home_banner, Type: banner, Enabled: 1
+[23-Feb-2026 07:38:41 UTC] Save Placement Error: Placement key already exists
+[23-Feb-2026 07:40:04 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 290
+[23-Feb-2026 07:40:04 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 290
+[23-Feb-2026 07:40:04 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 357
+[23-Feb-2026 07:40:04 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 357
+[23-Feb-2026 07:40:04 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 421
+[23-Feb-2026 07:40:04 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 421
+[23-Feb-2026 07:40:04 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 466
+[23-Feb-2026 07:40:04 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 466
+[23-Feb-2026 07:40:30 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:40:30 UTC] Units found: 5
+[23-Feb-2026 07:41:43 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:41:43 UTC] Units found: 5
+[23-Feb-2026 07:43:47 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:43:47 UTC] Units found: 1
+[23-Feb-2026 07:46:37 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:46:37 UTC] Units found: 1
+[23-Feb-2026 07:51:14 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:51:14 UTC] Units found: 1
+[23-Feb-2026 07:53:06 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:53:06 UTC] Units found: 5
+[23-Feb-2026 07:53:07 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:53:07 UTC] Units found: 5
+[23-Feb-2026 07:53:51 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 07:53:51 UTC] Units found: 5
+[23-Feb-2026 09:01:48 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:01:48 UTC] Units found: 1
+[23-Feb-2026 09:02:09 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:02:09 UTC] Units found: 5
+[23-Feb-2026 09:02:44 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:02:44 UTC] Units found: 5
+[23-Feb-2026 09:04:11 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:04:11 UTC] Units found: 5
+[23-Feb-2026 09:04:23 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:04:23 UTC] Units found: 5
+[23-Feb-2026 09:05:37 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:05:37 UTC] Units found: 5
+[23-Feb-2026 09:06:24 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:06:24 UTC] Units found: 5
+[23-Feb-2026 09:07:24 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 09:07:24 UTC] Units found: 5
+[23-Feb-2026 09:08:50 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 290
+[23-Feb-2026 09:08:50 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 290
+[23-Feb-2026 09:08:50 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 357
+[23-Feb-2026 09:08:50 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 357
+[23-Feb-2026 09:08:50 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 421
+[23-Feb-2026 09:08:50 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 421
+[23-Feb-2026 09:08:50 UTC] PHP Warning:  Undefined variable $csrf_token in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 466
+[23-Feb-2026 09:08:50 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/networks.php on line 466
+[23-Feb-2026 10:54:39 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:54:39 UTC] Units found: 5
+[23-Feb-2026 10:55:33 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:55:33 UTC] Units found: 5
+[23-Feb-2026 10:56:56 UTC] === SAVE PLACEMENT START ===
+[23-Feb-2026 10:56:56 UTC] POST Data: Array
+(
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+    [id] => 0
+    [key_name] => detail_native
+    [ad_type] => native
+    [screen_hint] => AI Prompts Details Screen
+    [refresh_seconds] => 
+    [frequency_override] => 
+    [enabled] => 1
+)
+
+[23-Feb-2026 10:56:56 UTC] Session: Array
+(
+    [admin] => akmalcbm@gmail.com
+    [admin_id] => 1
+    [admin_email] => akmalcbm@gmail.com
+    [admin_username] => akmalcbm
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+)
+
+[23-Feb-2026 10:56:56 UTC] CSRF validation passed.
+[23-Feb-2026 10:56:56 UTC] Processed Data - ID: 0, Key: detail_native, Type: native, Enabled: 1
+[23-Feb-2026 10:56:56 UTC] PHP Fatal error:  Uncaught Error: mysqli_stmt::bind_param(): Argument #5 could not be passed by reference in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/save_placement.php:192
+Stack trace:
+#0 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/save_placement.php on line 192
+[23-Feb-2026 10:57:27 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:57:27 UTC] Units found: 5
+[23-Feb-2026 10:57:38 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:57:38 UTC] Units found: 1
+[23-Feb-2026 10:57:46 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        WHERE p.key_name = ? AND n.code = ?
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:57:46 UTC] Units found: 1
+[23-Feb-2026 10:58:56 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 10:58:56 UTC] Units found: 6
+[23-Feb-2026 11:28:40 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 11:28:40 UTC] Units found: 6
+[23-Feb-2026 11:29:32 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 11:29:32 UTC] Units found: 7
+[23-Feb-2026 11:30:34 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 11:30:34 UTC] Units found: 7
+[23-Feb-2026 11:50:29 UTC] Units Query: 
+        SELECT u.*, 
+               p.key_name as placement_key,
+               p.ad_type as placement_type,
+               p.screen_hint,
+               n.id as network_id,
+               n.code as network_code,
+               n.display_name as network_name,
+               COALESCE(a.impressions, 0) as total_impressions,
+               COALESCE(a.clicks, 0) as total_clicks,
+               COALESCE(a.revenue, 0) as total_revenue
+        FROM ad_network_units u
+        INNER JOIN ad_placements p ON u.placement_id = p.id
+        INNER JOIN ad_networks n ON u.network_id = n.id
+        LEFT JOIN (
+            SELECT placement_key,
+                   SUM(impressions) as impressions,
+                   SUM(clicks) as clicks,
+                   SUM(revenue) as revenue
+            FROM ad_analytics
+            GROUP BY placement_key
+        ) a ON p.key_name = a.placement_key
+        
+        ORDER BY u.priority ASC, u.created_at DESC
+    
+[23-Feb-2026 11:50:29 UTC] Units found: 7
+[23-Feb-2026 11:51:29 UTC] === SAVE PLACEMENT START ===
+[23-Feb-2026 11:51:29 UTC] POST Data: Array
+(
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+    [id] => 0
+    [key_name] => guide_native
+    [ad_type] => native
+    [screen_hint] => Guide Details Screen Native Ads
+    [refresh_seconds] => 
+    [frequency_override] => 
+    [enabled] => 1
+)
+
+[23-Feb-2026 11:51:29 UTC] Session: Array
+(
+    [admin] => akmalcbm@gmail.com
+    [admin_id] => 1
+    [admin_email] => akmalcbm@gmail.com
+    [admin_username] => akmalcbm
+    [csrf_token] => d33063752354a9216d58a422022743020eea45a7ac3280d80f95a4cead332c23
+)
+
+[23-Feb-2026 11:51:29 UTC] CSRF validation passed.
+[23-Feb-2026 11:51:29 UTC] Processed Data - ID: 0, Key: guide_native, Type: native, Enabled: 1
+[23-Feb-2026 11:51:29 UTC] PHP Fatal error:  Uncaught Error: mysqli_stmt::bind_param(): Argument #5 could not be passed by reference in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/save_placement.php:192
+Stack trace:
+#0 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/pages/ads/save_placement.php on line 192
+[24-Feb-2026 00:29:16 UTC] [auth] password_reset_requested {"user_id":18,"ip":"66.102.8.168","mail_sent":1}
+[24-Feb-2026 00:30:20 UTC] [auth] password_reset_requested {"user_id":18,"ip":"66.102.8.161","mail_sent":1}
+[24-Feb-2026 10:40:17 UTC] [auth] password_reset_requested {"user_id":17,"ip":"2409:40e3:3151:38d2:a5a8:2de0:4551:3be4","mail_sent":1}
+[24-Feb-2026 10:40:51 UTC] [auth] password_reset_success {"user_id":17,"ip":"2409:40e3:3151:38d2:a5a8:2de0:4551:3be4"}
+[24-Feb-2026 10:42:18 UTC] [auth] email_verification_requested {"user_id":17,"ip":"2409:40e3:3151:38d2:a5a8:2de0:4551:3be4","mail_sent":1}
+[27-Feb-2026 10:59:08 UTC] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/edit_user.php on line 100
+[03-Mar-2026 18:37:58 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'u856987069_picpose_dbn.user_wallet' doesn't exist in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/views/monetization/user_wallets.php:55
+Stack trace:
+#0 /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/views/monetization/user_wallets.php(55): mysqli->prepare()
+#1 {main}
+  thrown in /home/u856987069/domains/iamakmal.in/public_html/picpose_admin/views/monetization/user_wallets.php on line 55

@@ -16,7 +16,8 @@ if ($id <= 0) {
 // Fetch post from ai_posts
 $post = null;
 $sql = "SELECT id, title, category_id, short_description, prompt_text, tags, 
-               image_url1, image_url2, status, priority, is_popular, is_featured, external_id, created_at
+               image_url1, image_url2, status, priority, is_popular, is_featured, external_id, created_at,
+               tier, premium_unlock_cost_points, premium_pack
         FROM ai_posts
         WHERE id = ? LIMIT 1";
 
@@ -213,6 +214,24 @@ include '../../includes/header.php';
           <label class="form-check-label" for="is_featured">Mark as Featured</label>
         </div>
 
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="is_premium" value="1" id="is_premium" <?php echo (strtoupper((string)($post['tier'] ?? 'FREE')) === 'PREMIUM') ? 'checked' : ''; ?>>
+          <label class="form-check-label" for="is_premium">Premium Prompt</label>
+        </div>
+
+        <div id="premiumOptions" style="<?php echo (strtoupper((string)($post['tier'] ?? 'FREE')) === 'PREMIUM') ? '' : 'display:none;'; ?>">
+          <div class="mb-3">
+            <label>Unlock Cost Points</label>
+            <input type="number" min="1" name="premium_unlock_cost_points" id="premium_unlock_cost_points" class="form-control" value="<?php echo intval($post['premium_unlock_cost_points'] ?? 0); ?>" placeholder="200">
+            <small class="form-text text-muted">Default is 200 when Premium is enabled.</small>
+          </div>
+
+          <div class="mb-3">
+            <label>Premium Pack (optional)</label>
+            <input type="text" maxlength="40" name="premium_pack" id="premium_pack" class="form-control" value="<?php echo htmlspecialchars($post['premium_pack'] ?? ''); ?>" placeholder="e.g. portrait_pro">
+          </div>
+        </div>
+
         <div class="mb-3">
           <label>External ID</label>
           <input type="text" name="external_id" class="form-control" value="<?php echo htmlspecialchars($post['external_id'] ?? ''); ?>">
@@ -324,6 +343,27 @@ document.addEventListener('DOMContentLoaded', function() {
     return out;
   }
 
+  var premiumCheckbox = document.getElementById('is_premium');
+  var premiumOptions = document.getElementById('premiumOptions');
+  var premiumCostEl = document.getElementById('premium_unlock_cost_points');
+
+  function togglePremiumOptions() {
+    if (!premiumCheckbox || !premiumOptions) return;
+    var enabled = !!premiumCheckbox.checked;
+    premiumOptions.style.display = enabled ? '' : 'none';
+    if (enabled && premiumCostEl) {
+      var current = parseInt((premiumCostEl.value || '').trim(), 10);
+      if (!premiumCostEl.value || isNaN(current) || current <= 0) {
+        premiumCostEl.value = '200';
+      }
+    }
+  }
+
+  if (premiumCheckbox) {
+    premiumCheckbox.addEventListener('change', togglePremiumOptions);
+    togglePremiumOptions();
+  }
+
   var formEl = document.getElementById('editAiForm');
   if (formEl) {
     formEl.addEventListener('submit', function(e) {
@@ -346,6 +386,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var normalized = normalizeTagsInput(tagsEl.value);
         // convert to comma-separated values without '#', which matches backend's expected format
         tagsEl.value = normalized.join(',');
+      }
+
+      if (premiumCheckbox && premiumCheckbox.checked && premiumCostEl) {
+        var premiumCost = parseInt((premiumCostEl.value || '').trim(), 10);
+        if (!premiumCostEl.value || isNaN(premiumCost) || premiumCost <= 0) {
+          premiumCostEl.value = '200';
+        }
       }
 
       return true;

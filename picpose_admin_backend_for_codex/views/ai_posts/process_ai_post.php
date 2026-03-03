@@ -182,6 +182,72 @@ try {
         redirect_with_msg('manage_ai_posts.php?filter=blocked', "Republished {$affected} blocked prompt(s).", 'success');
     }
 
+    if ($action === 'bulk_update_tier') {
+        $idsRaw = $_POST['ids'] ?? [];
+        if (!is_array($idsRaw)) $idsRaw = [$idsRaw];
+        $ids = [];
+        foreach ($idsRaw as $idRaw) {
+            $id = intval($idRaw);
+            if ($id > 0) $ids[] = $id;
+        }
+        $ids = array_values(array_unique($ids));
+        if (empty($ids)) {
+            redirect_with_msg('manage_ai_posts.php', 'Please select at least one prompt for bulk update.', 'warning');
+        }
+
+        $tier = strtoupper(trim((string)($_POST['tier'] ?? '')));
+        if (!in_array($tier, ['FREE', 'PREMIUM'], true)) {
+            redirect_with_msg('manage_ai_posts.php', 'Invalid bulk tier value.', 'danger');
+        }
+
+        $cost = intval($_POST['cost'] ?? 0);
+        $pack = trim((string)($_POST['pack'] ?? ''));
+
+        if ($tier === 'FREE') {
+            $cost = 0;
+            $pack = null;
+        } else {
+            if ($cost <= 0) $cost = 200;
+            if ($pack === '') $pack = null;
+            if ($pack !== null && mb_strlen($pack) > 40) {
+                $pack = mb_substr($pack, 0, 40);
+            }
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        if ($pack === null) {
+            $sql = "UPDATE ai_posts
+                    SET tier = ?, premium_unlock_cost_points = ?, premium_pack = NULL
+                    WHERE id IN ($placeholders)";
+            $types = 'si' . str_repeat('i', count($ids));
+            $params = array_merge([$tier, $cost], $ids);
+        } else {
+            $sql = "UPDATE ai_posts
+                    SET tier = ?, premium_unlock_cost_points = ?, premium_pack = ?
+                    WHERE id IN ($placeholders)";
+            $types = 'sis' . str_repeat('i', count($ids));
+            $params = array_merge([$tier, $cost, $pack], $ids);
+        }
+
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log("process_ai_post bulk_update_tier prepare failed: " . $conn->error);
+            redirect_with_msg('manage_ai_posts.php', 'Database error during bulk update.', 'danger');
+        }
+        $stmt->bind_param($types, ...$params);
+        if (!$stmt->execute()) {
+            $err = $stmt->error;
+            $stmt->close();
+            error_log("process_ai_post bulk_update_tier execute failed: " . $err);
+            redirect_with_msg('manage_ai_posts.php', 'Failed to apply bulk update.', 'danger');
+        }
+        $affected = (int)$stmt->affected_rows;
+        $stmt->close();
+
+        redirect_with_msg('manage_ai_posts.php', "Bulk tier update applied. Rows affected: {$affected}.", 'success');
+    }
+
     if ($action === 'delete') {
         // deletion via POST (expects id)
         $id = intval($_POST['id'] ?? 0);
@@ -224,6 +290,18 @@ try {
     $priority = intval($_POST['priority'] ?? 0);
     $is_popular = !empty($_POST['is_popular']) ? 1 : 0;
     $is_featured = !empty($_POST['is_featured']) ? 1 : 0;
+    $tier = !empty($_POST['is_premium']) ? 'PREMIUM' : 'FREE';
+    $premium_unlock_cost_points = intval($_POST['premium_unlock_cost_points'] ?? 0);
+    if ($tier === 'PREMIUM' && $premium_unlock_cost_points <= 0) {
+        $premium_unlock_cost_points = 200;
+    }
+    if ($tier !== 'PREMIUM') {
+        $premium_unlock_cost_points = 0;
+    }
+    $premium_pack = input_trim('premium_pack');
+    if ($tier !== 'PREMIUM') {
+        $premium_pack = '';
+    }
     $external_id = input_trim('external_id');
 
     // tags: normalize server-side (accept hashtags or comma-separated)
@@ -239,6 +317,8 @@ try {
     $short_description_es = $short_description !== '' ? $conn->real_escape_string($short_description) : null;
     $prompt_text_es = $conn->real_escape_string($prompt_text_raw);
     $status_es = $conn->real_escape_string($status);
+    $tier_es = $conn->real_escape_string($tier);
+    $premium_pack_es = $premium_pack !== '' ? $conn->real_escape_string($premium_pack) : null;
     $external_id_es = $external_id !== '' ? $conn->real_escape_string($external_id) : null;
     $tags_json_es = $tags_json !== '' ? $conn->real_escape_string($tags_json) : null;
 
@@ -261,7 +341,7 @@ try {
         }
 
         // Build insert to ai_posts
-        $cols = "title, category_id, short_description, prompt_text, tags, status, priority, is_popular, is_featured, external_id, created_at";
+        $cols = "title, category_id, short_description, prompt_text, tags, status, priority, is_popular, is_featured, tier, premium_unlock_cost_points, premium_pack, external_id, created_at";
         $vals = "'" . $title_es . "', " .
                 intval($category_id) . ", " .
                 ($short_description_es !== null ? "'" . $short_description_es . "'" : "NULL") . ", " .
@@ -271,6 +351,9 @@ try {
                 intval($priority) . ", " .
                 intval($is_popular) . ", " .
                 intval($is_featured) . ", " .
+                "'" . $tier_es . "', " .
+                intval($premium_unlock_cost_points) . ", " .
+                ($premium_pack_es !== null ? "'" . $premium_pack_es . "'" : "NULL") . ", " .
                 ($external_id_es !== null ? "'" . $external_id_es . "'" : "NULL") . ", " .
                 "NOW()";
 
@@ -339,6 +422,9 @@ try {
         $parts[] = "priority = " . intval($priority);
         $parts[] = "is_popular = " . intval($is_popular);
         $parts[] = "is_featured = " . intval($is_featured);
+        $parts[] = "tier = '" . $tier_es . "'";
+        $parts[] = "premium_unlock_cost_points = " . intval($premium_unlock_cost_points);
+        $parts[] = "premium_pack = " . ($premium_pack_es !== null ? "'" . $premium_pack_es . "'" : "NULL");
         $parts[] = "external_id = " . ($external_id_es !== null ? "'" . $external_id_es . "'" : "NULL");
 
         if ($tags_json_es !== null) {

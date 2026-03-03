@@ -13,7 +13,7 @@ $q = trim($_GET['q'] ?? '');
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 15;
 $offset = ($page - 1) * $perPage;
-$filter = $_GET['filter'] ?? 'all'; // all | published | blocked | draft | archived | popular | featured | trending
+$filter = $_GET['filter'] ?? 'all'; // all | published | blocked | draft | archived | popular | featured | trending | premium | free
 
 // Normalize search: allow users to search using hashtags like "#PicPose".
 $qForBind = $q !== '' ? str_replace('#', '', $q) : '';
@@ -38,6 +38,10 @@ if ($filter === 'popular') {
     $where .= " AND p.is_popular = 1";
 } elseif ($filter === 'featured') {
     $where .= " AND p.is_featured = 1";
+} elseif ($filter === 'premium') {
+    $where .= " AND p.tier = 'PREMIUM'";
+} elseif ($filter === 'free') {
+    $where .= " AND p.tier = 'FREE'";
 } elseif ($filter === 'published') {
     $where .= " AND p.status = 'published'";
 } elseif ($filter === 'blocked') {
@@ -124,6 +128,8 @@ $archivedCount = 0;
 $popularCount = 0;
 $featuredCount = 0;
 $trendingCount = 0;
+$premiumCount = 0;
+$freeCount = 0;
 
 try {
     $res = $conn->query("
@@ -135,6 +141,8 @@ try {
             SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) AS archivedCount,
             SUM(CASE WHEN status = 'published' AND is_popular = 1 THEN 1 ELSE 0 END) AS popularCount,
             SUM(CASE WHEN status = 'published' AND is_featured = 1 THEN 1 ELSE 0 END) AS featuredCount,
+            SUM(CASE WHEN tier = 'PREMIUM' THEN 1 ELSE 0 END) AS premiumCount,
+            SUM(CASE WHEN tier = 'FREE' THEN 1 ELSE 0 END) AS freeCount,
             SUM(
                 CASE 
                     WHEN status = 'published'
@@ -154,6 +162,8 @@ try {
         $popularCount = (int)$r['popularCount'];
         $featuredCount = (int)$r['featuredCount'];
         $trendingCount = (int)$r['trendingCount'];
+        $premiumCount = (int)$r['premiumCount'];
+        $freeCount = (int)$r['freeCount'];
     }
 } catch (Throwable $ex) {
     error_log('Filter count error: ' . $ex->getMessage());
@@ -209,6 +219,16 @@ try {
            data-bs-toggle="tooltip" title="Featured manually by admin">
            ⭐ Featured (<?= $featuredCount ?>)
         </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'premium'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'premium' ? 'btn-warning' : 'btn-outline-warning'; ?>">
+           🔒 Premium (<?= $premiumCount ?>)
+        </a>
+
+        <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'free'])); ?>"
+           class="btn btn-sm <?php echo $filter === 'free' ? 'btn-success' : 'btn-outline-success'; ?>">
+           Free (<?= $freeCount ?>)
+        </a>
         
         <a href="?<?php echo http_build_query(array_merge($baseQuery, ['filter' => 'trending'])); ?>"
         class="btn btn-sm <?php echo $filter === 'trending' ? 'btn-primary' : 'btn-outline-primary'; ?>"
@@ -244,19 +264,48 @@ try {
     </div>
   <?php endif; ?>
 
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label mb-1">Bulk Action</label>
+          <select id="bulkTierMode" class="form-select form-select-sm">
+            <option value="">Select action...</option>
+            <option value="set_free">Set FREE</option>
+            <option value="set_premium">Set PREMIUM</option>
+            <option value="set_premium_cost">Set PREMIUM + cost</option>
+            <option value="set_premium_pack">Set premium pack</option>
+          </select>
+        </div>
+        <div class="col-md-2" id="bulkCostWrap" style="display:none;">
+          <label class="form-label mb-1">Cost</label>
+          <input type="number" min="1" id="bulkCostInput" class="form-control form-control-sm" placeholder="200">
+        </div>
+        <div class="col-md-3" id="bulkPackWrap" style="display:none;">
+          <label class="form-label mb-1">Pack</label>
+          <input type="text" maxlength="40" id="bulkPackInput" class="form-control form-control-sm" placeholder="portrait_pro">
+        </div>
+        <div class="col-md-2">
+          <button type="button" id="applyBulkTierBtn" class="btn btn-sm btn-primary w-100">Apply</button>
+        </div>
+      </div>
+      <div class="small text-muted mt-2">Select rows using checkboxes, then apply a bulk tier action.</div>
+    </div>
+  </div>
+
   <table class="table table-striped table-bordered">
     <thead>
       <tr>
         <th style="width:40px;">
-          <?php if ($filter === 'blocked'): ?>
-            <input type="checkbox" id="selectAllBlocked">
-          <?php endif; ?>
+          <input type="checkbox" id="selectAllRows">
         </th>
         <th>#</th>
         <th>Title / Short</th>
         <th>Category</th>
         <th>Tags</th>
         <th>Image</th>
+        <th>Tier</th>
+        <th>Unlock Cost</th>
         <th>Status</th>
         <th>Priority</th>
         <th>Actions</th>
@@ -267,6 +316,9 @@ try {
           $images = collect_images_from_row($row);
           $thumb = $images[0] ?? '';
           $imagesAttr = htmlspecialchars(json_encode($images, JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES);
+          $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
+          $unlockCost = (int)($row['premium_unlock_cost_points'] ?? 0);
+          if ($tier === 'PREMIUM' && $unlockCost <= 0) $unlockCost = 200;
 
           // prepare tags array from DB
           $tagsOutHtml = '';
@@ -287,11 +339,9 @@ try {
               }
           }
       ?>
-        <tr>
+<tr>
   <td>
-    <?php if (($row['status'] ?? '') === 'blocked'): ?>
-      <input type="checkbox" class="blocked-checkbox" value="<?php echo intval($row['id']); ?>">
-    <?php endif; ?>
+    <input type="checkbox" class="row-checkbox <?php echo (($row['status'] ?? '') === 'blocked') ? 'blocked-checkbox' : ''; ?>" value="<?php echo intval($row['id']); ?>">
   </td>
   <td><?php echo $i++; ?></td>
   <td>
@@ -303,6 +353,11 @@ try {
 
     <?php if (!empty($row['is_featured'])): ?>
       <span class="badge bg-info text-dark ms-1">⭐ Featured</span>
+    <?php endif; ?>
+
+    <?php if ($tier === 'PREMIUM'): ?>
+      <span class="badge bg-warning text-dark ms-1">🔒 Premium</span>
+      <span class="badge bg-light text-dark ms-1">Cost: <?= $unlockCost ?> pts</span>
     <?php endif; ?>
 
     <?php
@@ -345,6 +400,22 @@ if ($trendingScore > 0):
       </button>
     <?php else: ?>
       <div class="text-muted">No image</div>
+    <?php endif; ?>
+  </td>
+
+  <td>
+    <?php if ($tier === 'PREMIUM'): ?>
+      <span class="badge bg-warning text-dark">PREMIUM</span>
+    <?php else: ?>
+      <span class="badge bg-success">FREE</span>
+    <?php endif; ?>
+  </td>
+
+  <td>
+    <?php if ($tier === 'PREMIUM'): ?>
+      <?= $unlockCost ?> pts
+    <?php else: ?>
+      <span class="text-muted">—</span>
     <?php endif; ?>
   </td>
 
@@ -510,16 +581,103 @@ if ($totalPages > 1):
   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
 </form>
 
+<form method="POST" action="process_ai_post.php" id="bulkTierForm" style="display:none;">
+  <input type="hidden" name="action" value="bulk_update_tier">
+  <input type="hidden" name="tier" id="bulkTierValue" value="">
+  <input type="hidden" name="cost" id="bulkTierCostValue" value="">
+  <input type="hidden" name="pack" id="bulkTierPackValue" value="">
+  <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
+  <div id="bulkTierIdsContainer"></div>
+</form>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var selectAll = document.getElementById('selectAllBlocked');
+  var selectAll = document.getElementById('selectAllRows');
   var publishBtn = document.getElementById('publishSelectedBtn');
+  var bulkTierMode = document.getElementById('bulkTierMode');
+  var bulkCostWrap = document.getElementById('bulkCostWrap');
+  var bulkPackWrap = document.getElementById('bulkPackWrap');
+  var bulkCostInput = document.getElementById('bulkCostInput');
+  var bulkPackInput = document.getElementById('bulkPackInput');
+  var applyBulkTierBtn = document.getElementById('applyBulkTierBtn');
 
   if (selectAll) {
     selectAll.addEventListener('change', function() {
-      document.querySelectorAll('.blocked-checkbox').forEach(function(chk) {
+      document.querySelectorAll('.row-checkbox').forEach(function(chk) {
         chk.checked = selectAll.checked;
       });
+    });
+  }
+
+  function getSelectedRowIds() {
+    return Array.from(document.querySelectorAll('.row-checkbox:checked'))
+      .map(function(chk) { return chk.value; })
+      .filter(Boolean);
+  }
+
+  function refreshBulkFieldVisibility() {
+    var mode = bulkTierMode ? bulkTierMode.value : '';
+    if (bulkCostWrap) bulkCostWrap.style.display = (mode === 'set_premium_cost') ? '' : 'none';
+    if (bulkPackWrap) bulkPackWrap.style.display = (mode === 'set_premium_pack') ? '' : 'none';
+  }
+
+  if (bulkTierMode) {
+    bulkTierMode.addEventListener('change', refreshBulkFieldVisibility);
+    refreshBulkFieldVisibility();
+  }
+
+  if (applyBulkTierBtn) {
+    applyBulkTierBtn.addEventListener('click', function() {
+      var mode = bulkTierMode ? bulkTierMode.value : '';
+      if (!mode) {
+        alert('Please choose a bulk action.');
+        return;
+      }
+
+      var ids = getSelectedRowIds();
+      if (ids.length === 0) {
+        alert('Please select at least one prompt.');
+        return;
+      }
+
+      var tier = (mode === 'set_free') ? 'FREE' : 'PREMIUM';
+      var cost = '';
+      var pack = '';
+
+      if (mode === 'set_premium_cost') {
+        var parsedCost = parseInt((bulkCostInput ? bulkCostInput.value : '').trim(), 10);
+        if (isNaN(parsedCost) || parsedCost <= 0) parsedCost = 200;
+        cost = String(parsedCost);
+      } else if (mode === 'set_premium') {
+        cost = '200';
+      }
+
+      if (mode === 'set_premium_pack') {
+        pack = (bulkPackInput ? bulkPackInput.value : '').trim();
+      }
+
+      if (!confirm('Apply this bulk tier update to ' + ids.length + ' prompt(s)?')) return;
+
+      var tierField = document.getElementById('bulkTierValue');
+      var costField = document.getElementById('bulkTierCostValue');
+      var packField = document.getElementById('bulkTierPackValue');
+      var idsContainer = document.getElementById('bulkTierIdsContainer');
+      if (!tierField || !costField || !packField || !idsContainer) return;
+
+      tierField.value = tier;
+      costField.value = cost;
+      packField.value = pack;
+      idsContainer.innerHTML = '';
+
+      ids.forEach(function(id) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids[]';
+        input.value = id;
+        idsContainer.appendChild(input);
+      });
+
+      document.getElementById('bulkTierForm').submit();
     });
   }
 
