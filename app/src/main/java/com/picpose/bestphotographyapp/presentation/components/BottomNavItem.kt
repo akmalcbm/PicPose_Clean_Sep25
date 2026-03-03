@@ -2,7 +2,6 @@ package com.picpose.bestphotographyapp.presentation.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Person
@@ -31,11 +30,11 @@ val bottomNavItems = listOf(
         route = Screen.Home.route,
         icon = Icons.Default.Home
     ),
-    /*BottomNavItem(
+    BottomNavItem(
         nameRes = R.string.rewards,
         route = Screen.Rewards.route,
         icon = Icons.Default.Star
-    ),*/
+    ),
     BottomNavItem(
         nameRes = R.string.profile,
         route = Screen.Profile.route,

@@ -25,6 +25,7 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.ui.prompts.PromptDetailV2Screen
 import com.picpose.bestphotographyapp.ui.prompts.PromptsV2Screen
+import com.picpose.bestphotographyapp.ui.rewards.RewardsScreen as V3RewardsScreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -177,7 +178,19 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
 
         // Other screens (Create, Rewards, Profile, Settings, etc.)
         composable(route = Screen.Create.route) { CreateScreen() }
-        composable(route = Screen.Rewards.route) { RewardsScreen() }
+        composable(route = Screen.Rewards.route) {
+            V3RewardsScreen(
+                onOpenPrompt = { promptId ->
+                    navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
+                },
+                onRequireLogin = {
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
+                },
+                onOpenPacks = {
+                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
+                }
+            )
+        }
 
         composable(route = Screen.Profile.route) {
             ProfileScreen(
