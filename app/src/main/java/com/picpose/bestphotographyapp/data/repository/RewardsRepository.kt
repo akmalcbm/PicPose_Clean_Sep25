@@ -1,0 +1,173 @@
+package com.picpose.bestphotographyapp.data.repository
+
+import com.picpose.bestphotographyapp.data.datastore.RewardsHubCache
+import com.picpose.bestphotographyapp.data.models.v2.ApplyReferralCodeRequest
+import com.picpose.bestphotographyapp.data.models.v2.BasicV2Response
+import com.picpose.bestphotographyapp.data.models.v2.GetMyCodeResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.PackDetailsResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.PacksResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.PointsPackUnlockRequest
+import com.picpose.bestphotographyapp.data.models.v2.ProgressResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.ReferralClaimResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.RewardAdPointsRequest
+import com.picpose.bestphotographyapp.data.models.v2.RewardsHubDto
+import com.picpose.bestphotographyapp.data.models.v2.StreakStatusDto
+import com.picpose.bestphotographyapp.data.models.v2.V2ExperimentsResponseDto
+import com.picpose.bestphotographyapp.data.models.v2.V2PromptListResponseDto
+import com.picpose.bestphotographyapp.data.network.V2ApiService
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import retrofit2.Response
+
+@Singleton
+class RewardsRepository @Inject constructor(
+    private val apiService: V2ApiService,
+    private val rewardsHubCache: RewardsHubCache,
+) {
+    val cachedHub: Flow<RewardsHubDto?> = rewardsHubCache.cachedHub
+
+    suspend fun refreshHub(): Result<RewardsHubDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getRewardsHub()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            val hub = body ?: error("Empty rewards hub response")
+            rewardsHubCache.save(hub)
+            hub
+        }
+    }
+
+    suspend fun getCachedHub(): RewardsHubDto? = rewardsHubCache.readOnce()
+
+    suspend fun getStreakStatus(): Result<StreakStatusDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getStreakStatus()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty streak response")
+        }
+    }
+
+    suspend fun claimDailyLogin(): Result<BasicV2Response> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.claimDailyLogin()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty claim response")
+        }
+    }
+
+    suspend fun rewardAdPoints(adRewardId: String): Result<BasicV2Response> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.rewardAdPoints(RewardAdPointsRequest(adRewardId))
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty reward response")
+        }
+    }
+
+    suspend fun getMyCode(): Result<GetMyCodeResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getMyReferralCode()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty code response")
+        }
+    }
+
+    suspend fun applyReferralCode(code: String): Result<BasicV2Response> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.applyReferralCode(ApplyReferralCodeRequest(code))
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty apply response")
+        }
+    }
+
+    suspend fun claimReferralReward(): Result<ReferralClaimResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.claimReferralReward()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty claim response")
+        }
+    }
+
+    suspend fun getPacks(): Result<PacksResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getPacks()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty packs response")
+        }
+    }
+
+    suspend fun getPackDetails(packId: Int): Result<PackDetailsResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getPackDetails(packId)
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty pack details response")
+        }
+    }
+
+    suspend fun unlockPack(packId: Int): Result<BasicV2Response> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.unlockPackWithPoints(PointsPackUnlockRequest(packId))
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty pack unlock response")
+        }
+    }
+
+    suspend fun getProgress(): Result<ProgressResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getProgress()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty progress response")
+        }
+    }
+
+    suspend fun getForYou(limit: Int = 20, offset: Int = 0): Result<V2PromptListResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getForYouFeed(limit = limit, offset = offset)
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty for you response")
+        }
+    }
+
+    suspend fun getExperiments(): Result<V2ExperimentsResponseDto> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = apiService.getExperiments()
+            val body = response.body()
+            ensureSuccess(response, body?.message, body?.success == true)
+            body ?: error("Empty experiments response")
+        }
+    }
+
+    private fun ensureSuccess(
+        response: Response<*>,
+        fallbackMessage: String?,
+        success: Boolean,
+    ) {
+        if (response.isSuccessful && success) return
+        throw V2ApiException(
+            code = response.code(),
+            message = response.errorBody()?.string()?.let(::extractMessage)
+                ?: fallbackMessage
+                ?: "Request failed (${response.code()})",
+        )
+    }
+
+    private fun extractMessage(raw: String): String {
+        return runCatching {
+            JSONObject(raw).optString("message").takeIf { it.isNotBlank() }
+        }.getOrNull() ?: raw
+    }
+}

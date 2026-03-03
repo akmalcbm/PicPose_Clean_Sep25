@@ -23,6 +23,8 @@ import com.picpose.bestphotographyapp.presentation.screens.*
 import com.picpose.bestphotographyapp.presentation.viewmodels.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
+import com.picpose.bestphotographyapp.ui.prompts.PromptDetailV2Screen
+import com.picpose.bestphotographyapp.ui.prompts.PromptsV2Screen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -320,10 +322,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 ?.getString("category")
                 ?.let { Uri.decode(it) }
 
-            val aiPromptVM: AIPromptViewModel = hiltViewModel()
-
-            AllAIPromptsScreen(
-                viewModel = aiPromptVM,
+            PromptsV2Screen(
                 onBack = { navController.popBackStack() },
                 onPromptClick = { promptId ->
                     navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
@@ -378,20 +377,18 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
             arguments = listOf(navArgument("promptId") { type = NavType.StringType })
         ) { backStackEntry ->
             val promptId = backStackEntry.arguments?.getString("promptId").orEmpty()
-            val aiPromptVM: AIPromptViewModel = hiltViewModel()
 
             if (promptId.isBlank()) {
                 navController.popBackStack()
             } else {
-                AIPromptDetailScreen(
+                PromptDetailV2Screen(
                     promptId = promptId,
-                    aiPromptViewModel = aiPromptVM,
                     onBack = { navController.popBackStack() },
-                    onPromptClick = { newPromptId ->
-                        navController.navigate(Screen.PromptDetail.createRoute(newPromptId)) { launchSingleTop = true }
+                    onRequireLogin = {
+                        navController.navigate(Screen.Login.route) { launchSingleTop = true }
                     },
-                    onTagClick = { tag ->
-                        navController.navigate(Screen.TagPrompts.createRoute(tag)) { launchSingleTop = true }
+                    onOpenSubscribe = {
+                        navController.navigate(Screen.Rewards.route) { launchSingleTop = true }
                     }
                 )
             }

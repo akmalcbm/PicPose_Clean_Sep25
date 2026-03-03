@@ -19,6 +19,7 @@ data class BasicV2Response(
 @Keep
 data class StreakStatusDto(
     @SerializedName("success") val success: Boolean = false,
+    @SerializedName("message") val message: String? = null,
     @SerializedName("streak_count") val streakCount: Int = 0,
     @SerializedName("last_claim_date") val lastClaimDate: String? = null,
     @SerializedName("today_claimed") val todayClaimed: Boolean = false,
