@@ -126,6 +126,27 @@ class RewardsViewModel @Inject constructor(
         }
     }
 
+    fun rewardAdPoints(adRewardId: String) {
+        viewModelScope.launch {
+            rewardsRepository.rewardAdPoints(adRewardId)
+                .onSuccess { response ->
+                    _uiState.update { current ->
+                        current.copy(
+                            pointsBalance = response.pointsBalance ?: current.pointsBalance,
+                            statusMessage = when {
+                                response.pointsAdded == 0 -> "Reward already claimed."
+                                else -> response.message ?: "Credits added successfully."
+                            },
+                        )
+                    }
+                    loadLoggedInRewards(forceRefresh = true)
+                }
+                .onFailure { throwable ->
+                    _uiState.update { it.copy(statusMessage = throwable.message ?: "Failed to add ad reward.") }
+                }
+        }
+    }
+
     fun setStatusMessage(message: String?) {
         _uiState.update { it.copy(statusMessage = message) }
     }

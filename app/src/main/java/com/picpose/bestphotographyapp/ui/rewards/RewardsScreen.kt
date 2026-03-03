@@ -1,6 +1,7 @@
 package com.picpose.bestphotographyapp.ui.rewards
 
 import android.content.Intent
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -57,8 +58,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.data.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.data.models.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.models.v2.V2PromptDto
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -72,11 +75,18 @@ fun RewardsScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val activity = context as? Activity
+    val rewardedAdManager = remember { RewardedAdManager() }
+    val rewardedAdState by rewardedAdManager.uiState.collectAsState()
     var showApplyCodeDialog by rememberSaveable { mutableStateOf(false) }
     var applyCodeValue by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(isLoggedIn) {
         viewModel.loadRewards(forceRefresh = true)
+    }
+
+    LaunchedEffect(Unit) {
+        rewardedAdManager.loadRewardedAd(context, AdsManager.KEY_REWARDED_AD)
     }
 
     LaunchedEffect(uiState.statusMessage) {
@@ -152,7 +162,7 @@ fun RewardsScreen(
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                             Column(modifier = Modifier.padding(18.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Login, contentDescription = null)
+                                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Login to earn credits and unlock premium prompts.", fontWeight = FontWeight.SemiBold)
                                 }
@@ -187,11 +197,24 @@ fun RewardsScreen(
                 item {
                     EarnCard(
                         isLoggedIn = isLoggedIn,
+                        adState = rewardedAdState,
                         onWatchAd = {
-                            if (isLoggedIn) {
-                                viewModel.setStatusMessage("Rewarded ads will connect in the next pass.")
-                            } else {
+                            val hostActivity = activity
+                            if (!isLoggedIn) {
                                 onRequireLogin()
+                            } else if (hostActivity == null) {
+                                viewModel.setStatusMessage("Rewarded ads require an activity context.")
+                            } else {
+                                rewardedAdManager.showRewardedAd(
+                                    activity = hostActivity,
+                                    placementKey = AdsManager.KEY_REWARDED_AD,
+                                    onRewardEarned = { adRewardId ->
+                                        viewModel.rewardAdPoints(adRewardId)
+                                    },
+                                    onUnavailable = { message ->
+                                        viewModel.setStatusMessage(message)
+                                    },
+                                )
                             }
                         },
                     )
@@ -308,6 +331,7 @@ private fun StreakCard(
 @Composable
 private fun EarnCard(
     isLoggedIn: Boolean,
+    adState: com.picpose.bestphotographyapp.data.ads.RewardedAdUiState,
     onWatchAd: () -> Unit,
 ) {
     Card {
@@ -321,7 +345,12 @@ private fun EarnCard(
             Text("Watch a rewarded ad to earn server-verified credits.")
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onWatchAd, modifier = Modifier.fillMaxWidth(), enabled = isLoggedIn) {
-                Text("Watch Ad (+credits)")
+                Text(
+                    when {
+                        adState.isLoading && !adState.isReady -> "Loading Ad..."
+                        else -> "Watch Ad (+credits)"
+                    }
+                )
             }
         }
     }

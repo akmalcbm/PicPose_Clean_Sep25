@@ -96,6 +96,10 @@ class PromptDetailV2ViewModel @Inject constructor(
         _uiState.update { it.copy(message = null) }
     }
 
+    fun setMessage(message: String) {
+        _uiState.update { it.copy(message = message) }
+    }
+
     private fun launchUnlock(
         channel: String,
         block: suspend () -> Result<*>,
@@ -110,11 +114,19 @@ class PromptDetailV2ViewModel @Inject constructor(
 
         viewModelScope.launch {
             block()
-                .onSuccess {
+                .onSuccess { result ->
                     val promptId = _uiState.value.prompt?.id ?: return@onSuccess
                     loadPrompt(promptId, forceRefresh = true)
                     _uiState.update { current ->
-                        current.copy(message = "Prompt unlocked.")
+                        current.copy(
+                            message = when {
+                                channel == "ad" && result is com.picpose.bestphotographyapp.data.models.v2.UnlockResponseDto && result.duplicate ->
+                                    "Reward already claimed."
+                                result is com.picpose.bestphotographyapp.data.models.v2.UnlockResponseDto && result.unlocked ->
+                                    "Prompt unlocked."
+                                else -> "Unlock completed."
+                            }
+                        )
                     }
                 }
                 .onFailure { throwable ->

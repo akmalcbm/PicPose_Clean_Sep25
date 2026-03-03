@@ -3,7 +3,9 @@ package com.picpose.bestphotographyapp.ui.prompts
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.app.Activity
 import android.widget.Toast
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,9 +55,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.picpose.bestphotographyapp.data.ads.RewardedAdManager
+import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import kotlin.random.Random
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PromptDetailV2Screen(
     promptId: String,
@@ -68,9 +72,16 @@ fun PromptDetailV2Screen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val activity = context as? Activity
+    val rewardedAdManager = remember { RewardedAdManager() }
+    val rewardedAdState by rewardedAdManager.uiState.collectAsState()
 
     LaunchedEffect(promptId) {
         viewModel.loadPrompt(promptId, forceRefresh = true)
+    }
+
+    LaunchedEffect(promptId) {
+        rewardedAdManager.loadRewardedAd(context, AdsManager.KEY_REWARDED_AD)
     }
 
     LaunchedEffect(uiState.message) {
@@ -206,17 +217,37 @@ fun PromptDetailV2Screen(
                                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Button(
                                                 onClick = {
-                                                    viewModel.unlockWithAd(
-                                                        promptId = prompt.id,
-                                                        adRewardId = "ad_${System.currentTimeMillis()}_${Random.nextInt(1000, 9999)}",
-                                                    )
+                                                    val hostActivity = activity
+                                                    if (hostActivity == null) {
+                                                        viewModel.setMessage("Rewarded ads require an activity context.")
+                                                    } else {
+                                                        rewardedAdManager.showRewardedAd(
+                                                            activity = hostActivity,
+                                                            placementKey = AdsManager.KEY_REWARDED_AD,
+                                                            onRewardEarned = { adRewardId ->
+                                                                viewModel.unlockWithAd(
+                                                                    promptId = prompt.id,
+                                                                    adRewardId = adRewardId,
+                                                                )
+                                                            },
+                                                            onUnavailable = { message ->
+                                                                viewModel.setMessage(message)
+                                                            },
+                                                        )
+                                                    }
                                                 },
                                                 enabled = !uiState.isUnlockingWithAd,
                                                 modifier = Modifier.fillMaxWidth(),
                                             ) {
                                                 Icon(Icons.Default.VideoLibrary, contentDescription = null)
                                                 Spacer(modifier = Modifier.size(8.dp))
-                                                Text(if (uiState.isUnlockingWithAd) "Unlocking..." else "Watch Ad")
+                                                Text(
+                                                    when {
+                                                        uiState.isUnlockingWithAd -> "Unlocking..."
+                                                        rewardedAdState.isLoading && !rewardedAdState.isReady -> "Loading Ad..."
+                                                        else -> "Watch Ad"
+                                                    }
+                                                )
                                             }
                                             Button(
                                                 onClick = { viewModel.unlockWithPoints(prompt.id) },
