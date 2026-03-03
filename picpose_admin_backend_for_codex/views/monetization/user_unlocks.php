@@ -3,8 +3,9 @@ session_start();
 require '../../config.php';
 if (!isset($_SESSION['admin'])) { header('Location: ../../login.php'); exit(); }
 
-$userId = (int)($_GET['user_id'] ?? 0);
+$userId = (int)($_GET['user_id'] ?? $_GET['id'] ?? 0);
 $user = null;
+$selectorNotice = '';
 
 if ($userId > 0) {
     $userStmt = $conn->prepare('SELECT id, email, account_type FROM users WHERE id = ? LIMIT 1');
@@ -15,6 +16,12 @@ if ($userId > 0) {
         $user = $userRes ? $userRes->fetch_assoc() : null;
         $userStmt->close();
     }
+}
+
+if ($userId <= 0) {
+    $selectorNotice = 'Select a user to review their unlock history.';
+} elseif (!$user) {
+    $selectorNotice = 'User not found. Select a valid user to continue.';
 }
 
 $unlockResult = null;
@@ -49,10 +56,12 @@ include '../../includes/header.php';
   </div>
 
   <?php if (!$user): ?>
-    <div class="alert alert-warning">Valid <code>user_id</code> is required.</div>
+    <div class="alert alert-warning"><?php echo htmlspecialchars($selectorNotice); ?></div>
+    <?php include __DIR__ . '/_user_selector.php'; ?>
   <?php else: ?>
     <div class="mb-3">
       <strong>User:</strong> #<?php echo (int)$user['id']; ?> (<?php echo htmlspecialchars((string)$user['email']); ?>)
+      <span class="text-muted ms-2">Account: <?php echo htmlspecialchars((string)($user['account_type'] ?? 'normal')); ?></span>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -65,14 +74,20 @@ include '../../includes/header.php';
         </tr>
       </thead>
       <tbody>
-        <?php if ($unlockResult): while ($row = $unlockResult->fetch_assoc()): ?>
+        <?php if ($unlockResult && $unlockResult->num_rows > 0): ?>
+          <?php while ($row = $unlockResult->fetch_assoc()): ?>
+            <tr>
+              <td><?php echo (int)$row['post_id']; ?></td>
+              <td><?php echo htmlspecialchars((string)($row['title'] ?? 'Unknown Prompt')); ?></td>
+              <td><?php echo htmlspecialchars((string)$row['unlock_type']); ?></td>
+              <td><?php echo htmlspecialchars((string)$row['created_at']); ?></td>
+            </tr>
+          <?php endwhile; ?>
+        <?php else: ?>
           <tr>
-            <td><?php echo (int)$row['post_id']; ?></td>
-            <td><?php echo htmlspecialchars((string)($row['title'] ?? 'Unknown Prompt')); ?></td>
-            <td><?php echo htmlspecialchars((string)$row['unlock_type']); ?></td>
-            <td><?php echo htmlspecialchars((string)$row['created_at']); ?></td>
+            <td colspan="4" class="text-center py-4 text-muted">No unlock history found for this user.</td>
           </tr>
-        <?php endwhile; endif; ?>
+        <?php endif; ?>
       </tbody>
     </table>
   <?php endif; ?>

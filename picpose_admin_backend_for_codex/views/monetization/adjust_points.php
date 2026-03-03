@@ -6,8 +6,9 @@ if (!isset($_SESSION['admin'])) { header('Location: ../../login.php'); exit(); }
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
 
-$userId = (int)($_GET['user_id'] ?? ($_POST['user_id'] ?? 0));
+$userId = (int)($_GET['user_id'] ?? $_GET['id'] ?? $_POST['user_id'] ?? $_POST['id'] ?? 0);
 $user = null;
+$selectorNotice = '';
 
 if ($userId > 0) {
     $userStmt = $conn->prepare('SELECT id, email, account_type FROM users WHERE id = ? LIMIT 1');
@@ -20,6 +21,12 @@ if ($userId > 0) {
     }
 }
 
+if ($userId <= 0) {
+    $selectorNotice = 'Select a user before adjusting points.';
+} elseif (!$user) {
+    $selectorNotice = 'User not found. Select a valid user to continue.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrfPost = $_POST['csrf_token'] ?? '';
     if (!hash_equals((string)$csrf, (string)$csrfPost)) {
@@ -30,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$user) {
-        $_SESSION['message'] = 'User not found.';
+        $_SESSION['message'] = $userId > 0 ? 'User not found.' : 'Select a user before adjusting points.';
         $_SESSION['message_type'] = 'danger';
-        header('Location: user_wallets.php');
+        header('Location: adjust_points.php');
         exit();
     }
 
@@ -163,11 +170,13 @@ include '../../includes/header.php';
   <?php endif; ?>
 
   <?php if (!$user): ?>
-    <div class="alert alert-warning">Valid <code>user_id</code> is required.</div>
+    <div class="alert alert-warning"><?php echo htmlspecialchars($selectorNotice); ?></div>
+    <?php include __DIR__ . '/_user_selector.php'; ?>
   <?php else: ?>
     <div class="card mb-3">
       <div class="card-body">
         <div><strong>User:</strong> #<?php echo (int)$user['id']; ?> (<?php echo htmlspecialchars((string)$user['email']); ?>)</div>
+        <div><strong>Account Type:</strong> <?php echo htmlspecialchars((string)($user['account_type'] ?? 'normal')); ?></div>
         <div><strong>Current Balance:</strong> <?php echo $currentBalance; ?> pts</div>
       </div>
     </div>

@@ -3,8 +3,9 @@ session_start();
 require '../../config.php';
 if (!isset($_SESSION['admin'])) { header('Location: ../../login.php'); exit(); }
 
-$userId = (int)($_GET['user_id'] ?? 0);
+$userId = (int)($_GET['user_id'] ?? $_GET['id'] ?? 0);
 $user = null;
+$selectorNotice = '';
 
 if ($userId > 0) {
     $userStmt = $conn->prepare('SELECT id, email, account_type FROM users WHERE id = ? LIMIT 1');
@@ -15,6 +16,12 @@ if ($userId > 0) {
         $user = $userRes ? $userRes->fetch_assoc() : null;
         $userStmt->close();
     }
+}
+
+if ($userId <= 0) {
+    $selectorNotice = 'Select a user to view their points ledger.';
+} elseif (!$user) {
+    $selectorNotice = 'User not found. Select a valid user to continue.';
 }
 
 $ledgerResult = null;
@@ -44,10 +51,12 @@ include '../../includes/header.php';
   </div>
 
   <?php if (!$user): ?>
-    <div class="alert alert-warning">Valid <code>user_id</code> is required.</div>
+    <div class="alert alert-warning"><?php echo htmlspecialchars($selectorNotice); ?></div>
+    <?php include __DIR__ . '/_user_selector.php'; ?>
   <?php else: ?>
     <div class="mb-3">
       <strong>User:</strong> #<?php echo (int)$user['id']; ?> (<?php echo htmlspecialchars((string)$user['email']); ?>)
+      <span class="text-muted ms-2">Account: <?php echo htmlspecialchars((string)($user['account_type'] ?? 'normal')); ?></span>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -61,19 +70,25 @@ include '../../includes/header.php';
         </tr>
       </thead>
       <tbody>
-        <?php if ($ledgerResult): while ($row = $ledgerResult->fetch_assoc()): ?>
+        <?php if ($ledgerResult && $ledgerResult->num_rows > 0): ?>
+          <?php while ($row = $ledgerResult->fetch_assoc()): ?>
+            <tr>
+              <td><?php echo htmlspecialchars((string)$row['type']); ?></td>
+              <td><?php echo htmlspecialchars((string)$row['delta_points']); ?></td>
+              <td><?php echo htmlspecialchars((string)$row['balance_after']); ?></td>
+              <td>
+                <?php echo htmlspecialchars((string)($row['ref_type'] ?? '')); ?>
+                /
+                <?php echo htmlspecialchars((string)($row['ref_id'] ?? '')); ?>
+              </td>
+              <td><?php echo htmlspecialchars((string)$row['created_at']); ?></td>
+            </tr>
+          <?php endwhile; ?>
+        <?php else: ?>
           <tr>
-            <td><?php echo htmlspecialchars((string)$row['type']); ?></td>
-            <td><?php echo htmlspecialchars((string)$row['delta_points']); ?></td>
-            <td><?php echo htmlspecialchars((string)$row['balance_after']); ?></td>
-            <td>
-              <?php echo htmlspecialchars((string)($row['ref_type'] ?? '')); ?>
-              /
-              <?php echo htmlspecialchars((string)($row['ref_id'] ?? '')); ?>
-            </td>
-            <td><?php echo htmlspecialchars((string)$row['created_at']); ?></td>
+            <td colspan="5" class="text-center py-4 text-muted">No ledger entries found for this user.</td>
           </tr>
-        <?php endwhile; endif; ?>
+        <?php endif; ?>
       </tbody>
     </table>
   <?php endif; ?>

@@ -105,16 +105,17 @@ include '../../includes/header.php';
     </thead>
     <tbody>
       <?php while ($row = $result->fetch_assoc()): ?>
+        <?php $walletUserId = (int)$row['id']; ?>
         <tr>
-          <td><?php echo (int)$row['id']; ?></td>
+          <td><?php echo $walletUserId; ?></td>
           <td><?php echo htmlspecialchars((string)$row['email']); ?></td>
           <td><?php echo htmlspecialchars((string)($row['account_type'] ?? 'normal')); ?></td>
           <td><?php echo (int)$row['points_balance']; ?></td>
           <td><?php echo (int)$row['streak_count']; ?></td>
           <td style="white-space:nowrap;">
-            <a class="btn btn-sm btn-outline-primary" href="user_ledger.php?user_id=<?php echo (int)$row['id']; ?>">View Ledger</a>
-            <a class="btn btn-sm btn-outline-secondary" href="user_unlocks.php?user_id=<?php echo (int)$row['id']; ?>">View Unlocks</a>
-            <a class="btn btn-sm btn-warning" href="adjust_points.php?user_id=<?php echo (int)$row['id']; ?>">Adjust Points</a>
+            <a class="btn btn-sm btn-outline-primary" href="user_ledger.php?user_id=<?php echo $walletUserId; ?>">View Ledger</a>
+            <a class="btn btn-sm btn-outline-secondary" href="user_unlocks.php?user_id=<?php echo $walletUserId; ?>">View Unlocks</a>
+            <a class="btn btn-sm btn-warning" href="adjust_points.php?user_id=<?php echo $walletUserId; ?>">Adjust Points</a>
           </td>
         </tr>
       <?php endwhile; ?>
