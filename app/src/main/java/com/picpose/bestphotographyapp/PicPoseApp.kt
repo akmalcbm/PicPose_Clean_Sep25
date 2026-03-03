@@ -15,6 +15,7 @@ import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.data.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.network.TokenProvider
 import com.picpose.bestphotographyapp.fcm.FcmTokenSyncManager
 import com.picpose.bestphotographyapp.fcm.NotificationSettingsCoordinator
 import com.picpose.bestphotographyapp.presentation.ads.AdsInitializer
@@ -34,6 +35,9 @@ class PicPoseApp : Application(), ImageLoaderFactory {
     @Inject
     lateinit var crashReporter: CrashReporter
 
+    @Inject
+    lateinit var tokenProvider: TokenProvider
+
     /**
      * ✅ Application-wide safe coroutine scope
      */
@@ -46,6 +50,7 @@ class PicPoseApp : Application(), ImageLoaderFactory {
 
         crashReporter.configureCollection(enabled = !BuildConfig.DEBUG)
         crashReporter.setAccountType("unknown")
+        tokenProvider.start()
 
         // 🔹 Retrofit cache
         RetrofitClient.initCache(this)
