@@ -25,6 +25,8 @@ import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.viewmodels.HomeViewModel
 import com.picpose.bestphotographyapp.ui.prompts.PromptDetailV2Screen
 import com.picpose.bestphotographyapp.ui.prompts.PromptsV2Screen
+import com.picpose.bestphotographyapp.ui.packs.PackDetailsScreen
+import com.picpose.bestphotographyapp.ui.packs.PacksListScreen
 import com.picpose.bestphotographyapp.ui.rewards.RewardsScreen as V3RewardsScreen
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -187,9 +189,39 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                     navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 },
                 onOpenPacks = {
-                    navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
+                    navController.navigate(Screen.Packs.route) { launchSingleTop = true }
                 }
             )
+        }
+
+        composable(route = Screen.Packs.route) {
+            PacksListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenPack = { packId ->
+                    navController.navigate(Screen.PackDetail.createRoute(packId)) { launchSingleTop = true }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.PackDetail.route,
+            arguments = listOf(navArgument("packId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val packId = backStackEntry.arguments?.getInt("packId") ?: 0
+            if (packId <= 0) {
+                navController.popBackStack()
+            } else {
+                PackDetailsScreen(
+                    packId = packId,
+                    onBack = { navController.popBackStack() },
+                    onPromptClick = { promptId ->
+                        navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
+                    },
+                    onRequireLogin = {
+                        navController.navigate(Screen.Login.route) { launchSingleTop = true }
+                    }
+                )
+            }
         }
 
         composable(route = Screen.Profile.route) {

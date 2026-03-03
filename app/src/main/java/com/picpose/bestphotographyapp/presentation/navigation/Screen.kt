@@ -20,6 +20,11 @@ sealed class Screen(val route: String) {
     object Explore : Screen("explore")
     object Create : Screen("create")
     object Rewards : Screen("rewards")
+    object Packs : Screen("packs")
+    object PackDetail : Screen("pack_detail/{packId}") {
+        private const val BASE = "pack_detail"
+        fun createRoute(packId: Int) = "$BASE/$packId"
+    }
     object Profile : Screen("profile")
     object Settings : Screen("settings")
     object EditProfile : Screen("edit_profile")

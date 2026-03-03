@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -479,6 +480,12 @@ private fun ProgressCard(
     xp: Int,
     nextLevelXp: Int,
 ) {
+    val progress = when {
+        nextLevelXp <= 0 -> 0f
+        xp <= 0 -> 0f
+        xp >= nextLevelXp -> 1f
+        else -> xp.toFloat() / nextLevelXp.toFloat()
+    }
     Card {
         Column(modifier = Modifier.padding(18.dp)) {
             Text("Progress", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -486,6 +493,8 @@ private fun ProgressCard(
             Text("Level $level")
             Spacer(modifier = Modifier.height(4.dp))
             Text("$xp / $nextLevelXp XP")
+            Spacer(modifier = Modifier.height(10.dp))
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
         }
     }
 }
