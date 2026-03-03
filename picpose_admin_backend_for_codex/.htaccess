@@ -13,6 +13,12 @@
     RewriteRule .* - [L]
 
     # ---------------------------------------------
+    # Public referral landing page
+    # ---------------------------------------------
+    RewriteRule ^r/?$ r/index.php [QSA,L]
+    RewriteRule ^r/([A-Za-z0-9_-]{4,32})/?$ r/index.php?code=$1 [QSA,L]
+
+    # ---------------------------------------------
     # Remove .php extension from URLs (ADMIN ONLY)
     # ---------------------------------------------
     RewriteCond %{REQUEST_FILENAME} !-d

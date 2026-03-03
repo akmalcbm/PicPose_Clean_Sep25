@@ -1,5 +1,6 @@
 package com.picpose.bestphotographyapp.data.repository
 
+import com.picpose.bestphotographyapp.data.datastore.ReferralCodeCache
 import com.picpose.bestphotographyapp.data.datastore.RewardsHubCache
 import com.picpose.bestphotographyapp.data.models.v2.ApplyReferralCodeRequest
 import com.picpose.bestphotographyapp.data.models.v2.BasicV2Response
@@ -27,16 +28,21 @@ import retrofit2.Response
 class RewardsRepository @Inject constructor(
     private val apiService: V2ApiService,
     private val rewardsHubCache: RewardsHubCache,
+    private val referralCodeCache: ReferralCodeCache,
 ) {
     val cachedHub: Flow<RewardsHubDto?> = rewardsHubCache.cachedHub
 
-    suspend fun refreshHub(): Result<RewardsHubDto> = withContext(Dispatchers.IO) {
+    suspend fun refreshHub(userIdForCache: String? = null): Result<RewardsHubDto> = withContext(Dispatchers.IO) {
         runCatching {
             val response = apiService.getRewardsHub()
             val body = response.body()
             ensureSuccess(response, body?.message, body?.success == true)
             val hub = body ?: error("Empty rewards hub response")
             rewardsHubCache.save(hub)
+            val referralCode = hub.referral?.myCode ?: hub.referral?.code
+            if (!userIdForCache.isNullOrBlank() && !referralCode.isNullOrBlank()) {
+                referralCodeCache.save(userIdForCache, referralCode)
+            }
             hub
         }
     }
@@ -70,14 +76,21 @@ class RewardsRepository @Inject constructor(
         }
     }
 
-    suspend fun getMyCode(): Result<GetMyCodeResponseDto> = withContext(Dispatchers.IO) {
+    suspend fun getMyCode(userIdForCache: String): Result<GetMyCodeResponseDto> = withContext(Dispatchers.IO) {
         runCatching {
             val response = apiService.getMyReferralCode()
             val body = response.body()
             ensureSuccess(response, body?.message, body?.success == true)
-            body ?: error("Empty code response")
+            val codeResponse = body ?: error("Empty code response")
+            val code = codeResponse.code.orEmpty()
+            if (code.isNotBlank()) {
+                referralCodeCache.save(userIdForCache, code)
+            }
+            codeResponse
         }
     }
+
+    suspend fun getCachedReferralCode(userId: String): String? = referralCodeCache.readOnce(userId)
 
     suspend fun applyReferralCode(code: String): Result<BasicV2Response> = withContext(Dispatchers.IO) {
         runCatching {

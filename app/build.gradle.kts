@@ -53,6 +53,11 @@ android {
             "API_BASE_URL",
             "\"$apiBaseUrl\""
         )
+        buildConfigField(
+            "String",
+            "REFERRAL_PLAY_URL",
+            "\"https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -85,6 +90,11 @@ android {
                 "String",
                 "API_BASE_URL",
                 "\"$apiBaseUrl\""
+            )
+            buildConfigField(
+                "String",
+                "REFERRAL_PLAY_URL",
+                "\"https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp\""
             )
             manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
         }

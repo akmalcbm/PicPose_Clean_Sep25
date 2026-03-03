@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -65,6 +67,13 @@ class RewardsViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false,
+        )
+
+    private val currentUserId: StateFlow<String?> = userSessionManager.userId
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
         )
 
     fun loadRewards(forceRefresh: Boolean = false) {
@@ -164,9 +173,15 @@ class RewardsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val userId = currentUserId.value ?: currentUserId.filterNotNull().firstOrNull()
+            if (!userId.isNullOrBlank()) {
+                rewardsRepository.getCachedReferralCode(userId)?.let { cachedCode ->
+                    _uiState.update { current -> current.copy(referralCode = cachedCode) }
+                }
+            }
             rewardsRepository.getCachedHub()?.let(::applyHub)
 
-            rewardsRepository.refreshHub()
+            rewardsRepository.refreshHub(userIdForCache = userId)
                 .onSuccess { hub ->
                     applyHub(hub)
                 }
@@ -179,6 +194,18 @@ class RewardsViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+
+        viewModelScope.launch {
+            val userId = currentUserId.value ?: currentUserId.filterNotNull().firstOrNull()
+            if (!userId.isNullOrBlank()) {
+                rewardsRepository.getMyCode(userId)
+                    .onSuccess { response ->
+                        response.code?.takeIf { it.isNotBlank() }?.let { latestCode ->
+                            _uiState.update { current -> current.copy(referralCode = latestCode) }
+                        }
+                    }
+            }
         }
 
         viewModelScope.launch {

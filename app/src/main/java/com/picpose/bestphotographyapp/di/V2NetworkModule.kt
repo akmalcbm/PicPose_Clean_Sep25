@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.picpose.bestphotographyapp.BuildConfig
+import com.picpose.bestphotographyapp.data.datastore.ReferralCodeCache
 import com.picpose.bestphotographyapp.data.datastore.RewardsHubCache
 import com.picpose.bestphotographyapp.data.network.ApiKeyInterceptor
 import com.picpose.bestphotographyapp.data.network.AuthInterceptor
@@ -83,4 +84,10 @@ object V2NetworkModule {
         @ApplicationContext context: Context,
         @V2Gson gson: Gson,
     ): RewardsHubCache = RewardsHubCache(context, gson)
+
+    @Provides
+    @Singleton
+    fun provideReferralCodeCache(
+        @ApplicationContext context: Context,
+    ): ReferralCodeCache = ReferralCodeCache(context)
 }

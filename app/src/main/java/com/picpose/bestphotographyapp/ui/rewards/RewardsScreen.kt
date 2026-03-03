@@ -108,6 +108,9 @@ fun RewardsScreen(
                     onValueChange = { applyCodeValue = it.uppercase() },
                     label = { Text("Referral code") },
                     singleLine = true,
+                    supportingText = {
+                        Text("Rewards unlock after qualifying action (e.g., first premium unlock or first generation).")
+                    },
                 )
             },
             confirmButton = {
@@ -240,10 +243,16 @@ fun RewardsScreen(
                         rewardedCount = uiState.referralRewardedCount,
                         pendingCount = uiState.referralPendingCount,
                         onShare = { code ->
-                            val appLink = BuildConfig.API_BASE_URL.trimEnd('/')
+                            val shareMessage = buildString {
+                                append("Install PicPose: AI Prompts & Posing Guide\n")
+                                append(BuildConfig.REFERRAL_PLAY_URL)
+                                append("\nUse my referral code: ")
+                                append(code)
+                                append("\nAfter installing, open Rewards -> Apply Code.")
+                            }
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "Join PicPose: $appLink\nUse my referral code: $code")
+                                putExtra(Intent.EXTRA_TEXT, shareMessage)
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Share referral code"))
                         },
@@ -433,6 +442,12 @@ private fun ReferralCard(
             Text(if (isLoggedIn) "My referral code: ${code ?: "Loading..."}" else "Login to generate and claim referral rewards.")
             Spacer(modifier = Modifier.height(8.dp))
             Text(statusText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Rewards unlock after qualifying action (e.g., first premium unlock or first generation).",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = {}, label = { Text("Referred: $referredCount") })

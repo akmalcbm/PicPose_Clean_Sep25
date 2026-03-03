@@ -3,13 +3,15 @@
 1. Referrer login
    - Open the Rewards tab while logged in as account A.
    - Confirm "My referral code" is visible.
-   - Tap Share and verify the sharesheet includes the PicPose link and the referral code.
+   - Tap Share and verify the sharesheet includes the Play Store URL and the referral code.
+   - Confirm no admin or site root URL is included.
 
 2. Referee applies code
    - Log in as account B.
    - Open Rewards, tap Apply code, and submit account A's code.
    - Confirm the app shows `Code applied successfully`.
    - Confirm the referral block shows pending status guidance.
+   - Confirm the helper text explains that rewards unlock after a qualifying action.
 
 3. Qualifying action
    - As account B, complete one qualifying action:
@@ -34,3 +36,7 @@
 7. Referrer counters
    - Log back in as account A and refresh Rewards.
    - Confirm `referred_count`, `pending_count`, and `rewarded_count` reflect the referral lifecycle.
+
+8. Public landing page
+   - Open `/r/<code>` in a browser.
+   - Confirm the page is public, shows the referral code, and links only to Google Play.
