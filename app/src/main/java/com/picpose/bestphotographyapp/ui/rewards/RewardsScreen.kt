@@ -56,10 +56,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.data.models.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.models.v2.V2PromptDto
@@ -362,8 +364,8 @@ private fun EarnCard(
             Button(onClick = onWatchAd, modifier = Modifier.fillMaxWidth(), enabled = isLoggedIn) {
                 Text(
                     when {
-                        adState.isLoading && !adState.isReady -> "Loading Ad..."
-                        else -> "Watch Ad (+credits)"
+                        adState.isLoading && !adState.isReady -> stringResource(R.string.rewards_loading_reward_ad)
+                        else -> stringResource(R.string.rewards_watch_ad_plus)
                     }
                 )
             }

@@ -27,7 +27,7 @@ import com.picpose.bestphotographyapp.ui.prompts.PromptDetailV2Screen
 import com.picpose.bestphotographyapp.ui.prompts.PromptsV2Screen
 import com.picpose.bestphotographyapp.ui.packs.PackDetailsScreen
 import com.picpose.bestphotographyapp.ui.packs.PacksListScreen
-import com.picpose.bestphotographyapp.ui.rewards.RewardsScreen as V3RewardsScreen
+import com.picpose.bestphotographyapp.ui.rewards.RewardsScreenV3 as V3RewardsScreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

@@ -16,9 +16,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class PackFilter {
+    ALL,
+    OWNED,
+    BEST_VALUE
+}
+
 data class PacksUiState(
     val isLoading: Boolean = false,
     val packs: List<PackSummaryDto> = emptyList(),
+    val selectedFilter: PackFilter = PackFilter.ALL,
     val message: String? = null,
 )
 
@@ -58,6 +65,22 @@ class PacksViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    fun selectFilter(filter: PackFilter) {
+        _uiState.update { it.copy(selectedFilter = filter) }
+    }
+
+    fun filteredPacks(): List<PackSummaryDto> {
+        val state = _uiState.value
+        return when (state.selectedFilter) {
+            PackFilter.ALL -> state.packs
+            PackFilter.OWNED -> state.packs.filter { it.ownsPack }
+            PackFilter.BEST_VALUE -> state.packs.sortedBy { pack ->
+                val itemCount = if (pack.itemCount <= 0) 1 else pack.itemCount
+                pack.pricePoints.toDouble() / itemCount.toDouble()
+            }
         }
     }
 

@@ -65,7 +65,7 @@ class RewardedAdManager @Inject constructor() {
 
         if (!_uiState.value.isReady) {
             loadRewardedAd(activity.applicationContext, placementKey)
-            onUnavailable("Rewarded ad is loading. Please try again.")
+            onUnavailable("Preparing your reward…")
             return
         }
 

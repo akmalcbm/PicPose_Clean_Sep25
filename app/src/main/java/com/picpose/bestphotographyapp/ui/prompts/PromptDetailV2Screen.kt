@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.presentation.ads.AdsManager
 import kotlin.random.Random
@@ -219,7 +220,7 @@ fun PromptDetailV2Screen(
                                                 onClick = {
                                                     val hostActivity = activity
                                                     if (hostActivity == null) {
-                                                        viewModel.setMessage("Rewarded ads require an activity context.")
+                                                        viewModel.setMessage(context.getString(R.string.rewards_ad_requires_activity))
                                                     } else {
                                                         rewardedAdManager.showRewardedAd(
                                                             activity = hostActivity,
@@ -244,7 +245,7 @@ fun PromptDetailV2Screen(
                                                 Text(
                                                     when {
                                                         uiState.isUnlockingWithAd -> "Unlocking..."
-                                                        rewardedAdState.isLoading && !rewardedAdState.isReady -> "Loading Ad..."
+                                                        rewardedAdState.isLoading && !rewardedAdState.isReady -> context.getString(R.string.rewards_loading_reward_ad)
                                                         else -> "Watch Ad"
                                                     }
                                                 )

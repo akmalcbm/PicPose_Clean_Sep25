@@ -1,5 +1,8 @@
 package com.picpose.bestphotographyapp.ui.packs
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,24 +12,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,10 +40,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.models.v2.PackSummaryDto
+import com.picpose.bestphotographyapp.presentation.components.common.PicPoseTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +58,7 @@ fun PacksListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val filteredPacks = viewModel.filteredPacks()
 
     LaunchedEffect(Unit) {
         viewModel.loadPacks()
@@ -62,39 +73,68 @@ fun PacksListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Premium Packs") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            PicPoseTopAppBar(
+                title = stringResource(R.string.packs_title),
+                onBack = onBack,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
     ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                items(uiState.packs, key = { it.id }) { pack ->
-                    PackRow(pack = pack, onOpenPack = onOpenPack)
+        Crossfade(targetState = uiState.isLoading, label = "packs_loading") { isLoading ->
+            if (isLoading) {
+                PacksLoadingState(modifier = Modifier.padding(innerPadding))
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    item {
+                        PacksFilters(
+                            selectedFilter = uiState.selectedFilter,
+                            onSelect = viewModel::selectFilter,
+                        )
+                    }
+
+                    if (filteredPacks.isEmpty()) {
+                        item {
+                            EmptyPacksState()
+                        }
+                    } else {
+                        items(filteredPacks, key = { it.id }) { pack ->
+                            PackRow(pack = pack, onOpenPack = onOpenPack)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PacksFilters(
+    selectedFilter: PackFilter,
+    onSelect: (PackFilter) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        AssistChip(
+            onClick = { onSelect(PackFilter.ALL) },
+            label = { Text(stringResource(R.string.all)) },
+            leadingIcon = { if (selectedFilter == PackFilter.ALL) Icon(Icons.Default.CheckCircle, contentDescription = null) },
+        )
+        AssistChip(
+            onClick = { onSelect(PackFilter.OWNED) },
+            label = { Text(stringResource(R.string.filter_owned)) },
+            leadingIcon = { if (selectedFilter == PackFilter.OWNED) Icon(Icons.Default.CheckCircle, contentDescription = null) },
+        )
+        AssistChip(
+            onClick = { onSelect(PackFilter.BEST_VALUE) },
+            label = { Text(stringResource(R.string.filter_best_value)) },
+            leadingIcon = { if (selectedFilter == PackFilter.BEST_VALUE) Icon(Icons.Default.CheckCircle, contentDescription = null) },
+        )
     }
 }
 
@@ -107,19 +147,87 @@ private fun PackRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenPack(pack.id) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(20.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(pack.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                if (pack.ownsPack) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.CheckCircle, contentDescription = null)
+        Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                            )
+                        )
+                    )
+                    .padding(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(pack.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "${pack.itemCount} ${stringResource(R.string.pack_prompts)}",
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                    if (pack.ownsPack) {
+                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.pack_owned)) })
+                    }
                 }
             }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(pack.description.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("${pack.itemCount} prompts • ${pack.pricePoints} credits")
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "${pack.pricePoints} ${stringResource(R.string.rewards_credits)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            pack.description?.takeIf { it.isNotBlank() }?.let { description ->
+                Text(
+                    text = description,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 0.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PacksLoadingState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun EmptyPacksState() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Text(stringResource(R.string.packs_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(stringResource(R.string.packs_empty_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
