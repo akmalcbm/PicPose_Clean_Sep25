@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.data.models.v2.PackSummaryDto
@@ -68,35 +69,47 @@ fun PacksRow(
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = pack.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f),
+                            Box(
+                                modifier = Modifier.background(
+                                    brush = Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.82f),
+                                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.58f),
+                                            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
+                                        )
                                     )
-                                    if (pack.ownsPack) {
-                                        Box(
-                                            modifier = Modifier.background(
-                                                MaterialTheme.colorScheme.primaryContainer,
-                                                RoundedCornerShape(999.dp)
-                                            ).padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text("Owned", style = MaterialTheme.typography.labelSmall)
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = pack.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        if (pack.ownsPack) {
+                                            Box(
+                                                modifier = Modifier.background(
+                                                    MaterialTheme.colorScheme.primaryContainer,
+                                                    RoundedCornerShape(999.dp)
+                                                ).padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text("Owned", style = MaterialTheme.typography.labelSmall)
+                                            }
                                         }
                                     }
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("${pack.pricePoints} credits", style = MaterialTheme.typography.bodyMedium)
-                                pack.description?.takeIf { it.isNotBlank() }?.let { desc ->
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        desc,
-                                        maxLines = 2,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("${pack.pricePoints} credits", style = MaterialTheme.typography.bodyMedium)
+                                    pack.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            desc,
+                                            maxLines = 2,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
