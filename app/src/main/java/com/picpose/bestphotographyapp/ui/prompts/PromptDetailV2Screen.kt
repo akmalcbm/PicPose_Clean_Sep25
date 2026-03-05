@@ -32,15 +32,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BookmarkAdded
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -87,6 +91,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.core.utils.ShareUtils
 import com.picpose.bestphotographyapp.core.utils.setText
 import com.picpose.bestphotographyapp.data.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.data.admob.AdManager
@@ -175,12 +180,20 @@ fun PromptDetailV2Screen(
                     uiState.prompt?.let { prompt ->
                         IconButton(
                             onClick = {
-                                val fullPrompt = prompt.fullPrompt.orEmpty()
-                                if (fullPrompt.isBlank()) return@IconButton
                                 coroutineScope.launch {
-                                    clipboard.setText(fullPrompt, label = "prompt")
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_to_clipboard))
+                                    runCatching {
+                                        ShareUtils.sharePrompt(
+                                            context = context,
+                                            promptText = prompt.fullPrompt ?: prompt.shortPrompt.orEmpty(),
+                                            imageUrl = prompt.imageUrl ?: prompt.imageUrl2,
+                                            title = prompt.title.ifBlank { context.getString(R.string.app_name) },
+                                            chooserTitle = context.getString(R.string.share_prompt_via),
+                                        )
+                                    }.onFailure { throwable ->
+                                        snackbarHostState.showSnackbar(
+                                            throwable.message ?: context.getString(R.string.something_went_wrong),
+                                        )
+                                    }
                                 }
                             },
                         ) {
@@ -188,7 +201,7 @@ fun PromptDetailV2Screen(
                         }
 
                         IconButton(
-                            onClick = { viewModel.toggleFavorite(prompt.id) },
+                            onClick = { viewModel.onFavoriteClicked(prompt.id) },
                         ) {
                             Icon(
                                 imageVector = if (uiState.isFavoriteLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -232,6 +245,11 @@ fun PromptDetailV2Screen(
                             rewardedAdReady = rewardedAdState.isReady,
                             rewardedAdLoading = rewardedAdState.isLoading,
                             unlockState = uiState,
+                            viewsCount = uiState.viewsCount,
+                            likesCount = uiState.likesCount,
+                            favoritesCount = uiState.favoritesCount,
+                            isLiked = uiState.isLikedLocal,
+                            isFavorite = uiState.isFavoriteLocal,
                             listState = listState,
                             onImageClick = { showImageDialog = true },
                             onOpenGemini = {
@@ -266,6 +284,14 @@ fun PromptDetailV2Screen(
                             },
                             onUnlockWithPoints = { viewModel.unlockWithPoints(uiState.prompt!!.id) },
                             onUnlockWithToken = { viewModel.unlockWithToken(uiState.prompt!!.id) },
+                            onLikeClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.onLikeClicked(uiState.prompt!!.id)
+                            },
+                            onFavoriteClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.onFavoriteClicked(uiState.prompt!!.id)
+                            },
                             onTagClick = onTagClick,
                             onSimilarPromptClick = { similarPrompt ->
                                 coroutineScope.launch {
@@ -343,6 +369,11 @@ private fun PromptContent(
     rewardedAdReady: Boolean,
     rewardedAdLoading: Boolean,
     unlockState: PromptDetailV2UiState,
+    viewsCount: Int,
+    likesCount: Int,
+    favoritesCount: Int,
+    isLiked: Boolean,
+    isFavorite: Boolean,
     listState: LazyListState,
     onImageClick: () -> Unit,
     onOpenGemini: () -> Unit,
@@ -352,6 +383,8 @@ private fun PromptContent(
     onUnlockWithAd: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onUnlockWithToken: () -> Unit,
+    onLikeClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     onTagClick: (String) -> Unit,
     onSimilarPromptClick: (V2PromptDto) -> Unit,
     onLoadMore: () -> Unit,
@@ -430,27 +463,21 @@ private fun PromptContent(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        StatChip(
-                            icon = Icons.Default.Visibility,
-                            text = "${formatCompactNumber(prompt.views)} ${stringResource(R.string.views)}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        StatChip(
-                            icon = Icons.Default.FavoriteBorder,
-                            text = "${formatCompactNumber(prompt.likes)} ${stringResource(R.string.likes)}",
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        if (prompt.tags.isNotEmpty()) {
-                            StatChip(
-                                icon = Icons.AutoMirrored.Filled.Label,
-                                text = "${prompt.tags.size} tags",
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
+                    StatsRowV2(
+                        promptId = prompt.id,
+                        category = prompt.category,
+                        likes = likesCount,
+                        views = viewsCount,
+                        favorites = favoritesCount,
+                        isLiked = isLiked,
+                        isBookmarked = isFavorite,
+                        onLikeClick = { onLikeClick() },
+                        onBookmarkClick = { onFavoriteClick() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
 
                     if (!prompt.shortPrompt.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(14.dp))
@@ -754,30 +781,134 @@ private fun AdLoadingOverlay() {
 }
 
 @Composable
-private fun StatChip(
-    icon: ImageVector,
-    text: String,
-    color: Color,
+private fun StatsRowV2(
+    promptId: String,
+    category: String?,
+    likes: Int,
+    views: Int,
+    favorites: Int,
+    isLiked: Boolean,
+    isBookmarked: Boolean,
+    onLikeClick: (String) -> Unit,
+    onBookmarkClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(20.dp),
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (!category.isNullOrBlank()) {
+                CategoryStatV2(category = category)
+            }
+            ViewsStatV2(views = views)
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StatPillV2(
+                icon = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                value = formatCompactNumber(likes),
+                tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onLikeClick(promptId) },
+            )
+
+            StatPillV2(
+                icon = if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                value = formatCompactNumber(favorites),
+                tint = if (isBookmarked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onBookmarkClick(promptId) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryStatV2(
+    category: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Label,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = category,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun ViewsStatV2(
+    views: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Visibility,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = formatCompactNumber(views),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun StatPillV2(
+    icon: ImageVector,
+    value: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    Surface(
+        color = tint.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(50),
+        modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(15.dp),
-                tint = color,
+                modifier = Modifier.size(16.dp),
+                tint = tint,
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = text,
+                text = value,
                 style = MaterialTheme.typography.labelMedium,
-                color = color,
+                color = tint,
                 fontWeight = FontWeight.Medium,
             )
         }

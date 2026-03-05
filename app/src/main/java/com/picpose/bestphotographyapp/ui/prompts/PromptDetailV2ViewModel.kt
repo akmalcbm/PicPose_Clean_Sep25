@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.models.v2.V2PromptDto
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2FeatureUnavailableException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
@@ -25,6 +26,10 @@ data class PromptDetailV2UiState(
     val isLoadingMoreSimilar: Boolean = false,
     val hasMoreSimilar: Boolean = false,
     val showAdLoader: Boolean = false,
+    val viewsCount: Int = 0,
+    val likesCount: Int = 0,
+    val favoritesCount: Int = 0,
+    val isLikedLocal: Boolean = false,
     val isFavoriteLocal: Boolean = false,
     val message: String? = null,
     val isUnlockingWithPoints: Boolean = false,
@@ -35,6 +40,7 @@ data class PromptDetailV2UiState(
 @HiltViewModel
 class PromptDetailV2ViewModel @Inject constructor(
     private val promptsRepository: V2PromptsRepository,
+    private val engagementRepository: EngagementRepository,
     userSessionManager: UserSessionManager,
 ) : ViewModel() {
     private var similarOffset: Int = 0
@@ -65,6 +71,10 @@ class PromptDetailV2ViewModel @Inject constructor(
                 isLoadingMoreSimilar = false,
                 hasMoreSimilar = false,
                 showAdLoader = false,
+                viewsCount = 0,
+                likesCount = 0,
+                favoritesCount = 0,
+                isLikedLocal = false,
                 isFavoriteLocal = false,
                 message = null,
             )
@@ -75,10 +85,23 @@ class PromptDetailV2ViewModel @Inject constructor(
         viewModelScope.launch {
             promptsRepository.getPromptDetail(promptId)
                 .onSuccess { prompt ->
+                    runCatching {
+                        engagementRepository.registerView(prompt.id)
+                    }
+                    val localState = runCatching { engagementRepository.getState(prompt.id) }.getOrNull()
+                    val likesCount = prompt.likes.coerceAtLeast(0) + if (localState?.isLiked == true) 1 else 0
+                    val favoritesCount = prompt.favorites.coerceAtLeast(0) + if (localState?.isFavorited == true) 1 else 0
+                    val viewsCount = prompt.views.coerceAtLeast(0) + (localState?.localViewCount ?: 0).coerceAtLeast(0)
+
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
                             prompt = prompt,
+                            viewsCount = viewsCount,
+                            likesCount = likesCount,
+                            favoritesCount = favoritesCount,
+                            isLikedLocal = localState?.isLiked == true,
+                            isFavoriteLocal = localState?.isFavorited == true,
                         )
                     }
                     loadSimilarPrompts(reset = true)
@@ -121,13 +144,52 @@ class PromptDetailV2ViewModel @Inject constructor(
         _uiState.update { it.copy(message = null) }
     }
 
-    fun toggleFavorite(promptId: String) {
+    fun onFavoriteClicked(promptId: String) {
         if (_uiState.value.prompt?.id != promptId) return
-        _uiState.update { current ->
-            current.copy(
-                isFavoriteLocal = !current.isFavoriteLocal,
-                message = "Favorites sync is not available yet in V2.",
-            )
+
+        viewModelScope.launch {
+            runCatching {
+                engagementRepository.handleBookmark(
+                    promptId = promptId,
+                    currentFavorites = _uiState.value.favoritesCount,
+                )
+            }.onSuccess { result ->
+                _uiState.update { current ->
+                    current.copy(
+                        isFavoriteLocal = result.isBookmarked,
+                        favoritesCount = result.newFavorites,
+                        message = if (result.isBookmarked) "Added to Favorites" else "Removed from favorites",
+                    )
+                }
+            }.onFailure { throwable ->
+                _uiState.update { current ->
+                    current.copy(message = throwable.message ?: "Failed to update favorite")
+                }
+            }
+        }
+    }
+
+    fun onLikeClicked(promptId: String) {
+        if (_uiState.value.prompt?.id != promptId) return
+
+        viewModelScope.launch {
+            runCatching {
+                engagementRepository.handleLike(
+                    promptId = promptId,
+                    currentLikes = _uiState.value.likesCount,
+                )
+            }.onSuccess { result ->
+                _uiState.update { current ->
+                    current.copy(
+                        isLikedLocal = result.isLiked,
+                        likesCount = result.newLikes,
+                    )
+                }
+            }.onFailure { throwable ->
+                _uiState.update { current ->
+                    current.copy(message = throwable.message ?: "Failed to update like")
+                }
+            }
         }
     }
 
