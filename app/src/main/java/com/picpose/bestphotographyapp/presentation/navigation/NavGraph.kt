@@ -434,7 +434,13 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                     },
                     onOpenSubscribe = {
                         navController.navigate(Screen.Rewards.route) { launchSingleTop = true }
-                    }
+                    },
+                    onPromptClick = { nextPromptId ->
+                        navController.navigate(Screen.PromptDetail.createRoute(nextPromptId)) { launchSingleTop = true }
+                    },
+                    onTagClick = { tag ->
+                        navController.navigate(Screen.TagPrompts.createRoute(tag)) { launchSingleTop = true }
+                    },
                 )
             }
         }

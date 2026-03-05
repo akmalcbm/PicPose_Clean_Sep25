@@ -21,6 +21,11 @@ import kotlinx.coroutines.launch
 data class PromptDetailV2UiState(
     val isLoading: Boolean = false,
     val prompt: V2PromptDto? = null,
+    val similarPrompts: List<V2PromptDto> = emptyList(),
+    val isLoadingMoreSimilar: Boolean = false,
+    val hasMoreSimilar: Boolean = false,
+    val showAdLoader: Boolean = false,
+    val isFavoriteLocal: Boolean = false,
     val message: String? = null,
     val isUnlockingWithPoints: Boolean = false,
     val isUnlockingWithToken: Boolean = false,
@@ -32,6 +37,12 @@ class PromptDetailV2ViewModel @Inject constructor(
     private val promptsRepository: V2PromptsRepository,
     userSessionManager: UserSessionManager,
 ) : ViewModel() {
+    private var similarOffset: Int = 0
+    private val similarLimit: Int = 10
+    private var hasMoreSimilar: Boolean = true
+    private var similarPromptClickCount: Int = 0
+    private val interstitialInterval: Int = 3
+
     private val _uiState = MutableStateFlow(PromptDetailV2UiState())
     val uiState: StateFlow<PromptDetailV2UiState> = _uiState.asStateFlow()
 
@@ -49,9 +60,17 @@ class PromptDetailV2ViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 isLoading = true,
+                prompt = if (forceRefresh) null else it.prompt,
+                similarPrompts = if (forceRefresh) emptyList() else it.similarPrompts,
+                isLoadingMoreSimilar = false,
+                hasMoreSimilar = false,
+                showAdLoader = false,
+                isFavoriteLocal = false,
                 message = null,
             )
         }
+        similarOffset = 0
+        hasMoreSimilar = true
 
         viewModelScope.launch {
             promptsRepository.getPromptDetail(promptId)
@@ -62,6 +81,7 @@ class PromptDetailV2ViewModel @Inject constructor(
                             prompt = prompt,
                         )
                     }
+                    loadSimilarPrompts(reset = true)
                 }
                 .onFailure { throwable ->
                     _uiState.update { current ->
@@ -72,6 +92,11 @@ class PromptDetailV2ViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun loadMoreSimilarPrompts() {
+        if (_uiState.value.isLoadingMoreSimilar || !hasMoreSimilar) return
+        loadSimilarPrompts(reset = false)
     }
 
     fun unlockWithPoints(promptId: String) {
@@ -94,6 +119,28 @@ class PromptDetailV2ViewModel @Inject constructor(
 
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
+    }
+
+    fun toggleFavorite(promptId: String) {
+        if (_uiState.value.prompt?.id != promptId) return
+        _uiState.update { current ->
+            current.copy(
+                isFavoriteLocal = !current.isFavoriteLocal,
+                message = "Favorites sync is not available yet in V2.",
+            )
+        }
+    }
+
+    fun onSimilarPromptClicked() {
+        similarPromptClickCount += 1
+    }
+
+    fun shouldShowInterstitial(): Boolean {
+        return similarPromptClickCount > 0 && similarPromptClickCount % interstitialInterval == 0
+    }
+
+    fun setShowAdLoader(show: Boolean) {
+        _uiState.update { it.copy(showAdLoader = show) }
     }
 
     fun setMessage(message: String) {
@@ -146,6 +193,51 @@ class PromptDetailV2ViewModel @Inject constructor(
                     isUnlockingWithToken = false,
                     isUnlockingWithAd = false,
                 )
+            }
+        }
+    }
+
+    private fun loadSimilarPrompts(reset: Boolean) {
+        val currentPrompt = _uiState.value.prompt ?: return
+        val category = currentPrompt.category?.takeIf { it.isNotBlank() } ?: return
+
+        if (reset) {
+            similarOffset = 0
+            hasMoreSimilar = true
+            _uiState.update { it.copy(similarPrompts = emptyList(), isLoadingMoreSimilar = false) }
+        } else if (!hasMoreSimilar) {
+            return
+        }
+
+        _uiState.update { it.copy(isLoadingMoreSimilar = !reset) }
+
+        viewModelScope.launch {
+            promptsRepository.getPrompts(
+                category = category,
+                limit = similarLimit,
+                offset = similarOffset,
+            ).onSuccess { fetched ->
+                val filtered = fetched
+                    .filter { it.id != currentPrompt.id }
+                    .distinctBy { it.id }
+
+                similarOffset += similarLimit
+                hasMoreSimilar = fetched.size >= similarLimit
+
+                _uiState.update { current ->
+                    val merged = if (reset) {
+                        filtered
+                    } else {
+                        (current.similarPrompts + filtered).distinctBy { it.id }
+                    }
+                    current.copy(
+                        similarPrompts = merged,
+                        isLoadingMoreSimilar = false,
+                        hasMoreSimilar = hasMoreSimilar,
+                    )
+                }
+            }.onFailure {
+                _uiState.update { it.copy(isLoadingMoreSimilar = false, hasMoreSimilar = false) }
             }
         }
     }
