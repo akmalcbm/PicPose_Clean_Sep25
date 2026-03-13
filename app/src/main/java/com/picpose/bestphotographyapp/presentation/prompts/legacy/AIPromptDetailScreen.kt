@@ -3,7 +3,7 @@
  * File: AIPromptDetailScreen.kt
  * Layer: Presentation (UI)
  * Project: PicPose
- *
+ * Old Files currently not in used so i commented this to aware from confusions
  * Purpose:
  * Lists the app navigation routes and helper builders used by Navigation Compose.
  *

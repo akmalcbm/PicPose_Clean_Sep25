@@ -23,6 +23,7 @@ package com.picpose.bestphotographyapp.presentation.prompts.v2
 
 import android.app.Activity
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,6 +49,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -66,6 +68,8 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -83,10 +87,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -111,17 +118,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.google.android.gms.ads.LoadAdError
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.ads.AdsConfigState
+import com.picpose.bestphotographyapp.components.ads.AdsManager
+import com.picpose.bestphotographyapp.components.ads.InlineNativeAdCard
+import com.picpose.bestphotographyapp.components.ads.NativeAdSection
+import com.picpose.bestphotographyapp.components.ads.NativeAdController
+import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
+import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
+import com.picpose.bestphotographyapp.data.service.ads.AdManager
+import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
+import com.picpose.bestphotographyapp.presentation.prompts.detail.FullScreenImageDialog
+import com.picpose.bestphotographyapp.presentation.prompts.legacy.openGemini
 import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.setText
-import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
-import com.picpose.bestphotographyapp.data.service.ads.AdManager
-import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
-import com.picpose.bestphotographyapp.components.ads.AdsManager
-import com.picpose.bestphotographyapp.presentation.prompts.legacy.openGemini
-import com.picpose.bestphotographyapp.components.ads.NativeAdSection
-import com.picpose.bestphotographyapp.presentation.prompts.detail.FullScreenImageDialog
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -136,6 +149,7 @@ fun PromptDetailV2Screen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val adsConfigState by AdsManager.configState.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
     val listState = rememberLazyListState()
@@ -146,6 +160,7 @@ fun PromptDetailV2Screen(
     val rewardedAdManager = remember { RewardedAdManager() }
     val rewardedAdState by rewardedAdManager.uiState.collectAsState()
     val adManager = remember { AdManager.getInstance() }
+    val allowNativeAds = adsConfigState is AdsConfigState.Ready && AdsManager.canShowAds()
 
     var currentPromptId by remember { mutableStateOf(promptId) }
     var showImageDialog by remember { mutableStateOf(false) }
@@ -188,7 +203,24 @@ fun PromptDetailV2Screen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.ai_prompt_details_title)) },
+                title = {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.ai_prompt_details_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        uiState.prompt?.category?.takeIf { it.isNotBlank() }?.let { category ->
+                            Text(
+                                text = category,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -199,7 +231,9 @@ fun PromptDetailV2Screen(
                 },
                 actions = {
                     uiState.prompt?.let { prompt ->
-                        IconButton(
+                        TopBarActionCircleButton(
+                            icon = Icons.Default.Share,
+                            contentDescription = stringResource(R.string.share),
                             onClick = {
                                 coroutineScope.launch {
                                     runCatching {
@@ -217,21 +251,19 @@ fun PromptDetailV2Screen(
                                     }
                                 }
                             },
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
-                        }
+                        )
 
-                        IconButton(
+                        TopBarActionCircleButton(
+                            icon = if (uiState.isFavoriteLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = stringResource(R.string.favorite),
+                            tint = if (uiState.isFavoriteLocal) MaterialTheme.colorScheme.error else LocalContentColor.current,
                             onClick = { viewModel.onFavoriteClicked(prompt.id) },
-                        ) {
-                            Icon(
-                                imageVector = if (uiState.isFavoriteLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = stringResource(R.string.favorite),
-                                tint = if (uiState.isFavoriteLocal) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                            )
-                        }
+                        )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                ),
             )
         },
     ) { innerPadding ->
@@ -327,6 +359,7 @@ fun PromptDetailV2Screen(
                                 }
                             },
                             onLoadMore = viewModel::loadMoreSimilarPrompts,
+                            allowNativeAds = allowNativeAds,
                         )
                     }
                 }
@@ -409,251 +442,152 @@ private fun PromptContent(
     onTagClick: (String) -> Unit,
     onSimilarPromptClick: (V2PromptDto) -> Unit,
     onLoadMore: () -> Unit,
+    allowNativeAds: Boolean,
 ) {
+    val context = LocalContext.current
+    val feedSeed = remember(prompt.id, similarPrompts) {
+        buildString(capacity = prompt.id.length + (similarPrompts.size * 12)) {
+            append(prompt.id)
+            similarPrompts.forEach { item ->
+                append('_')
+                append(item.id)
+            }
+        }.hashCode()
+    }
+    val similarFeed = remember(similarPrompts, feedSeed, allowNativeAds) {
+        buildSimilarPromptFeed(
+            prompts = similarPrompts,
+            seed = feedSeed,
+            includeInlineAds = allowNativeAds,
+        )
+    }
+    val inlineAdKeys = remember(similarFeed) {
+        similarFeed.mapNotNull { feedItem ->
+            (feedItem as? SimilarPromptFeedItem.NativeAdItem)?.slotKey
+        }.toSet()
+    }
+    val inlineAdStates = remember(prompt.id) { mutableStateMapOf<String, NativeAdUiState>() }
+    val inlineAdControllers = remember(prompt.id) { mutableStateMapOf<String, NativeAdController>() }
+
+    LaunchedEffect(prompt.id, allowNativeAds, inlineAdKeys) {
+        if (!allowNativeAds) {
+            inlineAdControllers.values.forEach { controller -> controller.clear() }
+            inlineAdControllers.clear()
+            inlineAdStates.clear()
+            return@LaunchedEffect
+        }
+
+        inlineAdControllers.keys.toList().forEach { key ->
+            if (key !in inlineAdKeys) {
+                inlineAdControllers.remove(key)?.clear()
+                inlineAdStates.remove(key)
+            }
+        }
+
+        inlineAdKeys.forEach { key ->
+            when (inlineAdStates[key]) {
+                is NativeAdUiState.Loaded,
+                NativeAdUiState.Loading -> return@forEach
+                else -> Unit
+            }
+
+            inlineAdStates[key] = NativeAdUiState.Loading
+            val controller = inlineAdControllers.getOrPut(key) {
+                NativeAdController(placementKey = AdsManager.KEY_DETAIL_NATIVE)
+            }
+            controller.load(
+                context = context,
+                callbacks = object : NativeAdController.Callbacks {
+                    override fun onLoaded(ad: com.google.android.gms.ads.nativead.NativeAd) {
+                        inlineAdStates[key] = NativeAdUiState.Loaded(ad)
+                    }
+
+                    override fun onFailed(error: LoadAdError) {
+                        inlineAdStates[key] = NativeAdUiState.Failed
+                    }
+
+                    override fun onUnavailable(reason: String) {
+                        inlineAdStates[key] = if (
+                            reason == "ADS_DISABLED" ||
+                            reason == "FREQUENCY_BLOCK" ||
+                            reason == "NO_UNIT"
+                        ) {
+                            NativeAdUiState.Disabled
+                        } else {
+                            NativeAdUiState.Failed
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    DisposableEffect(prompt.id) {
+        onDispose {
+            inlineAdControllers.values.forEach { controller -> controller.clear() }
+            inlineAdControllers.clear()
+            inlineAdStates.clear()
+        }
+    }
+
+    val showStandaloneNativeAd = allowNativeAds && inlineAdKeys.isEmpty()
+    val displaySimilarFeed = similarFeed.filter { feedItem ->
+        when (feedItem) {
+            is SimilarPromptFeedItem.PromptItem -> true
+            is SimilarPromptFeedItem.NativeAdItem -> {
+                when (inlineAdStates[feedItem.slotKey]) {
+                    is NativeAdUiState.Loaded,
+                    NativeAdUiState.Loading -> true
+                    else -> false
+                }
+            }
+        }
+    }
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "header_${prompt.id}") {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .clickable(onClick = onImageClick),
-            ) {
-                SubcomposeAsyncImage(
-                    model = prompt.imageUrl ?: prompt.imageUrl2,
-                    contentDescription = prompt.title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)),
-                    contentScale = ContentScale.Crop,
-                ) {
-                    when (painter.state) {
-                        is AsyncImagePainter.State.Loading -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
-
-                        is AsyncImagePainter.State.Error -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.BrokenImage,
-                                    contentDescription = stringResource(R.string.image_load_error),
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(58.dp),
-                                )
-                            }
-                        }
-
-                        else -> SubcomposeAsyncImageContent()
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f)),
-                                startY = 120f,
-                            ),
-                        ),
-                )
-            }
+            PromptHeroHeader(
+                prompt = prompt,
+                onImageClick = onImageClick,
+            )
         }
 
         item(key = "prompt_meta_${prompt.id}") {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = prompt.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    StatsRowV2(
-                        promptId = prompt.id,
-                        category = prompt.category,
-                        likes = likesCount,
-                        views = viewsCount,
-                        favorites = favoritesCount,
-                        isLiked = isLiked,
-                        isBookmarked = isFavorite,
-                        onLikeClick = { onLikeClick() },
-                        onBookmarkClick = { onFavoriteClick() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-
-                    if (!prompt.shortPrompt.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = prompt.shortPrompt,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 24.sp,
-                        )
-                    }
-                }
-            }
+            PromptMetaCard(
+                prompt = prompt,
+                viewsCount = viewsCount,
+                likesCount = likesCount,
+                favoritesCount = favoritesCount,
+                isLiked = isLiked,
+                isFavorite = isFavorite,
+                onLikeClick = onLikeClick,
+                onFavoriteClick = onFavoriteClick,
+            )
         }
 
         item(key = "full_prompt_${prompt.id}") {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (prompt.isLocked) Icons.Default.Lock else Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (prompt.isLocked) "Premium prompt" else stringResource(R.string.full_ai_prompt), // TODO string key: premium_prompt
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    if (prompt.isLocked) {
-                        LockedPromptPreview(prompt.teaserText.orEmpty())
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (!isLoggedIn) {
-                            Text(
-                                text = "Login to unlock premium prompts with ads, credits, or tokens.", // TODO string key: prompt_unlock_login_desc
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = onRequireLogin, modifier = Modifier.fillMaxWidth()) {
-                                Text("Login to Unlock") // TODO string key: prompt_login_unlock
-                            }
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Button(
-                                    onClick = onUnlockWithAd,
-                                    enabled = !unlockState.isUnlockingWithAd,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(Icons.Default.VideoLibrary, contentDescription = null)
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text(
-                                        when {
-                                            unlockState.isUnlockingWithAd -> "Unlocking..." // TODO string key: unlocking
-                                            rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
-                                            else -> "Watch Ad" // TODO string key: watch_ad
-                                        },
-                                    )
-                                }
-
-                                Button(
-                                    onClick = onUnlockWithPoints,
-                                    enabled = !unlockState.isUnlockingWithPoints,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(
-                                        if (unlockState.isUnlockingWithPoints) {
-                                            "Unlocking..." // TODO string key: unlocking
-                                        } else {
-                                            "Unlock with ${prompt.premiumUnlockCostPoints} credits" // TODO string key: unlock_with_points
-                                        },
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = onUnlockWithToken,
-                                    enabled = !unlockState.isUnlockingWithToken,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(Icons.Default.WorkspacePremium, contentDescription = null)
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text(
-                                        if (unlockState.isUnlockingWithToken) "Checking token..." else "Use Unlock Token", // TODO string keys
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = onOpenSubscribe,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text("Subscribe / Go Pro") // TODO string key: subscribe_go_pro
-                                }
-                            }
-                        }
-                    } else {
-                        Surface(
-                            color = MaterialTheme.colorScheme.background,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-                        ) {
-                            Text(
-                                text = prompt.fullPrompt.orEmpty(),
-                                style = MaterialTheme.typography.bodyLarge,
-                                lineHeight = 22.sp,
-                                modifier = Modifier.padding(14.dp),
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Button(
-                            onClick = onOpenGemini,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 14.dp),
-                        ) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.ai_prompt_action_open),
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Button(
-                            onClick = onCopyPrompt,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.copy_full_prompt))
-                        }
-                    }
-                }
-            }
+            PromptBodyCard(
+                prompt = prompt,
+                isLoggedIn = isLoggedIn,
+                rewardedAdReady = rewardedAdReady,
+                rewardedAdLoading = rewardedAdLoading,
+                unlockState = unlockState,
+                onOpenGemini = onOpenGemini,
+                onCopyPrompt = onCopyPrompt,
+                onRequireLogin = onRequireLogin,
+                onOpenSubscribe = onOpenSubscribe,
+                onUnlockWithAd = onUnlockWithAd,
+                onUnlockWithPoints = onUnlockWithPoints,
+                onUnlockWithToken = onUnlockWithToken,
+            )
         }
 
-        if (AdsManager.canShowAds()) {
+        if (showStandaloneNativeAd) {
             item(key = "native_ad_${prompt.id}") {
                 Card(
                     modifier = Modifier
@@ -713,20 +647,28 @@ private fun PromptContent(
         }
 
         if (similarPrompts.isNotEmpty()) {
-            item(key = "similar_title_${prompt.id}") {
-                Text(
-                    text = stringResource(R.string.similar_prompts),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
+            item(key = "similar_header_${prompt.id}") {
+                SimilarPromptsHeader(totalCount = similarPrompts.size)
             }
 
-            items(similarPrompts, key = { it.id }) { similarPrompt ->
-                SimilarPromptCardVerticalV2(
-                    prompt = similarPrompt,
-                    onClick = { onSimilarPromptClick(similarPrompt) },
-                )
+            items(
+                items = displaySimilarFeed,
+                key = { feedItem -> feedItem.stableKey },
+            ) { feedItem ->
+                when (feedItem) {
+                    is SimilarPromptFeedItem.NativeAdItem -> {
+                        SimilarPromptInlineAdCard(
+                            adState = inlineAdStates[feedItem.slotKey],
+                        )
+                    }
+
+                    is SimilarPromptFeedItem.PromptItem -> {
+                        SimilarPromptCardVerticalV2(
+                            prompt = feedItem.prompt,
+                            onClick = { onSimilarPromptClick(feedItem.prompt) },
+                        )
+                    }
+                }
             }
 
             if (isLoadingMore) {
@@ -752,7 +694,471 @@ private fun PromptContent(
                     }
                 }
             }
+        } else if (!isLoadingMore && !hasMoreSimilar) {
+            item(key = "similar_empty_${prompt.id}") {
+                SimilarPromptsEmptyState()
+            }
         }
+    }
+}
+
+@Composable
+private fun PromptHeroHeader(
+    prompt: V2PromptDto,
+    onImageClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp)
+            .clickable(onClick = onImageClick),
+    ) {
+        SubcomposeAsyncImage(
+            model = prompt.imageUrl ?: prompt.imageUrl2,
+            contentDescription = prompt.title,
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
+            contentScale = ContentScale.Crop,
+        ) {
+            when (painter.state) {
+                is AsyncImagePainter.State.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                is AsyncImagePainter.State.Error -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.BrokenImage,
+                            contentDescription = stringResource(R.string.image_load_error),
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(58.dp),
+                        )
+                    }
+                }
+
+                else -> SubcomposeAsyncImageContent()
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                        startY = 110f,
+                    ),
+                ),
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            prompt.category?.takeIf { it.isNotBlank() }?.let { category ->
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+                ) {
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+            }
+            Text(
+                text = prompt.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PromptMetaCard(
+    prompt: V2PromptDto,
+    viewsCount: Int,
+    likesCount: Int,
+    favoritesCount: Int,
+    isLiked: Boolean,
+    isFavorite: Boolean,
+    onLikeClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .animateContentSize(),
+        ) {
+            Text(
+                text = prompt.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+
+            PromptBadgesRow(prompt = prompt)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            StatsRowV2(
+                promptId = prompt.id,
+                category = prompt.category,
+                likes = likesCount,
+                views = viewsCount,
+                copies = prompt.copies,
+                favorites = favoritesCount,
+                isLiked = isLiked,
+                isBookmarked = isFavorite,
+                onLikeClick = { onLikeClick() },
+                onBookmarkClick = { onFavoriteClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+
+            if (!prompt.shortPrompt.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = prompt.shortPrompt,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 24.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PromptBadgesRow(
+    prompt: V2PromptDto,
+    modifier: Modifier = Modifier,
+) {
+    val badges = buildList {
+        if (prompt.isPopular) add(stringResource(R.string.popular))
+        if (prompt.isFeatured) add(stringResource(R.string.featured))
+        if (prompt.isLocked || prompt.tier.equals("PREMIUM", ignoreCase = true)) add(stringResource(R.string.premium))
+    }
+
+    if (badges.isEmpty()) return
+
+    Spacer(modifier = Modifier.height(10.dp))
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        badges.forEach { label ->
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PromptBodyCard(
+    prompt: V2PromptDto,
+    isLoggedIn: Boolean,
+    rewardedAdReady: Boolean,
+    rewardedAdLoading: Boolean,
+    unlockState: PromptDetailV2UiState,
+    onOpenGemini: () -> Unit,
+    onCopyPrompt: () -> Unit,
+    onRequireLogin: () -> Unit,
+    onOpenSubscribe: () -> Unit,
+    onUnlockWithAd: () -> Unit,
+    onUnlockWithPoints: () -> Unit,
+    onUnlockWithToken: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (prompt.isLocked) Icons.Default.Lock else Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (prompt.isLocked) stringResource(R.string.premium) else stringResource(R.string.full_ai_prompt),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (prompt.isLocked) {
+                LockedPromptPreview(prompt.teaserText.orEmpty())
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "Unlock this premium prompt using an ad, credits, or unlock token.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (!isLoggedIn) {
+                    Button(
+                        onClick = onRequireLogin,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.login))
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = onUnlockWithAd,
+                            enabled = !unlockState.isUnlockingWithAd,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.VideoLibrary, contentDescription = null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                when {
+                                    unlockState.isUnlockingWithAd -> stringResource(R.string.pack_unlocking)
+                                    rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
+                                    else -> stringResource(R.string.rewards_watch_ad_short)
+                                },
+                            )
+                        }
+
+                        Button(
+                            onClick = onUnlockWithPoints,
+                            enabled = !unlockState.isUnlockingWithPoints,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                if (unlockState.isUnlockingWithPoints) {
+                                    stringResource(R.string.pack_unlocking)
+                                } else {
+                                    stringResource(R.string.pack_unlock_for_credits, prompt.premiumUnlockCostPoints)
+                                },
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onUnlockWithToken,
+                            enabled = !unlockState.isUnlockingWithToken,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.WorkspacePremium, contentDescription = null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                if (unlockState.isUnlockingWithToken) stringResource(R.string.loading) else stringResource(R.string.token_prompt_unlock),
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onOpenSubscribe,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Subscribe / Go Pro")
+                        }
+                    }
+                }
+            } else {
+                Surface(
+                    color = MaterialTheme.colorScheme.background,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                ) {
+                    Text(
+                        text = prompt.fullPrompt.orEmpty(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(14.dp),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = onOpenGemini,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(vertical = 14.dp, horizontal = 14.dp),
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.ai_prompt_action_open),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(R.string.ai_prompt_open_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = onCopyPrompt,
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.ai_prompt_action_copy_prompt))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SimilarPromptsHeader(totalCount: Int) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.similar_prompts),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            AssistChip(
+                onClick = {},
+                enabled = false,
+                label = { Text(formatCompactNumber(totalCount)) },
+                colors = AssistChipDefaults.assistChipColors(
+                    disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SimilarPromptsEmptyState() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.no_prompts_available),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.check_back_later_for_new_prompts),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SimilarPromptInlineAdCard(
+    adState: NativeAdUiState?,
+) {
+    when (adState) {
+        is NativeAdUiState.Loaded -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            ) {
+                InlineNativeAdCard(
+                    nativeAd = adState.ad,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        NativeAdUiState.Loading -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                InlineNativeAdCard(
+                    nativeAd = null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        NativeAdUiState.Failed,
+        NativeAdUiState.Disabled,
+        null -> Unit
     }
 }
 
@@ -802,11 +1208,37 @@ private fun AdLoadingOverlay() {
 }
 
 @Composable
+private fun TopBarActionCircleButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    tint: Color = LocalContentColor.current,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+        tonalElevation = 2.dp,
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+            )
+        }
+    }
+}
+
+@Composable
 private fun StatsRowV2(
     promptId: String,
     category: String?,
     likes: Int,
     views: Int,
+    copies: Int,
     favorites: Int,
     isLiked: Boolean,
     isBookmarked: Boolean,
@@ -826,6 +1258,7 @@ private fun StatsRowV2(
                 CategoryStatV2(category = category)
             }
             ViewsStatV2(views = views)
+            CopiesStatV2(copies = copies)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -848,6 +1281,31 @@ private fun StatsRowV2(
                 onClick = { onBookmarkClick(promptId) },
             )
         }
+    }
+}
+
+@Composable
+private fun CopiesStatV2(
+    copies: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.ContentCopy,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = formatCompactNumber(copies),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
@@ -936,6 +1394,97 @@ private fun StatPillV2(
     }
 }
 
+private sealed interface SimilarPromptFeedItem {
+    val stableKey: String
+
+    data class PromptItem(
+        val prompt: V2PromptDto,
+    ) : SimilarPromptFeedItem {
+        override val stableKey: String = "prompt_${prompt.id}"
+    }
+
+    data class NativeAdItem(
+        val slotKey: String,
+    ) : SimilarPromptFeedItem {
+        override val stableKey: String = "ad_$slotKey"
+    }
+}
+
+private const val SIMILAR_INLINE_AD_MIN_ITEMS = 8
+private const val SIMILAR_INLINE_AD_MAX_COUNT = 2
+private const val SIMILAR_INLINE_AD_FIRST_MIN_GAP = 4
+private const val SIMILAR_INLINE_AD_FIRST_MAX_GAP = 6
+private const val SIMILAR_INLINE_AD_NEXT_MIN_GAP = 6
+private const val SIMILAR_INLINE_AD_NEXT_MAX_GAP = 8
+private const val SIMILAR_INLINE_AD_MIN_TRAILING_ITEMS = 2
+private const val SIMILAR_ITEMS_PER_AD_TARGET = 8
+
+private fun buildSimilarPromptFeed(
+    prompts: List<V2PromptDto>,
+    seed: Int,
+    includeInlineAds: Boolean,
+): List<SimilarPromptFeedItem> {
+    if (prompts.isEmpty()) return emptyList()
+    if (!includeInlineAds || prompts.size < SIMILAR_INLINE_AD_MIN_ITEMS) {
+        return prompts.map { prompt -> SimilarPromptFeedItem.PromptItem(prompt) }
+    }
+
+    val anchors = computeSimilarInlineAdAnchors(
+        itemCount = prompts.size,
+        seed = seed,
+    )
+    if (anchors.isEmpty()) {
+        return prompts.map { prompt -> SimilarPromptFeedItem.PromptItem(prompt) }
+    }
+
+    val stableSeed = seed and Int.MAX_VALUE
+    val anchorSet = anchors.toSet()
+    return buildList {
+        prompts.forEachIndexed { index, prompt ->
+            add(SimilarPromptFeedItem.PromptItem(prompt))
+            val renderedPromptCount = index + 1
+            if (renderedPromptCount in anchorSet) {
+                add(
+                    SimilarPromptFeedItem.NativeAdItem(
+                        slotKey = "similar_${stableSeed}_${renderedPromptCount}",
+                    ),
+                )
+            }
+        }
+    }
+}
+
+private fun computeSimilarInlineAdAnchors(
+    itemCount: Int,
+    seed: Int,
+): List<Int> {
+    if (itemCount < SIMILAR_INLINE_AD_MIN_ITEMS) return emptyList()
+
+    val maxAds = (itemCount / SIMILAR_ITEMS_PER_AD_TARGET)
+        .coerceAtLeast(1)
+        .coerceAtMost(SIMILAR_INLINE_AD_MAX_COUNT)
+    if (maxAds <= 0) return emptyList()
+
+    val random = Random(seed)
+    var nextAnchor = random.nextInt(
+        from = SIMILAR_INLINE_AD_FIRST_MIN_GAP,
+        until = SIMILAR_INLINE_AD_FIRST_MAX_GAP + 1,
+    )
+
+    val anchors = mutableListOf<Int>()
+    while (
+        anchors.size < maxAds &&
+        nextAnchor <= itemCount - SIMILAR_INLINE_AD_MIN_TRAILING_ITEMS
+    ) {
+        anchors += nextAnchor
+        nextAnchor += random.nextInt(
+            from = SIMILAR_INLINE_AD_NEXT_MIN_GAP,
+            until = SIMILAR_INLINE_AD_NEXT_MAX_GAP + 1,
+        )
+    }
+    return anchors
+}
+
 @Composable
 private fun SimilarPromptCardVerticalV2(
     prompt: V2PromptDto,
@@ -944,61 +1493,101 @@ private fun SimilarPromptCardVerticalV2(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 2.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+        ),
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            SubcomposeAsyncImage(
-                model = prompt.imageUrl ?: prompt.imageUrl2,
-                contentDescription = prompt.title,
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp),
-                contentScale = ContentScale.Crop,
-            ) {
-                if (painter.state is AsyncImagePainter.State.Loading) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(),
+        ) {
+            Box {
+                SubcomposeAsyncImage(
+                    model = prompt.imageUrl ?: prompt.imageUrl2,
+                    contentDescription = prompt.title,
+                    modifier = Modifier
+                        .width(132.dp)
+                        .height(132.dp),
+                    contentScale = ContentScale.Crop,
+                ) {
+                    when (painter.state) {
+                        is AsyncImagePainter.State.Loading -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                            }
+                        }
+
+                        is AsyncImagePainter.State.Error -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                        }
+
+                        else -> SubcomposeAsyncImageContent()
                     }
-                } else {
-                    SubcomposeAsyncImageContent()
+                }
+
+                if (prompt.isLocked) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.premium),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
 
             Column(
                 modifier = Modifier
-                    .padding(14.dp)
+                    .padding(12.dp)
                     .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = prompt.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = if (prompt.isLocked) prompt.teaserText.orEmpty() else prompt.shortPrompt.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (!prompt.shortPrompt.isNullOrBlank()) {
+                    Text(
+                        text = if (prompt.isLocked) prompt.teaserText.orEmpty() else prompt.shortPrompt.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Visibility,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                     Text(
@@ -1009,7 +1598,7 @@ private fun SimilarPromptCardVerticalV2(
                     Icon(
                         imageVector = Icons.Default.FavoriteBorder,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = MaterialTheme.colorScheme.error,
                     )
                     Text(
