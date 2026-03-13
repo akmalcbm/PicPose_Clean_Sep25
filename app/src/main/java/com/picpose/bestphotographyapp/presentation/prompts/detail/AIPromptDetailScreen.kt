@@ -3,7 +3,7 @@
  * File: AIPromptDetailScreen.kt
  * Layer: Presentation (UI)
  * Project: PicPose
- * Old Files currently not in used so i commented this to aware from confusions
+ * Old Files currently not in used so i commented this to be aware from confusions
  * Purpose:
  * Lists the app navigation routes and helper builders used by Navigation Compose.
  *
@@ -19,7 +19,7 @@
  * ---
  */
 
-package com.picpose.bestphotographyapp.presentation.prompts.legacy
+package com.picpose.bestphotographyapp.presentation.prompts.detail
 
 import android.app.Activity
 import android.content.ClipData
@@ -52,13 +52,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -140,6 +137,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.components.ads.AdsLog
@@ -158,6 +156,8 @@ import com.picpose.bestphotographyapp.utils.displayLikes
 import com.picpose.bestphotographyapp.utils.displayViews
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.floor
 
 private const val TAG_DETAIL = "PromptDetail"
 
@@ -273,7 +273,7 @@ fun AIPromptDetailScreen(
                             nativeAdState = NativeAdUiState.Loaded(ad)
                         }
 
-                        override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
+                        override fun onFailed(error: LoadAdError) {
                             AdsLog.w(
                                 AdsLog.TAG_UI,
                                 "[AdsUI] screen=AIPromptDetailScreen placement=$nativePlacementKey action=failed domain=${error.domain} code=${error.code} message=${error.message}"
@@ -1254,7 +1254,7 @@ private fun formatCompactNumber(number: Int): String {
     return when {
         number >= 1_000_000 -> {
             val millions = number / 1_000_000f
-            val floored = kotlin.math.floor(millions * 10) / 10
+            val floored = floor(millions * 10) / 10
             if (floored % 1 == 0f)
                 "${floored.toInt()}M"
             else
@@ -1263,7 +1263,7 @@ private fun formatCompactNumber(number: Int): String {
 
         number >= 10_000 -> {
             val thousands = number / 1_000f
-            val floored = kotlin.math.floor(thousands * 10) / 10
+            val floored = floor(thousands * 10) / 10
             if (floored % 1 == 0f)
                 "${floored.toInt()}K"
             else
@@ -1434,7 +1434,7 @@ private fun AdaptivePromptHeaderImage(
                         val h = drawable.intrinsicHeight
                         if (w > 0 && h > 0) {
                             val nextRatio = (w.toFloat() / h.toFloat()).coerceIn(0.45f, 2.5f)
-                            if (kotlin.math.abs(nextRatio - imageRatio) > 0.01f) {
+                            if (abs(nextRatio - imageRatio) > 0.01f) {
                                 imageRatio = nextRatio
                             }
                         }
@@ -1443,82 +1443,6 @@ private fun AdaptivePromptHeaderImage(
 
                     else -> SubcomposeAsyncImageContent()
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun FullScreenImageDialog(imageUrl: String, onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        var scale by remember { mutableStateOf(1f) }
-        var offset by remember { mutableStateOf(Offset.Zero) }
-
-        val state = rememberTransformableState { zoomChange, offsetChange, _ ->
-            scale *= zoomChange
-            offset += offsetChange
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.85f))
-                .clickable { onDismiss() }
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(300)),
-                exit = fadeOut(animationSpec = tween(300)),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                SubcomposeAsyncImage(
-                    model = imageUrl,
-                    contentDescription = stringResource(R.string.full_screen_image),
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .graphicsLayer(
-                            scaleX = maxOf(1f, scale),
-                            scaleY = maxOf(1f, scale),
-                            translationX = offset.x,
-                            translationY = offset.y
-                        )
-                        .transformable(state = state),
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color.White)
-                        }
-                    },
-                    error = {
-                        Icon(
-                            Icons.Default.BrokenImage,
-                            contentDescription = stringResource(R.string.image_load_error),
-                            tint = Color.White,
-                            modifier = Modifier.size(96.dp)
-                        )
-                    }
-                )
-            }
-
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.close),
-                    tint = Color.White
-                )
             }
         }
     }

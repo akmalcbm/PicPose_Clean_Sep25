@@ -71,7 +71,6 @@ import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -130,7 +129,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.service.ads.AdManager
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.presentation.prompts.detail.FullScreenImageDialog
-import com.picpose.bestphotographyapp.presentation.prompts.legacy.openGemini
+import com.picpose.bestphotographyapp.presentation.prompts.detail.openGemini
 import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.setText
 import kotlinx.coroutines.launch

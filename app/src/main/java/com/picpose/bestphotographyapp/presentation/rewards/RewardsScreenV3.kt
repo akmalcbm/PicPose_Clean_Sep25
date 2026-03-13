@@ -72,16 +72,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -101,7 +101,9 @@ import com.picpose.bestphotographyapp.presentation.rewards.components.ReferralCa
 import com.picpose.bestphotographyapp.presentation.rewards.components.RewardsHeader
 import com.picpose.bestphotographyapp.presentation.rewards.components.StreakStepper
 import com.picpose.bestphotographyapp.presentation.rewards.components.WalletCard
+import com.picpose.bestphotographyapp.utils.setText
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +116,8 @@ fun RewardsScreenV3(
     val uiState by viewModel.uiState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
     val activity = context as? Activity
     val snackbarHostState = remember { SnackbarHostState() }
     val rewardedAdManager = remember { RewardedAdManager() }
@@ -328,7 +331,9 @@ fun RewardsScreenV3(
                                 rewardedCount = uiState.referralRewardedCount,
                                 isApplyingCode = uiState.isApplyingCode,
                                 onCopyCode = { code ->
-                                    clipboardManager.setText(AnnotatedString(code))
+                                    coroutineScope.launch {
+                                        clipboard.setText(code, label = "referral_code")
+                                    }
                                     viewModel.setStatusMessage(context.getString(R.string.referral_code_copied))
                                 },
                                 onShare = { code ->
