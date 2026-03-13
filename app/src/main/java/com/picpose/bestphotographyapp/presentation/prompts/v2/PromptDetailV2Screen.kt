@@ -24,6 +24,11 @@ package com.picpose.bestphotographyapp.presentation.prompts.v2
 import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,6 +38,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -42,6 +48,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,6 +65,8 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkAdded
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -70,11 +79,15 @@ import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -85,6 +98,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -96,6 +110,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,6 +121,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -133,6 +149,7 @@ import com.picpose.bestphotographyapp.presentation.prompts.detail.openGemini
 import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.setText
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -252,12 +269,12 @@ fun PromptDetailV2Screen(
                             },
                         )
 
-                        TopBarActionCircleButton(
+                        /*TopBarActionCircleButton(
                             icon = if (uiState.isFavoriteLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = stringResource(R.string.favorite),
                             tint = if (uiState.isFavoriteLocal) MaterialTheme.colorScheme.error else LocalContentColor.current,
                             onClick = { viewModel.onFavoriteClicked(prompt.id) },
-                        )
+                        )*/
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -373,16 +390,77 @@ fun PromptDetailV2Screen(
 
 @Composable
 private fun LoadingState() {
-    Box(
+    val shimmerAlpha by rememberInfiniteTransition(label = "detail_shimmer").animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "detail_shimmer_alpha",
+    )
+    val shimmerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = shimmerAlpha)
+
+    fun Modifier.shimmerBar(): Modifier = this.background(
+        color = shimmerColor,
+        shape = RoundedCornerShape(8.dp),
+    )
+
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CircularProgressIndicator()
-            Text(text = stringResource(R.string.loading_prompt), style = MaterialTheme.typography.bodyMedium)
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                    .shimmerBar(),
+            )
+        }
+
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .shimmerBar(),
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth(0.65f).height(24.dp).shimmerBar())
+                    Box(modifier = Modifier.fillMaxWidth(0.95f).height(16.dp).shimmerBar())
+                    Box(modifier = Modifier.fillMaxWidth(0.82f).height(16.dp).shimmerBar())
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)),
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth(0.5f).height(22.dp).shimmerBar())
+                    Box(modifier = Modifier.fillMaxWidth().height(110.dp).shimmerBar())
+                    Box(modifier = Modifier.fillMaxWidth().height(52.dp).shimmerBar())
+                    Box(modifier = Modifier.fillMaxWidth().height(48.dp).shimmerBar())
+                }
+            }
         }
     }
 }
@@ -556,16 +634,28 @@ private fun PromptContent(
             )
         }
 
+        item(key = "stats_${prompt.id}") {
+            StatsRowV2(
+                promptId = prompt.id,
+                category = prompt.category,
+                likes = likesCount,
+                views = viewsCount,
+                copies = prompt.copies,
+                favorites = favoritesCount,
+                isLiked = isLiked,
+                isBookmarked = isFavorite,
+                onLikeClick = { onLikeClick() },
+                onBookmarkClick = { onFavoriteClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            )
+        }
+
         item(key = "prompt_meta_${prompt.id}") {
             PromptMetaCard(
                 prompt = prompt,
-                viewsCount = viewsCount,
-                likesCount = likesCount,
-                favoritesCount = favoritesCount,
-                isLiked = isLiked,
-                isFavorite = isFavorite,
-                onLikeClick = onLikeClick,
-                onFavoriteClick = onFavoriteClick,
             )
         }
 
@@ -583,65 +673,16 @@ private fun PromptContent(
                 onUnlockWithAd = onUnlockWithAd,
                 onUnlockWithPoints = onUnlockWithPoints,
                 onUnlockWithToken = onUnlockWithToken,
+                showNativeActionAd = showStandaloneNativeAd,
             )
-        }
-
-        if (showStandaloneNativeAd) {
-            item(key = "native_ad_${prompt.id}") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                ) {
-                    NativeAdSection(
-                        placementKey = AdsManager.KEY_DETAIL_NATIVE,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
         }
 
         if (prompt.tags.isNotEmpty()) {
             item(key = "tags_${prompt.id}") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(R.string.tags_with_emoji),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            prompt.tags.forEach { tag ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                                    modifier = Modifier.clickable { onTagClick(tag) },
-                                ) {
-                                    Text(
-                                        text = "#$tag",
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                PromptTagsCard(
+                    tags = prompt.tags,
+                    onTagClick = onTagClick,
+                )
             }
         }
 
@@ -706,81 +747,131 @@ private fun PromptHeroHeader(
     prompt: V2PromptDto,
     onImageClick: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
+    val imageUrl = prompt.imageUrl ?: prompt.imageUrl2
+    val fallbackRatio = 16f / 9f
+    var imageRatio by remember(imageUrl) { mutableStateOf(fallbackRatio) }
+    val configuration = LocalConfiguration.current
+    val minHeight = 180.dp
+    val maxHeight = (configuration.screenHeightDp.dp * 0.5f).coerceAtLeast(300.dp)
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val containerHeight = (maxWidth / imageRatio).coerceIn(minHeight, maxHeight)
+        val headerModifier = Modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .clickable(onClick = onImageClick),
-    ) {
-        SubcomposeAsyncImage(
-            model = prompt.imageUrl ?: prompt.imageUrl2,
-            contentDescription = prompt.title,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
-            contentScale = ContentScale.Crop,
-        ) {
-            when (painter.state) {
-                is AsyncImagePainter.State.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+            .height(containerHeight)
+            .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
+            .let { base ->
+                if (!imageUrl.isNullOrBlank()) base.clickable { onImageClick() } else base
+            }
+
+        Box(modifier = headerModifier) {
+            if (imageUrl.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BrokenImage,
+                        contentDescription = stringResource(R.string.image_error),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(72.dp),
+                    )
+                }
+            } else {
+                SubcomposeAsyncImage(
+                    model = imageUrl,
+                    contentDescription = prompt.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                ) {
+                    when (val state = painter.state) {
+                        is AsyncImagePainter.State.Loading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+
+                        is AsyncImagePainter.State.Error -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = stringResource(R.string.image_load_error),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(64.dp),
+                                )
+                            }
+                        }
+
+                        is AsyncImagePainter.State.Success -> {
+                            val drawable = state.result.drawable
+                            val w = drawable.intrinsicWidth
+                            val h = drawable.intrinsicHeight
+                            if (w > 0 && h > 0) {
+                                val nextRatio = (w.toFloat() / h.toFloat()).coerceIn(0.45f, 2.5f)
+                                if (abs(nextRatio - imageRatio) > 0.01f) {
+                                    imageRatio = nextRatio
+                                }
+                            }
+                            SubcomposeAsyncImageContent()
+                        }
+
+                        else -> SubcomposeAsyncImageContent()
                     }
                 }
+            }
 
-                is AsyncImagePainter.State.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.BrokenImage,
-                            contentDescription = stringResource(R.string.image_load_error),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(58.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                            startY = 110f,
+                        ),
+                    ),
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                prompt.category?.takeIf { it.isNotBlank() }?.let { category ->
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+                    ) {
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         )
                     }
                 }
-
-                else -> SubcomposeAsyncImageContent()
+                Text(
+                    text = prompt.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
-                        startY = 110f,
-                    ),
-                ),
-        )
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            prompt.category?.takeIf { it.isNotBlank() }?.let { category ->
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
-                ) {
-                    Text(
-                        text = category,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    )
-                }
-            }
-            Text(
-                text = prompt.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -788,61 +879,35 @@ private fun PromptHeroHeader(
 @Composable
 private fun PromptMetaCard(
     prompt: V2PromptDto,
-    viewsCount: Int,
-    likesCount: Int,
-    favoritesCount: Int,
-    isLiked: Boolean,
-    isFavorite: Boolean,
-    onLikeClick: () -> Unit,
-    onFavoriteClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Column(
             modifier = Modifier
-                .padding(18.dp)
+                .padding(12.dp)
                 .animateContentSize(),
         ) {
-            Text(
+            /*Text(
                 text = prompt.title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-            )
+            )*/
 
             PromptBadgesRow(prompt = prompt)
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            StatsRowV2(
-                promptId = prompt.id,
-                category = prompt.category,
-                likes = likesCount,
-                views = viewsCount,
-                copies = prompt.copies,
-                favorites = favoritesCount,
-                isLiked = isLiked,
-                isBookmarked = isFavorite,
-                onLikeClick = { onLikeClick() },
-                onBookmarkClick = { onFavoriteClick() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            )
-
             if (!prompt.shortPrompt.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = prompt.shortPrompt,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 24.sp,
+                    lineHeight = 22.sp,
                 )
             }
         }
@@ -899,7 +964,13 @@ private fun PromptBodyCard(
     onUnlockWithAd: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onUnlockWithToken: () -> Unit,
+    showNativeActionAd: Boolean,
 ) {
+    val localHaptic = LocalHapticFeedback.current
+    var showGeminiDialog by remember { mutableStateOf(false) }
+    var skipGeminiDialog by rememberSaveable { mutableStateOf(false) }
+    var dontAskAgain by rememberSaveable { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1011,10 +1082,17 @@ private fun PromptBodyCard(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Button(
-                    onClick = onOpenGemini,
+                    onClick = {
+                        localHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        if (skipGeminiDialog) {
+                            onOpenGemini()
+                        } else {
+                            showGeminiDialog = true
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(vertical = 14.dp, horizontal = 14.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp, horizontal = 14.dp),
                 ) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null)
                     Spacer(modifier = Modifier.width(10.dp))
@@ -1032,20 +1110,102 @@ private fun PromptBodyCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                if (showNativeActionAd) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    ) {
+                        NativeAdSection(
+                            placementKey = AdsManager.KEY_DETAIL_NATIVE,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
 
-                OutlinedButton(
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                )
+
+                Button(
                     onClick = onCopyPrompt,
                     modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(vertical = 14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 1.dp,
+                        pressedElevation = 0.dp,
+                    ),
                 ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.ai_prompt_action_copy_prompt))
                 }
             }
         }
+    }
+
+    if (showGeminiDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showGeminiDialog = false
+                dontAskAgain = false
+            },
+            title = { Text(stringResource(R.string.ai_prompt_dialog_gemini_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.ai_prompt_dialog_gemini_message))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { dontAskAgain = !dontAskAgain },
+                    ) {
+                        Checkbox(
+                            checked = dontAskAgain,
+                            onCheckedChange = { checked -> dontAskAgain = checked },
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.ai_prompt_dialog_dont_ask_again))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showGeminiDialog = false
+                        if (dontAskAgain) {
+                            skipGeminiDialog = true
+                        }
+                        onOpenGemini()
+                        dontAskAgain = false
+                    },
+                ) {
+                    Text(stringResource(R.string.ai_prompt_action_continue))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showGeminiDialog = false
+                        dontAskAgain = false
+                    },
+                ) {
+                    Text(stringResource(R.string.ai_prompt_action_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -1116,6 +1276,103 @@ private fun SimilarPromptsEmptyState() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PromptTagsCard(
+    tags: List<String>,
+    onTagClick: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = stringResource(R.string.tags_with_emoji),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
+            ) {
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (!expanded) Modifier.heightIn(max = 120.dp) else Modifier),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    tags.forEach { tag ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                            modifier = Modifier.clickable { onTagClick(tag) },
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+
+                if (!expanded && tags.size > 8) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+            }
+
+            if (tags.size > 8) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded },
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (expanded) stringResource(R.string.show_less) else stringResource(R.string.show_more),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
         }
     }
 }
