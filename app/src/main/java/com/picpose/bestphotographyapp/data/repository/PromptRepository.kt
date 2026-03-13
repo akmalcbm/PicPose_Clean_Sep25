@@ -22,7 +22,7 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
-import com.picpose.bestphotographyapp.data.models.AIPrompt
+import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

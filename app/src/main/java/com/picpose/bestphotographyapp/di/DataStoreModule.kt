@@ -21,9 +21,9 @@
 package com.picpose.bestphotographyapp.di
 
 import android.content.Context
-import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
-import com.picpose.bestphotographyapp.data.datastore.SettingsManager
-import com.picpose.bestphotographyapp.data.datastore.UserSessionManager
+import com.picpose.bestphotographyapp.data.local.datastore.DeviceIdStore
+import com.picpose.bestphotographyapp.data.local.datastore.SettingsManager
+import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

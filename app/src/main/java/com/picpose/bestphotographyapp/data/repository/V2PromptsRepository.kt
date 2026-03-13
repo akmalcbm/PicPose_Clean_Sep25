@@ -22,12 +22,12 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
-import com.picpose.bestphotographyapp.data.models.v2.UnlockResponseDto
-import com.picpose.bestphotographyapp.data.models.v2.UnlockPromptByAdRequest
-import com.picpose.bestphotographyapp.data.models.v2.UnlockPromptByPointsRequest
-import com.picpose.bestphotographyapp.data.models.v2.UnlockPromptByTokenRequest
-import com.picpose.bestphotographyapp.data.models.v2.V2PromptDto
-import com.picpose.bestphotographyapp.data.network.V2ApiService
+import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockResponseDto
+import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockPromptByAdRequest
+import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockPromptByPointsRequest
+import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockPromptByTokenRequest
+import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
+import com.picpose.bestphotographyapp.data.remote.api.V2ApiService
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers

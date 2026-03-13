@@ -21,10 +21,10 @@
 
 package com.picpose.bestphotographyapp.data.repository
 
-import com.picpose.bestphotographyapp.data.database.StatsDao
-import com.picpose.bestphotographyapp.data.database.StatsEntity
-import com.picpose.bestphotographyapp.data.models.StatsResponse
-import com.picpose.bestphotographyapp.data.network.ApiService
+import com.picpose.bestphotographyapp.data.local.database.StatsDao
+import com.picpose.bestphotographyapp.data.local.database.StatsEntity
+import com.picpose.bestphotographyapp.data.remote.dto.StatsResponse
+import com.picpose.bestphotographyapp.data.remote.api.ApiService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull

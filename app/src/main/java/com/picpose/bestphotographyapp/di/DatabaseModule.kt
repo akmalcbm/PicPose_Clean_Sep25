@@ -21,11 +21,11 @@
 package com.picpose.bestphotographyapp.di
 
 import android.content.Context
-import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.dao.EngagementDao
-import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
-import com.picpose.bestphotographyapp.data.database.LikedPromptDao
-import com.picpose.bestphotographyapp.data.database.StatsDao
+import com.picpose.bestphotographyapp.data.local.database.AppDatabase
+import com.picpose.bestphotographyapp.data.local.database.dao.EngagementDao
+import com.picpose.bestphotographyapp.data.local.database.FavoritePromptDao
+import com.picpose.bestphotographyapp.data.local.database.LikedPromptDao
+import com.picpose.bestphotographyapp.data.local.database.StatsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

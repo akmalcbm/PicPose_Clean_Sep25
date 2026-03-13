@@ -20,10 +20,10 @@
 
 package com.picpose.bestphotographyapp.presentation.search
 
-import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.models.Category
-import com.picpose.bestphotographyapp.data.models.GuidePost
-import com.picpose.bestphotographyapp.data.models.Post
+import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
+import com.picpose.bestphotographyapp.data.remote.dto.Category
+import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
+import com.picpose.bestphotographyapp.data.remote.dto.Post
 
 object SearchMatchers {
     fun normalizeQuery(query: String): String = query.trim()

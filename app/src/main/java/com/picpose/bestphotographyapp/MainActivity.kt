@@ -50,13 +50,13 @@ import androidx.navigation.NavHostController
 import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.core.locale.AppLocaleManager
-import com.picpose.bestphotographyapp.fcm.PicPoseFirebaseMessagingService
-import com.picpose.bestphotographyapp.presentation.navigation.AppRoot
-import com.picpose.bestphotographyapp.presentation.navigation.Screen
-import com.picpose.bestphotographyapp.presentation.viewmodels.AuthViewModel
-import com.picpose.bestphotographyapp.presentation.viewmodels.SettingsViewModel
-import com.picpose.bestphotographyapp.data.datastore.ThemeMode
-import com.picpose.bestphotographyapp.ui.theme.PicPoseTheme
+import com.picpose.bestphotographyapp.core.notifications.PicPoseFirebaseMessagingService
+import com.picpose.bestphotographyapp.navigation.AppRoot
+import com.picpose.bestphotographyapp.navigation.Screen
+import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
+import com.picpose.bestphotographyapp.presentation.settings.SettingsViewModel
+import com.picpose.bestphotographyapp.data.local.datastore.ThemeMode
+import com.picpose.bestphotographyapp.components.designsystem.theme.PicPoseTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 

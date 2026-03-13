@@ -28,21 +28,21 @@ package com.picpose.bestphotographyapp.data.repository
 import android.content.Context
 import android.util.Log
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
-import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.FavoritePromptDao
-import com.picpose.bestphotographyapp.data.database.LikedPrompt
-import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.models.AppSettings
-import com.picpose.bestphotographyapp.data.models.Category
-import com.picpose.bestphotographyapp.data.models.CategoryDto
-import com.picpose.bestphotographyapp.data.models.DailyTip
-import com.picpose.bestphotographyapp.data.models.GuidePost
-import com.picpose.bestphotographyapp.data.models.MetaDto
-import com.picpose.bestphotographyapp.data.models.toCategory
-import com.picpose.bestphotographyapp.data.models.toGuidePost
-import com.picpose.bestphotographyapp.data.network.ApiService
-import com.picpose.bestphotographyapp.data.network.RetrofitClient
-import com.picpose.bestphotographyapp.data.remote.ApiResponse
+import com.picpose.bestphotographyapp.data.local.database.AppDatabase
+import com.picpose.bestphotographyapp.data.local.database.FavoritePromptDao
+import com.picpose.bestphotographyapp.data.local.database.LikedPrompt
+import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
+import com.picpose.bestphotographyapp.data.remote.dto.AppSettings
+import com.picpose.bestphotographyapp.data.remote.dto.Category
+import com.picpose.bestphotographyapp.data.remote.dto.CategoryDto
+import com.picpose.bestphotographyapp.data.remote.dto.DailyTip
+import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
+import com.picpose.bestphotographyapp.data.remote.dto.MetaDto
+import com.picpose.bestphotographyapp.data.remote.dto.toCategory
+import com.picpose.bestphotographyapp.data.remote.dto.toGuidePost
+import com.picpose.bestphotographyapp.data.remote.api.ApiService
+import com.picpose.bestphotographyapp.core.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.remote.response.ApiResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -78,7 +78,7 @@ class HomeRepository(
     private val favoriteDao: FavoritePromptDao = database.favoriteDao()
     private val likedDao = database.likedPromptDao()
 
-    private val appSettingsCache = com.picpose.bestphotographyapp.data.datastore.AppSettingsCache(context)
+    private val appSettingsCache = com.picpose.bestphotographyapp.data.local.datastore.AppSettingsCache(context)
 
     // API key to use for all requests - null is acceptable per API definition
     private val requestApiKey: String? = apiKey ?: RetrofitClient.defaultApiKey
@@ -428,17 +428,17 @@ class HomeRepository(
         featured: Boolean? = null,
         popular: Boolean? = null,
         status: String? = "published"
-    ): kotlinx.coroutines.flow.Flow<Result<PaginatedResult<com.picpose.bestphotographyapp.data.models.GuidePost>>> = kotlinx.coroutines.flow.flow {
+    ): kotlinx.coroutines.flow.Flow<Result<PaginatedResult<com.picpose.bestphotographyapp.data.remote.dto.GuidePost>>> = kotlinx.coroutines.flow.flow {
         if (useMocks) {
             emit(Result.success(PaginatedResult(items = emptyList(), meta = null)))
             return@flow
         }
 
         fun mapResult(
-            wrapper: com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>,
+            wrapper: com.picpose.bestphotographyapp.data.remote.response.ApiResponse<List<com.picpose.bestphotographyapp.data.remote.dto.GuidePostDto>>,
             requestPage: Int,
             requestLimit: Int
-        ): Result<PaginatedResult<com.picpose.bestphotographyapp.data.models.GuidePost>> {
+        ): Result<PaginatedResult<com.picpose.bestphotographyapp.data.remote.dto.GuidePost>> {
             return try {
                 val dtos = wrapper.data ?: emptyList()
                 val guidePosts = dtos.mapNotNull { dto ->
@@ -457,7 +457,7 @@ class HomeRepository(
                     val l = try { wrapperClass.getDeclaredField("limit").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
                     val t = try { wrapperClass.getDeclaredField("total").apply { isAccessible = true }.get(wrapper) as? Int } catch (_: Throwable) { null }
                     if (p != null || l != null || t != null) {
-                        com.picpose.bestphotographyapp.data.models.MetaDto(
+                        com.picpose.bestphotographyapp.data.remote.dto.MetaDto(
                             total = t ?: guidePosts.size,
                             page = p ?: requestPage,
                             limit = l ?: requestLimit,
@@ -472,7 +472,7 @@ class HomeRepository(
             }
         }
 
-        suspend fun requestGuides(statusValue: String?): Result<com.picpose.bestphotographyapp.data.remote.ApiResponse<List<com.picpose.bestphotographyapp.data.models.GuidePostDto>>> {
+        suspend fun requestGuides(statusValue: String?): Result<com.picpose.bestphotographyapp.data.remote.response.ApiResponse<List<com.picpose.bestphotographyapp.data.remote.dto.GuidePostDto>>> {
             return safeApiCall {
                 callWithRetries {
                     apiService.getGuidePosts(
@@ -520,7 +520,7 @@ class HomeRepository(
     suspend fun getGuidePostById(
         guidePostId: String,
         deviceId: String? = null
-    ): Flow<Result<com.picpose.bestphotographyapp.data.models.GuidePost>> = flow {
+    ): Flow<Result<com.picpose.bestphotographyapp.data.remote.dto.GuidePost>> = flow {
         try {
             val response = apiService.getGuidePostById(
                 guidePostId = guidePostId,

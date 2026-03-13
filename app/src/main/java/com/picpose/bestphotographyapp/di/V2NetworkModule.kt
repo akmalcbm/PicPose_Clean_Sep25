@@ -24,11 +24,11 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.picpose.bestphotographyapp.BuildConfig
-import com.picpose.bestphotographyapp.data.datastore.ReferralCodeCache
-import com.picpose.bestphotographyapp.data.datastore.RewardsHubCache
-import com.picpose.bestphotographyapp.data.network.ApiKeyInterceptor
-import com.picpose.bestphotographyapp.data.network.AuthInterceptor
-import com.picpose.bestphotographyapp.data.network.V2ApiService
+import com.picpose.bestphotographyapp.data.local.datastore.ReferralCodeCache
+import com.picpose.bestphotographyapp.data.local.datastore.RewardsHubCache
+import com.picpose.bestphotographyapp.core.network.ApiKeyInterceptor
+import com.picpose.bestphotographyapp.core.network.AuthInterceptor
+import com.picpose.bestphotographyapp.data.remote.api.V2ApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

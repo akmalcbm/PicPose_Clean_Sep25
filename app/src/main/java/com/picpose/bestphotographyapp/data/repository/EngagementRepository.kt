@@ -23,11 +23,11 @@ package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
 import com.picpose.bestphotographyapp.data.repository.PromptRepository
-import com.picpose.bestphotographyapp.data.database.dao.EngagementDao
-import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
-import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.network.ApiService
-import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.local.database.dao.EngagementDao
+import com.picpose.bestphotographyapp.data.local.database.entity.EngagementEntity
+import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
+import com.picpose.bestphotographyapp.data.remote.api.ApiService
+import com.picpose.bestphotographyapp.core.network.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject

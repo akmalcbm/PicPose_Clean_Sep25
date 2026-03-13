@@ -24,16 +24,16 @@ package com.picpose.bestphotographyapp.data.repository
 import com.google.gson.Gson
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.core.constants.Constants
-import com.picpose.bestphotographyapp.data.models.GlobalConfig
-import com.picpose.bestphotographyapp.data.models.PlacementConfig
-import com.picpose.bestphotographyapp.data.models.UnitConfig
-import com.picpose.bestphotographyapp.data.datastore.DeviceIdStore
-import com.picpose.bestphotographyapp.data.models.AdsConfig
-import com.picpose.bestphotographyapp.data.network.AdsApiService
-import com.picpose.bestphotographyapp.data.network.RetrofitClient
-import com.picpose.bestphotographyapp.data.remote.toDomainOrNull
-import com.picpose.bestphotographyapp.presentation.ads.AdsConfigCache
-import com.picpose.bestphotographyapp.presentation.ads.AdsLog
+import com.picpose.bestphotographyapp.data.remote.dto.GlobalConfig
+import com.picpose.bestphotographyapp.data.remote.dto.PlacementConfig
+import com.picpose.bestphotographyapp.data.remote.dto.UnitConfig
+import com.picpose.bestphotographyapp.data.local.datastore.DeviceIdStore
+import com.picpose.bestphotographyapp.data.remote.dto.AdsConfig
+import com.picpose.bestphotographyapp.data.remote.api.AdsApiService
+import com.picpose.bestphotographyapp.core.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.remote.response.toDomainOrNull
+import com.picpose.bestphotographyapp.components.ads.AdsConfigCache
+import com.picpose.bestphotographyapp.components.ads.AdsLog
 
 enum class AdsConfigSource {
     NETWORK,

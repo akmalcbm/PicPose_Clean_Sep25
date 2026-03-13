@@ -22,12 +22,12 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
-import com.picpose.bestphotographyapp.data.database.AppDatabase
-import com.picpose.bestphotographyapp.data.database.FavoritePrompt
-import com.picpose.bestphotographyapp.data.database.LikedPrompt
-import com.picpose.bestphotographyapp.data.models.AIPrompt
-import com.picpose.bestphotographyapp.data.network.ApiService
-import com.picpose.bestphotographyapp.data.network.RetrofitClient
+import com.picpose.bestphotographyapp.data.local.database.AppDatabase
+import com.picpose.bestphotographyapp.data.local.database.FavoritePrompt
+import com.picpose.bestphotographyapp.data.local.database.LikedPrompt
+import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
+import com.picpose.bestphotographyapp.data.remote.api.ApiService
+import com.picpose.bestphotographyapp.core.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
