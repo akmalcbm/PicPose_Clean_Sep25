@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: PromptRepository.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Coordinates data access, merges local and remote sources, and exposes results to the presentation layer.
+ *
+ * Interactions:
+ * Sits between ViewModels and data sources, combining Retrofit, Room, and local caches into UI-ready results.
+ *
+ * Data Flow:
+ * ViewModel -> Repository -> Network service / Room DAO -> Result returned to UI state
+ *
+ * Maintainer Notes:
+ * - Keep source-of-truth rules explicit when mixing Room, in-memory cache, and network responses.
+ * - TODO: Consider extracting use cases if repository logic continues to grow across features.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
@@ -14,11 +35,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * PromptRepository
+ * Shared in-memory prompt cache.
  *
- * 🔥 SINGLE SOURCE OF TRUTH for all prompts (in-memory cache)
- * 🔥 Used by EngagementRepository for Favorites screen
- * 🔥 Safe for long-term & API migration
+ * This repository does not replace Room or the backend. Instead, it keeps the
+ * latest prompt list in process memory so detail, favorites, and similar-prompt
+ * flows can reuse prompt models without refetching them on every navigation step.
  */
 @Singleton
 class PromptRepository @Inject constructor() {
@@ -27,15 +48,12 @@ class PromptRepository @Inject constructor() {
         private const val TAG = "PromptRepository"
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* 🔥 IN-MEMORY CACHE (SOURCE OF TRUTH) */
-    /* ---------------------------------------------------------------------- */
-
+    // This cache survives while the process is alive; it is repopulated after fresh API fetches.
     private val _promptState = MutableStateFlow<List<AIPrompt>>(emptyList())
     val promptState: StateFlow<List<AIPrompt>> = _promptState.asStateFlow()
 
     /**
-     * 🔥 EngagementRepository uses this
+     * Exposes the latest cached prompt snapshot to interested consumers.
      */
     fun observeAllPrompts(): StateFlow<List<AIPrompt>> {
         Log.e("FAV_DEBUG", "observeAllPrompts() called, size = ${_promptState.value.size}")
@@ -44,7 +62,7 @@ class PromptRepository @Inject constructor() {
 
 
     /**
-     * 🔥 Called by ViewModel after API fetch
+     * Replaces the cache after an API-backed prompt refresh.
      */
     fun syncPromptCache(prompts: List<AIPrompt>) {
         Log.e("FAV_DEBUG", "syncPromptCache() called with ${prompts.size} prompts")

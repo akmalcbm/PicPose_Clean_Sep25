@@ -1,3 +1,28 @@
+/**
+ * ---
+ * File: MainActivity.kt
+ * Layer: Presentation (UI Shell)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Main Android entry point for PicPose. This activity hosts the Compose tree,
+ * applies theme and language preferences, and translates intents or deep links
+ * into navigation actions.
+ *
+ * Interactions:
+ * - Collects app settings from `SettingsViewModel`.
+ * - Passes analytics, crash reporting, and pending deep links down to `AppRoot`.
+ * - Resolves notification and auth callback URIs before the UI tree consumes them.
+ *
+ * Data Flow:
+ * Intent/Deep Link -> MainActivity -> AppRoot/NavGraph -> Screen -> ViewModel -> Repository
+ *
+ * Maintainer Notes:
+ * - Keep business logic out of this file; it should remain an app-shell coordinator.
+ * - TODO: Extract deep-link normalization into a dedicated mapper if routes keep growing.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp
 
 import android.content.Intent
@@ -70,6 +95,7 @@ class MainActivity : AppCompatActivity() {
 
             val themeMode by settingsViewModel.themeMode.collectAsState()
             val language by settingsViewModel.language.collectAsState()
+            // Apply theme once at the activity shell so every screen shares the same Material state.
             val finalDarkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.DARK -> true
@@ -80,6 +106,7 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(language) {
                 val current = AppCompatDelegate.getApplicationLocales().toLanguageTags()
                 val target = AppLocaleManager.resolveLanguageTags(language)
+                // Recreate only when the persisted preference differs from the current framework locale.
                 if (!isApplyingLocale && language.isNotBlank() && current != target) {
                     isApplyingLocale = true
                     AppLocaleManager.applyLanguage(language)
@@ -110,6 +137,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         val normalized = deepLink.trim()
 
+        // Normalize all supported notification targets into one routing table so
+        // the rest of the app stays unaware of the original payload shape.
         when {
             normalized.startsWith("app://reset-password?token=") -> {
                 val token = normalized.substringAfter("token=", "")

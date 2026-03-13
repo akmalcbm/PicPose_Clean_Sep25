@@ -1,3 +1,26 @@
+/**
+ * ---
+ * File: AppDatabase.kt
+ * Layer: Data (Room)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Room database definition for PicPose local persistence. It stores lightweight
+ * engagement, favorites, and quick-stat tables that survive process death.
+ *
+ * Interactions:
+ * Repositories obtain DAO instances from this database and use them as the
+ * local data source in the MVVM chain.
+ *
+ * Data Flow:
+ * ViewModel -> Repository -> AppDatabase -> DAO -> Entity table -> Flow back to UI
+ *
+ * Maintainer Notes:
+ * - Add real migrations when schema changes must preserve user data.
+ * - TODO: Export schema history to make future Room migrations safer.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.database
 
 import android.content.Context
@@ -20,11 +43,21 @@ import com.picpose.bestphotographyapp.data.database.entities.EngagementEntity
     exportSchema = false
 )
 @TypeConverters(Converters::class)
+/**
+ * Central Room database holder.
+ *
+ * This class should stay focused on table registration and DAO exposure. Query
+ * details belong in DAO interfaces, and merge/business rules belong in repositories.
+ */
 abstract class AppDatabase : RoomDatabase() {
 
+    /** Stores favorited prompt ids and timestamps for bookmark-style features. */
     abstract fun favoriteDao(): FavoritePromptDao
+    /** Stores locally liked prompt ids for engagement reconciliation. */
     abstract fun likedPromptDao(): LikedPromptDao
+    /** Stores the single quick-stats snapshot rendered on Home. */
     abstract fun statsDao(): StatsDao
+    /** Stores local engagement counters and flags shared across prompt flows. */
     abstract fun engagementDao(): EngagementDao
 
     companion object {
@@ -33,6 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                // A singleton avoids opening multiple Room instances for the same file.
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

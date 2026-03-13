@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: AIPromptViewModel.kt
+ * Layer: Presentation (MVVM)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Owns screen state and coordinates the MVVM flow between Compose UI and repository/data operations.
+ *
+ * Interactions:
+ * Observed by Compose screens. It transforms repository results into StateFlow values that the UI collects.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Expose observable UI state here, but keep composable rendering decisions in the UI layer.
+ * - Business rules belong in repositories or dedicated domain classes if the project introduces use cases later.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.Context
@@ -52,6 +73,14 @@ data class AIPromptUiState(
 /* -------------------------------------------------------------------------- */
 
 @HiltViewModel
+/**
+ * ViewModel for prompt discovery, favorites, tag filtering, and prompt-detail
+ * support data.
+ *
+ * The UI observes [uiState] and [searchQuery] as StateFlow streams. This class
+ * coordinates pagination, in-memory prompt caching, engagement actions, and
+ * repository fetches so composables do not own mutable business state.
+ */
 class AIPromptViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
     private val engagementRepository: EngagementRepository,
@@ -64,6 +93,7 @@ class AIPromptViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIPromptUiState())
+    // Shared state for all prompt-related screens in the legacy prompt flow.
     val uiState: StateFlow<AIPromptUiState> = _uiState.asStateFlow()
 
     /* ---------------------------------------------------------------------- */
@@ -90,10 +120,7 @@ class AIPromptViewModel @Inject constructor(
         _similarPromptsClickCount.value = 0
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* PAGINATION + CACHE */
-    /* ---------------------------------------------------------------------- */
-
+    // Pagination details stay inside the ViewModel so the UI only asks for "load more".
     private val pageSize = 20
     private var currentPage = 1
     private var canLoadMore = true
@@ -123,6 +150,7 @@ class AIPromptViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _uiState.update { it.copy(selectedCategory = appContext.getString(R.string.all)) }
+            // Seed cache and category metadata early so detail/favorites screens resolve faster.
             preloadPromptCacheForFavorites()
             loadCategories()
         }

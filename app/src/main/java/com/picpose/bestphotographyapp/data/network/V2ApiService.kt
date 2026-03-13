@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: V2ApiService.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Declares Retrofit endpoints used to communicate with backend services.
+ *
+ * Interactions:
+ * Consumed by repositories to talk to backend APIs and map raw payloads into app models.
+ *
+ * Data Flow:
+ * Repository -> Retrofit service -> Backend response -> Model mapping -> ViewModel/UI
+ *
+ * Maintainer Notes:
+ * - Prefer backend-neutral mapping in repositories instead of leaking transport details into the UI.
+ * - TODO: Add stricter error classification and retry policy where network flows are user-critical.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.v2.ApplyReferralCodeRequest

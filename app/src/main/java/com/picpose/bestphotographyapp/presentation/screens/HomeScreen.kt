@@ -1,3 +1,27 @@
+/**
+ * ---
+ * File: HomeScreen.kt
+ * Layer: Presentation (UI)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Main landing screen for PicPose. It renders the combined home feed including
+ * search, categories, prompts, guide posts, daily tips, quick stats, and ads.
+ *
+ * Interactions:
+ * - Collects `HomeViewModel` state for primary content.
+ * - Observes auth/settings state to gate actions and notification prompts.
+ * - Emits navigation events upward through callbacks rather than using a controller directly.
+ *
+ * Data Flow:
+ * HomeScreen -> HomeViewModel -> HomeRepository/EngagementRepository -> Room/API
+ *
+ * Maintainer Notes:
+ * - This composable recomposes frequently; keep heavy derived work wrapped in `remember`.
+ * - TODO: Split the screen into smaller feature sections if composition cost keeps growing.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.screens
 
 import android.content.pm.PackageManager
@@ -75,6 +99,18 @@ import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+/**
+ * Renders the PicPose home dashboard.
+ *
+ * Parameters:
+ * - `viewModel` exposes StateFlow-based UI state.
+ * - Navigation lambdas keep the composable previewable and decoupled from `NavController`.
+ *
+ * Recomposition notes:
+ * - State is collected from multiple ViewModels.
+ * - Expensive local filtering is memoized with `remember`.
+ * - One-off side effects live inside `LaunchedEffect` blocks.
+ */
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToAllPrompts: () -> Unit,
@@ -111,6 +147,7 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val normalizedSearchQuery = remember(searchQuery) { SearchMatchers.normalizeQuery(searchQuery) }
     val hasActiveSearch = normalizedSearchQuery.isNotBlank()
+    // Derived search previews are memoized to avoid recalculating on unrelated recompositions.
     val quickPromptResults = remember(uiState.aiPrompts, normalizedSearchQuery) {
         uiState.aiPrompts.filter { SearchMatchers.matchesAIPrompt(it, normalizedSearchQuery) }.take(3)
     }
@@ -140,7 +177,7 @@ fun HomeScreen(
         }
     }
 
-    // Track app opens only when the user is on Home (logged in or skipped).
+    // Count a Home visit once per active session of this composable for prompt timing and analytics.
     LaunchedEffect(isUserActive) {
         if (isUserActive && !hasCountedOpen) {
             settingsViewModel.incrementAppOpenCount()
@@ -148,7 +185,7 @@ fun HomeScreen(
         }
     }
 
-    // Ask permission only after Home is visible and user context is valid.
+    // Delay the permission prompt so the user sees content before a system dialog appears.
     LaunchedEffect(isUserActive, appOpenCount, permissionRequested, deniedAtOpen, lastPromptOpen) {
         if (!isUserActive) return@LaunchedEffect
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@LaunchedEffect
@@ -170,7 +207,7 @@ fun HomeScreen(
         }
     }
 
-    // Native Ad (single instance with explicit UI state)
+    // Keep ad loading state in Compose so the UI can react declaratively to success/failure.
     var nativeAdState by remember { mutableStateOf<NativeAdUiState>(NativeAdUiState.Disabled) }
     val adsConfigState by AdsManager.configState.collectAsState()
     val nativeAdController = remember { NativeAdController(placementKey = AdsManager.KEY_NATIVE_AD) }

@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: EngagementRepository.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Coordinates data access, merges local and remote sources, and exposes results to the presentation layer.
+ *
+ * Interactions:
+ * Sits between ViewModels and data sources, combining Retrofit, Room, and local caches into UI-ready results.
+ *
+ * Data Flow:
+ * ViewModel -> Repository -> Network service / Room DAO -> Result returned to UI state
+ *
+ * Maintainer Notes:
+ * - Keep source-of-truth rules explicit when mixing Room, in-memory cache, and network responses.
+ * - TODO: Consider extracting use cases if repository logic continues to grow across features.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log

@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: NetworkMonitor.kt
+ * Layer: Utility
+ * Project: PicPose
+ *
+ * Purpose:
+ * Provides utility helpers that do not belong to a single feature layer.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.util
 
 import android.content.Context

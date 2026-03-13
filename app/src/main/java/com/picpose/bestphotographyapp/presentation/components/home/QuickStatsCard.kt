@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: QuickStatsCard.kt
+ * Layer: Presentation (UI)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Contains reusable Compose UI building blocks shared across screens.
+ *
+ * Interactions:
+ * Reads immutable state from ViewModels or callbacks and emits user events back up to navigation or state owners.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Prefer stateless composables and keep side effects inside well-scoped effect APIs.
+ * - Document new navigation arguments and remember that recomposition can re-run this code frequently.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.components.home
 
 import androidx.compose.foundation.layout.*

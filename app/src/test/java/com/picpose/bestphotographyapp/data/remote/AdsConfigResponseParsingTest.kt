@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: AdsConfigResponseParsingTest.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Contains local unit tests that verify data parsing or app behavior without a device.
+ *
+ * Interactions:
+ * Consumed by repositories to talk to backend APIs and map raw payloads into app models.
+ *
+ * Data Flow:
+ * Repository -> Retrofit service -> Backend response -> Model mapping -> ViewModel/UI
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.remote
 
 import com.google.gson.Gson

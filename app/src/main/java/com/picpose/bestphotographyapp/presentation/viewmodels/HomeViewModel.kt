@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: HomeViewModel.kt
+ * Layer: Presentation (MVVM)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Owns screen state and coordinates the MVVM flow between Compose UI and repository/data operations.
+ *
+ * Interactions:
+ * Observed by Compose screens. It transforms repository results into StateFlow values that the UI collects.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Expose observable UI state here, but keep composable rendering decisions in the UI layer.
+ * - Business rules belong in repositories or dedicated domain classes if the project introduces use cases later.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.ClipData
@@ -74,6 +95,7 @@ data class HomeUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false
 ) {
+    // Pull-to-refresh waits for these sections because they represent the core landing content.
     val isAnyCriticalLoading: Boolean
         get() = isTrendingLoading ||
             isFeaturedLoading ||
@@ -95,15 +117,29 @@ enum class HomeTab { Trending, Featured, Popular } // ✅ UPDATED
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
+/**
+ * State owner for the Home screen.
+ *
+ * Compose collects [uiState] and [searchQuery] to render the landing feed. This
+ * ViewModel coordinates section loading, search debouncing, lightweight caching,
+ * and engagement updates while keeping the screen composable declarative.
+ *
+ * MVVM flow:
+ * HomeScreen -> HomeViewModel -> HomeRepository/EngagementRepository -> Room/API
+ */
 class HomeViewModel @Inject constructor (
     @ApplicationContext private val appContext: Context,
     private val repository: HomeRepository,
     private val engagementRepository: EngagementRepository,
     private val analyticsLogger: AnalyticsLogger,
     private val crashReporter: CrashReporter
-    ) : ViewModel() {
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
+    /**
+     * Single observable state object for the whole Home screen.
+     * Updating one section here causes Compose to recompose only readers of that state.
+     */
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     // Local photography tips used as fallback (keeps UX stable)
@@ -132,7 +168,7 @@ class HomeViewModel @Inject constructor (
     val searchQuery = _searchQuery.asStateFlow()
 
     init {
-        // Debounce search queries and trigger loadAIPrompts
+        // Debounce search input so typing does not trigger a request for every character.
         viewModelScope.launch {
             _searchQuery
                 .debounce(400) // 400ms idle before search executes
@@ -143,7 +179,8 @@ class HomeViewModel @Inject constructor (
                 }
         }
 
-        // Initial minimal load - Fixed: Only load data that doesn't conflict with search debouncing
+        // Startup work is split so the debounced search collector and initial prompt
+        // request do not race each other.
         fetchDailyTips()
         loadGuidePosts()
         loadFavoriteCount()
@@ -178,11 +215,13 @@ class HomeViewModel @Inject constructor (
             while (_uiState.value.isAnyCriticalLoading) {
                 kotlinx.coroutines.delay(120)
             }
+            // Refresh ends only after the primary content blocks finish loading.
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
     fun fetchDailyTips() {
-        // Check cache first
+        // A short in-memory cache avoids repeatedly reloading the same tip payload
+        // when users bounce around the app.
         val now = System.currentTimeMillis()
         if (cachedDailyTips != null && (now - lastFetchTime) < CACHE_DURATION) {
             _uiState.value = _uiState.value.copy(dailyTips = cachedDailyTips!!)
@@ -237,7 +276,8 @@ class HomeViewModel @Inject constructor (
      * Includes proper cancellation handling and concurrency guards.
      */
     fun loadAIPrompts(page: Int = 1, limit: Int = 12, category: String? = null, search: String? = null) {
-        // prevent duplicate concurrent loads
+        // This method can be called by initial load and by debounced search updates,
+        // so we guard against overlapping requests.
         if (isLoadingAIPrompts) {
             Log.w(TAG, "loadAIPrompts skipped - already loading")
             return

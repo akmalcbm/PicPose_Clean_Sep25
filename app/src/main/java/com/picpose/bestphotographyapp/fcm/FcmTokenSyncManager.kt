@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: FcmTokenSyncManager.kt
+ * Layer: Infrastructure (FCM)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Handles Firebase Cloud Messaging setup, token sync, or notification behavior.
+ *
+ * Interactions:
+ * Bridges Firebase callbacks into app services, token sync, and deep-link style notification flows.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Keep SDK-specific code isolated here so feature screens remain testable.
+ * - TODO: Add analytics and remote-config driven rollout controls where appropriate.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.fcm
 
 import android.content.Context

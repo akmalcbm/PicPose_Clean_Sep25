@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: AuthViewModel.kt
+ * Layer: Presentation (MVVM)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Owns screen state and coordinates the MVVM flow between Compose UI and repository/data operations.
+ *
+ * Interactions:
+ * Observed by Compose screens. It transforms repository results into StateFlow values that the UI collects.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Expose observable UI state here, but keep composable rendering decisions in the UI layer.
+ * - Business rules belong in repositories or dedicated domain classes if the project introduces use cases later.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.app.Activity
@@ -52,6 +73,15 @@ sealed class OperationState {
 }
 
 @HiltViewModel
+/**
+ * Authentication state owner for login, logout, session persistence, and social
+ * sign-in providers.
+ *
+ * Compose observes the exposed state flows to decide whether to show loading,
+ * error, or authenticated UI. Network work is delegated to `AuthRepository`,
+ * while this ViewModel handles SDK callbacks, concurrency control, analytics,
+ * and local session updates.
+ */
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userSessionManager: UserSessionManager,
@@ -60,17 +90,17 @@ class AuthViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
-    // ----------------------------------------
-    // SOCIAL LOGIN CLIENTS
-    // ----------------------------------------
+    // SDK-specific clients are kept here so Compose screens stay declarative.
     private var googleClient: GoogleAuthUiClient? = null
     private val facebookClient = FacebookAuthClient()
     private val twitterClient = TwitterAuthClient()
     private val authActionMutex = Mutex()
 
-    // ----------------------------------------
-    // GOOGLE LOGIN
-    // ----------------------------------------
+    /**
+     * Google sign-in is intentionally split into launch and finish steps:
+     * the activity or Compose layer starts credential collection, then the
+     * resulting token is exchanged with the backend via the repository.
+     */
     fun initGoogleClient(context: Context) {
         googleClient = GoogleAuthUiClient(context)
         debugLog("google_client_initialized")

@@ -1,12 +1,39 @@
+/**
+ * ---
+ * File: FavoritePrompt.kt
+ * Layer: Data (Room)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Defines a Room entity or local persistence model stored inside the PicPose database.
+ *
+ * Interactions:
+ * Used by repositories for offline state, engagement persistence, and cached values that survive process death.
+ *
+ * Data Flow:
+ * Repository -> DAO -> Room table -> Flow back to ViewModel/UI
+ *
+ * Maintainer Notes:
+ * - Update migrations carefully when changing schema or table names.
+ * - TODO: Replace destructive migration paths before shipping production schema changes.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "favorite_prompts")
+/**
+ * Minimal Room entity for a favorited prompt.
+ *
+ * Only the prompt id and the timestamp are stored locally. Full prompt details
+ * are resolved later from API/cache layers so this table stays small and stable.
+ */
 data class FavoritePrompt(
     @PrimaryKey
-    val promptId: String,              // server id (唯一)
+    val promptId: String,
     val favoritedAt: Long = System.currentTimeMillis()
 )
 

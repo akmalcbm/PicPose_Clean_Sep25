@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: AppRoot.kt
+ * Layer: Presentation (UI)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Creates the root Compose shell and connects activity-level inputs to the app navigation tree.
+ *
+ * Interactions:
+ * Connects screen callbacks and route arguments so feature flows remain decoupled from concrete destinations.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.navigation
 
 import android.app.Activity

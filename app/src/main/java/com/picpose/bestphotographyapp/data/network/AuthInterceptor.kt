@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: AuthInterceptor.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Configures networking behavior such as authentication, API keys, or Retrofit client creation.
+ *
+ * Interactions:
+ * Consumed by repositories to talk to backend APIs and map raw payloads into app models.
+ *
+ * Data Flow:
+ * Repository -> Retrofit service -> Backend response -> Model mapping -> ViewModel/UI
+ *
+ * Maintainer Notes:
+ * - Prefer backend-neutral mapping in repositories instead of leaking transport details into the UI.
+ * - TODO: Add stricter error classification and retry policy where network flows are user-critical.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.network
 
 import javax.inject.Inject

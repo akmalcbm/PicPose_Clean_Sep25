@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: ExampleInstrumentedTest.kt
+ * Layer: Android Test
+ * Project: PicPose
+ *
+ * Purpose:
+ * Contains instrumentation tests that run on an Android device or emulator.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp
 
 import androidx.test.platform.app.InstrumentationRegistry

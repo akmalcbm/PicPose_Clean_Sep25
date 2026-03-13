@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: AuthRepository.kt
+ * Layer: Domain
+ * Project: PicPose
+ *
+ * Purpose:
+ * Coordinates data access, merges local and remote sources, and exposes results to the presentation layer.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * UI/ViewModel -> Domain contract -> Data implementation
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.domain.repository
 
 import android.content.Context

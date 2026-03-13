@@ -1,3 +1,28 @@
+/**
+ * ---
+ * File: HomeRepository.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Data coordinator for the Home feature. It fetches prompts, categories, guide
+ * posts, tips, and settings from the backend, then enriches those results with
+ * local Room-backed engagement state before returning them to ViewModels.
+ *
+ * Interactions:
+ * - Calls `ApiService` for remote content.
+ * - Reads bookmark and like state from Room DAOs.
+ * - Serves as the main data bridge for `HomeViewModel`.
+ *
+ * Data Flow:
+ * HomeViewModel -> HomeRepository -> Retrofit/Room -> mapped result -> HomeUiState
+ *
+ * Maintainer Notes:
+ * - Keep source-of-truth rules explicit when mixing remote data, Room, and memory cache.
+ * - TODO: Split this repository if Home-specific responsibilities continue to expand.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.repository
 
 import android.content.Context
@@ -75,7 +100,7 @@ class HomeRepository(
         apiKey?.let { RetrofitClient.defaultApiKey = it }
     }
 
-    // Generic safe API helper (keeps error mapping consistent)
+    // Centralized wrapper so ViewModels receive a consistent Result<T> shape.
     private suspend fun <T> safeApiCall(block: suspend () -> Response<T>): Result<T> {
         return try {
             val resp = block()
@@ -95,8 +120,10 @@ class HomeRepository(
 
 
     /**
-     * Executes a network call with concurrency limiting and retries (exponential backoff + jitter).
-     * The block *must* return a retrofit Response<T>.
+     * Executes a network call with a small concurrency cap and retry policy.
+     *
+     * Home loads several sections in parallel, so this helper limits request bursts
+     * and retries transient failures before surfacing an error upstream.
      */
     private suspend fun <T> callWithRetries(
         maxRetries: Int = 3,

@@ -1,3 +1,29 @@
+/**
+ * ---
+ * File: PicPoseApp.kt
+ * Layer: Application / Infrastructure
+ * Project: PicPose
+ *
+ * Purpose:
+ * Custom `Application` implementation for PicPose. It initializes app-wide
+ * services such as Hilt, crash reporting, token tracking, networking cache,
+ * ads warm-up, notification setup, and the shared Coil image loader.
+ *
+ * Interactions:
+ * - Starts `TokenProvider` so network interceptors can read current auth state.
+ * - Coordinates startup notification work with `NotificationSettingsCoordinator`
+ *   and `FcmTokenSyncManager`.
+ * - Warms ads and image loading infrastructure before feature screens request them.
+ *
+ * Data Flow:
+ * App launch -> PicPoseApp -> shared SDK/service initialization -> feature layers consume dependencies
+ *
+ * Maintainer Notes:
+ * - Keep screen-specific behavior out of this class.
+ * - TODO: Move startup-heavy SDK initialization behind remote config if cold start grows.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp
 
 import android.app.Application
@@ -39,7 +65,7 @@ class PicPoseApp : Application(), ImageLoaderFactory {
     lateinit var tokenProvider: TokenProvider
 
     /**
-     * ✅ Application-wide safe coroutine scope
+     * Long-lived scope for startup work that should not be tied to a screen.
      */
     private val applicationScope = CoroutineScope(
         SupervisorJob() + Dispatchers.Default
@@ -52,7 +78,7 @@ class PicPoseApp : Application(), ImageLoaderFactory {
         crashReporter.setAccountType("unknown")
         tokenProvider.start()
 
-        // 🔹 Retrofit cache
+        // Prepare shared network cache before repositories start issuing requests.
         RetrofitClient.initCache(this)
 
         // 🔹 Facebook SDK
@@ -91,6 +117,7 @@ class PicPoseApp : Application(), ImageLoaderFactory {
                 return@launch
             }
 
+            // Channels must exist before the app can safely display notifications.
             NotificationSettingsCoordinator.ensureNotificationChannels(this@PicPoseApp)
             subscribeToTopics()
             logCurrentFcmTokenForTesting()

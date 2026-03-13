@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: BackgroundRemovalRepository.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Coordinates data access, merges local and remote sources, and exposes results to the presentation layer.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.rembg
 
 import com.picpose.bestphotographyapp.util.ImageIO

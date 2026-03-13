@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: RewardsScreenV3.kt
+ * Layer: Presentation (UI)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Contains a Compose screen or dialog used in newer feature modules.
+ *
+ * Interactions:
+ * Reads immutable state from ViewModels or callbacks and emits user events back up to navigation or state owners.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Prefer stateless composables and keep side effects inside well-scoped effect APIs.
+ * - Document new navigation arguments and remember that recomposition can re-run this code frequently.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.ui.rewards
 
 import android.app.Activity

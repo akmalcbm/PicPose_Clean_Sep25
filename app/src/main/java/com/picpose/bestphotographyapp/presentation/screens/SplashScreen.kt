@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: SplashScreen.kt
+ * Layer: Presentation (UI)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Lists the app navigation routes and helper builders used by Navigation Compose.
+ *
+ * Interactions:
+ * Reads immutable state from ViewModels or callbacks and emits user events back up to navigation or state owners.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Prefer stateless composables and keep side effects inside well-scoped effect APIs.
+ * - Document new navigation arguments and remember that recomposition can re-run this code frequently.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.screens
 
 import androidx.compose.foundation.Image

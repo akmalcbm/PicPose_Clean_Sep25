@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: PromptOfDayCard.kt
+ * Layer: Shared
+ * Project: PicPose
+ *
+ * Purpose:
+ * Contains reusable Compose UI building blocks shared across screens.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Prefer stateless composables and keep side effects inside well-scoped effect APIs.
+ * - Document new navigation arguments and remember that recomposition can re-run this code frequently.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.ui.rewards.components
 
 import androidx.compose.animation.Crossfade

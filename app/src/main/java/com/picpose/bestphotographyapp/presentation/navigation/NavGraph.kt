@@ -1,3 +1,28 @@
+/**
+ * ---
+ * File: NavGraph.kt
+ * Layer: Presentation (Navigation)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Declares the full Navigation Compose graph for PicPose. It chooses the start
+ * destination from auth state, maps route arguments into screen parameters, and
+ * keeps navigation rules centralized instead of scattering them through screens.
+ *
+ * Interactions:
+ * - Reads route definitions from `Screen`.
+ * - Creates destination-scoped ViewModels with Hilt.
+ * - Converts screen callbacks into `NavController` operations.
+ *
+ * Data Flow:
+ * Composable event -> NavGraph callback -> route change -> screen -> ViewModel -> Repository
+ *
+ * Maintainer Notes:
+ * - Register new screens here rather than navigating with raw route strings.
+ * - TODO: Split into nested graphs if the auth/content flows become harder to follow.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.navigation
 
 import android.app.Activity
@@ -34,14 +59,14 @@ import com.picpose.bestphotographyapp.ui.rewards.RewardsScreenV3 as V3RewardsScr
 fun NavGraph(navController: NavHostController, activity: Activity? = null) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
-    // ✅ Dynamic start destination
+    // Resolve the start destination from persisted auth state whenever the graph is recreated.
     val startDestination = if (isLoggedIn) {
         Screen.Home.route
     } else {
         Screen.Login.route
     }
 
-    // ✅ Global Back Handling — Go directly to Home
+    // Provide predictable back behavior instead of leaving every destination to implement its own exit logic.
     val context = activity ?: return
     var lastBackPressTime by remember { mutableStateOf(0L) }
 
@@ -67,7 +92,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         }
     }
 
-    // ✅ Animated NavHost
+    // A single animated host keeps transitions consistent across all top-level routes.
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -84,7 +109,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
             fadeOut(animationSpec = tween(300)) + slideOutVertically(targetOffsetY = { it / 4 })
         }
     ) {
-        // 🏠 Home Screen
+        // Home is the main hub and therefore owns the broadest set of navigation callbacks.
         composable(route = Screen.Home.route) {
             val homeVM: HomeViewModel = hiltViewModel()
             val authViewModel: AuthViewModel = hiltViewModel()
@@ -141,7 +166,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                     navController.navigate(Screen.Explore.route) { launchSingleTop = true }
                 },
 
-                // ⭐ REQUIRED NEW PARAMETER
+                // Auth-gated actions redirect through one callback instead of duplicating route logic in HomeScreen.
                 onRequestLogin = {
                     navController.navigate(Screen.Login.route) {
                         launchSingleTop = true

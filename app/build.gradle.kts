@@ -1,3 +1,23 @@
+/**
+ * ---
+ * File: build.gradle.kts
+ * Layer: Build Configuration
+ * Project: PicPose
+ *
+ * Purpose:
+ * Declares Gradle build configuration, plugins, and module dependencies for the project.
+ *
+ * Interactions:
+ * Works with nearby classes in the same layer to keep responsibilities separated and easier to maintain.
+ *
+ * Data Flow:
+ * Feature-specific flow; see adjacent ViewModels and repositories for the full path.
+ *
+ * Maintainer Notes:
+ * - Keep responsibilities narrow and update this header when the file grows into a larger abstraction.
+ * ---
+ */
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.bundling.Zip
 

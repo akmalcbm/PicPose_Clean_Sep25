@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: GuidePostViewModel.kt
+ * Layer: Presentation (MVVM)
+ * Project: PicPose
+ *
+ * Purpose:
+ * Owns screen state and coordinates the MVVM flow between Compose UI and repository/data operations.
+ *
+ * Interactions:
+ * Observed by Compose screens. It transforms repository results into StateFlow values that the UI collects.
+ *
+ * Data Flow:
+ * UI (Compose) -> ViewModel -> Repository -> Local/Remote Data Source -> Room/API
+ *
+ * Maintainer Notes:
+ * - Expose observable UI state here, but keep composable rendering decisions in the UI layer.
+ * - Business rules belong in repositories or dedicated domain classes if the project introduces use cases later.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.presentation.viewmodels
 
 import android.content.Context

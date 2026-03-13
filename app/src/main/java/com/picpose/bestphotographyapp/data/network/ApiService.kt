@@ -1,3 +1,24 @@
+/**
+ * ---
+ * File: ApiService.kt
+ * Layer: Data
+ * Project: PicPose
+ *
+ * Purpose:
+ * Declares Retrofit endpoints used to communicate with backend services.
+ *
+ * Interactions:
+ * Consumed by repositories to talk to backend APIs and map raw payloads into app models.
+ *
+ * Data Flow:
+ * Repository -> Retrofit service -> Backend response -> Model mapping -> ViewModel/UI
+ *
+ * Maintainer Notes:
+ * - Prefer backend-neutral mapping in repositories instead of leaking transport details into the UI.
+ * - TODO: Add stricter error classification and retry policy where network flows are user-critical.
+ * ---
+ */
+
 package com.picpose.bestphotographyapp.data.network
 
 import com.picpose.bestphotographyapp.data.models.*
@@ -12,6 +33,8 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface ApiService {
+    // Retrofit contract for the main PicPose backend.
+    // Repositories should map these raw responses into UI-friendly models.
 
     // -----------------------------------------------------------------------------------------
     // 🔹 App Settings & Tips
@@ -47,7 +70,10 @@ interface ApiService {
 
 
     /**
-     * General list of AI posts with optional filters.
+     * General prompt listing endpoint.
+     *
+     * Repositories reuse this method for search, category filters, popularity,
+     * and pagination by varying the optional query parameters.
      */
     @GET("api/ai_posts/get_ai_posts.php")
     suspend fun getAiPosts(
@@ -63,7 +89,7 @@ interface ApiService {
     ): Response<ApiResponse<List<AIPrompt>>>
 
     /**
-     * 🔸 Newest / Latest posts (for HomeScreen)
+     * Convenience wrapper for recent prompts shown on the Home screen.
      */
     @GET("api/ai_posts/get_ai_posts.php")
     suspend fun getLatestRecent5AiPosts(
