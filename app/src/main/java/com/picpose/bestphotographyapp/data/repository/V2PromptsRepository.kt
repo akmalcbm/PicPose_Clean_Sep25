@@ -39,6 +39,12 @@ import retrofit2.Response
 class V2PromptsRepository @Inject constructor(
     private val apiService: V2ApiService,
 ) {
+    data class PromptPageResult(
+        val items: List<V2PromptDto>,
+        val total: Int? = null,
+        val hasMore: Boolean = false,
+    )
+
     suspend fun getPrompts(
         category: String? = null,
         query: String? = null,
@@ -46,7 +52,23 @@ class V2PromptsRepository @Inject constructor(
         premiumOnly: Boolean? = null,
         limit: Int = 40,
         offset: Int = 0,
-    ): Result<List<V2PromptDto>> = withContext(Dispatchers.IO) {
+    ): Result<List<V2PromptDto>> = getPromptsPage(
+        category = category,
+        query = query,
+        featuredOnly = featuredOnly,
+        premiumOnly = premiumOnly,
+        limit = limit,
+        offset = offset,
+    ).map { it.items }
+
+    suspend fun getPromptsPage(
+        category: String? = null,
+        query: String? = null,
+        featuredOnly: Boolean = false,
+        premiumOnly: Boolean? = null,
+        limit: Int = 40,
+        offset: Int = 0,
+    ): Result<PromptPageResult> = withContext(Dispatchers.IO) {
         runCatching {
             val response = apiService.getAiPosts(
                 limit = limit,
@@ -58,11 +80,18 @@ class V2PromptsRepository @Inject constructor(
             val body = response.body()
             ensureSuccess(response, body?.message, body?.success == true)
             val items = body?.data.orEmpty()
-            when (premiumOnly) {
+            val filtered = when (premiumOnly) {
                 true -> items.filter { it.tier.equals("PREMIUM", ignoreCase = true) }
                 false -> items.filter { !it.tier.equals("PREMIUM", ignoreCase = true) }
                 null -> items
             }
+            val backendHasMore = body?.hasMore == true
+            val inferredHasMore = items.size >= limit
+            PromptPageResult(
+                items = filtered,
+                total = body?.total?.takeIf { it > 0 },
+                hasMore = backendHasMore || inferredHasMore,
+            )
         }
     }
 

@@ -42,7 +42,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -101,11 +100,10 @@ class RewardsViewModel @Inject constructor(
     private val _events = MutableSharedFlow<RewardsUiEvent>()
     val events = _events.asSharedFlow()
 
-    val isLoggedIn: StateFlow<Boolean> = userSessionManager.userToken
-        .map { !it.isNullOrBlank() }
+    val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.Eagerly,
             initialValue = false,
         )
 

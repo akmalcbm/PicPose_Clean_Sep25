@@ -24,6 +24,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
 import com.picpose.bestphotographyapp.data.remote.dto.Category
 import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.data.remote.dto.Post
+import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 
 object SearchMatchers {
     fun normalizeQuery(query: String): String = query.trim()
@@ -35,6 +36,17 @@ object SearchMatchers {
             (prompt.shortPrompt?.contains(query, ignoreCase = true) == true) ||
             (prompt.category?.contains(query, ignoreCase = true) == true) ||
             prompt.tags.any { it.contains(query, ignoreCase = true) }
+    }
+
+    fun matchesV2Prompt(prompt: V2PromptDto, query: String): Boolean {
+        if (query.isBlank()) return true
+        return prompt.title.contains(query, ignoreCase = true) ||
+            (prompt.shortPrompt?.contains(query, ignoreCase = true) == true) ||
+            (prompt.fullPrompt?.contains(query, ignoreCase = true) == true) ||
+            (prompt.teaserText?.contains(query, ignoreCase = true) == true) ||
+            (prompt.category?.contains(query, ignoreCase = true) == true) ||
+            prompt.tags.any { it.contains(query, ignoreCase = true) } ||
+            prompt.tier.contains(query, ignoreCase = true)
     }
 
     fun matchesGuidePost(post: GuidePost, query: String): Boolean {
