@@ -452,7 +452,7 @@ fun PromptsV2Screen(
                 else -> {
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Adaptive(minSize = 170.dp),
+                        columns = GridCells.Adaptive(minSize = 160.dp),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
