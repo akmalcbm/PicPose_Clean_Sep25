@@ -92,6 +92,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.core.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
@@ -503,8 +504,9 @@ private fun ExploreTopBar(
         animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing))
     )
 
-    TopAppBar(
-        title = {
+    PicPoseAppBar(
+        title = stringResource(R.string.explore_title),
+        titleContent = {
             AnimatedContent(targetState = isSearchExpanded, transitionSpec = {
                 slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
             }) { expanded ->
@@ -523,7 +525,11 @@ private fun ExploreTopBar(
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    Text(stringResource(R.string.explore_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.explore_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         },
@@ -546,14 +552,8 @@ private fun ExploreTopBar(
                 FilterButtonWithIndicator(isFilterExpanded = isFilterExpanded, rotation = filterRotation, scale = scale, onClick = { isFilterExpanded = !isFilterExpanded; onToggleFilters() })
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)) //Transparent Plain App Bar
-
-        /*//Background Same as Bottom Nav
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
-        )*/
     )
+
 }
 
 

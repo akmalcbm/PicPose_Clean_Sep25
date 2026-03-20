@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.HorizontalDivider
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.data.remote.dto.SupportQueryRequest
 import com.picpose.bestphotographyapp.data.remote.api.ApiService
 import com.picpose.bestphotographyapp.core.network.RetrofitClient
@@ -96,20 +97,9 @@ fun HelpAndSupportScreen(
     // ✅ Perfect edge-to-edge Scaffold setup
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.help_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.help_back_content_description)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = colorScheme.onSurface
-                ),
+            PicPoseTopAppBar(
+                title = stringResource(R.string.help_title),
+                onBack = onBack,
             )
         },
         contentWindowInsets = WindowInsets(0) // 🚫 prevent double padding

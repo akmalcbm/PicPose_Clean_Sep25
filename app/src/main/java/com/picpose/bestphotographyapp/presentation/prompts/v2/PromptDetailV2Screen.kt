@@ -141,6 +141,8 @@ import com.picpose.bestphotographyapp.components.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.NativeAdSection
 import com.picpose.bestphotographyapp.components.ads.NativeAdController
 import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.service.ads.AdManager
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
@@ -218,36 +220,13 @@ fun PromptDetailV2Screen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.ai_prompt_details_title),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        uiState.prompt?.category?.takeIf { it.isNotBlank() }?.let { category ->
-                            Text(
-                                text = category,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                        )
-                    }
-                },
+            PicPoseTopAppBar(
+                title = stringResource(R.string.ai_prompt_details_title),
+                eyebrow = uiState.prompt?.category?.takeIf { it.isNotBlank() },
+                onBack = onBack,
                 actions = {
                     uiState.prompt?.let { prompt ->
-                        TopBarActionCircleButton(
+                        PicPoseTopBarActionButton(
                             icon = Icons.Default.Share,
                             contentDescription = stringResource(R.string.share),
                             onClick = {
@@ -268,18 +247,8 @@ fun PromptDetailV2Screen(
                                 }
                             },
                         )
-
-                        /*TopBarActionCircleButton(
-                            icon = if (uiState.isFavoriteLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = stringResource(R.string.favorite),
-                            tint = if (uiState.isFavoriteLocal) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                            onClick = { viewModel.onFavoriteClicked(prompt.id) },
-                        )*/
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                ),
             )
         },
     ) { innerPadding ->

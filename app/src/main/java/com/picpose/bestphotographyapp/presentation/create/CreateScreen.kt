@@ -106,6 +106,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.service.rembg.BgBackgroundMode
 import com.picpose.bestphotographyapp.data.service.rembg.BgBackgroundOption
 import com.picpose.bestphotographyapp.data.service.rembg.BgRemovalQualityMode
@@ -234,25 +236,15 @@ fun CreateScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.create_screen_title),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+            PicPoseTopAppBar(
+                title = stringResource(R.string.create_screen_title),
+                actions = {
+                    PicPoseTopBarActionButton(
+                        icon = Icons.Default.AutoAwesome,
+                        contentDescription = stringResource(R.string.remove_bg),
+                        onClick = viewModel::onClickRemoveBg,
                     )
                 },
-                actions = {
-                    IconButton(onClick = viewModel::onClickRemoveBg) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = stringResource(R.string.remove_bg)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
             )
         },
         contentWindowInsets = WindowInsets(0)

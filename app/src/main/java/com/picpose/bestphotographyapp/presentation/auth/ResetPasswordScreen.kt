@@ -53,6 +53,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.auth.OperationState
 
@@ -82,11 +83,9 @@ fun ResetPasswordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.reset_password_title)) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-                }
+            PicPoseTopAppBar(
+                title = stringResource(R.string.reset_password_title),
+                onBack = onBack,
             )
         }
     ) { padding ->

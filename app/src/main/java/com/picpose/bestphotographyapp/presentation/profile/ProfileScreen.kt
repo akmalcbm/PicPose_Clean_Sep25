@@ -58,6 +58,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.presentation.home.components.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.home.components.QuickStatsCard
 import com.picpose.bestphotographyapp.navigation.Screen
@@ -117,8 +118,8 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.profile), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+            PicPoseAppBar(
+                title = stringResource(R.string.profile),
             )
         },
         contentWindowInsets = WindowInsets(0)

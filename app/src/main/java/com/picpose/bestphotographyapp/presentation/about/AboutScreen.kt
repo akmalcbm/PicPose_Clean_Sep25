@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsUiState
 
@@ -63,18 +64,9 @@ fun AboutScreen(
     // ✅ Use Scaffold with correct edge-to-edge handling
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.about_app_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = colorScheme.onSurface
-                ),
-
+            PicPoseTopAppBar(
+                title = stringResource(R.string.about_app_title),
+                onBack = onBack,
             )
         },
         contentWindowInsets = WindowInsets(0) // disable auto inset to prevent double space

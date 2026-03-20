@@ -42,6 +42,7 @@ import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.components.ads.AdsLog
 import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.components.ads.AdmobRewardedAd
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,17 +85,8 @@ fun RewardsScreen() {
     // ✅ Scaffold for insets-safe layout
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.rewards),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            PicPoseAppBar(
+                title = stringResource(R.string.rewards),
             )
         },
         contentWindowInsets = WindowInsets(0)

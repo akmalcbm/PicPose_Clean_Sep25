@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.text.KeyboardOptions
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.auth.OperationState
 
@@ -69,11 +70,9 @@ fun ForgotPasswordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.forgot_password_title)) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-                }
+            PicPoseTopAppBar(
+                title = stringResource(R.string.forgot_password_title),
+                onBack = onBack,
             )
         }
     ) { padding ->

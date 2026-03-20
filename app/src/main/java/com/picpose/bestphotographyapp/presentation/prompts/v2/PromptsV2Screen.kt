@@ -129,6 +129,8 @@ import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.components.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCardForGrid
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.utils.setText
@@ -542,55 +544,29 @@ private fun PromptsV2TopBar(
     onSearchToggle: () -> Unit,
     onViewToggle: () -> Unit,
 ) {
-    TopAppBar(
-        title = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.prompts),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        navigationIcon = {
-            PromptActionIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.back),
-                onClick = onBack,
-            )
-        },
+    PicPoseTopAppBar(
+        title = title,
+        eyebrow = stringResource(R.string.prompts),
+        onBack = onBack,
         actions = {
-            PromptActionIconButton(
+            PicPoseTopBarActionButton(
                 icon = Icons.Default.Refresh,
                 contentDescription = stringResource(R.string.refresh),
                 onClick = onRefresh,
             )
-            PromptActionIconButton(
+            PicPoseTopBarActionButton(
                 icon = if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
                 contentDescription = stringResource(R.string.search),
                 onClick = onSearchToggle,
                 active = showSearch,
             )
-            PromptActionIconButton(
+            PicPoseTopBarActionButton(
                 icon = if (viewMode == V2ViewMode.GRID) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                 contentDescription = stringResource(R.string.change_view),
                 onClick = onViewToggle,
                 active = viewMode == V2ViewMode.LIST,
             )
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-        ),
     )
 }
 

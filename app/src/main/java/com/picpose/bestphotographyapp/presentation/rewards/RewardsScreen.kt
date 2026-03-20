@@ -65,7 +65,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -83,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
@@ -157,11 +157,11 @@ fun RewardsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Rewards") },
+            PicPoseAppBar(
+                title = stringResource(R.string.rewards),
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 },
             )

@@ -61,6 +61,7 @@ import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.remote.dto.AccountType
 import com.picpose.bestphotographyapp.components.common.EdgeToEdgeScaffold
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.profile.utils.ImageCropper
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import com.yalantis.ucrop.UCrop
@@ -203,13 +204,9 @@ fun EditProfileScreen(
 
     EdgeToEdgeScaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.edit_profile), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
+            PicPoseTopAppBar(
+                title = stringResource(R.string.edit_profile),
+                onBack = onNavigateBack,
             )
         }
     ) { padding ->

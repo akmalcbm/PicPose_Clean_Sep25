@@ -108,6 +108,8 @@ import com.picpose.bestphotographyapp.components.ads.InlineNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.components.common.AIPromptCard
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import com.picpose.bestphotographyapp.utils.displayViews
@@ -290,56 +292,49 @@ fun AllAIPromptsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
-                    Text(
-                        text = if (uiState.selectedCategory != "All")
-                            stringResource(
-                                R.string.prompts_for_category_count,
-                                uiState.selectedCategory,
-                                displayPrompts.size
-                            )
-                        else
-                            stringResource(R.string.all_prompts_count, total)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
+            val total = uiState.totalPrompts.takeIf { it > 0 } ?: displayPrompts.size
+            val titleText = if (uiState.selectedCategory != "All") {
+                stringResource(
+                    R.string.prompts_for_category_count,
+                    uiState.selectedCategory,
+                    displayPrompts.size
+                )
+            } else {
+                stringResource(R.string.all_prompts_count, total)
+            }
+            PicPoseTopAppBar(
+                title = titleText,
+                eyebrow = stringResource(R.string.prompts),
+                onBack = onBack,
                 actions = {
-                    IconButton(onClick = {
+                    PicPoseTopBarActionButton(
+                        icon = Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.refresh),
+                        onClick = {
                         viewModel.loadAllPrompts(
                             page = 1,
                             forceRefresh = true
                         )
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
-                    }
-                    IconButton(onClick = { showSearch = !showSearch }) {
-                        Icon(
-                            if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
-                            contentDescription = stringResource(R.string.search)
-                        )
-                    }
-                    IconButton(onClick = {
-                        viewMode = if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID
-                    }) {
-                        Icon(
-                            if (viewMode == ViewMode.GRID)
-                                Icons.AutoMirrored.Filled.ViewList
-                            else
-                                Icons.Default.GridView,
-                            contentDescription = stringResource(R.string.change_view)
-                        )
-                    }
+                    },
+                    )
+                    PicPoseTopBarActionButton(
+                        icon = if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search),
+                        onClick = { showSearch = !showSearch },
+                        active = showSearch,
+                    )
+                    PicPoseTopBarActionButton(
+                        icon = if (viewMode == ViewMode.GRID)
+                            Icons.AutoMirrored.Filled.ViewList
+                        else
+                            Icons.Default.GridView,
+                        contentDescription = stringResource(R.string.change_view),
+                        onClick = {
+                            viewMode = if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID
+                        },
+                        active = viewMode == ViewMode.LIST,
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
             )
         },
         snackbarHost = { SnackbarHost(snackBarHostState) },

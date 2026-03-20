@@ -48,6 +48,7 @@ import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.NativeAdController
 import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.components.common.AIPromptCard
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import com.picpose.bestphotographyapp.presentation.home.HomeViewModel
 import androidx.compose.runtime.collectAsState
@@ -83,13 +84,9 @@ fun ViewAllPromptsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.view_all_posts_title, categoryDisplayName)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
+            PicPoseTopAppBar(
+                title = stringResource(R.string.view_all_posts_title, categoryDisplayName),
+                onBack = onBack,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

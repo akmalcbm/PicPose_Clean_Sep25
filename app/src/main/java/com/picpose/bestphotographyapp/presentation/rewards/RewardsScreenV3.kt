@@ -92,7 +92,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
-import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.rewards.components.EarnCard
 import com.picpose.bestphotographyapp.presentation.rewards.components.PacksRow
@@ -209,7 +209,7 @@ fun RewardsScreenV3(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            PicPoseTopAppBar(
+            PicPoseAppBar(
                 title = stringResource(R.string.rewards),
                 scrollBehavior = scrollBehavior,
             )

@@ -149,6 +149,8 @@ import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.NativeAdController
 import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.components.common.EdgeToEdgeScaffold
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.setText
@@ -402,17 +404,12 @@ fun AIPromptDetailScreen(
 
     EdgeToEdgeScaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.ai_prompt_details_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
+            PicPoseTopAppBar(
+                title = stringResource(R.string.ai_prompt_details_title),
+                onBack = onBack,
                 actions = {
-                    TopBarActionCircleButton(
+                    PicPoseTopBarActionButton(
                         icon = Icons.Default.Share,
-                        tint = MaterialTheme.colorScheme.primary,
                         contentDescription = stringResource(R.string.share_prompt_button),
                         onClick = {
                             effectivePrompt?.let { prompt ->
@@ -429,12 +426,7 @@ fun AIPromptDetailScreen(
                             }
                         }
                     )
-
-
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-                )
             )
         },
         snackbarHostState = snackbarHostState

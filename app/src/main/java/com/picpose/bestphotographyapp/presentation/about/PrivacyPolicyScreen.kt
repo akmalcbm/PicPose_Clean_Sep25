@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsUiState
 
@@ -62,17 +63,9 @@ fun PrivacyPolicyScreen(
     // ✅ Proper Scaffold for consistent edge-to-edge layout
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.privacy_policy_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = colorScheme.onSurface
-                ),
+            PicPoseTopAppBar(
+                title = stringResource(R.string.privacy_policy_title),
+                onBack = onNavigateBack,
             )
         },
         contentWindowInsets = WindowInsets(0) // disable auto inset to avoid double spacing

@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.auth.AuthState
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import kotlinx.coroutines.launch
@@ -98,13 +99,8 @@ fun LoginScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (isLoginMode) stringResource(R.string.login)
-                        else stringResource(R.string.register)
-                    )
-                },
+            PicPoseTopAppBar(
+                title = if (isLoginMode) stringResource(R.string.login) else stringResource(R.string.register),
                 actions = {
                     TextButton(onClick = {
                         authViewModel.skipAuth()

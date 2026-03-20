@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.settings.AppSettingsUiState
 
@@ -64,18 +65,9 @@ fun TermsScreen(
     // ✅ Proper Material3 Scaffold setup for edge-to-edge layout
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.terms_conditions_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = colorScheme.onSurface
-                ),
-                // ✅ Handles status bar space correctly
+            PicPoseTopAppBar(
+                title = stringResource(R.string.terms_conditions_title),
+                onBack = onNavigateBack,
             )
         },
         // ✅ Prevent double-padding from system bars

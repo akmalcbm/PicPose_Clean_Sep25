@@ -58,6 +58,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.google.android.gms.ads.LoadAdError
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.data.remote.dto.GuideContentBlock
 import com.picpose.bestphotographyapp.utils.MediaUrlResolver
 import com.picpose.bestphotographyapp.components.ads.AdsConfigState
@@ -420,20 +421,9 @@ fun GuideDetailScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Top App Bar
-        TopAppBar(
-            title = { Text(stringResource(R.string.photography_guide_title)) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.back)
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                titleContentColor = MaterialTheme.colorScheme.onSurface
-            )
+        PicPoseTopAppBar(
+            title = stringResource(R.string.photography_guide_title),
+            onBack = onBack,
         )
 
 

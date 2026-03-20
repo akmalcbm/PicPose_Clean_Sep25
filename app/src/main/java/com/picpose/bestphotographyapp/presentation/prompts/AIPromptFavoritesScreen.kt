@@ -51,6 +51,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.utils.setText
 import com.picpose.bestphotographyapp.components.common.AIPromptCard
+import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import kotlinx.coroutines.delay
@@ -103,28 +105,19 @@ fun AIPromptFavoritesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.favorites_count,
-                            filteredFavoritePrompts.size,
-                            filteredFavoritePrompts.size
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                },
+            PicPoseTopAppBar(
+                title = pluralStringResource(
+                    R.plurals.favorites_count,
+                    filteredFavoritePrompts.size,
+                    filteredFavoritePrompts.size
+                ),
+                eyebrow = stringResource(R.string.ai_prompts),
+                onBack = onBack,
                 actions = {
                     if (filteredFavoritePrompts.isNotEmpty()) {
-                        IconButton(
+                        PicPoseTopBarActionButton(
+                            icon = Icons.Default.Share,
+                            contentDescription = stringResource(R.string.share_all),
                             onClick = {
                                 val allPrompts = filteredFavoritePrompts.joinToString("\n\n") { prompt ->
                                     "${prompt.title}\n${prompt.fullPrompt.orEmpty()}"
@@ -137,16 +130,10 @@ fun AIPromptFavoritesScreen(
                                     context.getString(R.string.all_favorites_copied),
                                     Toast.LENGTH_SHORT
                                 ).show()
-                            }
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_all))
-                        }
+                            },
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
             )
         },
         contentWindowInsets = WindowInsets(0)
