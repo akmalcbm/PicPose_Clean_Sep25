@@ -160,6 +160,12 @@ class UserSessionManager(private val context: Context) {
         }
     }
 
+    suspend fun setEmailVerified(verified: Boolean) {
+        context.userDataStore.edit { prefs ->
+            prefs[USER_EMAIL_VERIFIED_KEY] = verified
+        }
+    }
+
     /**
      * Clear full session
      */

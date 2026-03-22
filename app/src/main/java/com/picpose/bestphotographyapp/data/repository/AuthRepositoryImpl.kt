@@ -97,11 +97,11 @@ class AuthRepositoryImpl @Inject constructor(
     // ---------------------------------------------------------
     // REGISTER
     // ---------------------------------------------------------
-    override suspend fun register(email: String, password: String, name: String): Result<User> {
+    override suspend fun register(email: String, password: String, name: String, bio: String?): Result<User> {
         return try {
             val response = userApi.register(
                 action = "register",
-                request = RegisterRequest(email, password, name),
+                request = RegisterRequest(email, password, name, bio),
                 apiKey = API_KEY
             )
 

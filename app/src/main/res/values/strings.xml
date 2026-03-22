@@ -588,6 +588,10 @@
     <string name="email_verification">Email Verification</string>
     <string name="email_verified_label">Verified</string>
     <string name="email_not_verified_label">Not verified</string>
+    <string name="profile_email_verified_title">Email Verified</string>
+    <string name="profile_email_verified_hint">Your account email is verified.</string>
+    <string name="profile_email_unverified_title">Email Not Verified</string>
+    <string name="profile_email_unverified_hint">Verify your email to secure your account and keep recovery options available.</string>
     <string name="resend_verification_link">Resend verification link</string>
     <string name="token_prompt_unlock">Prompt Unlock Tokens</string>
     <string name="token_image_gen_priority">Priority Image Generations</string>

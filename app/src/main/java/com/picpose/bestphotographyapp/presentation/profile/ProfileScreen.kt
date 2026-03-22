@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.SubcomposeAsyncImage
@@ -67,10 +66,6 @@ import com.picpose.bestphotographyapp.presentation.settings.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.auth.OperationState
 import com.picpose.bestphotographyapp.presentation.home.StatsViewModel
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +111,13 @@ fun ProfileScreen(
         ) to Screen.About.route
     )
 
+    LaunchedEffect(isLoggedIn) {
+        authViewModel.resetEmailVerificationRequestState()
+        if (isLoggedIn) {
+            authViewModel.refreshCurrentUserSilently()
+        }
+    }
+
     Scaffold(
         topBar = {
             PicPoseAppBar(
@@ -134,8 +136,8 @@ fun ProfileScreen(
                         .only(WindowInsetsSides.Horizontal)
                         .asPaddingValues()
                 ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(top = 14.dp, bottom = 28.dp, start = 16.dp, end = 16.dp)
         ) {
 
             // -------------------------------
@@ -150,7 +152,10 @@ fun ProfileScreen(
 
                     ProfileHeaderCard(
                         currentUser = currentUser,
-                        fallbackBio = chosenFallbackBio
+                        fallbackBio = chosenFallbackBio,
+                        isLoggedIn = isLoggedIn,
+                        emailVerificationState = emailVerificationState,
+                        onRequestVerification = authViewModel::requestEmailVerification
                     )
                 }
             }
@@ -161,7 +166,7 @@ fun ProfileScreen(
                 QuickStatsCard(
                     viewModel = statsViewModel,
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 4.dp)
                 )
             }
 
@@ -170,7 +175,7 @@ fun ProfileScreen(
                 QuickActionsCard(
                     onNavigateToAllPrompts = onNavigateToAllPrompts,
                     onNavigateToFavorites = onNavigateToFavorites,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
 
@@ -190,54 +195,6 @@ fun ProfileScreen(
                     ),
                     onClick = { onNavigateToEditProfile() }
                 )
-            }
-
-            if (isLoggedIn) {
-                item {
-                    SectionHeader(stringResource(R.string.email_verification))
-                }
-
-                item {
-                    val verified = currentUser?.isEmailVerified == true
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = if (verified) stringResource(R.string.email_verified_label) else stringResource(R.string.email_not_verified_label),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            if (!verified) {
-                                OutlinedButton(
-                                    onClick = { authViewModel.requestEmailVerification() }
-                                ) {
-                                    Text(stringResource(R.string.resend_verification_link))
-                                }
-                            }
-                            when (val state = emailVerificationState) {
-                                is OperationState.Success -> {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = state.message,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                is OperationState.Error -> {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = state.message,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                                else -> Unit
-                            }
-                        }
-                    }
-                }
             }
 
             // ------------------------
@@ -294,7 +251,10 @@ fun ProfileScreen(
                 if (isLoggedIn) {
                     OutlinedButton(
                         onClick = { showLogoutDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         ),
@@ -307,7 +267,10 @@ fun ProfileScreen(
                 } else {
                     Button(
                         onClick = onNavigateToLogin,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Login, contentDescription = stringResource(R.string.login))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -341,44 +304,50 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeaderCard(
     currentUser: com.picpose.bestphotographyapp.data.remote.dto.User?,
-    fallbackBio: String
+    fallbackBio: String,
+    isLoggedIn: Boolean,
+    emailVerificationState: OperationState,
+    onRequestVerification: () -> Unit
 ) {
+    val hasBio = !currentUser?.bio.isNullOrBlank()
+    val profileBio = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(22.dp),
+            .padding(horizontal = 4.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 7.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 460.dp)
-                .padding(vertical = 32.dp, horizontal = 24.dp),
+                .widthIn(max = 480.dp)
+                .padding(vertical = 24.dp, horizontal = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
-            // ----------------------------
-            // PROFILE IMAGE WITH RING
-            // ----------------------------
-            Box(
+            Surface(
                 modifier = Modifier
-                    .size(180.dp)
-                    .padding(bottom = 8.dp),
-                contentAlignment = Alignment.Center
+                    .size(116.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                ),
+                shadowElevation = 6.dp
             ) {
-
-                NeonGradientRing(
-                    size = 180.dp,
-                    borderWidth = 4.dp
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (!currentUser?.displayProfilePicture.isNullOrBlank()) {
                         SubcomposeAsyncImage(
@@ -386,13 +355,13 @@ private fun ProfileHeaderCard(
                             contentDescription = stringResource(R.string.profile_picture),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(168.dp)
+                                .size(108.dp)
                                 .clip(CircleShape)
                         ) {
                             if (painter.state is coil.compose.AsyncImagePainter.State.Loading) {
                                 ShimmerBox(
                                     modifier = Modifier
-                                        .size(168.dp)
+                                        .size(108.dp)
                                         .clip(CircleShape),
                                     shape = CircleShape
                                 )
@@ -402,21 +371,15 @@ private fun ProfileHeaderCard(
                         }
                     } else {
                         DefaultProfileImage(
-                            modifier = Modifier.size(168.dp)
+                            modifier = Modifier.size(108.dp)
                         )
                     }
                 }
-
             }
 
-            Spacer(Modifier.height(14.dp))
-
-            // ----------------------------
-            // NAME
-            // ----------------------------
             Text(
                 text = currentUser?.displayName ?: stringResource(R.string.guest_user),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -424,78 +387,201 @@ private fun ProfileHeaderCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // ----------------------------
-            // EMAIL
-            // ----------------------------
             Text(
                 text = currentUser?.email ?: stringResource(R.string.not_logged_in),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.95f),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth(0.9f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(0.35f),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-            )
+            if (isLoggedIn) {
+                VerificationStatusSection(
+                    isVerified = currentUser?.isEmailVerified == true,
+                    emailVerificationState = emailVerificationState,
+                    onRequestVerification = onRequestVerification
+                )
+            }
 
-            // ----------------------------
-            // BIO
-            // ----------------------------
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                )
+            ) {
+                Text(
+                    text = profileBio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (hasBio) 0.9f else 0.72f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .fillMaxWidth(),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VerificationStatusSection(
+    isVerified: Boolean,
+    emailVerificationState: OperationState,
+    onRequestVerification: () -> Unit
+) {
+    if (isVerified) {
+        VerifiedEmailCard()
+        return
+    }
+
+    UnverifiedEmailCard(
+        emailVerificationState = emailVerificationState,
+        onRequestVerification = onRequestVerification
+    )
+}
+
+@Composable
+private fun VerifiedEmailCard() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Verified,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.profile_email_verified_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Text(
-                text = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(top = 12.dp)
-                    .fillMaxWidth(0.88f),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                text = stringResource(R.string.profile_email_verified_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-fun NeonGradientRing(
-    modifier: Modifier = Modifier,
-    size: Dp = 150.dp,
-    borderWidth: Dp = 6.dp,
-    content: @Composable BoxScope.() -> Unit
+private fun UnverifiedEmailCard(
+    emailVerificationState: OperationState,
+    onRequestVerification: () -> Unit
 ) {
-    val gradientColors = listOf(
-        Color(0xFFFF5F6D),  // Pink
-        Color(0xFFFFC371),  // Orange
-        Color(0xFF42E695),  // Green
-        Color(0xFF3BB2B8),  // Teal
-        Color(0xFF4776E6),  // Blue
-        Color(0xFF8E54E9)   // Purple
-    )
+    val isLoading = emailVerificationState is OperationState.Loading
+    val stateMessageColor = when (emailVerificationState) {
+        is OperationState.Success -> MaterialTheme.colorScheme.primary
+        is OperationState.Error -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
-    val brush = Brush.sweepGradient(gradientColors)
-
-    Box(
-        modifier = modifier
-            .size(size)
-            .shadow(
-                elevation = 25.dp,
-                shape = CircleShape,
-                ambientColor = Color(0xFF8E54E9).copy(alpha = 0.7f),
-                spotColor = Color(0xFFFF5F6D).copy(alpha = 0.7f)
-            )
-            .background(
-                brush = brush,
-                shape = CircleShape
-            )
-            .padding(borderWidth),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.24f)
+        )
     ) {
-        content()
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MarkEmailUnread,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = stringResource(R.string.profile_email_unverified_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.profile_email_unverified_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            FilledTonalButton(
+                onClick = onRequestVerification,
+                enabled = !isLoading,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Email,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (emailVerificationState is OperationState.Success) {
+                            stringResource(R.string.resend_verification_link)
+                        } else {
+                            stringResource(R.string.verify_email)
+                        }
+                    )
+                }
+            }
+
+            when (emailVerificationState) {
+                is OperationState.Success -> {
+                    Text(
+                        text = emailVerificationState.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = stateMessageColor
+                    )
+                }
+                is OperationState.Error -> {
+                    Text(
+                        text = emailVerificationState.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = stateMessageColor
+                    )
+                }
+                else -> Unit
+            }
+        }
     }
 }
 
@@ -514,30 +600,29 @@ private fun DefaultProfileImage(modifier: Modifier = Modifier) {
                 Icons.Default.Person,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier.size(44.dp)
             )
         }
     }
 }
-
 
 @Composable
 private fun SectionHeader(title: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 2.dp)
+            .padding(top = 6.dp, bottom = 2.dp)
     ) {
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
         HorizontalDivider(
             modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         )
     }
 }
@@ -547,42 +632,60 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 76.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                option.icon,
-                null,
-                modifier = Modifier.size(22.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        option.icon,
+                        null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
 
             Column(Modifier.weight(1f)) {
                 Text(
                     option.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     option.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
             Icon(
                 Icons.Filled.ChevronRight,
                 null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
             )
         }
     }

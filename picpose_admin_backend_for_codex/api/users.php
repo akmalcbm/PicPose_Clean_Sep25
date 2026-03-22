@@ -60,6 +60,28 @@ $raw = file_get_contents("php://input");
 $input = json_decode($raw, true);
 if (!is_array($input)) $input = $_POST;
 
+function pick_random_default_bio(): string {
+    $bios = [
+        "Photographer exploring creative portraits and cinematic light",
+        "AI prompt lover crafting better image generations",
+        "Visual storyteller inspired by street and studio scenes",
+        "Playing with light, color, and composition daily",
+        "Turning ideas into powerful AI image prompts",
+        "Helping creators level up with smart prompts",
+        "Blending photography, AI, and creativity",
+        "Exploring the future of AI-generated visuals",
+        "Creating prompts that spark stunning images",
+        "From real shots to AI-crafted art",
+        "Designing prompts for next-gen creators",
+        "Inspired by people, places, and imagination",
+        "Experimenting with AI, art, and aesthetics",
+        "Making visuals better with the right prompts",
+        "Sharing creative AI ideas one prompt at a time"
+    ];
+
+    return $bios[array_rand($bios)];
+}
+
 // --------------------------
 // REGISTER
 // --------------------------
@@ -67,6 +89,11 @@ if ($method === "POST" && $action === "register") {
     $name = trim($input["name"] ?? "");
     $email = trim($input["email"] ?? "");
     $password = trim($input["password"] ?? "");
+    $bio = trim((string)($input["bio"] ?? ""));
+
+    if ($bio === "") {
+        $bio = pick_random_default_bio();
+    }
 
     if (!$name || !$email || !$password) {
         echo json_encode(["status" => "error", "message" => "All fields are required"]);
@@ -94,11 +121,11 @@ if ($method === "POST" && $action === "register") {
 
     // Insert user
     $stmt = $conn->prepare("
-        INSERT INTO users (username, display_name, email, password, provider, profile_pic, created_at)
-        VALUES (?, ?, ?, ?, 'email', ?, NOW())
+        INSERT INTO users (username, display_name, email, password, provider, profile_pic, bio, created_at)
+        VALUES (?, ?, ?, ?, 'email', ?, ?, NOW())
     ");
 
-    $stmt->bind_param("sssss", $name, $name, $email, $hashed, $defaultPic);
+    $stmt->bind_param("ssssss", $name, $name, $email, $hashed, $defaultPic, $bio);
     $stmt->execute();
 
     $newId = $stmt->insert_id;
@@ -111,7 +138,8 @@ if ($method === "POST" && $action === "register") {
             "id" => $newId,
             "email" => $email,
             "display_name" => $name,
-            "profile_pic" => $defaultPic
+            "profile_pic" => $defaultPic,
+            "bio" => $bio
         ]
     ]);
     exit();

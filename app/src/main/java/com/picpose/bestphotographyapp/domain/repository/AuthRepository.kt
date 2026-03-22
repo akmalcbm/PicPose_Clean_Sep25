@@ -22,7 +22,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.User
 
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<User>
-    suspend fun register(email: String, password: String, name: String): Result<User>
+    suspend fun register(email: String, password: String, name: String, bio: String? = null): Result<User>
     suspend fun socialLogin(
         provider: String,
         token: String,
@@ -46,4 +46,3 @@ interface AuthRepository {
     suspend fun requestEmailVerification(userId: String): Result<String>
     suspend fun verifyEmailToken(token: String): Result<String>
 }
-

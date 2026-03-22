@@ -175,7 +175,8 @@ data class LoginRequest(
 data class RegisterRequest(
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String,
-    @SerializedName("name") val name: String
+    @SerializedName("name") val name: String,
+    @SerializedName("bio") val bio: String? = null
 )
 
 data class ForgotPasswordRequest(

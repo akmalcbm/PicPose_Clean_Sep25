@@ -36,6 +36,7 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
+import com.picpose.bestphotographyapp.core.profile.BioPresetProvider
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.remote.dto.AccountType
@@ -418,12 +419,16 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, password: String, name: String) {
+    fun register(email: String, password: String, name: String, bio: String? = null) {
         if (_authState.value is AuthState.Loading) return
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            debugLog("email_signup_request emailPresent=${email.isNotBlank()} namePresent=${name.isNotBlank()}")
-            val result = authRepository.register(email, password, name)
+            val resolvedBio = BioPresetProvider.resolveOrRandom(appContext, bio)
+            debugLog(
+                "email_signup_request emailPresent=${email.isNotBlank()} " +
+                    "namePresent=${name.isNotBlank()} bioPresent=${!resolvedBio.isNullOrBlank()}"
+            )
+            val result = authRepository.register(email, password, name, resolvedBio)
 
             if (result.isSuccess) {
                 saveAndEmitSuccess(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
@@ -475,7 +480,21 @@ class AuthViewModel @Inject constructor(
             _emailVerificationRequestState.value = OperationState.Loading
             val result = authRepository.requestEmailVerification(userId)
             _emailVerificationRequestState.value = if (result.isSuccess) {
-                OperationState.Success(result.getOrNull() ?: appContext.getString(R.string.verification_email_sent))
+                val responseMessage = result.getOrNull().orEmpty()
+                if (responseMessage.contains("already verified", ignoreCase = true)) {
+                    userSessionManager.setEmailVerified(true)
+                }
+
+                // Always attempt to sync server profile after requesting verification.
+                // This prevents stale local email-verified flags from contradicting backend truth.
+                refreshCurrentUserSessionOnly()
+
+                val isVerifiedNow = userSessionManager.userEmailVerified.firstOrNull() ?: false
+                if (isVerifiedNow) {
+                    OperationState.Idle
+                } else {
+                    OperationState.Success(appContext.getString(R.string.verification_email_sent))
+                }
             } else {
                 OperationState.Error(
                     result.exceptionOrNull()?.message ?: appContext.getString(R.string.network_error_try_again)
@@ -596,6 +615,12 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun refreshCurrentUserSilently() {
+        viewModelScope.launch {
+            refreshCurrentUserSessionOnly()
+        }
+    }
+
     fun updateProfile(
         name: String,
         bio: String?,
@@ -664,6 +689,17 @@ class AuthViewModel @Inject constructor(
             token = null,
             emailVerified = user.isEmailVerified
         )
+    }
+
+    private suspend fun refreshCurrentUserSessionOnly() {
+        val userId = userSessionManager.userId.firstOrNull()
+        if (userId.isNullOrBlank()) return
+
+        val result = authRepository.getUserProfile(userId)
+        if (result.isSuccess) {
+            val safeUser = normalizeAuthUser(result.getOrNull()!!, fallbackAccountType = AccountType.NORMAL)
+            saveSession(safeUser)
+        }
     }
 
     private fun normalizeAuthUser(user: User, fallbackAccountType: AccountType): User {

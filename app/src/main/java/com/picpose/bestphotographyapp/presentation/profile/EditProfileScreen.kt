@@ -59,6 +59,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.core.profile.BioPresetProvider
 import com.picpose.bestphotographyapp.data.remote.dto.AccountType
 import com.picpose.bestphotographyapp.components.common.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
@@ -190,9 +191,7 @@ fun EditProfileScreen(
         }
     }
 
-    val aiBioSuggestions = remember {
-        context.resources.getStringArray(R.array.ai_bio_suggestions).toList()
-    }
+    val aiBioSuggestions = remember { BioPresetProvider.suggestions(context) }
     val filteredBioSuggestions = remember(aiBioSuggestions, bioSearch) {
         val query = bioSearch.trim()
         if (query.isEmpty()) {
