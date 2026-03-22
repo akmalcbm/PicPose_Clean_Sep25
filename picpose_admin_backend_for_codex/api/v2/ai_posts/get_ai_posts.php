@@ -127,6 +127,8 @@ $search = $_GET['q'] ?? null;
 $tag = $_GET['tag'] ?? null;
 $categoryId = $_GET['category_id'] ?? null;
 $categoryName = $_GET['category'] ?? null;
+$tierFilter = isset($_GET['tier']) ? strtoupper(trim((string)$_GET['tier'])) : null;
+$tierFilter = in_array($tierFilter, ['FREE', 'PREMIUM'], true) ? $tierFilter : null;
 $popular = isset($_GET['popular']) && ($_GET['popular'] == '1' || $_GET['popular'] === 'true');
 $featured = isset($_GET['featured']) && ($_GET['featured'] == '1' || $_GET['featured'] === 'true');
 
@@ -168,6 +170,12 @@ if (!empty($categoryId)) {
 } elseif (!empty($categoryName)) {
     $sql .= ' AND c.name = ?';
     $params[] = $categoryName;
+    $types .= 's';
+}
+
+if (!empty($tierFilter)) {
+    $sql .= ' AND UPPER(COALESCE(p.tier, \'FREE\')) = ?';
+    $params[] = $tierFilter;
     $types .= 's';
 }
 
@@ -284,6 +292,12 @@ if (!empty($categoryId)) {
 } elseif (!empty($categoryName)) {
     $countSql .= ' AND c.name = ?';
     $countParams[] = $categoryName;
+    $countTypes .= 's';
+}
+
+if (!empty($tierFilter)) {
+    $countSql .= ' AND UPPER(COALESCE(p.tier, \'FREE\')) = ?';
+    $countParams[] = $tierFilter;
     $countTypes .= 's';
 }
 

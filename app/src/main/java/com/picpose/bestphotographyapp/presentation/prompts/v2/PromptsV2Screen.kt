@@ -1483,8 +1483,8 @@ private fun matchesSelectedCategory(prompt: V2PromptDto, selectedCategory: Strin
 private fun matchesSelectedFilter(prompt: V2PromptDto, filter: PromptChipFilter): Boolean {
     return when (filter) {
         PromptChipFilter.All -> true
-        PromptChipFilter.Free -> !prompt.tier.equals("PREMIUM", ignoreCase = true)
-        PromptChipFilter.Premium -> prompt.tier.equals("PREMIUM", ignoreCase = true)
+        PromptChipFilter.Free -> !prompt.isPremium
+        PromptChipFilter.Premium -> prompt.isPremium
         PromptChipFilter.Featured -> prompt.isFeatured
     }
 }

@@ -48,7 +48,12 @@ data class V2PromptDto(
     @SerializedName("premiumPack") val premiumPack: String? = null,
     @SerializedName("isLocked") val isLocked: Boolean = false,
     @SerializedName("teaserText") val teaserText: String? = null,
-)
+) {
+    val isPremium: Boolean
+        get() = tier.equals("PREMIUM", ignoreCase = true) ||
+            premiumUnlockCostPoints > 0 ||
+            !premiumPack.isNullOrBlank()
+}
 
 @Keep
 data class V2PromptListResponseDto(

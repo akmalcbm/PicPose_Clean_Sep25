@@ -75,14 +75,19 @@ class V2PromptsRepository @Inject constructor(
                 offset = offset,
                 query = query?.takeIf { it.isNotBlank() },
                 category = category?.takeIf { it.isNotBlank() && !it.equals("All", ignoreCase = true) },
+                tier = when (premiumOnly) {
+                    true -> "PREMIUM"
+                    false -> "FREE"
+                    null -> null
+                },
                 featured = featuredOnly.takeIf { it },
             )
             val body = response.body()
             ensureSuccess(response, body?.message, body?.success == true)
             val items = body?.data.orEmpty()
             val filtered = when (premiumOnly) {
-                true -> items.filter { it.tier.equals("PREMIUM", ignoreCase = true) }
-                false -> items.filter { !it.tier.equals("PREMIUM", ignoreCase = true) }
+                true -> items.filter { it.isPremium }
+                false -> items.filter { !it.isPremium }
                 null -> items
             }
             val backendHasMore = body?.hasMore == true

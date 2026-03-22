@@ -53,6 +53,7 @@ interface V2ApiService {
         @Query("offset") offset: Int? = null,
         @Query("q") query: String? = null,
         @Query("category") category: String? = null,
+        @Query("tier") tier: String? = null,
         @Query("tag") tag: String? = null,
         @Query("popular") popular: Boolean? = null,
         @Query("status") status: String? = null,
