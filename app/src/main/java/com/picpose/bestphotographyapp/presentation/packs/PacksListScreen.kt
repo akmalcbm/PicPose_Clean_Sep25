@@ -23,6 +23,7 @@ package com.picpose.bestphotographyapp.presentation.packs
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,10 +37,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WorkspacePremium
@@ -53,6 +56,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -172,109 +176,147 @@ private fun PackRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOpenPack(pack.id) },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(24.dp),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(196.dp)
                 .animateContentSize()
         ) {
             val fallbackBrush = fallbackPackBrush(pack.id)
-            if (!pack.thumbnailUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = pack.thumbnailUrl,
-                    contentDescription = pack.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(fallbackBrush)
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                    .height(146.dp)
+            ) {
+                if (!pack.thumbnailUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = pack.thumbnailUrl,
+                        contentDescription = pack.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(fallbackBrush)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+                                )
                             )
                         )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PackMetaChip(
+                        text = stringResource(R.string.premium),
+                        icon = Icons.Default.AutoAwesome,
                     )
-            )
+                    if (pack.ownsPack) {
+                        PackMetaChip(text = stringResource(R.string.pack_owned))
+                    }
+                }
+            }
 
             Column(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(stringResource(R.string.premium)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                            )
-                        },
-                    )
-                    if (pack.ownsPack) {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(stringResource(R.string.pack_owned)) },
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = pack.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = pack.description?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.pack_default_description),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
-                Text(
-                    text = pack.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = pack.description?.takeIf { it.isNotBlank() }
-                        ?: stringResource(R.string.pack_default_description),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("${pack.itemCount} ${stringResource(R.string.pack_prompts)}") },
+                    PackMetaChip(
+                        text = "${pack.itemCount} ${stringResource(R.string.pack_prompts)}",
                     )
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("${pack.pricePoints} ${stringResource(R.string.rewards_credits)}") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.WorkspacePremium,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
+                    PackMetaChip(
+                        text = "${pack.pricePoints} ${stringResource(R.string.rewards_credits)}",
+                        icon = Icons.Default.WorkspacePremium,
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PackMetaChip(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.36f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
