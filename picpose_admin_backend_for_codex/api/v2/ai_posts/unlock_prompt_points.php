@@ -165,7 +165,9 @@ try {
         $conn->commit();
         json_ok([
             'success' => true,
+            'message' => 'You already unlocked this prompt.',
             'unlocked' => true,
+            'duplicate' => true,
             'points_balance' => $currentBalance,
             'cost' => $cost,
         ]);
@@ -204,9 +206,14 @@ try {
     $delta = -$cost;
     $deltaParam = (string)$delta;
     $balanceAfterParam = (string)$newBalance;
-    $ledgerRefId = (string)$postId;
+    // Keep refs user-scoped so global legacy unique keys do not collide
+    // when different users unlock the same premium post.
+    $ledgerRefId = $userId . ':' . (string)$postId;
     $ledgerStmt->bind_param('isss', $userId, $deltaParam, $balanceAfterParam, $ledgerRefId);
-    if (!$ledgerStmt->execute()) {
+    $ledgerOk = $ledgerStmt->execute();
+    $ledgerErr = (int)$ledgerStmt->errno;
+    if (!$ledgerOk && $ledgerErr !== 1062) {
+        $ledgerStmt->close();
         throw new RuntimeException('Failed to insert ledger row');
     }
     $ledgerStmt->close();
@@ -223,6 +230,7 @@ try {
 
     json_ok([
         'success' => true,
+        'message' => 'Prompt unlocked successfully.',
         'unlocked' => true,
         'points_balance' => $finalPointsBalance,
         'cost' => $cost,
@@ -234,5 +242,6 @@ try {
         json_err('Insufficient points', 402);
     }
 
+    error_log('unlock_prompt_points failed for user ' . $userId . ' post ' . $postId . ': ' . $e->getMessage());
     json_err('Failed to unlock prompt with points', 500);
 }

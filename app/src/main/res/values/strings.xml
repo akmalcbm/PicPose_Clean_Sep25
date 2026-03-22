@@ -610,6 +610,7 @@
     <string name="referral_reward_claimed">Reward Claimed</string>
     <string name="referral_login_to_claim">Login to claim</string>
     <string name="referral_login_to_claim_rewards">Login to claim rewards and referrals.</string>
+    <string name="rewards_claim_short">Claim</string>
     <string name="referral_complete_unlock_to_qualify">Complete your first unlock to qualify</string>
     <string name="referral_code_label">Referral code</string>
     <string name="referral_qualify_helper">Rewards unlock after qualifying action (e.g., first premium unlock or first generation).</string>
@@ -626,6 +627,13 @@
     <string name="prompt_locked">Locked</string>
     <string name="prompt_unlocked">Unlocked</string>
     <string name="prompt_open">Open</string>
+    <string name="prompt_unlock_now">Unlock Now</string>
+    <string name="prompt_unlock_login_required">Login to Unlock</string>
+    <string name="prompt_unlock_premium_title">Premium Prompt Access</string>
+    <string name="prompt_unlock_login_hint">Login to unlock this prompt with credits.</string>
+    <string name="prompt_unlock_instant_hint">Unlock instantly and use the full prompt right away.</string>
+    <string name="prompt_unlock_not_enough_hint">You need %1$d credits to unlock this premium prompt.</string>
+    <string name="prompt_balance_credits">Balance: %1$d credits</string>
     <string name="rewards_credits">credits</string>
     <string name="filter_owned">Owned</string>
     <string name="filter_best_value">Best Value</string>

@@ -23,14 +23,21 @@ package com.picpose.bestphotographyapp.presentation.prompts.v2
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
+import com.picpose.bestphotographyapp.data.repository.RewardsRepository
+import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -49,6 +56,8 @@ data class PromptsV2UiState(
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = false,
     val prompts: List<V2PromptDto> = emptyList(),
+    val pointsBalance: Int? = null,
+    val unlockingPromptIds: Set<String> = emptySet(),
     val engagementByPromptId: Map<String, PromptEngagementUi> = emptyMap(),
     val categories: List<String> = listOf(CATEGORY_ALL),
     val selectedFilter: PromptChipFilter = PromptChipFilter.All,
@@ -65,11 +74,33 @@ private const val CATEGORY_ALL = "All"
 class PromptsV2ViewModel @Inject constructor(
     private val promptsRepository: V2PromptsRepository,
     private val engagementRepository: EngagementRepository,
+    private val rewardsRepository: RewardsRepository,
+    userSessionManager: UserSessionManager,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PromptsV2UiState())
     val uiState: StateFlow<PromptsV2UiState> = _uiState.asStateFlow()
 
+    val isLoggedIn: StateFlow<Boolean> = userSessionManager.authenticatedSession
+        .map { it != null }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
+
     private var currentOffset: Int = 0
+
+    init {
+        viewModelScope.launch {
+            isLoggedIn.collect { loggedIn ->
+                if (!loggedIn) {
+                    _uiState.update { it.copy(pointsBalance = null, unlockingPromptIds = emptySet()) }
+                } else {
+                    syncPointsBalance(forceRefresh = true)
+                }
+            }
+        }
+    }
 
     fun initialize(initialCategory: String?) {
         val targetCategory = normalizeCategory(initialCategory)
@@ -80,6 +111,9 @@ class PromptsV2ViewModel @Inject constructor(
             category = targetCategory,
             filter = _uiState.value.selectedFilter,
         )
+        if (isLoggedIn.value) {
+            syncPointsBalance(forceRefresh = false)
+        }
     }
 
     fun refresh() {
@@ -212,6 +246,65 @@ class PromptsV2ViewModel @Inject constructor(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    fun unlockPromptWithPoints(promptId: String) {
+        val snapshot = _uiState.value
+        val prompt = snapshot.prompts.firstOrNull { it.id == promptId } ?: return
+        if (!prompt.isLocked) {
+            _uiState.update { it.copy(errorMessage = "This prompt is already unlocked.") }
+            return
+        }
+        if (!isLoggedIn.value) {
+            _uiState.update { it.copy(errorMessage = "Please login to unlock premium prompts.") }
+            return
+        }
+        if (promptId in snapshot.unlockingPromptIds) return
+
+        val cost = prompt.premiumUnlockCostPoints.coerceAtLeast(0)
+        val balance = snapshot.pointsBalance
+        if (balance != null && cost > balance) {
+            _uiState.update { it.copy(errorMessage = "Not enough credits to unlock this prompt.") }
+            return
+        }
+
+        _uiState.update { it.copy(unlockingPromptIds = it.unlockingPromptIds + promptId) }
+
+        viewModelScope.launch {
+            promptsRepository.unlockPromptWithPoints(promptId)
+                .onSuccess { response ->
+                    val successMessage = when {
+                        response.duplicate -> "You already unlocked this prompt."
+                        response.unlocked -> "Prompt unlocked successfully."
+                        else -> response.message ?: "Unlock completed."
+                    }
+                    _uiState.update { current ->
+                        val updatedPrompts = current.prompts.map { item ->
+                            if (item.id == promptId) item.copy(isLocked = false) else item
+                        }
+                        current.copy(
+                            prompts = updatedPrompts,
+                            pointsBalance = response.pointsBalance ?: current.pointsBalance?.let { currentBalance ->
+                                val fallbackCost = response.cost ?: cost
+                                (currentBalance - fallbackCost).coerceAtLeast(0)
+                            },
+                            unlockingPromptIds = current.unlockingPromptIds - promptId,
+                            errorMessage = successMessage,
+                        )
+                    }
+
+                    syncPointsBalance(forceRefresh = true)
+                    refreshCurrentFilterAfterUnlock()
+                }
+                .onFailure { throwable ->
+                    _uiState.update { current ->
+                        current.copy(
+                            unlockingPromptIds = current.unlockingPromptIds - promptId,
+                            errorMessage = mapUnlockError(throwable),
+                        )
+                    }
+                }
+        }
+    }
+
     fun loadPrompts(
         reset: Boolean,
         forceRefresh: Boolean,
@@ -342,5 +435,49 @@ class PromptsV2ViewModel @Inject constructor(
     private fun normalizeCategory(raw: String?): String {
         val normalized = raw?.trim().orEmpty()
         return if (normalized.isBlank()) CATEGORY_ALL else normalized
+    }
+
+    private fun refreshCurrentFilterAfterUnlock() {
+        val snapshot = _uiState.value
+        loadPrompts(
+            reset = true,
+            forceRefresh = true,
+            category = snapshot.selectedCategory,
+            filter = snapshot.selectedFilter,
+        )
+    }
+
+    private fun syncPointsBalance(forceRefresh: Boolean) {
+        viewModelScope.launch {
+            if (!isLoggedIn.value) return@launch
+
+            if (!forceRefresh) {
+                rewardsRepository.getCachedHub()?.let { hub ->
+                    _uiState.update { it.copy(pointsBalance = hub.pointsBalance) }
+                }
+            }
+
+            rewardsRepository.refreshHub()
+                .onSuccess { hub ->
+                    _uiState.update { it.copy(pointsBalance = hub.pointsBalance) }
+                }
+        }
+    }
+
+    private fun mapUnlockError(throwable: Throwable): String {
+        val raw = throwable.message.orEmpty()
+        if (throwable is IOException) {
+            return "Network error while unlocking prompt. Please try again."
+        }
+        if (throwable is V2ApiException) {
+            return when {
+                throwable.code == 401 || throwable.code == 403 -> "Session expired. Please log in again."
+                throwable.code == 402 || raw.contains("insufficient", ignoreCase = true) -> "Not enough credits to unlock this prompt."
+                raw.contains("already unlocked", ignoreCase = true) -> "You already unlocked this prompt."
+                throwable.code in 500..599 -> "Server error while unlocking. Please try again."
+                else -> raw.ifBlank { "Unable to unlock prompt right now." }
+            }
+        }
+        return raw.ifBlank { "Unable to unlock prompt right now." }
     }
 }

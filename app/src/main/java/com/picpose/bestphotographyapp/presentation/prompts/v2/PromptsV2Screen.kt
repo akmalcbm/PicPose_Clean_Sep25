@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -160,6 +161,7 @@ fun PromptsV2Screen(
     viewModel: PromptsV2ViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val adsConfigState by AdsManager.configState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -400,8 +402,11 @@ fun PromptsV2Screen(
                             PromptV2ListCard(
                                 prompt = prompt,
                                 engagement = engagement,
+                                pointsBalance = uiState.pointsBalance,
+                                isLoggedIn = isLoggedIn,
+                                isUnlocking = prompt.id in uiState.unlockingPromptIds,
                                 onOpen = { onPromptClick(prompt.id) },
-                                onUnlock = { onPromptClick(prompt.id) },
+                                onUnlockWithPoints = { viewModel.unlockPromptWithPoints(prompt.id) },
                                 onWatchAd = { onPromptClick(prompt.id) },
                                 onCopy = {
                                     val copyText = prompt.copyTextForList()
@@ -482,8 +487,11 @@ fun PromptsV2Screen(
                                     PromptV2GridCard(
                                         prompt = prompt,
                                         engagement = engagement,
+                                        pointsBalance = uiState.pointsBalance,
+                                        isLoggedIn = isLoggedIn,
+                                        isUnlocking = prompt.id in uiState.unlockingPromptIds,
                                         onOpen = { onPromptClick(prompt.id) },
-                                        onUnlock = { onPromptClick(prompt.id) },
+                                        onUnlockWithPoints = { viewModel.unlockPromptWithPoints(prompt.id) },
                                         onWatchAd = { onPromptClick(prompt.id) },
                                         onCopy = {
                                             val copyText = prompt.copyTextForList()
@@ -736,8 +744,11 @@ private fun PromptSelectableChip(
 private fun PromptV2ListCard(
     prompt: V2PromptDto,
     engagement: PromptEngagementUi?,
+    pointsBalance: Int?,
+    isLoggedIn: Boolean,
+    isUnlocking: Boolean,
     onOpen: () -> Unit,
-    onUnlock: () -> Unit,
+    onUnlockWithPoints: () -> Unit,
     onWatchAd: () -> Unit,
     onCopy: () -> Unit,
     onLike: () -> Unit,
@@ -804,8 +815,12 @@ private fun PromptV2ListCard(
 
                 PromptCardCtaSection(
                     isLocked = prompt.isLocked,
+                    unlockCostPoints = prompt.premiumUnlockCostPoints,
+                    pointsBalance = pointsBalance,
+                    isLoggedIn = isLoggedIn,
+                    isUnlocking = isUnlocking,
                     onOpen = onOpen,
-                    onUnlock = onUnlock,
+                    onUnlockWithPoints = onUnlockWithPoints,
                     onWatchAd = onWatchAd,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -818,8 +833,11 @@ private fun PromptV2ListCard(
 private fun PromptV2GridCard(
     prompt: V2PromptDto,
     engagement: PromptEngagementUi?,
+    pointsBalance: Int?,
+    isLoggedIn: Boolean,
+    isUnlocking: Boolean,
     onOpen: () -> Unit,
-    onUnlock: () -> Unit,
+    onUnlockWithPoints: () -> Unit,
     onWatchAd: () -> Unit,
     onCopy: () -> Unit,
     onLike: () -> Unit,
@@ -894,8 +912,12 @@ private fun PromptV2GridCard(
 
                 PromptCardCtaSection(
                     isLocked = prompt.isLocked,
+                    unlockCostPoints = prompt.premiumUnlockCostPoints,
+                    pointsBalance = pointsBalance,
+                    isLoggedIn = isLoggedIn,
+                    isUnlocking = isUnlocking,
                     onOpen = onOpen,
-                    onUnlock = onUnlock,
+                    onUnlockWithPoints = onUnlockWithPoints,
                     onWatchAd = onWatchAd,
                     compact = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -966,31 +988,28 @@ private fun PromptStatsActionSection(
 @Composable
 private fun PromptCardCtaSection(
     isLocked: Boolean,
+    unlockCostPoints: Int,
+    pointsBalance: Int?,
+    isLoggedIn: Boolean,
+    isUnlocking: Boolean,
     onOpen: () -> Unit,
-    onUnlock: () -> Unit,
+    onUnlockWithPoints: () -> Unit,
     onWatchAd: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
     if (isLocked) {
-        Row(
+        PremiumUnlockPanel(
+            unlockCostPoints = unlockCostPoints,
+            pointsBalance = pointsBalance,
+            isLoggedIn = isLoggedIn,
+            isUnlocking = isUnlocking,
+            onOpen = onOpen,
+            onUnlockWithPoints = onUnlockWithPoints,
+            onWatchAd = onWatchAd,
             modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
-        ) {
-            PromptPrimaryButton(
-                text = stringResource(R.string.prompt_open),
-                onClick = onUnlock,
-                modifier = Modifier.weight(1f),
-                compact = compact,
-            )
-            PromptSecondaryButton(
-                text = stringResource(R.string.rewards_watch_ad_short),
-                icon = Icons.Default.VideoLibrary,
-                onClick = onWatchAd,
-                modifier = Modifier.weight(1f),
-                compact = compact,
-            )
-        }
+            compact = compact,
+        )
     } else {
         PromptPrimaryButton(
             text = stringResource(R.string.prompt_open),
@@ -998,6 +1017,129 @@ private fun PromptCardCtaSection(
             modifier = modifier,
             compact = compact,
         )
+    }
+}
+
+@Composable
+private fun PremiumUnlockPanel(
+    unlockCostPoints: Int,
+    pointsBalance: Int?,
+    isLoggedIn: Boolean,
+    isUnlocking: Boolean,
+    onOpen: () -> Unit,
+    onUnlockWithPoints: () -> Unit,
+    onWatchAd: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    val unlockCost = unlockCostPoints.coerceAtLeast(0)
+    val hasEnoughCredits = pointsBalance?.let { it >= unlockCost } ?: true
+    val canUnlockWithCredits = isLoggedIn && hasEnoughCredits && !isUnlocking
+
+    val primaryButtonText = when {
+        isUnlocking -> stringResource(R.string.pack_unlocking)
+        !isLoggedIn -> stringResource(R.string.prompt_unlock_login_required)
+        unlockCost > 0 -> stringResource(R.string.pack_unlock_for_credits, unlockCost)
+        else -> stringResource(R.string.prompt_unlock_now)
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(if (compact) 14.dp else 18.dp),
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(if (compact) 4.dp else 5.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
+        tonalElevation = if (compact) 3.dp else 4.dp,
+        shadowElevation = if (compact) 2.dp else 3.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.24f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        ),
+                    ),
+                )
+                .padding(horizontal = if (compact) 10.dp else 12.dp, vertical = if (compact) 10.dp else 12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PromptPremiumBadge(compact = compact)
+                pointsBalance?.let { balance ->
+                    PromptMetaChip(
+                        text = stringResource(R.string.prompt_balance_credits, balance),
+                        compact = true,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (compact) 8.dp else 10.dp))
+
+            Text(
+                text = stringResource(R.string.prompt_unlock_premium_title),
+                style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = when {
+                    !isLoggedIn -> stringResource(R.string.prompt_unlock_login_hint)
+                    pointsBalance != null && !hasEnoughCredits -> stringResource(
+                        R.string.prompt_unlock_not_enough_hint,
+                        unlockCost,
+                    )
+                    else -> stringResource(R.string.prompt_unlock_instant_hint)
+                },
+                style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(if (compact) 8.dp else 10.dp))
+
+            PromptPrimaryButton(
+                text = primaryButtonText,
+                onClick = {
+                    when {
+                        !isLoggedIn -> onOpen()
+                        canUnlockWithCredits -> onUnlockWithPoints()
+                    }
+                },
+                enabled = !isUnlocking && (!isLoggedIn || hasEnoughCredits),
+                modifier = Modifier.fillMaxWidth(),
+                compact = compact,
+                leadingIcon = Icons.Default.MonetizationOn,
+                showLoading = isUnlocking,
+            )
+
+            Spacer(modifier = Modifier.height(if (compact) 6.dp else 8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+            ) {
+                PromptSecondaryButton(
+                    text = stringResource(R.string.prompt_open),
+                    icon = Icons.Default.Lock,
+                    onClick = onOpen,
+                    modifier = Modifier.weight(1f),
+                    compact = compact,
+                )
+                PromptSecondaryButton(
+                    text = stringResource(R.string.rewards_watch_ad_short),
+                    icon = Icons.Default.VideoLibrary,
+                    onClick = onWatchAd,
+                    modifier = Modifier.weight(1f),
+                    compact = compact,
+                )
+            }
+        }
     }
 }
 
@@ -1329,16 +1471,38 @@ private fun PromptActionIconButton(
 private fun PromptPrimaryButton(
     text: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    leadingIcon: ImageVector? = null,
+    showLoading: Boolean = false,
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(if (compact) 38.dp else 44.dp),
         shape = RoundedCornerShape(if (compact) 12.dp else 14.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = if (compact) 6.dp else 9.dp),
     ) {
+        when {
+            showLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(if (compact) 14.dp else 16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            leadingIcon != null -> {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(if (compact) 14.dp else 16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+        }
         Text(
             text = text,
             maxLines = 1,
