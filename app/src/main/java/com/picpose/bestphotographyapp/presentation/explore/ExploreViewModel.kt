@@ -71,7 +71,9 @@ enum class SortOption(@StringRes val labelRes: Int) {
 enum class ContentFilter(@StringRes val labelRes: Int) {
     ALL(R.string.all_content),
     AI_PROMPTS(R.string.ai_prompts),
-    GUIDE_POSTS(R.string.guide_posts)
+    GUIDE_POSTS(R.string.guide_posts),
+    PREMIUM(R.string.premium),
+    FREE(R.string.free)
 }
 
 data class ExploreUiState(
@@ -228,7 +230,12 @@ class ExploreViewModel @Inject constructor(
                 if (!append) _uiState.update { it.copy(isLoading = true) }
 
                 val state = _uiState.value
-                val shouldLoadAI = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
+                val shouldLoadAI = state.selectedContentFilter in listOf(
+                    ContentFilter.ALL,
+                    ContentFilter.AI_PROMPTS,
+                    ContentFilter.PREMIUM,
+                    ContentFilter.FREE
+                )
                 val shouldLoadGuides = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.GUIDE_POSTS)
 
                 val aiSlice = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else LoadSlice(emptyList(), failed = false)
@@ -296,10 +303,32 @@ class ExploreViewModel @Inject constructor(
         return try {
             var result: List<AIPrompt> = emptyList()
             var failed = false
-            val flow = when (state.selectedSortOption) {
-                SortOption.NEWEST -> homeRepository.getAiPostsSimple(page = state.currentPage, limit = limit, category = category, search = search)
-                SortOption.POPULAR -> homeRepository.getTrendingAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
-                SortOption.MOST_LIKED -> homeRepository.getMostLikedAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
+            val flow = when {
+                // Premium/Free filtering needs full prompt metadata; keep source consistent.
+                state.selectedContentFilter in listOf(ContentFilter.PREMIUM, ContentFilter.FREE) ->
+                    homeRepository.getAiPostsSimple(
+                        page = state.currentPage,
+                        limit = limit,
+                        category = category,
+                        search = search
+                    )
+                state.selectedSortOption == SortOption.NEWEST ->
+                    homeRepository.getAiPostsSimple(
+                        page = state.currentPage,
+                        limit = limit,
+                        category = category,
+                        search = search
+                    )
+                state.selectedSortOption == SortOption.POPULAR ->
+                    homeRepository.getTrendingAiPosts(
+                        limit = limit,
+                        offset = (state.currentPage - 1) * limit
+                    )
+                else ->
+                    homeRepository.getMostLikedAiPosts(
+                        limit = limit,
+                        offset = (state.currentPage - 1) * limit
+                    )
             }
 
             flow.collect { apiResult ->
@@ -370,7 +399,13 @@ class ExploreViewModel @Inject constructor(
             val matchesCategory = state.selectedCategory == allCategoryLabel ||
                     prompt.category.equals(state.selectedCategory, ignoreCase = true)
 
-            matchesSearch && matchesCategory
+            val matchesPremiumFilter = when (state.selectedContentFilter) {
+                ContentFilter.PREMIUM -> prompt.isPremium
+                ContentFilter.FREE -> !prompt.isPremium
+                else -> true
+            }
+
+            matchesSearch && matchesCategory && matchesPremiumFilter
         }
     }
 
