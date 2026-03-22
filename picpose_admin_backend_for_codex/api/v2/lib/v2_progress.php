@@ -209,9 +209,14 @@ function award_xp(mysqli $conn, int $userId, string $eventType, int $xpDelta, st
             $deltaParam = (string)50;
             $balanceAfter = $currentBalance + (($level - $currentLevel) * 50);
             $balanceAfterParam = (string)$balanceAfter;
-            $levelRefId = (string)$level;
+            // Keep level-up references user-scoped so old/global unique indexes
+            // on (ref_type, ref_id) do not collide across users.
+            $levelRefId = $userId . ':' . (string)$level;
             $ledgerStmt->bind_param('isss', $userId, $deltaParam, $balanceAfterParam, $levelRefId);
-            if (!$ledgerStmt->execute()) {
+            $ledgerOk = $ledgerStmt->execute();
+            $ledgerErr = (int)$ledgerStmt->errno;
+            if (!$ledgerOk && $ledgerErr !== 1062) {
+                $ledgerStmt->close();
                 throw new RuntimeException('Failed to insert level reward ledger');
             }
             $ledgerStmt->close();

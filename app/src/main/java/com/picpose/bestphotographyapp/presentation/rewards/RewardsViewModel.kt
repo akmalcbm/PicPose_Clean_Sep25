@@ -34,6 +34,7 @@ import com.picpose.bestphotographyapp.data.repository.RewardsRepository
 import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -183,9 +184,10 @@ class RewardsViewModel @Inject constructor(
                 .onFailure { throwable ->
                     if (throwable.isUnauthorizedRequest()) {
                         markAuthExpired()
+                        _events.emit(RewardsUiEvent.Error("Session expired. Please log in again."))
                         return@onFailure
                     }
-                    val message = throwable.message ?: "Failed to claim streak reward."
+                    val message = mapDailyClaimError(throwable)
                     _uiState.update { it.copy(statusMessage = message, isClaimingReward = false) }
                     _events.emit(RewardsUiEvent.Error(message))
                 }
@@ -535,5 +537,26 @@ class RewardsViewModel @Inject constructor(
 
     private fun Throwable.isUnauthorizedRequest(): Boolean {
         return this is V2ApiException && (code == 401 || code == 403)
+    }
+
+    private fun mapDailyClaimError(throwable: Throwable): String {
+        val raw = throwable.message.orEmpty()
+        if (throwable is IOException) {
+            return "Network error while claiming reward. Please try again."
+        }
+        if (throwable is V2ApiException) {
+            return when {
+                throwable.code == 401 || throwable.code == 403 -> "Session expired. Please log in again."
+                raw.contains("already claimed", ignoreCase = true) -> "You already claimed today's streak reward."
+                throwable.code in 500..599 -> "Server error while claiming reward. Please try again."
+                throwable.code == 400 -> "Invalid reward request. Please refresh and try again."
+                else -> raw.ifBlank { "Unable to claim reward right now." }
+            }
+        }
+        return when {
+            raw.contains("already claimed", ignoreCase = true) -> "You already claimed today's streak reward."
+            raw.isBlank() -> "Unable to claim reward right now."
+            else -> raw
+        }
     }
 }

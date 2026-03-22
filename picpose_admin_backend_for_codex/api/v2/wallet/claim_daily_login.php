@@ -180,6 +180,7 @@ try {
         $conn->commit();
         json_ok([
             'success' => true,
+            'message' => 'You already claimed today\'s login reward.',
             'claimed' => false,
             'streak_count' => $existingStreakCount,
             'points_added' => 0,
@@ -216,6 +217,7 @@ try {
             $conn->commit();
             json_ok([
                 'success' => true,
+                'message' => 'You already claimed today\'s login reward.',
                 'claimed' => false,
                 'streak_count' => $existingStreakCount,
                 'points_added' => 0,
@@ -295,13 +297,26 @@ try {
     }
     $ledgerBaseStmt->close();
 
-    $xpAward = award_xp($conn, $userId, 'DAILY_LOGIN', 10, 'daily_login_xp', $today);
+    try {
+        $xpAward = award_xp($conn, $userId, 'DAILY_LOGIN', 10, 'daily_login_xp', $today);
+    } catch (Throwable $xpError) {
+        error_log('claim_daily_login xp award failed for user ' . $userId . ': ' . $xpError->getMessage());
+        $xpAward = [
+            'awarded' => false,
+            'duplicate' => false,
+            'xp' => 0,
+            'level' => 1,
+            'levelUps' => 0,
+            'levelRewardPoints' => 0,
+        ];
+    }
     $finalPointsBalance = $newBalance + (int)($xpAward['levelRewardPoints'] ?? 0);
 
     $conn->commit();
 
     json_ok([
         'success' => true,
+        'message' => 'Daily login reward claimed.',
         'claimed' => true,
         'streak_count' => $newStreakCount,
         'points_added' => $pointsAdded,
