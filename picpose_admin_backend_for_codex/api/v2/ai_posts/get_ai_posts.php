@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
+require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
 
 function v2_make_image_url(?string $path, string $baseUrl): ?string
 {
@@ -41,81 +42,6 @@ function v2_first_words(?string $text, int $words = 15): string
     return implode(' ', array_slice($tokens, 0, max(1, $words)));
 }
 
-function v2_get_bearer_token_optional(): ?string
-{
-    $headers = function_exists('getallheaders') ? getallheaders() : [];
-    $auth = $headers['Authorization']
-        ?? $headers['authorization']
-        ?? ($_SERVER['HTTP_AUTHORIZATION'] ?? null)
-        ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null);
-
-    if (!is_string($auth) || $auth === '') {
-        return null;
-    }
-
-    if (!preg_match('/^Bearer\s+(.+)$/i', trim($auth), $matches)) {
-        return null;
-    }
-
-    $token = trim($matches[1]);
-    return $token !== '' ? $token : null;
-}
-
-function v2_resolve_user_id_from_token(mysqli $conn): ?int
-{
-    $token = v2_get_bearer_token_optional();
-    if ($token === null) {
-        return null;
-    }
-
-    $stmt = $conn->prepare('SELECT id FROM users WHERE api_token = ? LIMIT 1');
-    if (!$stmt) {
-        return null;
-    }
-
-    $stmt->bind_param('s', $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result ? $result->fetch_assoc() : null;
-    $stmt->close();
-
-    if (!$row) {
-        return null;
-    }
-
-    return (int)$row['id'];
-}
-
-function v2_fetch_unlock_map(mysqli $conn, int $userId, array $postIds): array
-{
-    if (empty($postIds)) {
-        return [];
-    }
-
-    $placeholders = implode(',', array_fill(0, count($postIds), '?'));
-    $types = 'i' . str_repeat('i', count($postIds));
-    $sql = "SELECT post_id FROM user_prompt_unlocks WHERE user_id = ? AND post_id IN ($placeholders)";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        return [];
-    }
-
-    $params = array_merge([$userId], array_map('intval', $postIds));
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    $map = [];
-    if ($res) {
-        while ($r = $res->fetch_assoc()) {
-            $map[(int)$r['post_id']] = true;
-        }
-    }
-    $stmt->close();
-
-    return $map;
-}
-
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $BASE_URL = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 
@@ -149,6 +75,11 @@ SELECT
     p.tier,
     p.premium_unlock_cost_points,
     p.premium_pack,
+    EXISTS(
+        SELECT 1
+        FROM premium_pack_items ppi
+        WHERE ppi.post_id = p.id
+    ) AS is_in_pack,
     p.status,
     p.priority,
     p.created_at,
@@ -232,14 +163,15 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-$authUserId = v2_resolve_user_id_from_token($conn);
+$authUserId = v2_pack_optional_user_id($conn);
 $hasActiveSubscription = false;
-$unlockMap = $authUserId ? v2_fetch_unlock_map($conn, $authUserId, $postIds) : [];
+$unlockMap = $authUserId ? v2_pack_prompt_entitlement_map($conn, $authUserId, $postIds) : [];
 
 $posts = [];
 foreach ($rawPosts as $row) {
     $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-    $isPremium = ($tier === 'PREMIUM');
+    $isPackItem = (int)($row['is_in_pack'] ?? 0) === 1;
+    $isPremium = ($tier === 'PREMIUM') || $isPackItem;
 
     $isUnlocked = !$isPremium;
     if ($isPremium && $authUserId) {

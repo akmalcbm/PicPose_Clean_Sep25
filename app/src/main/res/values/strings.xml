@@ -627,6 +627,10 @@
     <string name="pack_open_pack">Open Pack</string>
     <string name="pack_unlocking">Unlocking…</string>
     <string name="pack_unlock_for_credits">Unlock for %1$d credits</string>
+    <string name="pack_unlock_pack_action">Unlock Pack</string>
+    <string name="pack_default_description">Unlock this premium pack to access curated creative prompts.</string>
+    <string name="pack_locked_prompt_title">Premium Pack Locked</string>
+    <string name="pack_locked_prompt_message">"%1$s" is part of %2$s. Unlock the pack for %3$d credits to access all prompts inside.</string>
     <string name="prompt_locked">Locked</string>
     <string name="prompt_unlocked">Unlocked</string>
     <string name="prompt_open">Open</string>

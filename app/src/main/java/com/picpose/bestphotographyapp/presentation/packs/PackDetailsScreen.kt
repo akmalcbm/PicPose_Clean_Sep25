@@ -42,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,6 +52,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,11 +62,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +94,9 @@ fun PackDetailsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var lockedPromptTitle by rememberSaveable { mutableStateOf<String?>(null) }
+    val pack = uiState.pack
+    val ownsPack = pack?.ownsPack == true
 
     LaunchedEffect(packId) {
         viewModel.loadPack(packId)
@@ -99,10 +109,39 @@ fun PackDetailsScreen(
         }
     }
 
+    LaunchedEffect(ownsPack) {
+        if (ownsPack) {
+            lockedPromptTitle = null
+        }
+    }
+
+    if (lockedPromptTitle != null && pack != null) {
+        ModalBottomSheet(
+            onDismissRequest = { lockedPromptTitle = null },
+        ) {
+            LockedPromptAccessSheet(
+                promptTitle = lockedPromptTitle.orEmpty(),
+                packName = pack.name,
+                packPricePoints = pack.pricePoints,
+                isUnlocking = uiState.isUnlocking,
+                isLoggedIn = isLoggedIn,
+                onUnlock = {
+                    if (isLoggedIn) {
+                        viewModel.unlockPack(packId)
+                    } else {
+                        lockedPromptTitle = null
+                        onRequireLogin()
+                    }
+                },
+                onDismiss = { lockedPromptTitle = null },
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             PicPoseTopAppBar(
-                title = uiState.pack?.name ?: stringResource(R.string.pack_details_title),
+                title = pack?.name ?: stringResource(R.string.pack_details_title),
                 onBack = onBack,
             )
         },
@@ -129,11 +168,12 @@ fun PackDetailsScreen(
                 ) {
                     item {
                         PackHeaderCard(
-                            name = uiState.pack?.name.orEmpty(),
-                            description = uiState.pack?.description.orEmpty(),
-                            itemCount = uiState.pack?.itemCount ?: 0,
-                            pricePoints = uiState.pack?.pricePoints ?: 0,
-                            ownsPack = uiState.pack?.ownsPack == true,
+                            name = pack?.name.orEmpty(),
+                            description = pack?.description.orEmpty(),
+                            thumbnailUrl = pack?.thumbnailUrl,
+                            itemCount = pack?.itemCount ?: 0,
+                            pricePoints = pack?.pricePoints ?: 0,
+                            ownsPack = ownsPack,
                             isUnlocking = uiState.isUnlocking,
                             onUnlock = {
                                 if (isLoggedIn) viewModel.unlockPack(packId) else onRequireLogin()
@@ -145,11 +185,13 @@ fun PackDetailsScreen(
                     }
 
                     items(uiState.items, key = { it.id }) { prompt ->
-                        val isOwned = uiState.pack?.ownsPack == true
                         PackPromptRow(
                             prompt = prompt,
-                            isOwned = isOwned,
+                            isPackOwned = ownsPack,
                             onPromptClick = onPromptClick,
+                            onLockedClick = {
+                                lockedPromptTitle = prompt.title
+                            },
                         )
                     }
                 }
@@ -162,6 +204,7 @@ fun PackDetailsScreen(
 private fun PackHeaderCard(
     name: String,
     description: String,
+    thumbnailUrl: String?,
     itemCount: Int,
     pricePoints: Int,
     ownsPack: Boolean,
@@ -171,31 +214,86 @@ private fun PackHeaderCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.tertiaryContainer,
+                    .height(180.dp)
+            ) {
+                if (!thumbnailUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.tertiaryContainer,
+                                        MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    )
+                                )
+                            )
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                )
                             )
                         )
+                )
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Text(name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text("$itemCount ${stringResource(R.string.pack_prompts)} • $pricePoints ${stringResource(R.string.rewards_credits)}")
-                    if (ownsPack) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.pack_owned)) })
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("$itemCount ${stringResource(R.string.pack_prompts)}") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.WorkspacePremium,
+                                    contentDescription = null,
+                                )
+                            },
+                        )
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("$pricePoints ${stringResource(R.string.rewards_credits)}") },
+                        )
+                        if (ownsPack) {
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(stringResource(R.string.pack_owned)) },
+                            )
+                        }
                     }
                 }
             }
@@ -228,17 +326,15 @@ private fun PackHeaderCard(
 @Composable
 private fun PackPromptRow(
     prompt: V2PromptDto,
-    isOwned: Boolean,
+    isPackOwned: Boolean,
     onPromptClick: (String) -> Unit,
+    onLockedClick: () -> Unit,
 ) {
-    val isLocked = !isOwned && prompt.isLocked
+    val isLocked = !isPackOwned
     Card(
         onClick = {
-            if (!isLocked) {
-                onPromptClick(prompt.id)
-            }
+            if (isLocked) onLockedClick() else onPromptClick(prompt.id)
         },
-        enabled = !isLocked,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -278,10 +374,44 @@ private fun PackPromptRow(
                             )
                         )
                 )
+                if (isLocked) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.size(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(prompt.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        prompt.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (isLocked) {
+                        AssistChip(
+                            onClick = onLockedClick,
+                            label = { Text(stringResource(R.string.prompt_locked)) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = prompt.teaserText ?: prompt.shortPrompt.orEmpty(),
@@ -291,8 +421,9 @@ private fun PackPromptRow(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 FilledTonalButton(
-                    onClick = { if (!isLocked) onPromptClick(prompt.id) },
-                    enabled = !isLocked,
+                    onClick = {
+                        if (isLocked) onLockedClick() else onPromptClick(prompt.id)
+                    },
                 ) {
                     Icon(
                         imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
@@ -300,14 +431,84 @@ private fun PackPromptRow(
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(
-                        when {
-                            isOwned -> stringResource(R.string.prompt_unlocked)
-                            isLocked -> stringResource(R.string.prompt_locked)
-                            else -> stringResource(R.string.prompt_open)
-                        }
+                        if (isLocked) stringResource(R.string.pack_unlock_pack_action) else stringResource(R.string.prompt_open)
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LockedPromptAccessSheet(
+    promptTitle: String,
+    packName: String,
+    packPricePoints: Int,
+    isUnlocking: Boolean,
+    isLoggedIn: Boolean,
+    onUnlock: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .animateContentSize(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.WorkspacePremium,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.pack_locked_prompt_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = stringResource(
+                R.string.pack_locked_prompt_message,
+                promptTitle,
+                packName,
+                packPricePoints,
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onUnlock,
+            enabled = !isUnlocking,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Default.LockOpen,
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = if (isUnlocking) {
+                    stringResource(R.string.pack_unlocking)
+                } else if (isLoggedIn) {
+                    stringResource(R.string.pack_unlock_for_credits, packPricePoints)
+                } else {
+                    stringResource(R.string.prompt_unlock_login_required)
+                }
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.not_now))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

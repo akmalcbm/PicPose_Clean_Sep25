@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
 require_once __DIR__ . '/../lib/v2_auth.php';
+require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
 require_once __DIR__ . '/../lib/v2_personalization.php';
 
 function v2_make_image_url(?string $path, string $baseUrl): ?string
@@ -29,39 +30,14 @@ function v2_first_words(?string $text, int $words = 15): string
     return implode(' ', array_slice($tokens, 0, max(1, $words)));
 }
 
-function v2_resolve_user_id_from_token(mysqli $conn): ?int
+function v2_is_post_part_of_pack(mysqli $conn, int $postId): bool
 {
-    $token = get_bearer_token();
-    if ($token === null) {
-        return null;
-    }
-
-    $stmt = $conn->prepare('SELECT id FROM users WHERE api_token = ? LIMIT 1');
-    if (!$stmt) {
-        return null;
-    }
-
-    $stmt->bind_param('s', $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result ? $result->fetch_assoc() : null;
-    $stmt->close();
-
-    if (!$row) {
-        return null;
-    }
-
-    return (int)$row['id'];
-}
-
-function v2_is_post_unlocked(mysqli $conn, int $userId, int $postId): bool
-{
-    $stmt = $conn->prepare('SELECT 1 FROM user_prompt_unlocks WHERE user_id = ? AND post_id = ? LIMIT 1');
+    $stmt = $conn->prepare('SELECT 1 FROM premium_pack_items WHERE post_id = ? LIMIT 1');
     if (!$stmt) {
         return false;
     }
 
-    $stmt->bind_param('ii', $userId, $postId);
+    $stmt->bind_param('i', $postId);
     $stmt->execute();
     $result = $stmt->get_result();
     $found = $result && $result->fetch_assoc();
@@ -111,13 +87,15 @@ if (!$row) {
 }
 
 $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-$isPremium = ($tier === 'PREMIUM');
-$authUserId = v2_resolve_user_id_from_token($conn);
+$isPackItem = v2_is_post_part_of_pack($conn, $promptId);
+$isPremium = ($tier === 'PREMIUM') || $isPackItem;
+$authUserId = v2_pack_optional_user_id($conn);
 $hasActiveSubscription = false; // TODO: wire real subscription source.
+$entitlementMap = $authUserId ? v2_pack_prompt_entitlement_map($conn, $authUserId, [$promptId]) : [];
 
 $isUnlocked = !$isPremium;
 if ($isPremium && $authUserId) {
-    $isUnlocked = v2_is_post_unlocked($conn, $authUserId, (int)$row['id']) || $hasActiveSubscription;
+    $isUnlocked = isset($entitlementMap[$promptId]) || $hasActiveSubscription;
 }
 
 $isLocked = !$isUnlocked;

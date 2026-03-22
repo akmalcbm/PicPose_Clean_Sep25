@@ -42,6 +42,15 @@ $packStmt = $conn->prepare("
         pp.id,
         pp.name,
         pp.description,
+        (
+            SELECT COALESCE(NULLIF(p.image_url1, ''), NULLIF(p.image_url2, ''))
+            FROM premium_pack_items ppi2
+            INNER JOIN ai_posts p ON p.id = ppi2.post_id
+            WHERE ppi2.pack_id = pp.id
+              AND p.status = 'published'
+            ORDER BY p.priority DESC, p.created_at DESC
+            LIMIT 1
+        ) AS thumbnail_path,
         pp.price_points,
         pp.is_active,
         pp.created_at,
@@ -108,20 +117,16 @@ $stmt->execute();
 $res = $stmt->get_result();
 
 $rows = [];
-$postIds = [];
 while ($row = $res->fetch_assoc()) {
     $rows[] = $row;
-    $postIds[] = (int)$row['id'];
 }
 $stmt->close();
-
-$entitlementMap = ($userId && !$ownsPack) ? v2_pack_prompt_entitlement_map($conn, $userId, $postIds) : [];
 
 $items = [];
 foreach ($rows as $row) {
     $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
     $promptText = (string)($row['prompt_text'] ?? '');
-    $isUnlocked = ($tier !== 'PREMIUM') || $ownsPack || ($userId && isset($entitlementMap[(int)$row['id']]));
+    $isUnlocked = $ownsPack;
     $isLocked = !$isUnlocked;
 
     $items[] = [
@@ -157,6 +162,7 @@ json_ok([
         'id' => (int)$pack['id'],
         'name' => $pack['name'],
         'description' => $pack['description'],
+        'thumbnailUrl' => v2_pack_details_make_image_url($pack['thumbnail_path'] ?? null, $baseUrl),
         'pricePoints' => (int)$pack['price_points'],
         'itemCount' => (int)$pack['item_count'],
         'isActive' => (bool)$pack['is_active'],

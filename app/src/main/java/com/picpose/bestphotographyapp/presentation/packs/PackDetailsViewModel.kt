@@ -94,6 +94,8 @@ class PackDetailsViewModel @Inject constructor(
                     _uiState.update { current ->
                         current.copy(
                             isUnlocking = false,
+                            pack = current.pack?.copy(ownsPack = true),
+                            items = current.items.map { it.copy(isLocked = false, teaserText = null) },
                             message = when {
                                 response.unlocked == true -> "Pack unlocked."
                                 else -> response.message ?: "Pack updated."

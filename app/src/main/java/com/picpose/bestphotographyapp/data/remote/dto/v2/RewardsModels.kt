@@ -118,6 +118,7 @@ data class PackSummaryDto(
     @SerializedName("id") val id: Int,
     @SerializedName("name") val name: String = "",
     @SerializedName("description") val description: String? = null,
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
     @SerializedName("pricePoints") val pricePoints: Int = 0,
     @SerializedName("itemCount") val itemCount: Int = 0,
     @SerializedName("isActive") val isActive: Boolean = false,

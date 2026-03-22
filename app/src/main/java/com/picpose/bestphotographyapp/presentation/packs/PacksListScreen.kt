@@ -36,11 +36,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.AssistChip
@@ -62,10 +62,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.remote.dto.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
@@ -169,66 +173,137 @@ private fun PackRow(
             .fillMaxWidth()
             .clickable { onOpenPack(pack.id) },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(24.dp),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(196.dp)
+                .animateContentSize()
+        ) {
+            val fallbackBrush = fallbackPackBrush(pack.id)
+            if (!pack.thumbnailUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = pack.thumbnailUrl,
+                    contentDescription = pack.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(fallbackBrush)
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
                     .background(
-                        Brush.horizontalGradient(
+                        Brush.verticalGradient(
                             listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.tertiaryContainer,
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
                             )
                         )
                     )
-                    .padding(14.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(pack.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "${pack.itemCount} ${stringResource(R.string.pack_prompts)}",
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(stringResource(R.string.premium)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                            )
+                        },
+                    )
+                    if (pack.ownsPack) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(stringResource(R.string.pack_owned)) },
                         )
                     }
-                    if (pack.ownsPack) {
-                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.pack_owned)) })
-                    }
                 }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "${pack.pricePoints} ${stringResource(R.string.rewards_credits)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = pack.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-            pack.description?.takeIf { it.isNotBlank() }?.let { description ->
                 Text(
-                    text = description,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 0.dp),
+                    text = pack.description?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.pack_default_description),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("${pack.itemCount} ${stringResource(R.string.pack_prompts)}") },
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("${pack.pricePoints} ${stringResource(R.string.rewards_credits)}") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.WorkspacePremium,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun fallbackPackBrush(seed: Int): Brush {
+    val palette = when (seed % 4) {
+        0 -> listOf(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
+        1 -> listOf(
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
+        2 -> listOf(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
+        else -> listOf(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        )
+    }
+    return Brush.linearGradient(palette)
 }
 
 @Composable
