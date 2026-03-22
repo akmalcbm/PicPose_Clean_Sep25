@@ -618,6 +618,16 @@
     <string name="referral_code_label">Referral code</string>
     <string name="referral_qualify_helper">Rewards unlock after qualifying action (e.g., first premium unlock or first generation).</string>
     <string name="referral_code_copied">Referral code copied</string>
+    <string name="referral_card_title">Invite &amp; Earn</string>
+    <string name="referral_card_subtitle">Share your referral code with friends and earn rewards when they qualify.</string>
+    <string name="referral_card_code_loading">Generating code…</string>
+    <string name="referral_card_login_required">Login to generate your code</string>
+    <string name="referral_card_referred_count">Referred %1$d</string>
+    <string name="referral_card_pending_count">Pending %1$d</string>
+    <string name="referral_card_rewarded_count">Rewarded %1$d</string>
+    <string name="referral_card_invite_friends">Invite Friends</string>
+    <string name="referral_card_copy_code">Copy Code</string>
+    <string name="referral_card_apply_code_cta">Have a code? Apply Code</string>
     <string name="packs_title">Premium Packs</string>
     <string name="packs_empty_title">No packs to show</string>
     <string name="packs_empty_subtitle">Try another filter or refresh.</string>
