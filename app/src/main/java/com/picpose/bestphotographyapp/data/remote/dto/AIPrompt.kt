@@ -20,7 +20,6 @@
 
 package com.picpose.bestphotographyapp.data.remote.dto
 
-import com.google.gson.annotations.SerializedName
 
 data class AIPrompt(
     val id: String,
@@ -46,42 +45,5 @@ data class AIPrompt(
     val status: String? = "published",
     val priority: Int = 0,
     val createdAt: String? = null,
-    val updatedAt: String? = null,
-    @SerializedName(value = "tier", alternate = ["access_type"])
-    val tier: String? = null,
-    @SerializedName(
-        value = "premiumUnlockCostPoints",
-        alternate = ["premium_unlock_cost_points", "unlock_cost_points"]
-    )
-    val premiumUnlockCostPointsRaw: String? = null,
-    @SerializedName(value = "premiumPack", alternate = ["premium_pack"])
-    val premiumPack: String? = null,
-    @SerializedName(value = "isPremium", alternate = ["is_premium", "premium", "paid"])
-    val isPremiumRaw: String? = null
-) {
-    val premiumUnlockCostPoints: Int
-        get() = premiumUnlockCostPointsRaw?.trim()?.toIntOrNull() ?: 0
-
-    val isPremium: Boolean
-        get() {
-            val normalizedTier = tier?.trim()
-            val tierPremium = normalizedTier.equals("PREMIUM", ignoreCase = true) ||
-                normalizedTier == "1" ||
-                normalizedTier.equals("paid", ignoreCase = true)
-
-            val flagPremium = parseFlexibleBoolean(isPremiumRaw)
-
-            return flagPremium ||
-                tierPremium ||
-                premiumUnlockCostPoints > 0 ||
-                !premiumPack.isNullOrBlank() ||
-                tags.any { it.equals("premium", ignoreCase = true) }
-        }
-}
-
-private fun parseFlexibleBoolean(raw: String?): Boolean {
-    return when (raw?.trim()?.lowercase()) {
-        "true", "1", "yes", "y", "paid", "premium" -> true
-        else -> false
-    }
-}
+    val updatedAt: String? = null
+)
