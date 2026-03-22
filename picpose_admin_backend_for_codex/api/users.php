@@ -82,6 +82,25 @@ function pick_random_default_bio(): string {
     return $bios[array_rand($bios)];
 }
 
+function issue_api_token(mysqli $conn, int $userId): ?string {
+    try {
+        $apiToken = bin2hex(random_bytes(32));
+    } catch (Throwable $e) {
+        return null;
+    }
+
+    $stmt = $conn->prepare("UPDATE users SET api_token = ? WHERE id = ? LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("si", $apiToken, $userId);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return $ok ? $apiToken : null;
+}
+
 // --------------------------
 // REGISTER
 // --------------------------
@@ -131,15 +150,19 @@ if ($method === "POST" && $action === "register") {
     $newId = $stmt->insert_id;
     $stmt->close();
 
+    $issuedToken = issue_api_token($conn, (int)$newId);
+
     echo json_encode([
         "status" => "success",
         "message" => "Registration successful",
+        "token" => $issuedToken,
         "user" => [
             "id" => $newId,
             "email" => $email,
             "display_name" => $name,
             "profile_pic" => $defaultPic,
-            "bio" => $bio
+            "bio" => $bio,
+            "api_token" => $issuedToken
         ]
     ]);
     exit();
@@ -278,11 +301,17 @@ if ($method === "POST" && $action === "login") {
         exit();
     }
 
+    $issuedToken = issue_api_token($conn, (int)$user["id"]);
+    if ($issuedToken !== null) {
+        $user["api_token"] = $issuedToken;
+    }
+
     unset($user["password"]);
 
     echo json_encode([
         "status" => "success",
         "message" => "Login successful",
+        "token" => $issuedToken,
         "user" => $user
     ]);
     exit();
@@ -310,9 +339,20 @@ if ($method === "GET" && isset($_GET["id"])) {
         exit();
     }
 
+    if (empty($user["api_token"])) {
+        $issuedToken = issue_api_token($conn, (int)$user["id"]);
+        if ($issuedToken !== null) {
+            $user["api_token"] = $issuedToken;
+        }
+    }
+
     unset($user["password"]);
 
-    echo json_encode(["status" => "success", "user" => $user]);
+    echo json_encode([
+        "status" => "success",
+        "token" => $user["api_token"] ?? null,
+        "user" => $user
+    ]);
     exit();
 }
 

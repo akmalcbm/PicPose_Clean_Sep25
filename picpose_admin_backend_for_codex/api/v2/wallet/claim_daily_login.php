@@ -237,7 +237,10 @@ try {
             throw new RuntimeException('Failed to prepare milestone claim insert');
         }
         $mileClaimStmt->bind_param('is', $userId, $milestoneRef);
-        if (!$mileClaimStmt->execute()) {
+        $mileClaimOk = $mileClaimStmt->execute();
+        $mileClaimErr = (int)$mileClaimStmt->errno;
+        if (!$mileClaimOk && $mileClaimErr !== 1062) {
+            $mileClaimStmt->close();
             throw new RuntimeException('Failed to insert milestone claim');
         }
         $mileClaimStmt->close();
@@ -280,8 +283,14 @@ try {
     }
     $baseDeltaParam = (string)$baseDelta;
     $baseBalanceAfterParam = (string)$baseBalanceAfter;
-    $ledgerBaseStmt->bind_param('isss', $userId, $baseDeltaParam, $baseBalanceAfterParam, $baseRefId);
-    if (!$ledgerBaseStmt->execute()) {
+    // Keep ledger reference user-scoped so stricter legacy unique indexes
+    // (for ref_type/ref_id) do not collide between different users.
+    $ledgerRefId = $userId . ':' . $baseRefId;
+    $ledgerBaseStmt->bind_param('isss', $userId, $baseDeltaParam, $baseBalanceAfterParam, $ledgerRefId);
+    $ledgerBaseOk = $ledgerBaseStmt->execute();
+    $ledgerBaseErr = (int)$ledgerBaseStmt->errno;
+    if (!$ledgerBaseOk && $ledgerBaseErr !== 1062) {
+        $ledgerBaseStmt->close();
         throw new RuntimeException('Failed to insert base ledger');
     }
     $ledgerBaseStmt->close();
@@ -301,5 +310,6 @@ try {
     ]);
 } catch (Throwable $e) {
     $conn->rollback();
+    error_log('claim_daily_login failed for user ' . $userId . ': ' . $e->getMessage());
     json_err('Failed to claim daily login reward', 500);
 }

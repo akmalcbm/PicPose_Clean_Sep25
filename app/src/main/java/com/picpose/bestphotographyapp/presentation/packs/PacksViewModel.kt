@@ -58,8 +58,8 @@ class PacksViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PacksUiState())
     val uiState: StateFlow<PacksUiState> = _uiState.asStateFlow()
 
-    val isLoggedIn: StateFlow<Boolean> = userSessionManager.userToken
-        .map { !it.isNullOrBlank() }
+    val isLoggedIn: StateFlow<Boolean> = userSessionManager.authenticatedSession
+        .map { it != null }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

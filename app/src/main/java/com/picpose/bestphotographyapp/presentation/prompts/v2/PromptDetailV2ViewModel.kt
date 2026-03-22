@@ -53,10 +53,17 @@ data class PromptDetailV2UiState(
     val isLikedLocal: Boolean = false,
     val isFavoriteLocal: Boolean = false,
     val message: String? = null,
+    val requiresLogin: Boolean = false,
     val isUnlockingWithPoints: Boolean = false,
     val isUnlockingWithToken: Boolean = false,
     val isUnlockingWithAd: Boolean = false,
 )
+
+enum class PromptDetailAuthState {
+    Loading,
+    LoggedOut,
+    LoggedIn,
+}
 
 @HiltViewModel
 class PromptDetailV2ViewModel @Inject constructor(
@@ -73,8 +80,18 @@ class PromptDetailV2ViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PromptDetailV2UiState())
     val uiState: StateFlow<PromptDetailV2UiState> = _uiState.asStateFlow()
 
-    val isLoggedIn: StateFlow<Boolean> = userSessionManager.userToken
-        .map { !it.isNullOrBlank() }
+    val authState: StateFlow<PromptDetailAuthState> = userSessionManager.authenticatedSession
+        .map { session ->
+            if (session == null) PromptDetailAuthState.LoggedOut else PromptDetailAuthState.LoggedIn
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = PromptDetailAuthState.Loading,
+        )
+
+    val isLoggedIn: StateFlow<Boolean> = authState
+        .map { it == PromptDetailAuthState.LoggedIn }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -98,6 +115,7 @@ class PromptDetailV2ViewModel @Inject constructor(
                 isLikedLocal = false,
                 isFavoriteLocal = false,
                 message = null,
+                requiresLogin = false,
             )
         }
         similarOffset = 0
@@ -131,7 +149,12 @@ class PromptDetailV2ViewModel @Inject constructor(
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
-                            message = throwable.message ?: "Failed to load prompt.",
+                            requiresLogin = throwable is V2ApiException && (throwable.code == 401 || throwable.code == 403),
+                            message = if (throwable is V2ApiException && (throwable.code == 401 || throwable.code == 403)) {
+                                "Session expired. Please login again."
+                            } else {
+                                throwable.message ?: "Failed to load prompt."
+                            },
                         )
                     }
                 }
@@ -236,9 +259,9 @@ class PromptDetailV2ViewModel @Inject constructor(
     ) {
         _uiState.update { current ->
             when (channel) {
-                "points" -> current.copy(isUnlockingWithPoints = true, message = null)
-                "token" -> current.copy(isUnlockingWithToken = true, message = null)
-                else -> current.copy(isUnlockingWithAd = true, message = null)
+                "points" -> current.copy(isUnlockingWithPoints = true, message = null, requiresLogin = false)
+                "token" -> current.copy(isUnlockingWithToken = true, message = null, requiresLogin = false)
+                else -> current.copy(isUnlockingWithAd = true, message = null, requiresLogin = false)
             }
         }
 
@@ -262,7 +285,16 @@ class PromptDetailV2ViewModel @Inject constructor(
                 .onFailure { throwable ->
                     val message = when (throwable) {
                         is V2FeatureUnavailableException -> throwable.message
-                        is V2ApiException -> throwable.message
+                        is V2ApiException -> {
+                            if (throwable.code == 401 || throwable.code == 403) {
+                                _uiState.update { current ->
+                                    current.copy(requiresLogin = true)
+                                }
+                                "Session expired. Please login again."
+                            } else {
+                                throwable.message
+                            }
+                        }
                         else -> throwable.message ?: "Unlock failed."
                     }
                     _uiState.update { current ->

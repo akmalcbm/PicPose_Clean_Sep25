@@ -23,13 +23,7 @@ package com.picpose.bestphotographyapp.presentation.rewards.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,24 +38,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.absoluteValue
 
 @Composable
 fun StreakStepper(
@@ -74,66 +68,133 @@ fun StreakStepper(
     modifier: Modifier = Modifier,
 ) {
     val schedule = if (rewardsSchedule.isNotEmpty()) rewardsSchedule.take(7) else listOf(10, 20, 30, 40, 50, 60, 100)
-    val currentDay = min(7, max(1, if (todayClaimed) streakCount else streakCount + 1))
-    val completedUntil = if (todayClaimed) streakCount else streakCount - 1
-    val nextReward = schedule.getOrNull((currentDay - 1).coerceIn(0, schedule.lastIndex)) ?: 0
-    val daySevenReward = schedule.getOrNull(6) ?: schedule.lastOrNull() ?: 0
+    val cycleLength = schedule.size.coerceAtLeast(1)
+    val safeStreak = streakCount.coerceAtLeast(0)
+
+    val completedInCycle = when {
+        safeStreak <= 0 -> 0
+        todayClaimed -> ((safeStreak - 1) % cycleLength) + 1
+        else -> safeStreak % cycleLength
+    }
+    val claimDayInCycle = ((safeStreak % cycleLength) + 1)
+    val nextDayInCycle = ((claimDayInCycle % cycleLength) + 1)
+
+    val claimReward = schedule.getOrElse((claimDayInCycle - 1).coerceAtLeast(0)) { schedule.last() }
+    val nextReward = schedule.getOrElse((nextDayInCycle - 1).coerceAtLeast(0)) { schedule.last() }
+    val cycleProgress = (completedInCycle.toFloat() / cycleLength.toFloat()).coerceIn(0f, 1f)
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize()
-                .padding(18.dp)
+                .padding(horizontal = 18.dp, vertical = 16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocalFireDepartment, contentDescription = null)
-                Text(
-                    "  Daily Streak",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(7) { index ->
-                    val day = index + 1
-                    val completed = day <= completedUntil
-                    val isCurrent = day == currentDay
-                    StreakDayBadge(
-                        day = day,
-                        reward = schedule.getOrElse(index) { schedule.last() },
-                        completed = completed,
-                        isCurrent = isCurrent,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Daily Streak",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = if (safeStreak == 0) "Start your streak today"
+                        else "$safeStreak-day streak active",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Text(
+                        text = "Day $claimDayInCycle",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            val milestoneText = if (todayClaimed && streakCount >= 7) {
-                "Streak complete! Mega reward unlocked."
-            } else if (todayClaimed) {
-                "Come back tomorrow for Day ${min(7, currentDay + 1)} bonus +${schedule.getOrElse(min(6, currentDay)) { schedule.last() }}"
-            } else if (currentDay == 7) {
-                "Day 7 mega +$daySevenReward is ready."
-            } else {
-                "Day $currentDay bonus +$nextReward is ready."
+            LinearProgressIndicator(
+                progress = { cycleProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (todayClaimed) {
+                    "Claimed for today. Next reward: Day $nextDayInCycle (+$nextReward)."
+                } else {
+                    "Today: Day $claimDayInCycle reward +$claimReward."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(7) { index ->
+                    val day = index + 1
+                    val state = when {
+                        day <= completedInCycle -> StreakDayState.Completed
+                        !todayClaimed && day == claimDayInCycle -> StreakDayState.Current
+                        todayClaimed && day == nextDayInCycle -> StreakDayState.Next
+                        else -> StreakDayState.Upcoming
+                    }
+                    StreakDayBadge(
+                        day = day,
+                        reward = schedule.getOrElse(index) { schedule.last() },
+                        state = state,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            val milestoneText = when {
+                todayClaimed -> "Great consistency. Come back tomorrow for +$nextReward."
+                claimDayInCycle == cycleLength -> "Final day reward +$claimReward is ready."
+                else -> "Claim now to keep your streak alive."
             }
             Text(
-                milestoneText,
+                text = milestoneText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            AnimatedVisibility(visible = todayClaimed && streakCount >= 7) {
+            AnimatedVisibility(visible = todayClaimed && safeStreak >= cycleLength) {
                 Text(
-                    "🏆 Weekly streak champion",
+                    text = "Weekly cycle complete. Keep going for bigger momentum.",
                     modifier = Modifier.padding(top = 6.dp),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -151,60 +212,90 @@ fun StreakStepper(
                     )
                     Text("  Claiming...")
                 } else {
-                    Text(if (todayClaimed) "Come back tomorrow" else "Claim today's reward")
+                    Text(
+                        when {
+                            todayClaimed -> "Claimed for today"
+                            !isLoggedIn -> "Login to claim reward"
+                            else -> "Claim +$claimReward credits"
+                        }
+                    )
                 }
             }
         }
     }
 }
 
+private enum class StreakDayState {
+    Completed,
+    Current,
+    Next,
+    Upcoming,
+}
+
 @Composable
 private fun StreakDayBadge(
     day: Int,
     reward: Int,
-    completed: Boolean,
-    isCurrent: Boolean,
+    state: StreakDayState,
 ) {
-    val pulseScale by rememberInfiniteTransition(label = "current_day_pulse").animateFloat(
-        initialValue = 1f,
-        targetValue = if (isCurrent) 1.06f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "current_day_scale",
-    )
-
-    val containerColor = when {
-        completed -> MaterialTheme.colorScheme.primaryContainer
-        isCurrent -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
+    val colors = when (state) {
+        StreakDayState.Completed -> Triple(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
+            MaterialTheme.colorScheme.primary,
+        )
+        StreakDayState.Current -> Triple(
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
+            MaterialTheme.colorScheme.tertiary,
+        )
+        StreakDayState.Next -> Triple(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            MaterialTheme.colorScheme.secondary,
+        )
+        StreakDayState.Upcoming -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            MaterialTheme.colorScheme.outline,
+        )
     }
 
-    val borderColor = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .scale(pulseScale)
-            .background(containerColor, RoundedCornerShape(16.dp))
-            .border(width = if (isCurrent) 2.dp else 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = colors.first,
+        border = BorderStroke(
+            width = if (state == StreakDayState.Current || state == StreakDayState.Next) 2.dp else 1.dp,
+            color = colors.third.copy(alpha = if (state == StreakDayState.Upcoming) 0.35f else 0.85f),
+        ),
     ) {
-        if (completed) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
             Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Completed day",
-                modifier = Modifier
-                    .size(22.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    .padding(3.dp),
-                tint = MaterialTheme.colorScheme.onPrimary,
+                imageVector = when (state) {
+                    StreakDayState.Completed -> Icons.Default.Check
+                    StreakDayState.Current -> Icons.Default.LocalFireDepartment
+                    StreakDayState.Next -> Icons.Default.Flag
+                    StreakDayState.Upcoming -> Icons.Default.Flag
+                },
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = colors.second,
             )
-        } else {
-            Text("Day $day", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Day $day",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.second,
+            )
+            Text(
+                text = "+${reward.absoluteValue}",
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.second.copy(alpha = 0.86f),
+            )
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text("+$reward", style = MaterialTheme.typography.labelLarge)
     }
 }

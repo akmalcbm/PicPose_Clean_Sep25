@@ -166,7 +166,7 @@ fun PromptDetailV2Screen(
     viewModel: PromptDetailV2ViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val authState by viewModel.authState.collectAsState()
     val adsConfigState by AdsManager.configState.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
@@ -279,7 +279,7 @@ fun PromptDetailV2Screen(
                             similarPrompts = uiState.similarPrompts,
                             isLoadingMore = uiState.isLoadingMoreSimilar,
                             hasMoreSimilar = uiState.hasMoreSimilar,
-                            isLoggedIn = isLoggedIn,
+                            authState = authState,
                             rewardedAdReady = rewardedAdState.isReady,
                             rewardedAdLoading = rewardedAdState.isLoading,
                             unlockState = uiState,
@@ -465,7 +465,7 @@ private fun PromptContent(
     similarPrompts: List<V2PromptDto>,
     isLoadingMore: Boolean,
     hasMoreSimilar: Boolean,
-    isLoggedIn: Boolean,
+    authState: PromptDetailAuthState,
     rewardedAdReady: Boolean,
     rewardedAdLoading: Boolean,
     unlockState: PromptDetailV2UiState,
@@ -631,7 +631,7 @@ private fun PromptContent(
         item(key = "full_prompt_${prompt.id}") {
             PromptBodyCard(
                 prompt = prompt,
-                isLoggedIn = isLoggedIn,
+                authState = authState,
                 rewardedAdReady = rewardedAdReady,
                 rewardedAdLoading = rewardedAdLoading,
                 unlockState = unlockState,
@@ -922,7 +922,7 @@ private fun PromptBadgesRow(
 @Composable
 private fun PromptBodyCard(
     prompt: V2PromptDto,
-    isLoggedIn: Boolean,
+    authState: PromptDetailAuthState,
     rewardedAdReady: Boolean,
     rewardedAdLoading: Boolean,
     unlockState: PromptDetailV2UiState,
@@ -975,62 +975,99 @@ private fun PromptBodyCard(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                if (!isLoggedIn) {
-                    Button(
-                        onClick = onRequireLogin,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.login))
+                when {
+                    authState == PromptDetailAuthState.Loading -> {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Text(
+                                    text = "Checking your session...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                    authState == PromptDetailAuthState.LoggedOut || unlockState.requiresLogin -> {
+                        if (unlockState.requiresLogin) {
+                            Text(
+                                text = "Please login again to continue unlocking premium prompts.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(bottom = 8.dp),
+                            )
+                        }
                         Button(
-                            onClick = onUnlockWithAd,
-                            enabled = !unlockState.isUnlockingWithAd,
+                            onClick = onRequireLogin,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Default.VideoLibrary, contentDescription = null)
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                when {
-                                    unlockState.isUnlockingWithAd -> stringResource(R.string.pack_unlocking)
-                                    rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
-                                    else -> stringResource(R.string.rewards_watch_ad_short)
-                                },
-                            )
+                            Text(stringResource(R.string.login))
                         }
+                    }
 
-                        Button(
-                            onClick = onUnlockWithPoints,
-                            enabled = !unlockState.isUnlockingWithPoints,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                if (unlockState.isUnlockingWithPoints) {
-                                    stringResource(R.string.pack_unlocking)
-                                } else {
-                                    stringResource(R.string.pack_unlock_for_credits, prompt.premiumUnlockCostPoints)
-                                },
-                            )
-                        }
+                    else -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = onUnlockWithAd,
+                                enabled = !unlockState.isUnlockingWithAd,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Default.VideoLibrary, contentDescription = null)
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    when {
+                                        unlockState.isUnlockingWithAd -> stringResource(R.string.pack_unlocking)
+                                        rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
+                                        else -> stringResource(R.string.rewards_watch_ad_short)
+                                    },
+                                )
+                            }
 
-                        OutlinedButton(
-                            onClick = onUnlockWithToken,
-                            enabled = !unlockState.isUnlockingWithToken,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(Icons.Default.WorkspacePremium, contentDescription = null)
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                if (unlockState.isUnlockingWithToken) stringResource(R.string.loading) else stringResource(R.string.token_prompt_unlock),
-                            )
-                        }
+                            Button(
+                                onClick = onUnlockWithPoints,
+                                enabled = !unlockState.isUnlockingWithPoints,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    if (unlockState.isUnlockingWithPoints) {
+                                        stringResource(R.string.pack_unlocking)
+                                    } else {
+                                        stringResource(R.string.pack_unlock_for_credits, prompt.premiumUnlockCostPoints)
+                                    },
+                                )
+                            }
 
-                        OutlinedButton(
-                            onClick = onOpenSubscribe,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Subscribe / Go Pro")
+                            OutlinedButton(
+                                onClick = onUnlockWithToken,
+                                enabled = !unlockState.isUnlockingWithToken,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Default.WorkspacePremium, contentDescription = null)
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    if (unlockState.isUnlockingWithToken) stringResource(R.string.loading) else stringResource(R.string.token_prompt_unlock),
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = onOpenSubscribe,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Subscribe / Go Pro")
+                            }
                         }
                     }
                 }

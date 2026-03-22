@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @Singleton
 class TokenProvider @Inject constructor(
@@ -42,8 +43,13 @@ class TokenProvider @Inject constructor(
     @Volatile
     private var observingJob: Job? = null
 
+    @Volatile
+    private var hasHydratedFromStore: Boolean = false
+
     fun start() {
         if (observingJob != null) return
+
+        hydrateTokenFromStoreIfNeeded()
 
         observingJob = applicationScope.launch {
             userSessionManager.userToken
@@ -57,7 +63,23 @@ class TokenProvider @Inject constructor(
         }
     }
 
-    fun currentToken(): String? = latestToken
+    fun currentToken(): String? {
+        if (latestToken.isNullOrBlank()) {
+            hydrateTokenFromStoreIfNeeded()
+        }
+        return latestToken
+    }
+
+    private fun hydrateTokenFromStoreIfNeeded() {
+        if (hasHydratedFromStore) return
+        synchronized(this) {
+            if (hasHydratedFromStore) return
+            latestToken = runCatching {
+                runBlocking { userSessionManager.getUserTokenOnce() }
+            }.getOrNull()
+            hasHydratedFromStore = true
+        }
+    }
 
     companion object {
         private const val TAG = "TokenProvider"

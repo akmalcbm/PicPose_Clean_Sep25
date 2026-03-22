@@ -97,6 +97,16 @@ class AuthViewModel @Inject constructor(
     private val twitterClient = TwitterAuthClient()
     private val authActionMutex = Mutex()
 
+    init {
+        viewModelScope.launch {
+            val loggedIn = userSessionManager.isLoggedIn.firstOrNull() ?: false
+            val token = userSessionManager.getUserTokenOnce()
+            if (loggedIn && token.isNullOrBlank()) {
+                refreshCurrentUserSessionOnly()
+            }
+        }
+    }
+
     /**
      * Google sign-in is intentionally split into launch and finish steps:
      * the activity or Compose layer starts credential collection, then the
@@ -680,13 +690,15 @@ class AuthViewModel @Inject constructor(
     }
 
     private suspend fun saveSession(user: User) {
+        val resolvedToken = user.apiToken?.takeIf { it.isNotBlank() }
+            ?: userSessionManager.getUserTokenOnce()
         userSessionManager.saveUserSession(
             userId = user.id,
             email = user.email,
             name = user.displayName,
             profilePicture = user.displayProfilePicture,
             bio = user.bio,
-            token = null,
+            token = resolvedToken,
             emailVerified = user.isEmailVerified
         )
     }

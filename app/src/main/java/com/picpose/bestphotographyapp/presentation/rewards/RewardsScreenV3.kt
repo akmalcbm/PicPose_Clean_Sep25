@@ -114,6 +114,7 @@ fun RewardsScreenV3(
     viewModel: RewardsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val authState by viewModel.authState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -130,8 +131,12 @@ fun RewardsScreenV3(
     var showCoinBurst by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
-    LaunchedEffect(isLoggedIn) {
-        viewModel.loadRewards(forceRefresh = true)
+    val hasRewardsAccess = isLoggedIn && uiState.accessState == RewardsAccessState.Authenticated
+
+    LaunchedEffect(authState) {
+        if (authState != RewardsAccessState.Loading) {
+            viewModel.loadRewards(forceRefresh = true)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -238,7 +243,7 @@ fun RewardsScreenV3(
                                 xp = uiState.xp,
                                 nextLevelXp = uiState.nextLevelXp,
                                 displayedPoints = displayedPoints,
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                                 onLoginClick = onRequireLogin,
                             )
                         }
@@ -248,12 +253,12 @@ fun RewardsScreenV3(
                                 displayedPoints = displayedPoints,
                                 tokenBalances = uiState.tokenBalances,
                                 onQuickClaim = {
-                                    if (isLoggedIn) viewModel.claimDailyLogin() else onRequireLogin()
+                                    if (hasRewardsAccess) viewModel.claimDailyLogin() else onRequireLogin()
                                 },
                                 onQuickWatchAd = {
                                     val hostActivity = activity
                                     when {
-                                        !isLoggedIn -> onRequireLogin()
+                                        !hasRewardsAccess -> onRequireLogin()
                                         hostActivity == null -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
                                         else -> rewardedAdManager.showRewardedAd(
                                             activity = hostActivity,
@@ -265,12 +270,15 @@ fun RewardsScreenV3(
                                         )
                                     }
                                 },
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                             )
                         }
-                        if (!isLoggedIn) {
+                        if (!hasRewardsAccess && uiState.accessState != RewardsAccessState.Loading) {
                             item {
-                                LoginRequiredCard(onRequireLogin = onRequireLogin)
+                                LoginRequiredCard(
+                                    sessionExpired = uiState.accessState == RewardsAccessState.AuthExpired,
+                                    onRequireLogin = onRequireLogin,
+                                )
                             }
                         }
                         item {
@@ -278,16 +286,16 @@ fun RewardsScreenV3(
                                 streakCount = uiState.streakCount,
                                 todayClaimed = uiState.todayClaimed,
                                 rewardsSchedule = uiState.rewardsSchedule,
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                                 isClaiming = uiState.isClaimingReward,
                                 onClaim = {
-                                    if (isLoggedIn) viewModel.claimDailyLogin() else onRequireLogin()
+                                    if (hasRewardsAccess) viewModel.claimDailyLogin() else onRequireLogin()
                                 },
                             )
                         }
                         item {
                             EarnCard(
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                                 adState = rewardedAdState,
                                 adRewardedToday = uiState.adRewardedToday,
                                 adDailyCount = uiState.adDailyCount,
@@ -295,7 +303,7 @@ fun RewardsScreenV3(
                                 onWatchAd = {
                                     val hostActivity = activity
                                     when {
-                                        !isLoggedIn -> onRequireLogin()
+                                        !hasRewardsAccess -> onRequireLogin()
                                         hostActivity == null -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
                                         else -> rewardedAdManager.showRewardedAd(
                                             activity = hostActivity,
@@ -320,7 +328,7 @@ fun RewardsScreenV3(
                         }
                         item {
                             ReferralCard(
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                                 code = uiState.referralCode,
                                 statusLabel = uiState.referralStatusLabel,
                                 hasAppliedCode = uiState.hasAppliedReferralCode,
@@ -351,10 +359,10 @@ fun RewardsScreenV3(
                                     context.startActivity(Intent.createChooser(shareIntent, "Share referral code"))
                                 },
                                 onOpenApplyCode = {
-                                    if (isLoggedIn) showApplySheet = true else onRequireLogin()
+                                    if (hasRewardsAccess) showApplySheet = true else onRequireLogin()
                                 },
                                 onClaimReward = {
-                                    if (isLoggedIn) viewModel.claimReferralReward() else onRequireLogin()
+                                    if (hasRewardsAccess) viewModel.claimReferralReward() else onRequireLogin()
                                 },
                             )
                         }
@@ -362,9 +370,9 @@ fun RewardsScreenV3(
                             PacksRow(
                                 packs = uiState.packs,
                                 ownedCount = uiState.ownedPackCount,
-                                isLoggedIn = isLoggedIn,
+                                isLoggedIn = hasRewardsAccess,
                                 onOpenPacks = {
-                                    if (isLoggedIn) onOpenPacks() else onRequireLogin()
+                                    if (hasRewardsAccess) onOpenPacks() else onRequireLogin()
                                 },
                             )
                         }
@@ -389,16 +397,31 @@ fun RewardsScreenV3(
 }
 
 @Composable
-private fun LoginRequiredCard(onRequireLogin: () -> Unit) {
+private fun LoginRequiredCard(
+    sessionExpired: Boolean,
+    onRequireLogin: () -> Unit,
+) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
-                Text("  ${stringResource(R.string.rewards_login_prompt)}", fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "  ${
+                        if (sessionExpired) {
+                            stringResource(R.string.rewards_session_expired_prompt)
+                        } else {
+                            stringResource(R.string.rewards_login_prompt)
+                        }
+                    }",
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Button(onClick = onRequireLogin, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.login))
+                Text(
+                    if (sessionExpired) stringResource(R.string.rewards_login_again)
+                    else stringResource(R.string.login)
+                )
             }
         }
     }

@@ -26,8 +26,14 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+
+data class AuthenticatedSession(
+    val userId: String?,
+    val token: String,
+)
 
 /**
  * Clean & fixed DataStore for user session.
@@ -85,6 +91,19 @@ class UserSessionManager(private val context: Context) {
 
     val userToken: Flow<String?> = context.userDataStore.data.safeMap {
         it[USER_TOKEN_KEY]
+    }
+
+    val authenticatedSession: Flow<AuthenticatedSession?> = context.userDataStore.data.safeMap { prefs ->
+        val loggedIn = prefs[IS_LOGGED_IN_KEY] ?: false
+        val token = prefs[USER_TOKEN_KEY]?.trim()
+        if (loggedIn && !token.isNullOrBlank()) {
+            AuthenticatedSession(
+                userId = prefs[USER_ID_KEY],
+                token = token,
+            )
+        } else {
+            null
+        }
     }
 
     val userEmailVerified: Flow<Boolean> = context.userDataStore.data.safeMap {
@@ -164,6 +183,14 @@ class UserSessionManager(private val context: Context) {
         context.userDataStore.edit { prefs ->
             prefs[USER_EMAIL_VERIFIED_KEY] = verified
         }
+    }
+
+    suspend fun getUserTokenOnce(): String? {
+        return context.userDataStore.data
+            .firstOrNull()
+            ?.get(USER_TOKEN_KEY)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
     }
 
     /**

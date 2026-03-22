@@ -601,6 +601,8 @@
     <string name="rewards_ad_requires_activity">Opening ad requires an active screen.</string>
     <string name="rewards_ad_daily_progress">%1$d/%2$d ads today</string>
     <string name="rewards_login_prompt">Login to claim rewards, streak, and referrals.</string>
+    <string name="rewards_session_expired_prompt">Your session expired. Login again to continue rewards.</string>
+    <string name="rewards_login_again">Login again</string>
     <string name="referral_apply_code">Apply Code</string>
     <string name="referral_apply_code_first">Apply a code first</string>
     <string name="referral_applying_code">Applying…</string>

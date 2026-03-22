@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS points_ledger (
     PRIMARY KEY (id),
     KEY idx_points_ledger_user_created_at (user_id, created_at),
     KEY idx_points_ledger_ref (ref_type, ref_id),
-    UNIQUE KEY uq_points_ledger_ref (ref_type, ref_id),
+    UNIQUE KEY uq_points_ledger_ref (user_id, ref_type, ref_id),
     CONSTRAINT fk_points_ledger_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

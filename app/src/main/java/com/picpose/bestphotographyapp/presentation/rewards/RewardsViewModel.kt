@@ -31,6 +31,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.v2.PromptOfDayInHubDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.RewardsHubDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.RewardsRepository
+import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,11 +43,19 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private val DEFAULT_STREAK_REWARDS = listOf(10, 20, 30, 40, 50, 60, 100)
+
+enum class RewardsAccessState {
+    Loading,
+    Guest,
+    Authenticated,
+    AuthExpired,
+}
 
 sealed interface RewardsUiEvent {
     data class ClaimSuccess(val pointsAdded: Int) : RewardsUiEvent
@@ -55,10 +64,11 @@ sealed interface RewardsUiEvent {
 }
 
 data class RewardsUiState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isClaimingReward: Boolean = false,
     val isApplyingCode: Boolean = false,
+    val accessState: RewardsAccessState = RewardsAccessState.Loading,
     val pointsBalance: Int = 0,
     val tokenBalances: Map<String, Int> = emptyMap(),
     val adRewardedToday: Boolean = false,
@@ -100,7 +110,20 @@ class RewardsViewModel @Inject constructor(
     private val _events = MutableSharedFlow<RewardsUiEvent>()
     val events = _events.asSharedFlow()
 
-    val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
+    private val sessionAccessState: StateFlow<RewardsAccessState> = userSessionManager.authenticatedSession
+        .map { session ->
+            if (session == null) RewardsAccessState.Guest else RewardsAccessState.Authenticated
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = RewardsAccessState.Loading,
+        )
+
+    val authState: StateFlow<RewardsAccessState> = sessionAccessState
+
+    val isLoggedIn: StateFlow<Boolean> = sessionAccessState
+        .map { it == RewardsAccessState.Authenticated }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -115,11 +138,20 @@ class RewardsViewModel @Inject constructor(
         )
 
     fun loadRewards(forceRefresh: Boolean = false) {
-        val loggedIn = isLoggedIn.value
-        if (loggedIn) {
-            loadLoggedInRewards(forceRefresh)
-        } else {
-            loadLoggedOutRewards()
+        when (sessionAccessState.value) {
+            RewardsAccessState.Loading -> {
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = true,
+                        isRefreshing = false,
+                        accessState = RewardsAccessState.Loading,
+                        statusMessage = null,
+                    )
+                }
+            }
+            RewardsAccessState.Authenticated -> loadLoggedInRewards(forceRefresh)
+            RewardsAccessState.Guest -> loadLoggedOutRewards()
+            RewardsAccessState.AuthExpired -> loadLoggedOutRewards()
         }
     }
 
@@ -128,6 +160,15 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun claimDailyLogin() {
+        if (!hasAuthenticatedSession()) {
+            _uiState.update {
+                it.copy(
+                    accessState = RewardsAccessState.AuthExpired,
+                    isClaimingReward = false,
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             val previousBalance = _uiState.value.pointsBalance
             _uiState.update { it.copy(isClaimingReward = true) }
@@ -140,6 +181,10 @@ class RewardsViewModel @Inject constructor(
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
+                    if (throwable.isUnauthorizedRequest()) {
+                        markAuthExpired()
+                        return@onFailure
+                    }
                     val message = throwable.message ?: "Failed to claim streak reward."
                     _uiState.update { it.copy(statusMessage = message, isClaimingReward = false) }
                     _events.emit(RewardsUiEvent.Error(message))
@@ -148,6 +193,15 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun applyReferralCode(code: String) {
+        if (!hasAuthenticatedSession()) {
+            _uiState.update {
+                it.copy(
+                    accessState = RewardsAccessState.AuthExpired,
+                    isApplyingCode = false,
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isApplyingCode = true) }
             rewardsRepository.applyReferralCode(code.trim())
@@ -165,6 +219,10 @@ class RewardsViewModel @Inject constructor(
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
+                    if (throwable.isUnauthorizedRequest()) {
+                        markAuthExpired()
+                        return@onFailure
+                    }
                     val message = referralApplyErrorMessage(throwable)
                     _uiState.update { it.copy(statusMessage = message, isApplyingCode = false) }
                     _events.emit(RewardsUiEvent.Error(message))
@@ -173,6 +231,10 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun claimReferralReward() {
+        if (!hasAuthenticatedSession()) {
+            _uiState.update { it.copy(accessState = RewardsAccessState.AuthExpired) }
+            return
+        }
         viewModelScope.launch {
             if (!_uiState.value.canClaimReferralReward) {
                 return@launch
@@ -191,6 +253,10 @@ class RewardsViewModel @Inject constructor(
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
+                    if (throwable.isUnauthorizedRequest()) {
+                        markAuthExpired()
+                        return@onFailure
+                    }
                     val message = referralClaimErrorMessage(throwable)
                     _uiState.update { it.copy(statusMessage = message) }
                     _events.emit(RewardsUiEvent.Error(message))
@@ -199,6 +265,10 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun rewardAdPoints(adRewardId: String) {
+        if (!hasAuthenticatedSession()) {
+            _uiState.update { it.copy(accessState = RewardsAccessState.AuthExpired) }
+            return
+        }
         viewModelScope.launch {
             val previousBalance = _uiState.value.pointsBalance
             rewardsRepository.rewardAdPoints(adRewardId)
@@ -221,6 +291,10 @@ class RewardsViewModel @Inject constructor(
                     loadLoggedInRewards(forceRefresh = true)
                 }
                 .onFailure { throwable ->
+                    if (throwable.isUnauthorizedRequest()) {
+                        markAuthExpired()
+                        return@onFailure
+                    }
                     val message = throwable.message ?: "Failed to add ad reward."
                     _uiState.update { it.copy(statusMessage = message) }
                     _events.emit(RewardsUiEvent.Error(message))
@@ -239,6 +313,7 @@ class RewardsViewModel @Inject constructor(
                 isRefreshing = forceRefresh,
                 isClaimingReward = false,
                 isApplyingCode = false,
+                accessState = RewardsAccessState.Authenticated,
                 statusMessage = null,
             )
         }
@@ -257,12 +332,17 @@ class RewardsViewModel @Inject constructor(
                     applyHub(hub)
                 }
                 .onFailure { throwable ->
+                    if (throwable.isUnauthorizedRequest()) {
+                        markAuthExpired()
+                        return@onFailure
+                    }
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
                             isRefreshing = false,
                             isClaimingReward = false,
                             isApplyingCode = false,
+                            accessState = RewardsAccessState.Authenticated,
                             statusMessage = throwable.message ?: "Failed to load rewards hub.",
                         )
                     }
@@ -303,6 +383,7 @@ class RewardsViewModel @Inject constructor(
                 isRefreshing = false,
                 isClaimingReward = false,
                 isApplyingCode = false,
+                accessState = RewardsAccessState.Guest,
                 pointsBalance = 0,
                 tokenBalances = emptyMap(),
                 adRewardedToday = false,
@@ -336,6 +417,7 @@ class RewardsViewModel @Inject constructor(
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
+                            accessState = RewardsAccessState.Guest,
                             publicPromptOfTheDay = prompt,
                             promptOfTheDay = null,
                             promptOfDayMode = if (prompt?.isLocked == true) "PREMIUM" else "FREE",
@@ -347,6 +429,7 @@ class RewardsViewModel @Inject constructor(
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
+                            accessState = RewardsAccessState.Guest,
                             statusMessage = throwable.message ?: "Rewards are unavailable right now.",
                         )
                     }
@@ -361,6 +444,7 @@ class RewardsViewModel @Inject constructor(
                 isRefreshing = false,
                 isClaimingReward = false,
                 isApplyingCode = false,
+                accessState = RewardsAccessState.Authenticated,
                 pointsBalance = hub.pointsBalance,
                 tokenBalances = hub.tokenBalances,
                 streakCount = hub.streakCount,
@@ -384,6 +468,7 @@ class RewardsViewModel @Inject constructor(
                 level = hub.progress?.level ?: current.level,
                 xp = hub.progress?.xp ?: current.xp,
                 nextLevelXp = hub.progress?.nextLevelXp ?: current.nextLevelXp,
+                statusMessage = null,
             )
         }
     }
@@ -428,5 +513,27 @@ class RewardsViewModel @Inject constructor(
             "REWARDED" -> "Reward Claimed"
             else -> "Apply a code first"
         }
+    }
+
+    private fun hasAuthenticatedSession(): Boolean {
+        return sessionAccessState.value == RewardsAccessState.Authenticated &&
+            _uiState.value.accessState != RewardsAccessState.AuthExpired
+    }
+
+    private fun markAuthExpired() {
+        _uiState.update { current ->
+            current.copy(
+                isLoading = false,
+                isRefreshing = false,
+                isClaimingReward = false,
+                isApplyingCode = false,
+                accessState = RewardsAccessState.AuthExpired,
+                statusMessage = null,
+            )
+        }
+    }
+
+    private fun Throwable.isUnauthorizedRequest(): Boolean {
+        return this is V2ApiException && (code == 401 || code == 403)
     }
 }

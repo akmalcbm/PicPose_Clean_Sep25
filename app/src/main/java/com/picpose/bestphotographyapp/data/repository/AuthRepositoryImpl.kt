@@ -367,13 +367,15 @@ class AuthRepositoryImpl @Inject constructor(
     // HELPERS
     // ---------------------------------------------------------
     private suspend fun saveSession(user: User, token: String? = null) {
+        val resolvedToken = token?.takeIf { it.isNotBlank() }
+            ?: user.apiToken?.takeIf { it.isNotBlank() }
         userSessionManager.saveUserSession(
             userId = user.id,
             email = user.email,
                 name = user.displayName,
                 profilePicture = user.displayProfilePicture,
                 bio = user.bio,
-                token = token,
+                token = resolvedToken,
                 emailVerified = user.isEmailVerified
             )
     }
