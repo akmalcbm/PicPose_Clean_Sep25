@@ -64,6 +64,8 @@ fun EarnCard(
     adRewardedToday: Boolean,
     adDailyCount: Int?,
     adDailyCap: Int?,
+    adRewardPoints: Int = 10,
+    adRewardAvailable: Boolean = true,
     onWatchAd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -95,7 +97,7 @@ fun EarnCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Watch rewarded ads for verified credits.",
+                stringResource(R.string.rewards_watch_ad_value_statement, adRewardPoints),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (adDailyCount != null && adDailyCap != null && adDailyCap > 0) {
@@ -110,7 +112,7 @@ fun EarnCard(
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = onWatchAd,
-                enabled = isLoggedIn && !adState.isLoading,
+                enabled = isLoggedIn && adRewardAvailable && !adState.isLoading && !adState.isShowing,
                 modifier = Modifier
                     .fillMaxWidth()
                     .scale(pulseScale),
@@ -122,8 +124,16 @@ fun EarnCard(
                 } else {
                     Icon(Icons.Default.PlayCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.rewards_watch_ad_plus))
+                    Text(stringResource(R.string.rewards_watch_ad_plus_amount, adRewardPoints))
                 }
+            }
+            if (!adRewardAvailable) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.rewards_ad_limit_reached),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

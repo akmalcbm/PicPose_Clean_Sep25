@@ -75,6 +75,8 @@ data class RewardsUiState(
     val adRewardedToday: Boolean = false,
     val adDailyCount: Int? = null,
     val adDailyCap: Int? = null,
+    val adRewardPoints: Int = 10,
+    val adRewardAvailable: Boolean = true,
     val streakCount: Int = 0,
     val todayClaimed: Boolean = false,
     val rewardsSchedule: List<Int> = DEFAULT_STREAK_REWARDS,
@@ -278,12 +280,24 @@ class RewardsViewModel @Inject constructor(
                     val latestBalance = response.pointsBalance ?: _uiState.value.pointsBalance
                     val pointsAdded = response.pointsAdded ?: (latestBalance - previousBalance).coerceAtLeast(0)
                     _uiState.update { current ->
+                        val responseDailyCount = response.adDailyCount ?: current.adDailyCount
+                        val responseDailyCap = response.adDailyCap ?: current.adDailyCap
+                        val isRewardAvailable = response.adRewardAvailable
+                            ?: when {
+                                responseDailyCount != null && responseDailyCap != null && responseDailyCap > 0 ->
+                                    responseDailyCount < responseDailyCap
+                                else -> current.adRewardAvailable
+                            }
                         current.copy(
                             pointsBalance = latestBalance,
-                            adRewardedToday = pointsAdded > 0 || current.adRewardedToday,
-                            statusMessage = when {
+                            adRewardedToday = pointsAdded > 0 || !isRewardAvailable || current.adRewardedToday,
+                            adDailyCount = responseDailyCount,
+                            adDailyCap = responseDailyCap,
+                            adRewardPoints = response.adRewardPoints ?: current.adRewardPoints,
+                            adRewardAvailable = isRewardAvailable,
+                            statusMessage = response.message ?: when {
                                 response.pointsAdded == 0 -> "Reward already claimed."
-                                else -> response.message ?: "Credits added successfully."
+                                else -> "Credits added successfully."
                             },
                         )
                     }
@@ -391,6 +405,8 @@ class RewardsViewModel @Inject constructor(
                 adRewardedToday = false,
                 adDailyCount = null,
                 adDailyCap = null,
+                adRewardPoints = 10,
+                adRewardAvailable = true,
                 streakCount = 0,
                 todayClaimed = false,
                 rewardsSchedule = DEFAULT_STREAK_REWARDS,
@@ -449,6 +465,21 @@ class RewardsViewModel @Inject constructor(
                 accessState = RewardsAccessState.Authenticated,
                 pointsBalance = hub.pointsBalance,
                 tokenBalances = hub.tokenBalances,
+                adDailyCount = hub.adDailyCount,
+                adDailyCap = hub.adDailyCap,
+                adRewardPoints = hub.adRewardPoints?.takeIf { it > 0 } ?: current.adRewardPoints,
+                adRewardAvailable = hub.adRewardAvailable
+                    ?: when {
+                        hub.adDailyCount != null && hub.adDailyCap != null && hub.adDailyCap > 0 ->
+                            hub.adDailyCount < hub.adDailyCap
+                        else -> current.adRewardAvailable
+                    },
+                adRewardedToday = when {
+                    hub.adRewardAvailable != null -> !hub.adRewardAvailable
+                    hub.adDailyCount != null && hub.adDailyCap != null && hub.adDailyCap > 0 ->
+                        hub.adDailyCount >= hub.adDailyCap
+                    else -> current.adRewardedToday
+                },
                 streakCount = hub.streakCount,
                 todayClaimed = hub.todayClaimed,
                 rewardsSchedule = hub.rewardsSchedule.ifEmpty { DEFAULT_STREAK_REWARDS },

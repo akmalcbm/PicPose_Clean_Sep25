@@ -252,6 +252,8 @@ fun RewardsScreenV3(
                                 pointsBalance = uiState.pointsBalance,
                                 displayedPoints = displayedPoints,
                                 tokenBalances = uiState.tokenBalances,
+                                adRewardPoints = uiState.adRewardPoints,
+                                adRewardAvailable = uiState.adRewardAvailable,
                                 onQuickClaim = {
                                     if (hasRewardsAccess) viewModel.claimDailyLogin() else onRequireLogin()
                                 },
@@ -300,6 +302,8 @@ fun RewardsScreenV3(
                                 adRewardedToday = uiState.adRewardedToday,
                                 adDailyCount = uiState.adDailyCount,
                                 adDailyCap = uiState.adDailyCap,
+                                adRewardPoints = uiState.adRewardPoints,
+                                adRewardAvailable = uiState.adRewardAvailable,
                                 onWatchAd = {
                                     val hostActivity = activity
                                     when {

@@ -3,6 +3,8 @@ require_once __DIR__ . '/../lib/v2_ab.php';
 require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
 require_once __DIR__ . '/../lib/v2_progress.php';
 
+const V2_AD_DAILY_REWARD_CAP = 1;
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     json_err('Method Not Allowed', 405);
 }
@@ -312,6 +314,31 @@ if ($claimStmt) {
     $claimStmt->close();
 }
 
+$adDailyCount = 0;
+$adDailyStmt = $conn->prepare("
+    SELECT COUNT(*) AS total_claims
+    FROM user_daily_claims
+    WHERE user_id = ?
+      AND claim_type = 'AD_POINTS'
+      AND claim_date = CURDATE()
+");
+if ($adDailyStmt) {
+    $adDailyStmt->bind_param('i', $userId);
+    $adDailyStmt->execute();
+    $adDailyRes = $adDailyStmt->get_result();
+    $adDailyRow = $adDailyRes ? $adDailyRes->fetch_assoc() : null;
+    $adDailyStmt->close();
+    $adDailyCount = (int)($adDailyRow['total_claims'] ?? 0);
+}
+
+$adVariant = get_user_variant($conn, $userId, 'ad_points_reward');
+$adRewardPoints = (int)round(v2_ab_variant_numeric($conn, 'ad_points_reward', $adVariant, 10.0));
+if ($adRewardPoints <= 0) {
+    $adRewardPoints = 10;
+}
+
+$adRewardAvailable = $adDailyCount < V2_AD_DAILY_REWARD_CAP;
+
 $referralCode = v2_hub_get_or_create_referral_code($conn, $userId);
 $referralStats = [
     'pending' => 0,
@@ -545,5 +572,9 @@ json_ok([
         'points_reward_next' => 50,
     ],
     'token_balances' => $tokenBalances,
+    'ad_daily_count' => $adDailyCount,
+    'ad_daily_cap' => V2_AD_DAILY_REWARD_CAP,
+    'ad_reward_points' => $adRewardPoints,
+    'ad_reward_available' => $adRewardAvailable,
     'ab_flags' => $experiments,
 ]);

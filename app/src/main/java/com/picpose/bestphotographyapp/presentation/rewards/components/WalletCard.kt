@@ -60,6 +60,8 @@ fun WalletCard(
     pointsBalance: Int,
     displayedPoints: Int,
     tokenBalances: Map<String, Int>,
+    adRewardPoints: Int,
+    adRewardAvailable: Boolean,
     onQuickClaim: () -> Unit,
     onQuickWatchAd: () -> Unit,
     isLoggedIn: Boolean,
@@ -120,7 +122,7 @@ fun WalletCard(
                 }
                 Button(
                     onClick = onQuickWatchAd,
-                    enabled = isLoggedIn,
+                    enabled = isLoggedIn && adRewardAvailable,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 50.dp),
@@ -133,9 +135,16 @@ fun WalletCard(
                     Icon(Icons.Default.VideoLibrary, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.rewards_watch_ad_short),
+                        text = stringResource(R.string.rewards_watch_ad_plus_amount, adRewardPoints),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (!adRewardAvailable) {
+                    Text(
+                        text = stringResource(R.string.rewards_ad_limit_reached),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

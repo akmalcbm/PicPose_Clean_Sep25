@@ -35,6 +35,7 @@ import kotlin.random.Random
 data class RewardedAdUiState(
     val isLoading: Boolean = false,
     val isReady: Boolean = false,
+    val isShowing: Boolean = false,
     val lastError: String? = null,
 )
 
@@ -53,18 +54,19 @@ class RewardedAdManager @Inject constructor() {
         this.placementKey = placementKey
         val rewardedController = controller ?: RewardedAdController(placementKey).also { controller = it }
 
-        _uiState.value = _uiState.value.copy(isLoading = true, lastError = null)
+        _uiState.value = _uiState.value.copy(isLoading = true, isShowing = false, lastError = null)
         rewardedController.preload(
             context = context.applicationContext,
             callbacks = object : RewardedAdController.Callbacks {
                 override fun onLoaded() {
-                    _uiState.value = RewardedAdUiState(isLoading = false, isReady = true, lastError = null)
+                    _uiState.value = RewardedAdUiState(isLoading = false, isReady = true, isShowing = false, lastError = null)
                 }
 
                 override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
                     _uiState.value = RewardedAdUiState(
                         isLoading = false,
                         isReady = false,
+                        isShowing = false,
                         lastError = error.message,
                     )
                 }
@@ -84,6 +86,11 @@ class RewardedAdManager @Inject constructor() {
             controller = it
         }
 
+        if (_uiState.value.isShowing) {
+            onUnavailable("A rewarded ad is already in progress.")
+            return
+        }
+
         if (!_uiState.value.isReady) {
             loadRewardedAd(activity.applicationContext, placementKey)
             onUnavailable("Preparing your reward…")
@@ -91,16 +98,21 @@ class RewardedAdManager @Inject constructor() {
         }
 
         val adRewardId = generateRewardId()
+        var rewardDispatched = false
+        _uiState.value = _uiState.value.copy(isShowing = true, lastError = null)
 
         rewardedController.show(
             activity = activity,
             callbacks = object : RewardedAdController.Callbacks {
                 override fun onReward(reward: com.google.android.gms.ads.rewarded.RewardItem) {
-                    onRewardEarned(adRewardId)
+                    if (!rewardDispatched) {
+                        rewardDispatched = true
+                        onRewardEarned(adRewardId)
+                    }
                 }
 
                 override fun onDismissed() {
-                    _uiState.value = RewardedAdUiState(isLoading = false, isReady = false, lastError = null)
+                    _uiState.value = RewardedAdUiState(isLoading = false, isReady = false, isShowing = false, lastError = null)
                     loadRewardedAd(activity.applicationContext, placementKey)
                     onDismissed()
                 }
@@ -109,6 +121,7 @@ class RewardedAdManager @Inject constructor() {
                     _uiState.value = RewardedAdUiState(
                         isLoading = false,
                         isReady = false,
+                        isShowing = false,
                         lastError = error.message,
                     )
                     loadRewardedAd(activity.applicationContext, placementKey)

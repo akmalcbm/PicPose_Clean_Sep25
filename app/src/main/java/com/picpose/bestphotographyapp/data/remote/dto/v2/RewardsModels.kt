@@ -35,6 +35,10 @@ data class BasicV2Response(
     @SerializedName("points_balance") val pointsBalance: Int? = null,
     @SerializedName("milestone_hit") val milestoneHit: Boolean? = null,
     @SerializedName("cost") val cost: Int? = null,
+    @SerializedName("ad_daily_count") val adDailyCount: Int? = null,
+    @SerializedName("ad_daily_cap") val adDailyCap: Int? = null,
+    @SerializedName("ad_reward_points") val adRewardPoints: Int? = null,
+    @SerializedName("ad_reward_available") val adRewardAvailable: Boolean? = null,
 )
 
 @Keep
@@ -69,6 +73,10 @@ data class RewardsHubDto(
     @SerializedName("packs") val packs: HubPacksDto? = null,
     @SerializedName("progress") val progress: HubProgressDto? = null,
     @SerializedName("token_balances") val tokenBalances: Map<String, Int> = emptyMap(),
+    @SerializedName("ad_daily_count") val adDailyCount: Int? = null,
+    @SerializedName("ad_daily_cap") val adDailyCap: Int? = null,
+    @SerializedName("ad_reward_points") val adRewardPoints: Int? = null,
+    @SerializedName("ad_reward_available") val adRewardAvailable: Boolean? = null,
     @SerializedName("ab_flags") val abFlags: List<ExperimentAssignmentDto> = emptyList(),
 )
 

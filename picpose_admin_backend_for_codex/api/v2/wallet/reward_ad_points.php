@@ -2,12 +2,28 @@
 require_once __DIR__ . '/../lib/v2_auth.php';
 require_once __DIR__ . '/../lib/v2_ab.php';
 
+const V2_AD_DAILY_REWARD_CAP = 1;
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_err('Method Not Allowed', 405);
 }
 
 $user = require_user($conn);
 $userId = (int)$user['id'];
+
+function v2_fetch_wallet_balance(mysqli $conn, int $userId): int
+{
+    $balStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? LIMIT 1');
+    if (!$balStmt) {
+        return 0;
+    }
+    $balStmt->bind_param('i', $userId);
+    $balStmt->execute();
+    $balRes = $balStmt->get_result();
+    $balRow = $balRes ? $balRes->fetch_assoc() : null;
+    $balStmt->close();
+    return (int)($balRow['points_balance'] ?? 0);
+}
 
 $raw = file_get_contents('php://input');
 $payload = json_decode($raw ?? '', true);
@@ -47,20 +63,16 @@ $isDuplicate = (bool)($dupRes && $dupRes->fetch_assoc());
 $dupStmt->close();
 
 if ($isDuplicate) {
-    $balStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? LIMIT 1');
-    if (!$balStmt) {
-        json_err('Database query preparation failed', 500);
-    }
-    $balStmt->bind_param('i', $userId);
-    $balStmt->execute();
-    $balRes = $balStmt->get_result();
-    $balRow = $balRes ? $balRes->fetch_assoc() : null;
-    $balStmt->close();
-
+    $balance = v2_fetch_wallet_balance($conn, $userId);
     json_ok([
         'success' => true,
+        'message' => 'Reward already processed.',
         'points_added' => 0,
-        'points_balance' => (int)($balRow['points_balance'] ?? 0),
+        'points_balance' => $balance,
+        'ad_daily_count' => 1,
+        'ad_daily_cap' => V2_AD_DAILY_REWARD_CAP,
+        'ad_reward_points' => $pointsToAdd,
+        'ad_reward_available' => false,
     ]);
 }
 
@@ -81,8 +93,18 @@ $capRow = $capRes ? $capRes->fetch_assoc() : ['total_claims' => 0];
 $capStmt->close();
 
 $dailyClaims = (int)($capRow['total_claims'] ?? 0);
-if ($dailyClaims >= 30) {
-    json_err('Daily ad points limit reached', 429);
+if ($dailyClaims >= V2_AD_DAILY_REWARD_CAP) {
+    $balance = v2_fetch_wallet_balance($conn, $userId);
+    json_ok([
+        'success' => true,
+        'message' => 'Today\'s ad reward is already claimed.',
+        'points_added' => 0,
+        'points_balance' => $balance,
+        'ad_daily_count' => $dailyClaims,
+        'ad_daily_cap' => V2_AD_DAILY_REWARD_CAP,
+        'ad_reward_points' => $pointsToAdd,
+        'ad_reward_available' => false,
+    ]);
 }
 
 $conn->begin_transaction();
@@ -180,27 +202,31 @@ try {
 
     json_ok([
         'success' => true,
+        'message' => 'Ad reward credited successfully.',
         'points_added' => $pointsToAdd,
         'points_balance' => $newBalance,
+        'ad_daily_count' => min($dailyClaims + 1, V2_AD_DAILY_REWARD_CAP),
+        'ad_daily_cap' => V2_AD_DAILY_REWARD_CAP,
+        'ad_reward_points' => $pointsToAdd,
+        'ad_reward_available' => false,
     ]);
 } catch (Throwable $e) {
     $conn->rollback();
 
     if ($e->getMessage() === 'Duplicate claim') {
-        $balStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? LIMIT 1');
-        if ($balStmt) {
-            $balStmt->bind_param('i', $userId);
-            $balStmt->execute();
-            $balRes = $balStmt->get_result();
-            $balRow = $balRes ? $balRes->fetch_assoc() : null;
-            $balStmt->close();
-            json_ok([
-                'success' => true,
-                'points_added' => 0,
-                'points_balance' => (int)($balRow['points_balance'] ?? 0),
-            ]);
-        }
+        $balance = v2_fetch_wallet_balance($conn, $userId);
+        json_ok([
+            'success' => true,
+            'message' => 'Today\'s ad reward is already claimed.',
+            'points_added' => 0,
+            'points_balance' => $balance,
+            'ad_daily_count' => V2_AD_DAILY_REWARD_CAP,
+            'ad_daily_cap' => V2_AD_DAILY_REWARD_CAP,
+            'ad_reward_points' => $pointsToAdd,
+            'ad_reward_available' => false,
+        ]);
     }
 
+    error_log('reward_ad_points failed for user ' . $userId . ': ' . $e->getMessage());
     json_err('Failed to reward ad points', 500);
 }

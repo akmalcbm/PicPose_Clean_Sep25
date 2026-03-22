@@ -600,6 +600,9 @@
     <string name="rewards_loading_reward_ad">Preparing your reward…</string>
     <string name="rewards_ad_requires_activity">Opening ad requires an active screen.</string>
     <string name="rewards_ad_daily_progress">%1$d/%2$d ads today</string>
+    <string name="rewards_watch_ad_plus_amount">Watch Reward Ad (+%1$d credits)</string>
+    <string name="rewards_watch_ad_value_statement">Watch a rewarded ad to earn +%1$d verified credits after completion.</string>
+    <string name="rewards_ad_limit_reached">Today\'s ad reward has already been claimed.</string>
     <string name="rewards_login_prompt">Login to claim rewards, streak, and referrals.</string>
     <string name="rewards_session_expired_prompt">Your session expired. Login again to continue rewards.</string>
     <string name="rewards_login_again">Login again</string>
