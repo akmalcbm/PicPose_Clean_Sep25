@@ -23,6 +23,7 @@ package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
 import com.picpose.bestphotographyapp.data.repository.PromptRepository
+import com.picpose.bestphotographyapp.data.local.database.StatsDao
 import com.picpose.bestphotographyapp.data.local.database.dao.EngagementDao
 import com.picpose.bestphotographyapp.data.local.database.entity.EngagementEntity
 import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
@@ -30,6 +31,7 @@ import com.picpose.bestphotographyapp.data.remote.api.ApiService
 import com.picpose.bestphotographyapp.core.network.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -38,7 +40,8 @@ import kotlin.math.max
 class EngagementRepository @Inject constructor(
     private val engagementDao: EngagementDao,
     private val promptRepository: PromptRepository,
-    private val api: ApiService
+    private val api: ApiService,
+    private val statsDao: StatsDao
 ) {
 
     private val TAG = "EngagementRepo"
@@ -217,6 +220,55 @@ class EngagementRepository @Inject constructor(
         val isBookmarked: Boolean,
         val newFavorites: Int
     )
+
+    enum class PromptUsageAction(val wireValue: String) {
+        COPY("copy"),
+        OPEN_IN_GEMINI("open_in_gemini")
+    }
+
+    data class PromptUsageResult(
+        val promptId: String,
+        val action: PromptUsageAction,
+        val copies: Int
+    )
+
+    /**
+     * Tracks prompt usage that semantically counts as a copy action.
+     *
+     * - Increments server-side `ai_posts.copies` via API.
+     * - Updates local quick-stats cache so Home stats can react immediately.
+     */
+    suspend fun trackPromptUsage(
+        promptId: String,
+        action: PromptUsageAction = PromptUsageAction.COPY
+    ): Result<PromptUsageResult> {
+        val parsedPromptId = promptId.toIntOrNull()
+            ?: return Result.failure(IllegalArgumentException("Invalid prompt id: $promptId"))
+
+        return runCatching {
+            val response = api.incrementCopy(
+                id = parsedPromptId,
+                apiKey = RetrofitClient.defaultApiKey,
+                actionType = action.wireValue,
+                source = "android_app"
+            )
+
+            if (!response.isSuccessful || response.body()?.success != true) {
+                throw IllegalStateException(
+                    "Copy tracking failed: HTTP ${response.code()} ${response.body()?.toString().orEmpty()}"
+                )
+            }
+
+            val updatedCopies = response.body()?.copies ?: 0
+            incrementCachedCopyStat()
+
+            PromptUsageResult(
+                promptId = promptId,
+                action = action,
+                copies = updatedCopies
+            )
+        }
+    }
 
     /* ---------------------------------------------------- */
     /* SNAPSHOT READ (One-time) */
@@ -463,5 +515,15 @@ class EngagementRepository @Inject constructor(
         val serverViews = prompt.views.coerceAtLeast(0)
         val localViews = localEngagement?.localViewCount?.coerceAtLeast(0) ?: 0
         return serverViews + localViews
+    }
+
+    private suspend fun incrementCachedCopyStat() {
+        val cached = statsDao.getStats().firstOrNull() ?: return
+        statsDao.insertStats(
+            cached.copy(
+                total_copies = (cached.total_copies + 1).coerceAtLeast(0),
+                last_updated = System.currentTimeMillis()
+            )
+        )
     }
 }

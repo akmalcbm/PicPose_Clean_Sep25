@@ -18,6 +18,15 @@ if ($postId <= 0) {
     json_err('Missing or invalid post ID', 400);
 }
 
+$allowedActionTypes = ['copy', 'open_in_gemini', 'share', 'unknown'];
+$rawActionType = strtolower(trim((string)($payload['action_type'] ?? $_GET['action_type'] ?? 'copy')));
+$actionType = in_array($rawActionType, $allowedActionTypes, true) ? $rawActionType : 'copy';
+
+$source = trim((string)($payload['source'] ?? $_GET['source'] ?? 'android_app'));
+if ($source === '') {
+    $source = 'android_app';
+}
+
 $updateStmt = $conn->prepare("
     UPDATE ai_posts
     SET copies = COALESCE(copies, 0) + 1
@@ -73,4 +82,6 @@ if ($userId) {
 json_ok([
     'success' => true,
     'copies' => (int)$row['copies'],
+    'action_type' => $actionType,
+    'source' => $source,
 ]);

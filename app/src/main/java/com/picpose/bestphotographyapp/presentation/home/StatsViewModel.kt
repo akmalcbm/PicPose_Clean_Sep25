@@ -45,15 +45,27 @@ class StatsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            repository.observeCachedStats().collect { cached ->
+                if (cached != null) {
+                    _uiState.update { state ->
+                        state.copy(stats = cached)
+                    }
+                }
+            }
+        }
+    }
+
     fun fetchStats(apiKey: String? = null) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getQuickStats(apiKey ?: RetrofitClient.defaultApiKey)
                 .collect { result ->
                     result.onSuccess {
-                        _uiState.value = StatsUiState(stats = it, isLoading = false)
+                        _uiState.value = _uiState.value.copy(stats = it, isLoading = false, error = null)
                     }.onFailure { e ->
-                        _uiState.value = StatsUiState(error = e.message, isLoading = false)
+                        _uiState.value = _uiState.value.copy(error = e.message, isLoading = false)
                     }
                 }
         }

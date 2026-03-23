@@ -450,6 +450,9 @@ fun AIPromptCardOnlyHome(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     onCopy()
+                                    prompt.id.toIntOrNull()?.let { id ->
+                                        viewModel?.incrementCopyCount(id)
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),

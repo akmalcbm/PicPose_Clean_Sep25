@@ -151,6 +151,7 @@ import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.components.common.EdgeToEdgeScaffold
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import com.picpose.bestphotographyapp.utils.ShareUtils
 import com.picpose.bestphotographyapp.utils.setText
@@ -654,7 +655,10 @@ fun AIPromptDetailScreen(
                                                     ).show()
 
                                                     promptData.id.toIntOrNull()?.let {
-                                                        aiPromptViewModel.incrementCopyCount(it)
+                                                        aiPromptViewModel.incrementCopyCount(
+                                                            promptId = it,
+                                                            action = EngagementRepository.PromptUsageAction.OPEN_IN_GEMINI
+                                                        )
                                                     }
                                                 } else {
                                                     showGeminiDialog = true
@@ -723,7 +727,10 @@ fun AIPromptDetailScreen(
                                                     ).show()
 
                                                     promptData.id.toIntOrNull()?.let {
-                                                        aiPromptViewModel.incrementCopyCount(it)
+                                                        aiPromptViewModel.incrementCopyCount(
+                                                            promptId = it,
+                                                            action = EngagementRepository.PromptUsageAction.COPY
+                                                        )
                                                     }
                                                 }
                                             },
@@ -810,7 +817,10 @@ fun AIPromptDetailScreen(
                                             ).show()
 
                                             promptData.id.toIntOrNull()?.let {
-                                                aiPromptViewModel.incrementCopyCount(it)
+                                                aiPromptViewModel.incrementCopyCount(
+                                                    promptId = it,
+                                                    action = EngagementRepository.PromptUsageAction.OPEN_IN_GEMINI
+                                                )
                                             }
 
                                             dontAskAgain = false

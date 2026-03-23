@@ -133,6 +133,7 @@ import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.utils.setText
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -415,6 +416,10 @@ fun PromptsV2Screen(
                                             clipboard.setText(copyText, label = "prompt")
                                             snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_toast))
                                         }
+                                        viewModel.trackPromptUsage(
+                                            promptId = prompt.id,
+                                            action = EngagementRepository.PromptUsageAction.COPY
+                                        )
                                     }
                                 },
                                 onLike = { viewModel.onLikeClicked(prompt.id) },
@@ -500,6 +505,10 @@ fun PromptsV2Screen(
                                                     clipboard.setText(copyText, label = "prompt")
                                                     snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_toast))
                                                 }
+                                                viewModel.trackPromptUsage(
+                                                    promptId = prompt.id,
+                                                    action = EngagementRepository.PromptUsageAction.COPY
+                                                )
                                             }
                                         },
                                         onLike = { viewModel.onLikeClicked(prompt.id) },

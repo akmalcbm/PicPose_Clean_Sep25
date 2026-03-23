@@ -32,8 +32,6 @@ import com.picpose.bestphotographyapp.data.repository.PromptRepository
 import com.picpose.bestphotographyapp.data.local.database.entity.EngagementEntity
 import com.picpose.bestphotographyapp.data.local.datastore.SettingsManager
 import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
-import com.picpose.bestphotographyapp.data.remote.api.ApiService
-import com.picpose.bestphotographyapp.core.network.RetrofitClient
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,7 +83,6 @@ class AIPromptViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
     private val engagementRepository: EngagementRepository,
     private val promptRepository: PromptRepository,
-    private val api: ApiService,
     private val settingsManager: SettingsManager,
     private val analyticsLogger: AnalyticsLogger,
     private val crashReporter: CrashReporter,
@@ -374,10 +371,17 @@ class AIPromptViewModel @Inject constructor(
     /* ANALYTICS — COPY COUNT */
     /* ---------------------------------------------------------------------- */
 
-    fun incrementCopyCount(promptId: Int) {
+    fun incrementCopyCount(
+        promptId: Int,
+        action: EngagementRepository.PromptUsageAction = EngagementRepository.PromptUsageAction.COPY
+    ) {
         viewModelScope.launch(Dispatchers.IO + errorHandler) {
-            runCatching {
-                api.incrementCopy(promptId, RetrofitClient.defaultApiKey)
+            val result = engagementRepository.trackPromptUsage(
+                promptId = promptId.toString(),
+                action = action
+            )
+            result.onFailure { throwable ->
+                Log.w(TAG, "Copy tracking failed for promptId=$promptId action=${action.wireValue}: ${throwable.message}")
             }
         }
     }

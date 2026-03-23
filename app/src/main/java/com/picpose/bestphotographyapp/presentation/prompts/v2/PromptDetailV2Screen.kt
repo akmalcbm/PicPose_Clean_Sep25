@@ -144,6 +144,7 @@ import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
+import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.service.ads.AdManager
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.presentation.prompts.detail.FullScreenImageDialog
@@ -293,6 +294,12 @@ fun PromptDetailV2Screen(
                             onOpenGemini = {
                                 openGemini(context, promptText = uiState.prompt?.fullPrompt.orEmpty())
                                 viewModel.setMessage(context.getString(R.string.ai_prompt_toast_copied_opening_gemini))
+                                uiState.prompt?.id?.let { promptId ->
+                                    viewModel.trackPromptUsage(
+                                        promptId = promptId,
+                                        action = EngagementRepository.PromptUsageAction.OPEN_IN_GEMINI
+                                    )
+                                }
                             },
                             onCopyPrompt = {
                                 val fullPrompt = uiState.prompt?.fullPrompt.orEmpty()
@@ -301,6 +308,12 @@ fun PromptDetailV2Screen(
                                     clipboard.setText(fullPrompt, label = "prompt")
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_to_clipboard))
+                                }
+                                uiState.prompt?.id?.let { promptId ->
+                                    viewModel.trackPromptUsage(
+                                        promptId = promptId,
+                                        action = EngagementRepository.PromptUsageAction.COPY
+                                    )
                                 }
                             },
                             onRequireLogin = onRequireLogin,

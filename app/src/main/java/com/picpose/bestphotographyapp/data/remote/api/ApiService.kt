@@ -253,7 +253,9 @@ interface ApiService {
     @POST("api/ai_posts/increment_copy.php")
     suspend fun incrementCopy(
         @Field("id") id: Int,
-        @Field("api_key") apiKey: String? = null
+        @Field("api_key") apiKey: String? = null,
+        @Field("action_type") actionType: String? = null,
+        @Field("source") source: String? = null
     ): Response<CopyResponse>
 
 

@@ -21,6 +21,7 @@
 
 package com.picpose.bestphotographyapp.presentation.prompts.v2
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
@@ -251,6 +252,30 @@ class PromptDetailV2ViewModel @Inject constructor(
 
     fun setMessage(message: String) {
         _uiState.update { it.copy(message = message) }
+    }
+
+    fun trackPromptUsage(
+        promptId: String,
+        action: EngagementRepository.PromptUsageAction = EngagementRepository.PromptUsageAction.COPY,
+    ) {
+        viewModelScope.launch {
+            engagementRepository.trackPromptUsage(
+                promptId = promptId,
+                action = action,
+            ).onSuccess { result ->
+                _uiState.update { current ->
+                    current.copy(
+                        prompt = current.prompt?.takeIf { it.id == promptId }?.copy(copies = result.copies)
+                            ?: current.prompt
+                    )
+                }
+            }.onFailure { throwable ->
+                Log.w(
+                    "PromptDetailV2VM",
+                    "Copy tracking failed for promptId=$promptId action=${action.wireValue}: ${throwable.message}"
+                )
+            }
+        }
     }
 
     private fun launchUnlock(

@@ -29,11 +29,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 class StatsRepository(
     private val api: ApiService,
     private val dao: StatsDao
 ) {
+
+    fun observeCachedStats(): Flow<StatsResponse?> =
+        dao.getStats().map { cached -> cached?.toStatsResponse() }
 
     fun getQuickStats(apiKey: String?): Flow<Result<StatsResponse>> = flow {
         // Emit cached first

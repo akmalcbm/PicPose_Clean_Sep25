@@ -35,6 +35,15 @@ if ($id <= 0) {
     exit();
 }
 
+$allowedActionTypes = ['copy', 'open_in_gemini', 'share', 'unknown'];
+$rawActionType = strtolower(trim((string)($_POST['action_type'] ?? $_GET['action_type'] ?? 'copy')));
+$actionType = in_array($rawActionType, $allowedActionTypes, true) ? $rawActionType : 'copy';
+
+$source = trim((string)($_POST['source'] ?? $_GET['source'] ?? 'android_app'));
+if ($source === '') {
+    $source = 'android_app';
+}
+
 /* -------------------------
    ATOMIC INCREMENT
 ------------------------- */
@@ -84,5 +93,7 @@ $selectStmt->close();
 ------------------------- */
 echo json_encode([
     "success" => true,
-    "copies"  => (int)$row['copies']
+    "copies"  => (int)$row['copies'],
+    "action_type" => $actionType,
+    "source" => $source
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
