@@ -603,6 +603,15 @@
     <string name="rewards_watch_ad_plus_amount">Watch Reward Ad (+%1$d credits)</string>
     <string name="rewards_watch_ad_value_statement">Watch a rewarded ad to earn +%1$d verified credits after completion.</string>
     <string name="rewards_ad_limit_reached">Today\'s ad reward has already been claimed.</string>
+    <string name="rewards_ad_temporarily_unavailable">Reward ad is temporarily unavailable.</string>
+    <string name="rewards_retry_ad_load">Retry ad load</string>
+    <string name="rewards_ad_in_progress">A rewarded ad is already in progress.</string>
+    <string name="rewards_ad_not_completed">Ad closed before completion. No credits were added.</string>
+    <string name="rewards_watch_ad_confirm_title">Watch rewarded ad?</string>
+    <string name="rewards_watch_ad_confirm_message">You\'ll watch a rewarded ad and receive +%1$d credits only after successful completion.</string>
+    <string name="rewards_watch_ad_confirm_action">Yes, Watch Now</string>
+    <string name="rewards_recent_activity_title">Recent activity</string>
+    <string name="rewards_recent_activity_empty">No recent credit activity yet.</string>
     <string name="rewards_login_prompt">Login to claim rewards, streak, and referrals.</string>
     <string name="rewards_session_expired_prompt">Your session expired. Login again to continue rewards.</string>
     <string name="rewards_login_again">Login again</string>

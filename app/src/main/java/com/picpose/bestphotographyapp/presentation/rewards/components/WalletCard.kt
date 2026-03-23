@@ -24,28 +24,31 @@ package com.picpose.bestphotographyapp.presentation.rewards.components
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,34 +57,70 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.data.service.ads.RewardedAdUiState
+import com.picpose.bestphotographyapp.presentation.rewards.CreditActivityItem
 
 @Composable
 fun WalletCard(
     pointsBalance: Int,
     displayedPoints: Int,
-    tokenBalances: Map<String, Int>,
     adRewardPoints: Int,
     adRewardAvailable: Boolean,
-    onQuickClaim: () -> Unit,
+    adState: RewardedAdUiState,
+    recentCreditActivities: List<CreditActivityItem>,
     onQuickWatchAd: () -> Unit,
+    onRetryAdLoad: () -> Unit,
     isLoggedIn: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val watchAdEnabled = isLoggedIn && adRewardAvailable && adState.isReady && !adState.isLoading && !adState.isShowing
+    val displayedActivities = recentCreditActivities.take(5)
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().animateContentSize().padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Wallet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Wallet & Credits",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Use credits for premium prompts and packs.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 "$displayedPoints credits",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
             )
             if (displayedPoints != pointsBalance) {
@@ -91,48 +130,34 @@ fun WalletCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (tokenBalances.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    tokenBalances.forEach { (type, balance) ->
-                        AssistChip(onClick = {}, label = { Text("${friendlyTokenLabel(type)}: $balance") })
-                    }
-                }
-            }
+
             Spacer(modifier = Modifier.height(14.dp))
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+            Button(
+                onClick = onQuickWatchAd,
+                enabled = watchAdEnabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             ) {
-                OutlinedButton(
-                    onClick = onQuickClaim,
-                    enabled = isLoggedIn,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Icon(Icons.Default.EmojiEvents, contentDescription = null)
+                if (adState.isLoading && !adState.isReady) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.rewards_claim_short),
+                        text = stringResource(R.string.rewards_loading_reward_ad),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-                Button(
-                    onClick = onQuickWatchAd,
-                    enabled = isLoggedIn && adRewardAvailable,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Icon(Icons.Default.VideoLibrary, contentDescription = null)
+                } else {
+                    Icon(Icons.Default.PlayCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.rewards_watch_ad_plus_amount, adRewardPoints),
@@ -140,24 +165,98 @@ fun WalletCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (!adRewardAvailable) {
+            }
+
+            when {
+                !isLoggedIn -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.rewards_login_prompt),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                !adRewardAvailable -> {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.rewards_ad_limit_reached),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                adState.lastError != null && !adState.isLoading && !adState.isReady -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.rewards_ad_temporarily_unavailable),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onRetryAdLoad) {
+                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.rewards_retry_ad_load))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.rewards_recent_activity_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (displayedActivities.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.rewards_recent_activity_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    displayedActivities.forEachIndexed { index, item ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                if (!item.subtitle.isNullOrBlank()) {
+                                    Text(
+                                        text = item.subtitle,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Text(
+                                text = formatCreditDelta(item.delta),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (item.delta >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        if (index < displayedActivities.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-@Composable
-private fun friendlyTokenLabel(raw: String): String {
-    return when (raw.uppercase()) {
-        "PROMPT_UNLOCK" -> stringResource(R.string.token_prompt_unlock)
-        "IMAGE_GEN_PRIORITY" -> stringResource(R.string.token_image_gen_priority)
-        else -> raw.replace('_', ' ').lowercase().split(' ')
-            .joinToString(" ") { part -> part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
-    }
+private fun formatCreditDelta(delta: Int): String {
+    return if (delta >= 0) "+$delta" else "$delta"
 }

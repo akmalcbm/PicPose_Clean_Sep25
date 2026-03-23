@@ -64,6 +64,13 @@ sealed interface RewardsUiEvent {
     data class Error(val message: String) : RewardsUiEvent
 }
 
+data class CreditActivityItem(
+    val id: String,
+    val title: String,
+    val delta: Int,
+    val subtitle: String? = null,
+)
+
 data class RewardsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
@@ -99,6 +106,7 @@ data class RewardsUiState(
     val xp: Int = 0,
     val nextLevelXp: Int = 0,
     val progressEvents: List<ProgressEventDto> = emptyList(),
+    val recentCreditActivities: List<CreditActivityItem> = emptyList(),
     val statusMessage: String? = null,
 )
 
@@ -180,6 +188,13 @@ class RewardsViewModel @Inject constructor(
                     applyWalletAction(response)
                     val latestBalance = response.pointsBalance ?: _uiState.value.pointsBalance
                     val pointsAdded = response.pointsAdded ?: (latestBalance - previousBalance).coerceAtLeast(0)
+                    if (pointsAdded > 0) {
+                        pushRecentCreditActivity(
+                            title = "Daily streak reward",
+                            delta = pointsAdded,
+                            subtitle = "Daily streak",
+                        )
+                    }
                     _events.emit(RewardsUiEvent.ClaimSuccess(pointsAdded = pointsAdded))
                     loadLoggedInRewards(forceRefresh = true)
                 }
@@ -244,7 +259,15 @@ class RewardsViewModel @Inject constructor(
                 return@launch
             }
             rewardsRepository.claimReferralReward()
-                .onSuccess {
+                .onSuccess { response ->
+                    val pointsAdded = (response.referrerPointsAdded + response.refereePointsAdded).coerceAtLeast(0)
+                    if (pointsAdded > 0) {
+                        pushRecentCreditActivity(
+                            title = "Referral reward",
+                            delta = pointsAdded,
+                            subtitle = "Invite & earn",
+                        )
+                    }
                     _uiState.update { state ->
                         state.copy(
                             referralStatus = "REWARDED",
@@ -302,6 +325,11 @@ class RewardsViewModel @Inject constructor(
                         )
                     }
                     if (pointsAdded > 0) {
+                        pushRecentCreditActivity(
+                            title = "Reward ad completed",
+                            delta = pointsAdded,
+                            subtitle = "Reward ad",
+                        )
                         _events.emit(RewardsUiEvent.AdRewardSuccess(pointsAdded = pointsAdded))
                     }
                     loadLoggedInRewards(forceRefresh = true)
@@ -425,6 +453,7 @@ class RewardsViewModel @Inject constructor(
                 xp = 0,
                 nextLevelXp = 0,
                 progressEvents = emptyList(),
+                recentCreditActivities = emptyList(),
                 statusMessage = null,
             )
         }
@@ -588,6 +617,25 @@ class RewardsViewModel @Inject constructor(
             raw.contains("already claimed", ignoreCase = true) -> "You already claimed today's streak reward."
             raw.isBlank() -> "Unable to claim reward right now."
             else -> raw
+        }
+    }
+
+    private fun pushRecentCreditActivity(
+        title: String,
+        delta: Int,
+        subtitle: String? = null,
+    ) {
+        if (delta == 0) return
+        val item = CreditActivityItem(
+            id = "credit_${System.currentTimeMillis()}_${delta}_${title.hashCode()}",
+            title = title,
+            delta = delta,
+            subtitle = subtitle,
+        )
+        _uiState.update { current ->
+            current.copy(
+                recentCreditActivities = (listOf(item) + current.recentCreditActivities).take(5)
+            )
         }
     }
 }

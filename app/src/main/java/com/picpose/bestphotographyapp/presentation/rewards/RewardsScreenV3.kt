@@ -54,6 +54,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -129,9 +130,56 @@ fun RewardsScreenV3(
     var applyCode by rememberSaveable { mutableStateOf("") }
     var showConfetti by remember { mutableStateOf(false) }
     var showCoinBurst by remember { mutableStateOf(false) }
+    var showWatchAdConfirmation by rememberSaveable { mutableStateOf(false) }
+    var rewardEarnedForCurrentAd by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     val hasRewardsAccess = isLoggedIn && uiState.accessState == RewardsAccessState.Authenticated
+    val reloadRewardedAd = {
+        rewardedAdManager.loadRewardedAd(context, AdsManager.KEY_REWARDED_AD)
+    }
+
+    val requestWatchRewardAd = {
+        val hostActivity = activity
+        when {
+            !hasRewardsAccess -> onRequireLogin()
+            hostActivity == null -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
+            !uiState.adRewardAvailable -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_limit_reached))
+            rewardedAdState.isShowing -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_in_progress))
+            rewardedAdState.isLoading && !rewardedAdState.isReady -> {
+                viewModel.setStatusMessage(context.getString(R.string.rewards_loading_reward_ad))
+            }
+            !rewardedAdState.isReady -> {
+                reloadRewardedAd()
+                viewModel.setStatusMessage(context.getString(R.string.rewards_loading_reward_ad))
+            }
+            else -> showWatchAdConfirmation = true
+        }
+    }
+
+    val confirmAndLaunchRewardAd: () -> Unit = confirm@{
+        val hostActivity = activity
+        showWatchAdConfirmation = false
+        if (hostActivity == null) {
+            viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
+            return@confirm
+        }
+        rewardEarnedForCurrentAd = false
+        rewardedAdManager.showRewardedAd(
+            activity = hostActivity,
+            placementKey = AdsManager.KEY_REWARDED_AD,
+            onRewardEarned = { adRewardId ->
+                rewardEarnedForCurrentAd = true
+                viewModel.rewardAdPoints(adRewardId)
+            },
+            onUnavailable = { msg -> viewModel.setStatusMessage(msg) },
+            onDismissed = {
+                if (!rewardEarnedForCurrentAd) {
+                    viewModel.setStatusMessage(context.getString(R.string.rewards_ad_not_completed))
+                }
+            },
+        )
+    }
 
     LaunchedEffect(authState) {
         if (authState != RewardsAccessState.Loading) {
@@ -211,6 +259,33 @@ fun RewardsScreenV3(
         }
     }
 
+    if (showWatchAdConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showWatchAdConfirmation = false },
+            title = {
+                Text(text = stringResource(R.string.rewards_watch_ad_confirm_title))
+            },
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.rewards_watch_ad_confirm_message,
+                        uiState.adRewardPoints,
+                    )
+                )
+            },
+            confirmButton = {
+                Button(onClick = confirmAndLaunchRewardAd) {
+                    Text(text = stringResource(R.string.rewards_watch_ad_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWatchAdConfirmation = false }) {
+                    Text(text = stringResource(R.string.not_now))
+                }
+            },
+        )
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -251,27 +326,12 @@ fun RewardsScreenV3(
                             WalletCard(
                                 pointsBalance = uiState.pointsBalance,
                                 displayedPoints = displayedPoints,
-                                tokenBalances = uiState.tokenBalances,
                                 adRewardPoints = uiState.adRewardPoints,
                                 adRewardAvailable = uiState.adRewardAvailable,
-                                onQuickClaim = {
-                                    if (hasRewardsAccess) viewModel.claimDailyLogin() else onRequireLogin()
-                                },
-                                onQuickWatchAd = {
-                                    val hostActivity = activity
-                                    when {
-                                        !hasRewardsAccess -> onRequireLogin()
-                                        hostActivity == null -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
-                                        else -> rewardedAdManager.showRewardedAd(
-                                            activity = hostActivity,
-                                            placementKey = AdsManager.KEY_REWARDED_AD,
-                                            onRewardEarned = { adRewardId ->
-                                                viewModel.rewardAdPoints(adRewardId)
-                                            },
-                                            onUnavailable = { msg -> viewModel.setStatusMessage(msg) },
-                                        )
-                                    }
-                                },
+                                adState = rewardedAdState,
+                                recentCreditActivities = uiState.recentCreditActivities,
+                                onQuickWatchAd = requestWatchRewardAd,
+                                onRetryAdLoad = reloadRewardedAd,
                                 isLoggedIn = hasRewardsAccess,
                             )
                         }
@@ -284,6 +344,22 @@ fun RewardsScreenV3(
                             }
                         }
                         item {
+                            EarnCard(
+                                isLoggedIn = hasRewardsAccess,
+                                adState = rewardedAdState,
+                                adRewardedToday = uiState.adRewardedToday,
+                                adDailyCount = uiState.adDailyCount,
+                                adDailyCap = uiState.adDailyCap,
+                                streakCount = uiState.streakCount,
+                                todayClaimed = uiState.todayClaimed,
+                                rewardsSchedule = uiState.rewardsSchedule,
+                                adRewardPoints = uiState.adRewardPoints,
+                                adRewardAvailable = uiState.adRewardAvailable,
+                                onWatchAd = requestWatchRewardAd,
+                                onRetryAdLoad = reloadRewardedAd,
+                            )
+                        }
+                        item {
                             StreakStepper(
                                 streakCount = uiState.streakCount,
                                 todayClaimed = uiState.todayClaimed,
@@ -292,32 +368,6 @@ fun RewardsScreenV3(
                                 isClaiming = uiState.isClaimingReward,
                                 onClaim = {
                                     if (hasRewardsAccess) viewModel.claimDailyLogin() else onRequireLogin()
-                                },
-                            )
-                        }
-                        item {
-                            EarnCard(
-                                isLoggedIn = hasRewardsAccess,
-                                adState = rewardedAdState,
-                                adRewardedToday = uiState.adRewardedToday,
-                                adDailyCount = uiState.adDailyCount,
-                                adDailyCap = uiState.adDailyCap,
-                                adRewardPoints = uiState.adRewardPoints,
-                                adRewardAvailable = uiState.adRewardAvailable,
-                                onWatchAd = {
-                                    val hostActivity = activity
-                                    when {
-                                        !hasRewardsAccess -> onRequireLogin()
-                                        hostActivity == null -> viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
-                                        else -> rewardedAdManager.showRewardedAd(
-                                            activity = hostActivity,
-                                            placementKey = AdsManager.KEY_REWARDED_AD,
-                                            onRewardEarned = { adRewardId ->
-                                                viewModel.rewardAdPoints(adRewardId)
-                                            },
-                                            onUnavailable = { msg -> viewModel.setStatusMessage(msg) },
-                                        )
-                                    }
                                 },
                             )
                         }
