@@ -658,6 +658,8 @@
     <string name="pack_unlock_not_enough_action">Not enough credits</string>
     <string name="pack_unlock_insufficient_inline">You don\'t have enough credits. Visit Rewards to earn more.</string>
     <string name="pack_earn_credits_action">Earn Credits</string>
+    <string name="pack_row_locked_hint">Pack-exclusive prompt. Unlock the pack to open it.</string>
+    <string name="pack_row_unlocked_hint">Included in your premium pack.</string>
     <string name="prompt_locked">Locked</string>
     <string name="prompt_unlocked">Unlocked</string>
     <string name="prompt_open">Open</string>

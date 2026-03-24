@@ -359,19 +359,40 @@ private fun PackPromptRow(
     onLockedClick: () -> Unit,
 ) {
     val isLocked = !isPackOwned
+    val teaser = prompt.teaserText ?: prompt.shortPrompt.orEmpty()
+    val subtitle = if (teaser.isNotBlank()) {
+        teaser
+    } else if (isLocked) {
+        stringResource(R.string.pack_row_locked_hint)
+    } else {
+        stringResource(R.string.pack_row_unlocked_hint)
+    }
     Card(
         onClick = {
             if (isLocked) onLockedClick() else onPromptClick(prompt.id)
         },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isLocked) {
+                MaterialTheme.colorScheme.surfaceContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Box(
                 modifier = Modifier
-                    .size(width = 108.dp, height = 86.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(width = 112.dp, height = 90.dp)
+                    .clip(RoundedCornerShape(14.dp))
             ) {
                 if (!prompt.imageUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -397,7 +418,7 @@ private fun PackPromptRow(
                             Brush.verticalGradient(
                                 listOf(
                                     androidx.compose.ui.graphics.Color.Transparent,
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
                                 )
                             )
                         )
@@ -406,63 +427,81 @@ private fun PackPromptRow(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)),
-                        contentAlignment = Alignment.Center,
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
+                        PremiumLockBadge(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.size(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        prompt.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (isLocked) {
-                        AssistChip(
-                            onClick = onLockedClick,
-                            label = { Text(stringResource(R.string.prompt_locked)) },
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(
-                    text = prompt.teaserText ?: prompt.shortPrompt.orEmpty(),
+                    prompt.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
                 FilledTonalButton(
                     onClick = {
                         if (isLocked) onLockedClick() else onPromptClick(prompt.id)
                     },
+                    shape = RoundedCornerShape(12.dp),
                 ) {
-                    Icon(
-                        imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
                     Text(
-                        if (isLocked) stringResource(R.string.pack_unlock_pack_action) else stringResource(R.string.prompt_open)
+                        if (isLocked) {
+                            stringResource(R.string.pack_unlock_pack_action)
+                        } else {
+                            stringResource(R.string.prompt_open)
+                        }
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PremiumLockBadge(
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.96f),
+        ),
+        shape = RoundedCornerShape(999.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = stringResource(R.string.premium),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
