@@ -89,6 +89,7 @@ fun PackDetailsScreen(
     onBack: () -> Unit,
     onPromptClick: (String) -> Unit,
     onRequireLogin: () -> Unit,
+    onOpenRewards: () -> Unit,
     viewModel: PackDetailsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -112,28 +113,47 @@ fun PackDetailsScreen(
     LaunchedEffect(ownsPack) {
         if (ownsPack) {
             lockedPromptTitle = null
+            viewModel.clearUnlockDialogFeedback()
         }
     }
 
     if (lockedPromptTitle != null && pack != null) {
         ModalBottomSheet(
-            onDismissRequest = { lockedPromptTitle = null },
+            onDismissRequest = {
+                lockedPromptTitle = null
+                viewModel.clearUnlockDialogFeedback()
+            },
         ) {
             LockedPromptAccessSheet(
                 promptTitle = lockedPromptTitle.orEmpty(),
                 packName = pack.name,
                 packPricePoints = pack.pricePoints,
+                pointsBalance = uiState.pointsBalance,
                 isUnlocking = uiState.isUnlocking,
                 isLoggedIn = isLoggedIn,
+                inlineError = uiState.unlockDialogError,
+                isInsufficientCredits = uiState.unlockDialogInsufficientCredits,
                 onUnlock = {
                     if (isLoggedIn) {
-                        viewModel.unlockPack(packId)
+                        viewModel.unlockPack(
+                            packId = packId,
+                            source = PackUnlockSource.LockedPromptSheet,
+                        )
                     } else {
                         lockedPromptTitle = null
+                        viewModel.clearUnlockDialogFeedback()
                         onRequireLogin()
                     }
                 },
-                onDismiss = { lockedPromptTitle = null },
+                onEarnCredits = {
+                    lockedPromptTitle = null
+                    viewModel.clearUnlockDialogFeedback()
+                    onOpenRewards()
+                },
+                onDismiss = {
+                    lockedPromptTitle = null
+                    viewModel.clearUnlockDialogFeedback()
+                },
             )
         }
     }
@@ -176,7 +196,14 @@ fun PackDetailsScreen(
                             ownsPack = ownsPack,
                             isUnlocking = uiState.isUnlocking,
                             onUnlock = {
-                                if (isLoggedIn) viewModel.unlockPack(packId) else onRequireLogin()
+                                if (isLoggedIn) {
+                                    viewModel.unlockPack(
+                                        packId = packId,
+                                        source = PackUnlockSource.HeaderCard,
+                                    )
+                                } else {
+                                    onRequireLogin()
+                                }
                             },
                             onOpenPack = {
                                 uiState.items.firstOrNull()?.id?.let(onPromptClick)
@@ -190,6 +217,7 @@ fun PackDetailsScreen(
                             isPackOwned = ownsPack,
                             onPromptClick = onPromptClick,
                             onLockedClick = {
+                                viewModel.clearUnlockDialogFeedback()
                                 lockedPromptTitle = prompt.title
                             },
                         )
@@ -444,11 +472,27 @@ private fun LockedPromptAccessSheet(
     promptTitle: String,
     packName: String,
     packPricePoints: Int,
+    pointsBalance: Int?,
     isUnlocking: Boolean,
     isLoggedIn: Boolean,
+    inlineError: String?,
+    isInsufficientCredits: Boolean,
     onUnlock: () -> Unit,
+    onEarnCredits: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val requiredCredits = packPricePoints.coerceAtLeast(0)
+    val hasEnoughCredits = pointsBalance?.let { it >= requiredCredits } ?: true
+    val hasKnownBalance = pointsBalance != null
+    val creditsDeficit = pointsBalance?.let { (requiredCredits - it).coerceAtLeast(0) } ?: 0
+    val shouldShowInsufficientState = isLoggedIn && hasKnownBalance && !hasEnoughCredits
+    val shouldDisableUnlock = isLoggedIn && (shouldShowInsufficientState || isInsufficientCredits)
+    val errorText = inlineError?.takeIf { it.isNotBlank() } ?: if (isInsufficientCredits) {
+        stringResource(R.string.pack_unlock_insufficient_inline)
+    } else {
+        null
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -465,7 +509,7 @@ private fun LockedPromptAccessSheet(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = stringResource(R.string.pack_locked_prompt_title),
+                text = stringResource(R.string.pack_unlock_prompt_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -473,18 +517,54 @@ private fun LockedPromptAccessSheet(
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = stringResource(
-                R.string.pack_locked_prompt_message,
+                R.string.pack_unlock_prompt_message,
                 promptTitle,
                 packName,
-                packPricePoints,
+                requiredCredits,
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.pack_unlock_required_credits, requiredCredits),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        )
+        pointsBalance?.let { balance ->
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.pack_unlock_current_balance, balance),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (balance >= requiredCredits) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                fontWeight = FontWeight.Medium,
+            )
+            if (balance < requiredCredits) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.pack_unlock_deficit, creditsDeficit),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+        if (!errorText.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = onUnlock,
-            enabled = !isUnlocking,
+            enabled = !isUnlocking && (!isLoggedIn || !shouldDisableUnlock),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
@@ -495,12 +575,23 @@ private fun LockedPromptAccessSheet(
             Text(
                 text = if (isUnlocking) {
                     stringResource(R.string.pack_unlocking)
+                } else if (isLoggedIn && shouldDisableUnlock) {
+                    stringResource(R.string.pack_unlock_not_enough_action)
                 } else if (isLoggedIn) {
-                    stringResource(R.string.pack_unlock_for_credits, packPricePoints)
+                    stringResource(R.string.pack_unlock_for_credits, requiredCredits)
                 } else {
                     stringResource(R.string.prompt_unlock_login_required)
                 }
             )
+        }
+        if (isLoggedIn && shouldDisableUnlock) {
+            Spacer(modifier = Modifier.height(8.dp))
+            FilledTonalButton(
+                onClick = onEarnCredits,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(text = stringResource(R.string.pack_earn_credits_action))
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedButton(

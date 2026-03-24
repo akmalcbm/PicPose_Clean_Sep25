@@ -260,6 +260,9 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                     },
                     onRequireLogin = {
                         navController.navigate(Screen.Login.route) { launchSingleTop = true }
+                    },
+                    onOpenRewards = {
+                        navController.navigate(Screen.Rewards.route) { launchSingleTop = true }
                     }
                 )
             }

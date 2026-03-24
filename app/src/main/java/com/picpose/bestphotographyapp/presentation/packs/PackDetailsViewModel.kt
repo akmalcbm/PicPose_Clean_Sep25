@@ -27,6 +27,7 @@ import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.RewardsRepository
+import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,8 +44,16 @@ data class PackDetailsUiState(
     val isUnlocking: Boolean = false,
     val pack: PackSummaryDto? = null,
     val items: List<V2PromptDto> = emptyList(),
+    val pointsBalance: Int? = null,
+    val unlockDialogError: String? = null,
+    val unlockDialogInsufficientCredits: Boolean = false,
     val message: String? = null,
 )
+
+enum class PackUnlockSource {
+    HeaderCard,
+    LockedPromptSheet,
+}
 
 @HiltViewModel
 class PackDetailsViewModel @Inject constructor(
@@ -63,7 +72,14 @@ class PackDetailsViewModel @Inject constructor(
         )
 
     fun loadPack(packId: Int) {
-        _uiState.update { it.copy(isLoading = true, message = null) }
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                message = null,
+                unlockDialogError = null,
+                unlockDialogInsufficientCredits = false,
+            )
+        }
         viewModelScope.launch {
             rewardsRepository.getPackDetails(packId)
                 .onSuccess { response ->
@@ -74,6 +90,7 @@ class PackDetailsViewModel @Inject constructor(
                             items = response.items,
                         )
                     }
+                    refreshPointsBalance()
                 }
                 .onFailure { throwable ->
                     _uiState.update { current ->
@@ -86,8 +103,32 @@ class PackDetailsViewModel @Inject constructor(
         }
     }
 
-    fun unlockPack(packId: Int) {
-        _uiState.update { it.copy(isUnlocking = true, message = null) }
+    fun unlockPack(
+        packId: Int,
+        source: PackUnlockSource = PackUnlockSource.HeaderCard,
+    ) {
+        if (_uiState.value.isUnlocking) return
+
+        val snapshot = _uiState.value
+        val requiredCredits = snapshot.pack?.pricePoints?.coerceAtLeast(0) ?: 0
+        val balance = snapshot.pointsBalance
+        if (requiredCredits > 0 && balance != null && balance < requiredCredits) {
+            handleInsufficientCredits(
+                requiredCredits = requiredCredits,
+                currentBalance = balance,
+                source = source,
+            )
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                isUnlocking = true,
+                message = null,
+                unlockDialogError = null,
+                unlockDialogInsufficientCredits = false,
+            )
+        }
         viewModelScope.launch {
             rewardsRepository.unlockPack(packId)
                 .onSuccess { response ->
@@ -96,6 +137,9 @@ class PackDetailsViewModel @Inject constructor(
                             isUnlocking = false,
                             pack = current.pack?.copy(ownsPack = true),
                             items = current.items.map { it.copy(isLocked = false, teaserText = null) },
+                            pointsBalance = response.pointsBalance ?: current.pointsBalance,
+                            unlockDialogError = null,
+                            unlockDialogInsufficientCredits = false,
                             message = when {
                                 response.unlocked == true -> "Pack unlocked."
                                 else -> response.message ?: "Pack updated."
@@ -105,10 +149,23 @@ class PackDetailsViewModel @Inject constructor(
                     loadPack(packId)
                 }
                 .onFailure { throwable ->
+                    val failedMessage = throwable.message ?: "Failed to unlock pack."
+                    val insufficientCredits = throwable.isInsufficientCreditsFailure()
+                    if (insufficientCredits) {
+                        handleInsufficientCredits(
+                            requiredCredits = requiredCredits,
+                            currentBalance = _uiState.value.pointsBalance,
+                            source = source,
+                        )
+                        refreshPointsBalance()
+                        return@onFailure
+                    }
                     _uiState.update { current ->
                         current.copy(
                             isUnlocking = false,
-                            message = throwable.message ?: "Failed to unlock pack.",
+                            message = if (source == PackUnlockSource.LockedPromptSheet) null else failedMessage,
+                            unlockDialogError = if (source == PackUnlockSource.LockedPromptSheet) failedMessage else null,
+                            unlockDialogInsufficientCredits = false,
                         )
                     }
                 }
@@ -117,5 +174,57 @@ class PackDetailsViewModel @Inject constructor(
 
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
+    }
+
+    fun clearUnlockDialogFeedback() {
+        _uiState.update {
+            it.copy(
+                unlockDialogError = null,
+                unlockDialogInsufficientCredits = false,
+            )
+        }
+    }
+
+    private fun refreshPointsBalance() {
+        viewModelScope.launch {
+            rewardsRepository.getProgress()
+                .onSuccess { progress ->
+                    _uiState.update { current -> current.copy(pointsBalance = progress.pointsBalance) }
+                }
+        }
+    }
+
+    private fun handleInsufficientCredits(
+        requiredCredits: Int,
+        currentBalance: Int?,
+        source: PackUnlockSource,
+    ) {
+        val message = buildString {
+            append("You don't have enough credits to unlock this prompt.")
+            if (currentBalance != null) {
+                append(" Required: ")
+                append(requiredCredits)
+                append(", balance: ")
+                append(currentBalance)
+                append(".")
+            }
+            append(" Visit Rewards to earn more.")
+        }
+        _uiState.update { current ->
+            current.copy(
+                isUnlocking = false,
+                message = if (source == PackUnlockSource.LockedPromptSheet) null else message,
+                unlockDialogError = if (source == PackUnlockSource.LockedPromptSheet) message else null,
+                unlockDialogInsufficientCredits = source == PackUnlockSource.LockedPromptSheet,
+            )
+        }
+    }
+
+    private fun Throwable.isInsufficientCreditsFailure(): Boolean {
+        if (this is V2ApiException && code == 402) return true
+        val raw = message.orEmpty()
+        return raw.contains("insufficient", ignoreCase = true) ||
+            raw.contains("not enough", ignoreCase = true) ||
+            (raw.contains("credits", ignoreCase = true) && raw.contains("low", ignoreCase = true))
     }
 }

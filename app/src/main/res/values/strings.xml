@@ -650,6 +650,14 @@
     <string name="pack_default_description">Unlock this premium pack to access curated creative prompts.</string>
     <string name="pack_locked_prompt_title">Premium Pack Locked</string>
     <string name="pack_locked_prompt_message">"%1$s" is part of %2$s. Unlock the pack for %3$d credits to access all prompts inside.</string>
+    <string name="pack_unlock_prompt_title">Unlock Prompt</string>
+    <string name="pack_unlock_prompt_message">"%1$s" is part of %2$s. Unlock the full pack for %3$d credits.</string>
+    <string name="pack_unlock_required_credits">Required: %1$d credits</string>
+    <string name="pack_unlock_current_balance">Your balance: %1$d credits</string>
+    <string name="pack_unlock_deficit">Need %1$d more credits</string>
+    <string name="pack_unlock_not_enough_action">Not enough credits</string>
+    <string name="pack_unlock_insufficient_inline">You don\'t have enough credits. Visit Rewards to earn more.</string>
+    <string name="pack_earn_credits_action">Earn Credits</string>
     <string name="prompt_locked">Locked</string>
     <string name="prompt_unlocked">Unlocked</string>
     <string name="prompt_open">Open</string>
