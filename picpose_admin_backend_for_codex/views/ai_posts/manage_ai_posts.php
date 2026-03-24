@@ -238,7 +238,10 @@ try {
 
       </div>
     </div>
-    <a href="add_ai_post.php" class="btn btn-success">➕ Add AI Prompt</a>
+    <div class="d-flex gap-2">
+      <a href="prompt_of_day_management.php" class="btn btn-outline-primary">🎯 Prompt of the Day</a>
+      <a href="add_ai_post.php" class="btn btn-success">➕ Add AI Prompt</a>
+    </div>
   </div>
 
   <form class="mb-3" method="GET" action="">

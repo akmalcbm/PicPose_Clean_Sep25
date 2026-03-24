@@ -125,8 +125,9 @@ $isPostsSection = (strpos($current_path, $postsAiPath) !== false) || (strpos($cu
 $isAiSection = (strpos($current_path, $postsAiPath) !== false);
 $isGuideSection = (strpos($current_path, $postsGuidePath) !== false);
 
-$isAiManage = $isAiSection && (strpos($current_page, 'manage') !== false);
+$isAiManage = $isAiSection && ($current_page === 'manage_ai_posts.php');
 $isAiAdd = $isAiSection && ($current_page === 'add_ai_post.php');
+$isAiPotd = $isAiSection && ($current_page === 'prompt_of_day_management.php' || $current_page === 'process_prompt_of_day.php');
 $isGuideManage = $isGuideSection && (strpos($current_page, 'manage') !== false);
 $isGuideAdd = $isGuideSection && ($current_page === 'add_guide_post.php');
 
@@ -241,6 +242,7 @@ $isMonetizationPacks = $isMonetizationSection && ($current_page === 'premium_pac
             <div class="section-card">
                 <div class="d-grid gap-1 mb-2">
                     <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/ai_posts/manage_ai_posts.php'); ?>" class="btn btn-post <?php echo $isAiManage ? 'nav-link active' : 'btn-outline-light text-white'; ?>">🧠 Manage AI Posts</a>
+                    <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/ai_posts/prompt_of_day_management.php'); ?>" class="btn btn-post <?php echo $isAiPotd ? 'nav-link active' : 'btn-outline-light text-white'; ?>">🎯 Prompt of the Day</a>
                     <a href="<?php echo e_attr(($BASE_HREF === '' ? '' : $BASE_HREF) . '/views/ai_posts/add_ai_post.php'); ?>" class="btn btn-post <?php echo $isAiAdd ? 'nav-link active' : 'btn-outline-light text-white'; ?>">➕ Add AI Post</a>
                 </div>
 

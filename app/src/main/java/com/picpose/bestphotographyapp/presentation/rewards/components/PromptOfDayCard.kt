@@ -64,6 +64,8 @@ fun PromptOfDayCard(
     prompt: V2PromptDto?,
     mode: String?,
     cost: Int,
+    badgeText: String? = null,
+    subtitle: String? = null,
     onOpenPrompt: (String) -> Unit,
     onUnlockDiscount: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -92,7 +94,7 @@ fun PromptOfDayCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Today's featured creative idea.",
+                        text = subtitle?.takeIf { it.isNotBlank() } ?: "Today's featured creative idea.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -113,7 +115,7 @@ fun PromptOfDayCard(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = "Today's Pick",
+                            text = badgeText?.takeIf { it.isNotBlank() } ?: "Today's Pick",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontWeight = FontWeight.SemiBold,
@@ -221,7 +223,7 @@ fun PromptOfDayCard(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = prompt?.teaserText ?: prompt?.shortPrompt.orEmpty(),
+                            text = subtitle?.takeIf { it.isNotBlank() } ?: prompt?.teaserText ?: prompt?.shortPrompt.orEmpty(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,

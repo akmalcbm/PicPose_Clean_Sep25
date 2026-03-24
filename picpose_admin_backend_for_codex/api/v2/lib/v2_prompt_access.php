@@ -2,6 +2,7 @@
 require_once __DIR__ . '/v2_auth.php';
 require_once __DIR__ . '/v2_ab.php';
 require_once __DIR__ . '/v2_pack_entitlements.php';
+require_once __DIR__ . '/../../../app/helpers/potd_helper.php';
 
 function v2_prompt_column_exists(mysqli $conn, string $columnName): bool
 {
@@ -50,24 +51,19 @@ function v2_prompt_load_today_offer_for_post(mysqli $conn, int $postId, ?string 
     }
 
     $resolvedDay = $dayDate ?: v2_prompt_current_db_date($conn);
-    $stmt = $conn->prepare("
-        SELECT day_date, post_id, mode, discount_cost_points
-        FROM daily_featured_prompts
-        WHERE day_date = ?
-          AND post_id = ?
-        LIMIT 1
-    ");
-    if (!$stmt) {
+    $offer = potd_resolve_effective_prompt_offer($conn, $resolvedDay);
+    if (!$offer || (int)($offer['post_id'] ?? 0) !== $postId) {
         return null;
     }
 
-    $stmt->bind_param('si', $resolvedDay, $postId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-
-    return $row ?: null;
+    return [
+        'day_date' => (string)($offer['day_date'] ?? $resolvedDay),
+        'post_id' => (int)($offer['post_id'] ?? 0),
+        'mode' => (string)($offer['mode'] ?? 'NORMAL'),
+        'discount_cost_points' => (int)($offer['discount_cost_points'] ?? 0),
+        'source' => (string)($offer['source'] ?? 'UNKNOWN'),
+        'entry_id' => $offer['entry_id'] ?? null,
+    ];
 }
 
 function v2_prompt_load_today_offers_for_posts(mysqli $conn, array $postIds, ?string $dayDate = null): array
@@ -78,32 +74,23 @@ function v2_prompt_load_today_offers_for_posts(mysqli $conn, array $postIds, ?st
     }
 
     $resolvedDay = $dayDate ?: v2_prompt_current_db_date($conn);
-    $placeholders = implode(',', array_fill(0, count($normalizedIds), '?'));
-    $sql = "
-        SELECT day_date, post_id, mode, discount_cost_points
-        FROM daily_featured_prompts
-        WHERE day_date = ?
-          AND post_id IN ({$placeholders})
-    ";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
+    $offer = potd_resolve_effective_prompt_offer($conn, $resolvedDay);
+    if (!$offer) {
         return [];
     }
 
-    $types = 's' . str_repeat('i', count($normalizedIds));
-    $params = array_merge([$resolvedDay], $normalizedIds);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
+    $postId = (int)($offer['post_id'] ?? 0);
     $map = [];
-    while ($row = ($res ? $res->fetch_assoc() : null)) {
-        $id = (int)($row['post_id'] ?? 0);
-        if ($id > 0) {
-            $map[$id] = $row;
-        }
+    if (in_array($postId, $normalizedIds, true)) {
+        $map[$postId] = [
+            'day_date' => (string)($offer['day_date'] ?? $resolvedDay),
+            'post_id' => $postId,
+            'mode' => (string)($offer['mode'] ?? 'NORMAL'),
+            'discount_cost_points' => (int)($offer['discount_cost_points'] ?? 0),
+            'source' => (string)($offer['source'] ?? 'UNKNOWN'),
+            'entry_id' => $offer['entry_id'] ?? null,
+        ];
     }
-    $stmt->close();
 
     return $map;
 }

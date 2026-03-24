@@ -22,6 +22,7 @@
 package com.picpose.bestphotographyapp.data.repository
 
 import android.util.Log
+import com.picpose.bestphotographyapp.data.remote.dto.v2.PromptOfDayResponseDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockResponseDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockPromptByAdRequest
 import com.picpose.bestphotographyapp.data.remote.dto.v2.UnlockPromptByPointsRequest
@@ -135,12 +136,12 @@ class V2PromptsRepository @Inject constructor(
         }
     }
 
-    suspend fun getPromptOfTheDay(): Result<V2PromptDto?> = withContext(Dispatchers.IO) {
+    suspend fun getPromptOfTheDay(): Result<PromptOfDayResponseDto> = withContext(Dispatchers.IO) {
         runCatching {
             val response = apiService.getPromptOfTheDay()
             val body = response.body()
             ensureSuccess(response, body?.dayDate, body?.success == true)
-            body?.post
+            body ?: error("Empty prompt of the day response")
         }
     }
 

@@ -100,6 +100,15 @@ data class PromptOfDayResponseDto(
     @SerializedName("potd_mode") val potdMode: String? = null,
     @SerializedName("potd_unlock_cost_points") val potdUnlockCostPoints: Int = 0,
     @SerializedName("post") val post: V2PromptDto? = null,
+    @SerializedName("source") val source: String? = null,
+    @SerializedName("entry_id") val entryId: Int? = null,
+    @SerializedName("title_override") val titleOverride: String? = null,
+    @SerializedName("subtitle_override") val subtitleOverride: String? = null,
+    @SerializedName("badge_text") val badgeText: String? = null,
+    @SerializedName("effective_start_date") val effectiveStartDate: String? = null,
+    @SerializedName("effective_end_date") val effectiveEndDate: String? = null,
+    @SerializedName("display_title") val displayTitle: String? = null,
+    @SerializedName("display_subtitle") val displaySubtitle: String? = null,
 )
 
 @Keep

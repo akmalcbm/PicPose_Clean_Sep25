@@ -463,7 +463,7 @@ if ($progressStmt) {
 }
 
 $potdPayload = null;
-$potd = v2_hub_ensure_today_potd($conn, $today);
+$potd = potd_resolve_effective_prompt_offer($conn, $today);
 if ($potd) {
     $isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
     $creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
@@ -522,11 +522,31 @@ if ($potd) {
 
             $postPayload = v2_prompt_build_payload($potdPost, $flags, $isUnlocked, $baseUrl, $packLinks);
 
+            $titleOverride = trim((string)($potd['title_override'] ?? ''));
+            $subtitleOverride = trim((string)($potd['subtitle_override'] ?? ''));
+            $badgeText = trim((string)($potd['badge_text'] ?? ''));
+
+            if ($titleOverride !== '') {
+                $postPayload['title'] = $titleOverride;
+            }
+            if ($subtitleOverride !== '') {
+                $postPayload['teaserText'] = $subtitleOverride;
+            }
+
             $potdPayload = [
-                'day_date' => (string)$potd['day_date'],
+                'day_date' => (string)($potd['day_date'] ?? $today),
                 'potd_mode' => $mode,
                 'potd_unlock_cost_points' => (int)($postPayload['premiumUnlockCostPoints'] ?? 0),
                 'post' => $postPayload,
+                'source' => (string)($potd['source'] ?? 'UNKNOWN'),
+                'entry_id' => isset($potd['entry_id']) ? (int)$potd['entry_id'] : null,
+                'title_override' => $titleOverride !== '' ? $titleOverride : null,
+                'subtitle_override' => $subtitleOverride !== '' ? $subtitleOverride : null,
+                'badge_text' => $badgeText !== '' ? $badgeText : null,
+                'effective_start_date' => $potd['effective_start_date'] ?? null,
+                'effective_end_date' => $potd['effective_end_date'] ?? null,
+                'display_title' => (string)($postPayload['title'] ?? ''),
+                'display_subtitle' => $subtitleOverride !== '' ? $subtitleOverride : null,
             ];
         }
     }

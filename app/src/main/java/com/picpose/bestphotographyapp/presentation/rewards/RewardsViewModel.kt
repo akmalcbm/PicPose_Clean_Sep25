@@ -91,6 +91,9 @@ data class RewardsUiState(
     val publicPromptOfTheDay: V2PromptDto? = null,
     val promptOfDayMode: String? = null,
     val promptOfDayCost: Int = 0,
+    val promptOfDayBadgeText: String? = null,
+    val promptOfDaySubtitle: String? = null,
+    val promptOfDaySource: String? = null,
     val referralCode: String? = null,
     val referralStatus: String? = null,
     val referralStatusLabel: String = "",
@@ -440,21 +443,32 @@ class RewardsViewModel @Inject constructor(
                 nextLevelXp = 0,
                 progressEvents = emptyList(),
                 recentCreditActivities = emptyList(),
+                promptOfDayBadgeText = null,
+                promptOfDaySubtitle = null,
+                promptOfDaySource = null,
                 statusMessage = null,
             )
         }
 
         viewModelScope.launch {
             promptsRepository.getPromptOfTheDay()
-                .onSuccess { prompt ->
+                .onSuccess { potd ->
+                    val prompt = potd.post
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
                             accessState = RewardsAccessState.Guest,
                             publicPromptOfTheDay = prompt,
                             promptOfTheDay = null,
-                            promptOfDayMode = if (prompt?.isLocked == true) "PREMIUM" else "FREE",
-                            promptOfDayCost = prompt?.premiumUnlockCostPoints ?: 0,
+                            promptOfDayMode = potd.potdMode ?: when {
+                                prompt == null -> null
+                                prompt.isLocked -> "PREMIUM"
+                                else -> "FREE"
+                            },
+                            promptOfDayCost = potd.potdUnlockCostPoints.takeIf { it > 0 } ?: (prompt?.premiumUnlockCostPoints ?: 0),
+                            promptOfDayBadgeText = potd.badgeText,
+                            promptOfDaySubtitle = potd.displaySubtitle ?: potd.subtitleOverride,
+                            promptOfDaySource = potd.source,
                         )
                     }
                 }
@@ -502,6 +516,9 @@ class RewardsViewModel @Inject constructor(
                 publicPromptOfTheDay = hub.promptOfTheDay?.post,
                 promptOfDayMode = hub.promptOfTheDay?.potdMode,
                 promptOfDayCost = hub.promptOfTheDay?.potdUnlockCostPoints ?: 0,
+                promptOfDayBadgeText = hub.promptOfTheDay?.badgeText,
+                promptOfDaySubtitle = hub.promptOfTheDay?.displaySubtitle ?: hub.promptOfTheDay?.subtitleOverride,
+                promptOfDaySource = hub.promptOfTheDay?.source,
                 referralCode = hub.referral?.myCode ?: hub.referral?.code,
                 referralStatus = hub.referral?.status,
                 referralStatusLabel = referralStatusLabel(hub.referral?.status),

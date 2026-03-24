@@ -376,6 +376,8 @@ fun RewardsScreenV3(
                                 prompt = uiState.promptOfTheDay?.post ?: uiState.publicPromptOfTheDay,
                                 mode = uiState.promptOfDayMode,
                                 cost = uiState.promptOfDayCost,
+                                badgeText = uiState.promptOfDayBadgeText,
+                                subtitle = uiState.promptOfDaySubtitle,
                                 onOpenPrompt = onOpenPrompt,
                                 onUnlockDiscount = onOpenPrompt,
                             )

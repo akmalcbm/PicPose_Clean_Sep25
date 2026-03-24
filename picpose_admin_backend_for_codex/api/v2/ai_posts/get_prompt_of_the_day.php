@@ -1,120 +1,29 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
 require_once __DIR__ . '/../lib/v2_prompt_access.php';
+require_once __DIR__ . '/../../../app/helpers/potd_helper.php';
 
-function v2_potd_load_today_record(mysqli $conn, string $today): ?array
-{
-    $stmt = $conn->prepare(" 
-        SELECT day_date, post_id, mode, discount_cost_points
-        FROM daily_featured_prompts
-        WHERE day_date = ?
-        LIMIT 1
-    ");
-    if (!$stmt) {
-        json_err('Database query preparation failed', 500);
-    }
-    $stmt->bind_param('s', $today);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-    return $row ?: null;
-}
-
-function v2_potd_pick_post_id(mysqli $conn): ?int
-{
-    $sqlPreferred = "
-        SELECT p.id
-        FROM ai_posts p
-        WHERE p.status = 'published'
-          AND p.tier = 'PREMIUM'
-          AND p.id NOT IN (
-              SELECT d.post_id
-              FROM daily_featured_prompts d
-              WHERE d.day_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-          )
-        ORDER BY (COALESCE(p.likes,0) + COALESCE(p.copies,0) + COALESCE(p.views,0)) DESC, p.created_at DESC
-        LIMIT 1
-    ";
-    $res = $conn->query($sqlPreferred);
-    if ($res && ($row = $res->fetch_assoc())) {
-        return (int)$row['id'];
-    }
-
-    $sqlFallback = "
-        SELECT p.id
-        FROM ai_posts p
-        WHERE p.status = 'published'
-          AND p.tier = 'PREMIUM'
-        ORDER BY (COALESCE(p.likes,0) + COALESCE(p.copies,0) + COALESCE(p.views,0)) DESC, p.created_at DESC
-        LIMIT 1
-    ";
-    $res = $conn->query($sqlFallback);
-    if ($res && ($row = $res->fetch_assoc())) {
-        return (int)$row['id'];
-    }
-
-    return null;
-}
-
-function v2_potd_ensure_today_record(mysqli $conn, string $today): array
-{
-    $existing = v2_potd_load_today_record($conn, $today);
-    if ($existing) {
-        return $existing;
-    }
-
-    $postId = v2_potd_pick_post_id($conn);
-    if (!$postId) {
-        json_err('No eligible prompt available for today', 404);
-    }
-
-    $conn->begin_transaction();
-    try {
-        $check = v2_potd_load_today_record($conn, $today);
-        if ($check) {
-            $conn->commit();
-            return $check;
-        }
-
-        $mode = 'DISCOUNT';
-        $discount = 50;
-        $stmt = $conn->prepare(" 
-            INSERT INTO daily_featured_prompts (day_date, post_id, mode, discount_cost_points)
-            VALUES (?, ?, ?, ?)
-        ");
-        if (!$stmt) {
-            throw new RuntimeException('Failed to prepare POTD insert');
-        }
-        $stmt->bind_param('sisi', $today, $postId, $mode, $discount);
-        if (!$stmt->execute()) {
-            $errno = (int)$stmt->errno;
-            $stmt->close();
-            if ($errno === 1062) {
-                $conn->rollback();
-                $existing = v2_potd_load_today_record($conn, $today);
-                if ($existing) {
-                    return $existing;
-                }
-            }
-            throw new RuntimeException('Failed to insert POTD row');
-        }
-        $stmt->close();
-        $conn->commit();
-    } catch (Throwable $e) {
-        $conn->rollback();
-        json_err('Failed to resolve prompt of the day', 500);
-    }
-
-    $inserted = v2_potd_load_today_record($conn, $today);
-    if (!$inserted) {
-        json_err('Failed to load prompt of the day', 500);
-    }
-    return $inserted;
-}
+header('Cache-Control: private, max-age=60, stale-while-revalidate=120');
 
 $today = v2_prompt_current_db_date($conn);
-$potd = v2_potd_ensure_today_record($conn, $today);
+$potd = potd_resolve_effective_prompt_offer($conn, $today);
+
+if (!$potd || (int)($potd['post_id'] ?? 0) <= 0) {
+    json_ok([
+        'success' => true,
+        'day_date' => $today,
+        'post' => null,
+        'potd_mode' => null,
+        'potd_unlock_cost_points' => 0,
+        'source' => 'EMPTY',
+        'entry_id' => null,
+        'title_override' => null,
+        'subtitle_override' => null,
+        'badge_text' => null,
+        'effective_start_date' => null,
+        'effective_end_date' => null,
+    ]);
+}
 
 $isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
 $creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
@@ -156,7 +65,20 @@ $row = $res ? $res->fetch_assoc() : null;
 $stmt->close();
 
 if (!$row) {
-    json_err('Prompt of the day not found', 404);
+    json_ok([
+        'success' => true,
+        'day_date' => $today,
+        'post' => null,
+        'potd_mode' => null,
+        'potd_unlock_cost_points' => 0,
+        'source' => 'EMPTY',
+        'entry_id' => null,
+        'title_override' => null,
+        'subtitle_override' => null,
+        'badge_text' => null,
+        'effective_start_date' => null,
+        'effective_end_date' => null,
+    ]);
 }
 
 $userProfile = v2_prompt_optional_user_profile($conn);
@@ -193,10 +115,30 @@ $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https
 $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 $post = v2_prompt_build_payload($row, $flags, $isUnlocked, $baseUrl, $packLinks);
 
+$titleOverride = trim((string)($potd['title_override'] ?? ''));
+$subtitleOverride = trim((string)($potd['subtitle_override'] ?? ''));
+$badgeText = trim((string)($potd['badge_text'] ?? ''));
+
+if ($titleOverride !== '') {
+    $post['title'] = $titleOverride;
+}
+if ($subtitleOverride !== '') {
+    $post['teaserText'] = $subtitleOverride;
+}
+
 json_ok([
     'success' => true,
-    'day_date' => (string)$potd['day_date'],
+    'day_date' => (string)($potd['day_date'] ?? $today),
     'post' => $post,
     'potd_mode' => $mode,
     'potd_unlock_cost_points' => (int)($post['premiumUnlockCostPoints'] ?? 0),
+    'source' => (string)($potd['source'] ?? 'UNKNOWN'),
+    'entry_id' => isset($potd['entry_id']) ? (int)$potd['entry_id'] : null,
+    'title_override' => $titleOverride !== '' ? $titleOverride : null,
+    'subtitle_override' => $subtitleOverride !== '' ? $subtitleOverride : null,
+    'badge_text' => $badgeText !== '' ? $badgeText : null,
+    'effective_start_date' => $potd['effective_start_date'] ?? null,
+    'effective_end_date' => $potd['effective_end_date'] ?? null,
+    'display_title' => (string)($post['title'] ?? ''),
+    'display_subtitle' => $subtitleOverride !== '' ? $subtitleOverride : null,
 ]);
