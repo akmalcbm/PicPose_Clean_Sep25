@@ -171,13 +171,7 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun claimDailyLogin() {
-        if (!hasAuthenticatedSession()) {
-            _uiState.update {
-                it.copy(
-                    accessState = RewardsAccessState.AuthExpired,
-                    isClaimingReward = false,
-                )
-            }
+        if (!canRunAuthenticatedAction()) {
             return
         }
         viewModelScope.launch {
@@ -212,13 +206,7 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun applyReferralCode(code: String) {
-        if (!hasAuthenticatedSession()) {
-            _uiState.update {
-                it.copy(
-                    accessState = RewardsAccessState.AuthExpired,
-                    isApplyingCode = false,
-                )
-            }
+        if (!canRunAuthenticatedAction()) {
             return
         }
         viewModelScope.launch {
@@ -250,8 +238,7 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun claimReferralReward() {
-        if (!hasAuthenticatedSession()) {
-            _uiState.update { it.copy(accessState = RewardsAccessState.AuthExpired) }
+        if (!canRunAuthenticatedAction()) {
             return
         }
         viewModelScope.launch {
@@ -292,8 +279,7 @@ class RewardsViewModel @Inject constructor(
     }
 
     fun rewardAdPoints(adRewardId: String) {
-        if (!hasAuthenticatedSession()) {
-            _uiState.update { it.copy(accessState = RewardsAccessState.AuthExpired) }
+        if (!canRunAuthenticatedAction()) {
             return
         }
         viewModelScope.launch {
@@ -577,9 +563,40 @@ class RewardsViewModel @Inject constructor(
         }
     }
 
-    private fun hasAuthenticatedSession(): Boolean {
-        return sessionAccessState.value == RewardsAccessState.Authenticated &&
-            _uiState.value.accessState != RewardsAccessState.AuthExpired
+    private fun canRunAuthenticatedAction(): Boolean {
+        return when (sessionAccessState.value) {
+            RewardsAccessState.Loading -> {
+                _uiState.update { current ->
+                    current.copy(
+                        accessState = RewardsAccessState.Loading,
+                        isClaimingReward = false,
+                        isApplyingCode = false,
+                    )
+                }
+                false
+            }
+            RewardsAccessState.Guest -> {
+                _uiState.update { current ->
+                    current.copy(
+                        accessState = RewardsAccessState.Guest,
+                        isClaimingReward = false,
+                        isApplyingCode = false,
+                    )
+                }
+                false
+            }
+            RewardsAccessState.Authenticated -> {
+                // Recover from stale AuthExpired UI when session is valid again.
+                if (_uiState.value.accessState == RewardsAccessState.AuthExpired) {
+                    _uiState.update { current -> current.copy(accessState = RewardsAccessState.Authenticated) }
+                }
+                true
+            }
+            RewardsAccessState.AuthExpired -> {
+                markAuthExpired()
+                false
+            }
+        }
     }
 
     private fun markAuthExpired() {

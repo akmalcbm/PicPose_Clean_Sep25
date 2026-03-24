@@ -99,10 +99,24 @@ class AuthViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            combine(
+                userSessionManager.isLoggedIn,
+                userSessionManager.userToken
+            ) { loggedIn, token ->
+                loggedIn to token
+            }
+                .distinctUntilChanged()
+                .collect { (loggedIn, token) ->
+                    if (loggedIn && token.isNullOrBlank()) {
+                        refreshCurrentUserSessionOnly()
+                    }
+                }
+        }
+
+        viewModelScope.launch {
             val loggedIn = userSessionManager.isLoggedIn.firstOrNull() ?: false
-            val token = userSessionManager.getUserTokenOnce()
-            if (loggedIn && token.isNullOrBlank()) {
-                refreshCurrentUserSessionOnly()
+            if (loggedIn && userSessionManager.getUserTokenOnce().isNullOrBlank()) {
+                runCatching { refreshCurrentUserSessionOnly() }
             }
         }
     }

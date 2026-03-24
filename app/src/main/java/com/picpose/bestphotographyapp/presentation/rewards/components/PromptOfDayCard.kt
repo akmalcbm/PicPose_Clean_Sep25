@@ -31,9 +31,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -42,6 +45,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -66,37 +70,94 @@ fun PromptOfDayCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().animateContentSize().padding(14.dp)) {
-            Text("Prompt of the Day", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Prompt of the Day",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Today's featured creative idea.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = "Today's Pick",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(190.dp)
+                    .height(208.dp)
                     .clip(RoundedCornerShape(16.dp))
             ) {
                 if (!prompt?.imageUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = prompt?.imageUrl,
                         contentDescription = prompt?.title ?: "Prompt image",
-                        modifier = Modifier.fillMaxWidth().height(190.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(208.dp),
                         contentScale = ContentScale.Crop,
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(190.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .height(208.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Image,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp),
                         )
                     }
                 }
@@ -104,12 +165,12 @@ fun PromptOfDayCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(190.dp)
+                        .height(208.dp)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
                                     MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
                                 )
                             )
                         )
@@ -118,9 +179,9 @@ fun PromptOfDayCard(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(12.dp)
+                        .padding(12.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         mode?.takeIf { it.isNotBlank() }?.let {
                             AssistChip(onClick = {}, label = { Text(it.uppercase()) })
                         }
@@ -131,7 +192,7 @@ fun PromptOfDayCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = prompt?.title ?: "Today's featured prompt",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -139,41 +200,60 @@ fun PromptOfDayCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Crossfade(targetState = prompt?.id, label = "potd_cta") { promptId ->
                 if (promptId.isNullOrBlank()) {
-                    Text(
-                        "Fetching today's card...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        Button(onClick = { onOpenPrompt(promptId) }, modifier = Modifier.weight(1f)) {
-                            Text(if (mode.equals("FREE", true)) "Open Free Today" else "Open")
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "Fetching today's featured prompt...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp),
+                        ) {
+                            Text("Loading")
                         }
-                        if (mode.equals("DISCOUNT", true) || mode.equals("FREE", true)) {
-                            FilledTonalButton(
-                                onClick = { onUnlockDiscount(promptId) },
-                                modifier = Modifier.weight(1f),
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = prompt?.teaserText ?: prompt?.shortPrompt.orEmpty(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = { onOpenPrompt(promptId) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 48.dp),
                             ) {
-                                val label = if (mode.equals("DISCOUNT", true)) {
-                                    "Unlock for $cost"
-                                } else {
-                                    "Unlock Forever"
+                                Text(if (mode.equals("FREE", true)) "Open Free Today" else "Open Prompt")
+                            }
+                            if (mode.equals("DISCOUNT", true) || mode.equals("FREE", true)) {
+                                FilledTonalButton(
+                                    onClick = { onUnlockDiscount(promptId) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 48.dp),
+                                ) {
+                                    val label = if (mode.equals("DISCOUNT", true)) {
+                                        "Unlock for $cost credits"
+                                    } else {
+                                        "Unlock Forever"
+                                    }
+                                    Text(label)
                                 }
-                                Text(label)
                             }
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = prompt?.teaserText ?: prompt?.shortPrompt.orEmpty(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
