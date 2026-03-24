@@ -167,6 +167,8 @@ if (empty($rows) && empty($tagScores)) {
 $postIds = array_values(array_unique($postIds));
 $unlockMap = v2_pack_prompt_entitlement_map($conn, $userId, $postIds);
 $packLinksMap = v2_prompt_pack_links_for_posts($conn, $postIds, $userId);
+$todayDate = v2_prompt_current_db_date($conn);
+$potdOfferMap = v2_prompt_load_today_offers_for_posts($conn, $postIds, $todayDate);
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 
@@ -194,6 +196,13 @@ foreach ($rows as $row) {
 
     $packLinks = $packLinksMap[$postId] ?? [];
     $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
+    v2_prompt_apply_effective_credit_cost(
+        $conn,
+        $postId,
+        $flags,
+        $userId,
+        $potdOfferMap[$postId] ?? null
+    );
     $isUnlocked = v2_prompt_is_unlocked(
         $flags,
         isset($unlockMap[$postId]),

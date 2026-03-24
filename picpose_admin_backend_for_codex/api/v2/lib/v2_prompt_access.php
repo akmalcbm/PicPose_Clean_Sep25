@@ -154,7 +154,7 @@ function v2_prompt_apply_effective_credit_cost(
                     (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$potdDiscountCost))
                 );
             }
-            $cost = max(0, $resolvedDiscount);
+            $cost = max(0, min($cost, $resolvedDiscount));
         } elseif ($potdMode === 'FREE') {
             $cost = 0;
         }

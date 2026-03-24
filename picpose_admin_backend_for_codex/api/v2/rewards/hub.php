@@ -251,7 +251,7 @@ function v2_hub_ensure_today_potd(mysqli $conn, string $today): ?array
 
 $user = require_user($conn);
 $userId = (int)$user['id'];
-$today = date('Y-m-d');
+$today = v2_prompt_current_db_date($conn);
 
 $pointsBalance = 0;
 $walletStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? LIMIT 1');
@@ -503,23 +503,13 @@ if ($potd) {
         $postStmt->close();
 
         if ($potdPost) {
-            $mode = strtoupper((string)($potd['mode'] ?? 'NORMAL'));
-            $discountCost = (int)($potd['discount_cost_points'] ?? 0);
-            if ($mode === 'DISCOUNT') {
-                $variant = get_user_variant($conn, $userId, 'potd_discount_cost');
-                $discountCost = max(0, (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $variant, (float)$discountCost)));
-            }
-
             $entitlements = v2_pack_prompt_entitlement_map($conn, $userId, [(int)$potdPost['id']]);
             $potdPostId = (int)$potdPost['id'];
             $packLinksMap = v2_prompt_pack_links_for_posts($conn, [$potdPostId], $userId);
             $packLinks = $packLinksMap[$potdPostId] ?? [];
             $flags = v2_prompt_resolve_flags_from_row($potdPost, !empty($packLinks));
-            if (($flags['is_credit_unlockable'] ?? false) && $mode === 'DISCOUNT') {
-                $flags['premium_unlock_cost_points'] = $discountCost;
-            } elseif (($flags['is_credit_unlockable'] ?? false) && $mode === 'FREE') {
-                $flags['premium_unlock_cost_points'] = 0;
-            }
+            $costMeta = v2_prompt_apply_effective_credit_cost($conn, $potdPostId, $flags, $userId, $potd);
+            $mode = strtoupper((string)($costMeta['potd_mode'] ?? 'NORMAL'));
 
             $isUnlocked = v2_prompt_is_unlocked(
                 $flags,
