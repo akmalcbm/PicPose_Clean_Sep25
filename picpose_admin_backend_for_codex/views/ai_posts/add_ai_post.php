@@ -118,6 +118,29 @@ include '../../includes/header.php';
             <label>Premium Pack (optional)</label>
             <input type="text" maxlength="40" name="premium_pack" id="premium_pack" class="form-control" placeholder="e.g. portrait_pro">
           </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="is_visible_in_general_feed" id="is_visible_in_general_feed" value="1" checked>
+            <label class="form-check-label" for="is_visible_in_general_feed">Visible in General Feed</label>
+          </div>
+
+          <div class="mb-2"><strong>Unlock Methods</strong></div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="credit_unlock_enabled" id="credit_unlock_enabled" value="1" checked>
+            <label class="form-check-label" for="credit_unlock_enabled">Credits Unlock</label>
+          </div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="reward_unlock_enabled" id="reward_unlock_enabled" value="1">
+            <label class="form-check-label" for="reward_unlock_enabled">Rewarded Ad Unlock</label>
+          </div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="subscriber_unlock_enabled" id="subscriber_unlock_enabled" value="1">
+            <label class="form-check-label" for="subscriber_unlock_enabled">Subscriber Access</label>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="token_unlock_enabled" id="token_unlock_enabled" value="1">
+            <label class="form-check-label" for="token_unlock_enabled">Token Unlock (enable only if token flow is live)</label>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -184,6 +207,12 @@ document.addEventListener('DOMContentLoaded', function() {
   var premiumCheckbox = document.getElementById('is_premium');
   var premiumOptions = document.getElementById('premiumOptions');
   var premiumCostEl = document.getElementById('premium_unlock_cost_points');
+  var visibleInFeedEl = document.getElementById('is_visible_in_general_feed');
+  var creditUnlockEl = document.getElementById('credit_unlock_enabled');
+  var rewardUnlockEl = document.getElementById('reward_unlock_enabled');
+  var tokenUnlockEl = document.getElementById('token_unlock_enabled');
+  var subscriberUnlockEl = document.getElementById('subscriber_unlock_enabled');
+  var premiumPackEl = document.getElementById('premium_pack');
 
   function togglePremiumOptions() {
     if (!premiumCheckbox || !premiumOptions) return;
@@ -193,6 +222,15 @@ document.addEventListener('DOMContentLoaded', function() {
       var current = parseInt((premiumCostEl.value || '').trim(), 10);
       if (!premiumCostEl.value || isNaN(current) || current <= 0) {
         premiumCostEl.value = '200';
+      }
+
+      // Keep at least one direct unlock path by default when turning on premium.
+      if (creditUnlockEl && rewardUnlockEl && tokenUnlockEl && subscriberUnlockEl) {
+        var anyDirect = creditUnlockEl.checked || rewardUnlockEl.checked || tokenUnlockEl.checked || subscriberUnlockEl.checked;
+        if (!anyDirect) creditUnlockEl.checked = true;
+      }
+      if (visibleInFeedEl && !visibleInFeedEl.checked) {
+        visibleInFeedEl.checked = true;
       }
     }
   }
@@ -230,6 +268,22 @@ document.addEventListener('DOMContentLoaded', function() {
       var premiumCost = parseInt((premiumCostEl.value || '').trim(), 10);
       if (!premiumCostEl.value || isNaN(premiumCost) || premiumCost <= 0) {
         premiumCostEl.value = '200';
+      }
+
+      var anyDirectMethod = (creditUnlockEl && creditUnlockEl.checked)
+        || (rewardUnlockEl && rewardUnlockEl.checked)
+        || (tokenUnlockEl && tokenUnlockEl.checked)
+        || (subscriberUnlockEl && subscriberUnlockEl.checked);
+      var hasPack = premiumPackEl && premiumPackEl.value && premiumPackEl.value.trim() !== '';
+
+      // Pack-only prompts should not leak into general browsing.
+      if (!anyDirectMethod && hasPack && visibleInFeedEl) {
+        visibleInFeedEl.checked = false;
+      }
+
+      // Avoid creating dead-end premium prompts with no unlock path.
+      if (!anyDirectMethod && !hasPack && creditUnlockEl) {
+        creditUnlockEl.checked = true;
       }
     }
 

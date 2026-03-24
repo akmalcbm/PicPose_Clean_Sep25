@@ -1,37 +1,15 @@
 <?php
 require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
 require_once __DIR__ . '/../lib/v2_personalization.php';
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     json_err('Method Not Allowed', 405);
 }
 
-function v2_feed_make_image_url(?string $path, string $baseUrl): ?string
-{
-    if (empty($path)) {
-        return null;
-    }
-    if (preg_match('#^https?://#i', $path)) {
-        return $path;
-    }
-    return $baseUrl . ltrim($path, '/');
-}
-
-function v2_feed_first_words(?string $text, int $words = 15): string
-{
-    $clean = trim((string)$text);
-    if ($clean === '') {
-        return '';
-    }
-    $tokens = preg_split('/\s+/', $clean);
-    if (!is_array($tokens)) {
-        return '';
-    }
-    return implode(' ', array_slice($tokens, 0, max(1, $words)));
-}
-
 $user = require_user($conn);
 $userId = (int)$user['id'];
+$hasActiveSubscription = (bool)($user['has_active_subscription'] ?? false);
 $limit = isset($_GET['limit']) ? max(1, min(50, (int)$_GET['limit'])) : 20;
 $offset = isset($_GET['offset']) ? max(0, (int)$_GET['offset']) : 0;
 
@@ -57,6 +35,13 @@ while ($row = ($tagRes ? $tagRes->fetch_assoc() : null)) {
 }
 $tagStmt->close();
 
+$visibilityExpr = v2_prompt_is_visible_expression_sql('p', $conn);
+$isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
+$creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
+$rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'reward_unlock_enabled');
+$tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'token_unlock_enabled');
+$subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'subscriber_unlock_enabled');
+
 $baseSql = "
     SELECT
         p.id,
@@ -78,11 +63,17 @@ $baseSql = "
         p.tier,
         p.premium_unlock_cost_points,
         p.premium_pack,
+        {$isVisibleSelect},
+        {$creditEnabledSelect},
+        {$rewardEnabledSelect},
+        {$tokenEnabledSelect},
+        {$subscriberEnabledSelect},
         p.tags,
         COALESCE(c.name, 'Uncategorized') AS category_name
     FROM ai_posts p
     LEFT JOIN categories c ON c.id = p.category_id
     WHERE p.status = 'published'
+      AND {$visibilityExpr} = 1
 ";
 
 $candidateLimit = max(50, $limit * 5);
@@ -145,11 +136,17 @@ if (empty($rows) && empty($tagScores)) {
             p.tier,
             p.premium_unlock_cost_points,
             p.premium_pack,
+            {$isVisibleSelect},
+            {$creditEnabledSelect},
+            {$rewardEnabledSelect},
+            {$tokenEnabledSelect},
+            {$subscriberEnabledSelect},
             p.tags,
             COALESCE(c.name, 'Uncategorized') AS category_name
         FROM ai_posts p
         LEFT JOIN categories c ON c.id = p.category_id
         WHERE p.status = 'published'
+          AND {$visibilityExpr} = 1
         ORDER BY p.is_featured DESC, p.is_popular DESC, (COALESCE(p.likes,0) + COALESCE(p.copies,0) + COALESCE(p.views,0)) DESC, p.created_at DESC
         LIMIT ?
     ";
@@ -167,12 +164,19 @@ if (empty($rows) && empty($tagScores)) {
     $fallbackStmt->close();
 }
 
-$entitlementMap = v2_pack_prompt_entitlement_map($conn, $userId, $postIds);
+$postIds = array_values(array_unique($postIds));
+$unlockMap = v2_pack_prompt_entitlement_map($conn, $userId, $postIds);
+$packLinksMap = v2_prompt_pack_links_for_posts($conn, $postIds, $userId);
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 
 $scored = [];
 foreach ($rows as $row) {
+    $postId = (int)($row['id'] ?? 0);
+    if ($postId <= 0) {
+        continue;
+    }
+
     $parsedTags = v2_personalization_parse_tags($row['tags'] ?? null);
     $categoryTag = v2_personalization_normalize_tag($row['category_name'] ?? null);
     $matchWeight = 0;
@@ -188,38 +192,23 @@ foreach ($rows as $row) {
     $popularBoost = !empty($row['is_popular']) ? 40 : 0;
     $rankScore = $matchWeight + $featuredBoost + $popularBoost + $popularityScore;
 
-    $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-    $isUnlocked = ($tier !== 'PREMIUM') || isset($entitlementMap[(int)$row['id']]);
-    $isLocked = !$isUnlocked;
-    $promptText = (string)($row['prompt_text'] ?? '');
+    $packLinks = $packLinksMap[$postId] ?? [];
+    $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
+    $isUnlocked = v2_prompt_is_unlocked(
+        $flags,
+        isset($unlockMap[$postId]),
+        $hasActiveSubscription
+    );
 
     $scored[] = [
         'rank_score' => $rankScore,
-        'data' => [
-            'id' => (string)$row['id'],
-            'title' => $row['title'],
-            'shortPrompt' => $row['short_description'],
-            'fullPrompt' => $isLocked ? null : $promptText,
-            'imageUrl' => v2_feed_make_image_url($row['image_url1'], $baseUrl),
-            'imageUrl2' => v2_feed_make_image_url($row['image_url2'], $baseUrl),
-            'category' => $row['category_name'],
-            'tags' => $parsedTags,
-            'likes' => (int)$row['likes'],
-            'favorites' => (int)$row['favorites'],
-            'copies' => (int)$row['copies'],
-            'views' => (int)$row['views'],
-            'isPopular' => (bool)$row['is_popular'],
-            'isFeatured' => (bool)$row['is_featured'],
-            'status' => $row['status'],
-            'priority' => (int)$row['priority'],
-            'createdAt' => $row['created_at'],
-            'updatedAt' => $row['updated_at'],
-            'tier' => $tier,
-            'premiumUnlockCostPoints' => ((int)($row['premium_unlock_cost_points'] ?? 0) > 0) ? (int)$row['premium_unlock_cost_points'] : 200,
-            'premiumPack' => $row['premium_pack'],
-            'isLocked' => $isLocked,
-            'teaserText' => $isLocked ? v2_feed_first_words($promptText, 15) : null,
-        ],
+        'data' => v2_prompt_build_payload(
+            $row,
+            $flags,
+            $isUnlocked,
+            $baseUrl,
+            $packLinks
+        ),
     ];
 }
 

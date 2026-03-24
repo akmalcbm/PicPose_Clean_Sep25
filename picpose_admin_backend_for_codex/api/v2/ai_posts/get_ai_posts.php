@@ -1,49 +1,10 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
 require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
-
-function v2_make_image_url(?string $path, string $baseUrl): ?string
-{
-    if (empty($path)) {
-        return null;
-    }
-    if (preg_match('#^https?://#i', $path)) {
-        return $path;
-    }
-    return $baseUrl . ltrim($path, '/');
-}
-
-function v2_parse_tags(?string $tagsField): array
-{
-    if (empty($tagsField)) {
-        return [];
-    }
-
-    $decoded = json_decode($tagsField, true);
-    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        return array_values(array_filter(array_unique($decoded)));
-    }
-
-    return array_values(array_unique(array_filter(array_map('trim', explode(',', $tagsField)))));
-}
-
-function v2_first_words(?string $text, int $words = 15): string
-{
-    $clean = trim((string)$text);
-    if ($clean === '') {
-        return '';
-    }
-
-    $tokens = preg_split('/\s+/', $clean);
-    if (!is_array($tokens)) {
-        return '';
-    }
-
-    return implode(' ', array_slice($tokens, 0, max(1, $words)));
-}
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$BASE_URL = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
+$baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 
 $limit = isset($_GET['limit']) ? max(1, intval($_GET['limit'])) : 20;
 $offset = isset($_GET['offset']) ? max(0, intval($_GET['offset'])) : 0;
@@ -57,6 +18,14 @@ $tierFilter = isset($_GET['tier']) ? strtoupper(trim((string)$_GET['tier'])) : n
 $tierFilter = in_array($tierFilter, ['FREE', 'PREMIUM'], true) ? $tierFilter : null;
 $popular = isset($_GET['popular']) && ($_GET['popular'] == '1' || $_GET['popular'] === 'true');
 $featured = isset($_GET['featured']) && ($_GET['featured'] == '1' || $_GET['featured'] === 'true');
+$includeHidden = isset($_GET['include_hidden']) && ($_GET['include_hidden'] == '1' || $_GET['include_hidden'] === 'true');
+
+$visibilityExpr = v2_prompt_is_visible_expression_sql('p', $conn);
+$isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
+$creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
+$rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'reward_unlock_enabled');
+$tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'token_unlock_enabled');
+$subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'subscriber_unlock_enabled');
 
 $sql = "
 SELECT
@@ -75,11 +44,11 @@ SELECT
     p.tier,
     p.premium_unlock_cost_points,
     p.premium_pack,
-    EXISTS(
-        SELECT 1
-        FROM premium_pack_items ppi
-        WHERE ppi.post_id = p.id
-    ) AS is_in_pack,
+    {$isVisibleSelect},
+    {$creditEnabledSelect},
+    {$rewardEnabledSelect},
+    {$tokenEnabledSelect},
+    {$subscriberEnabledSelect},
     p.status,
     p.priority,
     p.created_at,
@@ -141,6 +110,10 @@ if (!empty($search)) {
     }
 }
 
+if (!$includeHidden) {
+    $sql .= " AND {$visibilityExpr} = 1";
+}
+
 $sql .= ' ORDER BY p.priority DESC, p.created_at DESC LIMIT ? OFFSET ?';
 $params[] = $limit;
 $params[] = $offset;
@@ -155,57 +128,46 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
-$rawPosts = [];
+$rows = [];
 $postIds = [];
 while ($row = $result->fetch_assoc()) {
-    $rawPosts[] = $row;
+    $rows[] = $row;
     $postIds[] = (int)$row['id'];
 }
 $stmt->close();
 
-$authUserId = v2_pack_optional_user_id($conn);
-$hasActiveSubscription = false;
-$unlockMap = $authUserId ? v2_pack_prompt_entitlement_map($conn, $authUserId, $postIds) : [];
+$userProfile = v2_prompt_optional_user_profile($conn);
+$authUserId = $userProfile['id'] ?? null;
+$hasActiveSubscription = (bool)($userProfile['has_active_subscription'] ?? false);
+
+$unlockMap = ($authUserId !== null)
+    ? v2_pack_prompt_entitlement_map($conn, (int)$authUserId, $postIds)
+    : [];
+$packLinksMap = v2_prompt_pack_links_for_posts($conn, $postIds, $authUserId !== null ? (int)$authUserId : null);
 
 $posts = [];
-foreach ($rawPosts as $row) {
-    $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-    $isPackItem = (int)($row['is_in_pack'] ?? 0) === 1;
-    $isPremium = ($tier === 'PREMIUM') || $isPackItem;
+foreach ($rows as $row) {
+    $postId = (int)$row['id'];
+    $packLinks = $packLinksMap[$postId] ?? [];
+    $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
 
-    $isUnlocked = !$isPremium;
-    if ($isPremium && $authUserId) {
-        $isUnlocked = isset($unlockMap[(int)$row['id']]) || $hasActiveSubscription;
+    if (!$includeHidden && !($flags['is_visible_in_general_feed'] ?? true)) {
+        continue;
     }
 
-    $isLocked = !$isUnlocked;
-    $promptText = (string)($row['prompt_text'] ?? '');
+    $isUnlocked = v2_prompt_is_unlocked(
+        $flags,
+        isset($unlockMap[$postId]),
+        $hasActiveSubscription
+    );
 
-    $posts[] = [
-        'id' => (string)$row['id'],
-        'title' => $row['title'],
-        'shortPrompt' => $row['short_description'],
-        'fullPrompt' => $isLocked ? null : $promptText,
-        'imageUrl' => v2_make_image_url($row['image_url1'], $BASE_URL),
-        'imageUrl2' => v2_make_image_url($row['image_url2'], $BASE_URL),
-        'category' => $row['category_name'],
-        'tags' => v2_parse_tags($row['tags']),
-        'likes' => (int)$row['likes'],
-        'favorites' => (int)$row['favorites'],
-        'copies' => (int)$row['copies'],
-        'views' => (int)$row['views'],
-        'isPopular' => (bool)$row['is_popular'],
-        'isFeatured' => (bool)$row['is_featured'],
-        'status' => $row['status'],
-        'priority' => (int)$row['priority'],
-        'createdAt' => $row['created_at'],
-        'updatedAt' => $row['updated_at'],
-        'tier' => $tier,
-        'premiumUnlockCostPoints' => (int)($row['premium_unlock_cost_points'] ?? 0),
-        'premiumPack' => $row['premium_pack'],
-        'isLocked' => $isLocked,
-        'teaserText' => $isLocked ? v2_first_words($promptText, 15) : null,
-    ];
+    $posts[] = v2_prompt_build_payload(
+        $row,
+        $flags,
+        $isUnlocked,
+        $baseUrl,
+        $packLinks
+    );
 }
 
 $countSql = "
@@ -262,6 +224,10 @@ if (!empty($search)) {
         array_push($countParams, $like, $like, $like, $like);
         $countTypes .= 'ssss';
     }
+}
+
+if (!$includeHidden) {
+    $countSql .= " AND {$visibilityExpr} = 1";
 }
 
 $countStmt = $conn->prepare($countSql);

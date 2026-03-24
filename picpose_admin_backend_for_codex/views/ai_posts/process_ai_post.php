@@ -141,6 +141,33 @@ function normalize_tags_array($raw) {
     return $clean;
 }
 
+function ai_post_column_exists(mysqli $conn, string $column): bool {
+    static $cache = [];
+    if (isset($cache[$column])) return $cache[$column];
+    $stmt = $conn->prepare("
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'ai_posts'
+          AND column_name = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        $cache[$column] = false;
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $cache[$column] = (bool)($res && $res->fetch_assoc());
+    $stmt->close();
+    return $cache[$column];
+}
+
+function bool_post(string $key): int {
+    return !empty($_POST[$key]) ? 1 : 0;
+}
+
 // determine action
 $action = strtolower(input_trim('action') ?: 'create');
 
@@ -302,6 +329,29 @@ try {
     if ($tier !== 'PREMIUM') {
         $premium_pack = '';
     }
+    $is_visible_in_general_feed = bool_post('is_visible_in_general_feed');
+    $credit_unlock_enabled = bool_post('credit_unlock_enabled');
+    $reward_unlock_enabled = bool_post('reward_unlock_enabled');
+    $token_unlock_enabled = bool_post('token_unlock_enabled');
+    $subscriber_unlock_enabled = bool_post('subscriber_unlock_enabled');
+
+    if ($tier !== 'PREMIUM') {
+        $credit_unlock_enabled = 0;
+        $reward_unlock_enabled = 0;
+        $token_unlock_enabled = 0;
+        $subscriber_unlock_enabled = 0;
+        $is_visible_in_general_feed = 1;
+    } else {
+        $hasPack = ($premium_pack !== '');
+        $hasDirectUnlock = ($credit_unlock_enabled === 1 || $reward_unlock_enabled === 1 || $token_unlock_enabled === 1 || $subscriber_unlock_enabled === 1);
+        if (!$hasDirectUnlock && $hasPack) {
+            $is_visible_in_general_feed = 0;
+        }
+        if (!$hasDirectUnlock && !$hasPack) {
+            // Defensive fallback to avoid dead-end premium prompts.
+            $credit_unlock_enabled = 1;
+        }
+    }
     $external_id = input_trim('external_id');
 
     // tags: normalize server-side (accept hashtags or comma-separated)
@@ -356,6 +406,27 @@ try {
                 ($premium_pack_es !== null ? "'" . $premium_pack_es . "'" : "NULL") . ", " .
                 ($external_id_es !== null ? "'" . $external_id_es . "'" : "NULL") . ", " .
                 "NOW()";
+
+        if (ai_post_column_exists($conn, 'is_visible_in_general_feed')) {
+            $cols .= ", is_visible_in_general_feed";
+            $vals .= ", " . intval($is_visible_in_general_feed);
+        }
+        if (ai_post_column_exists($conn, 'credit_unlock_enabled')) {
+            $cols .= ", credit_unlock_enabled";
+            $vals .= ", " . intval($credit_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'reward_unlock_enabled')) {
+            $cols .= ", reward_unlock_enabled";
+            $vals .= ", " . intval($reward_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'token_unlock_enabled')) {
+            $cols .= ", token_unlock_enabled";
+            $vals .= ", " . intval($token_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'subscriber_unlock_enabled')) {
+            $cols .= ", subscriber_unlock_enabled";
+            $vals .= ", " . intval($subscriber_unlock_enabled);
+        }
 
         $res = $conn->query("INSERT INTO ai_posts ({$cols}) VALUES ({$vals})");
         if (!$res) {
@@ -426,6 +497,21 @@ try {
         $parts[] = "premium_unlock_cost_points = " . intval($premium_unlock_cost_points);
         $parts[] = "premium_pack = " . ($premium_pack_es !== null ? "'" . $premium_pack_es . "'" : "NULL");
         $parts[] = "external_id = " . ($external_id_es !== null ? "'" . $external_id_es . "'" : "NULL");
+        if (ai_post_column_exists($conn, 'is_visible_in_general_feed')) {
+            $parts[] = "is_visible_in_general_feed = " . intval($is_visible_in_general_feed);
+        }
+        if (ai_post_column_exists($conn, 'credit_unlock_enabled')) {
+            $parts[] = "credit_unlock_enabled = " . intval($credit_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'reward_unlock_enabled')) {
+            $parts[] = "reward_unlock_enabled = " . intval($reward_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'token_unlock_enabled')) {
+            $parts[] = "token_unlock_enabled = " . intval($token_unlock_enabled);
+        }
+        if (ai_post_column_exists($conn, 'subscriber_unlock_enabled')) {
+            $parts[] = "subscriber_unlock_enabled = " . intval($subscriber_unlock_enabled);
+        }
 
         if ($tags_json_es !== null) {
             $parts[] = "tags = '" . $tags_json_es . "'";

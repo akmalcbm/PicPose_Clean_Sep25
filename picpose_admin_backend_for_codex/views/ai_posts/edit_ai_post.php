@@ -13,11 +13,52 @@ if ($id <= 0) {
     exit;
 }
 
+function ai_post_column_exists(mysqli $conn, string $column): bool {
+    static $cache = [];
+    if (isset($cache[$column])) return $cache[$column];
+    $stmt = $conn->prepare("
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'ai_posts'
+          AND column_name = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        $cache[$column] = false;
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $cache[$column] = (bool)($res && $res->fetch_assoc());
+    $stmt->close();
+    return $cache[$column];
+}
+
+$accessColumns = [];
+foreach ([
+    'is_visible_in_general_feed',
+    'credit_unlock_enabled',
+    'reward_unlock_enabled',
+    'token_unlock_enabled',
+    'subscriber_unlock_enabled',
+] as $column) {
+    if (ai_post_column_exists($conn, $column)) {
+        $accessColumns[] = $column;
+    }
+}
+$accessColumnsSql = '';
+if (!empty($accessColumns)) {
+    $accessColumnsSql = ', ' . implode(', ', $accessColumns);
+}
+
 // Fetch post from ai_posts
 $post = null;
 $sql = "SELECT id, title, category_id, short_description, prompt_text, tags, 
                image_url1, image_url2, status, priority, is_popular, is_featured, external_id, created_at,
                tier, premium_unlock_cost_points, premium_pack
+               {$accessColumnsSql}
         FROM ai_posts
         WHERE id = ? LIMIT 1";
 
@@ -65,6 +106,23 @@ if (!empty($tagsArray)) {
     $tmp = array_filter($tmp);
     $tagsDisplay = implode(' ', $tmp); // "#Tag1 #Tag2"
 }
+
+$isPremium = (strtoupper((string)($post['tier'] ?? 'FREE')) === 'PREMIUM');
+$isVisibleInGeneralFeed = array_key_exists('is_visible_in_general_feed', $post)
+    ? ((int)$post['is_visible_in_general_feed'] === 1)
+    : true;
+$creditUnlockEnabled = array_key_exists('credit_unlock_enabled', $post)
+    ? ((int)$post['credit_unlock_enabled'] === 1)
+    : $isPremium;
+$rewardUnlockEnabled = array_key_exists('reward_unlock_enabled', $post)
+    ? ((int)$post['reward_unlock_enabled'] === 1)
+    : $isPremium;
+$tokenUnlockEnabled = array_key_exists('token_unlock_enabled', $post)
+    ? ((int)$post['token_unlock_enabled'] === 1)
+    : false;
+$subscriberUnlockEnabled = array_key_exists('subscriber_unlock_enabled', $post)
+    ? ((int)$post['subscriber_unlock_enabled'] === 1)
+    : false;
 
 // helpers
 function normalize_image_path($path) {
@@ -215,11 +273,11 @@ include '../../includes/header.php';
         </div>
 
         <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" name="is_premium" value="1" id="is_premium" <?php echo (strtoupper((string)($post['tier'] ?? 'FREE')) === 'PREMIUM') ? 'checked' : ''; ?>>
+          <input class="form-check-input" type="checkbox" name="is_premium" value="1" id="is_premium" <?php echo $isPremium ? 'checked' : ''; ?>>
           <label class="form-check-label" for="is_premium">Premium Prompt</label>
         </div>
 
-        <div id="premiumOptions" style="<?php echo (strtoupper((string)($post['tier'] ?? 'FREE')) === 'PREMIUM') ? '' : 'display:none;'; ?>">
+        <div id="premiumOptions" style="<?php echo $isPremium ? '' : 'display:none;'; ?>">
           <div class="mb-3">
             <label>Unlock Cost Points</label>
             <input type="number" min="1" name="premium_unlock_cost_points" id="premium_unlock_cost_points" class="form-control" value="<?php echo intval($post['premium_unlock_cost_points'] ?? 0); ?>" placeholder="200">
@@ -229,6 +287,29 @@ include '../../includes/header.php';
           <div class="mb-3">
             <label>Premium Pack (optional)</label>
             <input type="text" maxlength="40" name="premium_pack" id="premium_pack" class="form-control" value="<?php echo htmlspecialchars($post['premium_pack'] ?? ''); ?>" placeholder="e.g. portrait_pro">
+          </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="is_visible_in_general_feed" id="is_visible_in_general_feed" value="1" <?php echo $isVisibleInGeneralFeed ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="is_visible_in_general_feed">Visible in General Feed</label>
+          </div>
+
+          <div class="mb-2"><strong>Unlock Methods</strong></div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="credit_unlock_enabled" id="credit_unlock_enabled" value="1" <?php echo $creditUnlockEnabled ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="credit_unlock_enabled">Credits Unlock</label>
+          </div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="reward_unlock_enabled" id="reward_unlock_enabled" value="1" <?php echo $rewardUnlockEnabled ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="reward_unlock_enabled">Rewarded Ad Unlock</label>
+          </div>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" name="subscriber_unlock_enabled" id="subscriber_unlock_enabled" value="1" <?php echo $subscriberUnlockEnabled ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="subscriber_unlock_enabled">Subscriber Access</label>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="token_unlock_enabled" id="token_unlock_enabled" value="1" <?php echo $tokenUnlockEnabled ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="token_unlock_enabled">Token Unlock (enable only if token flow is live)</label>
           </div>
         </div>
 
@@ -346,6 +427,12 @@ document.addEventListener('DOMContentLoaded', function() {
   var premiumCheckbox = document.getElementById('is_premium');
   var premiumOptions = document.getElementById('premiumOptions');
   var premiumCostEl = document.getElementById('premium_unlock_cost_points');
+  var visibleInFeedEl = document.getElementById('is_visible_in_general_feed');
+  var creditUnlockEl = document.getElementById('credit_unlock_enabled');
+  var rewardUnlockEl = document.getElementById('reward_unlock_enabled');
+  var tokenUnlockEl = document.getElementById('token_unlock_enabled');
+  var subscriberUnlockEl = document.getElementById('subscriber_unlock_enabled');
+  var premiumPackEl = document.getElementById('premium_pack');
 
   function togglePremiumOptions() {
     if (!premiumCheckbox || !premiumOptions) return;
@@ -355,6 +442,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var current = parseInt((premiumCostEl.value || '').trim(), 10);
       if (!premiumCostEl.value || isNaN(current) || current <= 0) {
         premiumCostEl.value = '200';
+      }
+
+      if (creditUnlockEl && rewardUnlockEl && tokenUnlockEl && subscriberUnlockEl) {
+        var anyDirect = creditUnlockEl.checked || rewardUnlockEl.checked || tokenUnlockEl.checked || subscriberUnlockEl.checked;
+        if (!anyDirect) creditUnlockEl.checked = true;
+      }
+      if (visibleInFeedEl && !visibleInFeedEl.checked) {
+        visibleInFeedEl.checked = true;
       }
     }
   }
@@ -392,6 +487,18 @@ document.addEventListener('DOMContentLoaded', function() {
         var premiumCost = parseInt((premiumCostEl.value || '').trim(), 10);
         if (!premiumCostEl.value || isNaN(premiumCost) || premiumCost <= 0) {
           premiumCostEl.value = '200';
+        }
+
+        var anyDirectMethod = (creditUnlockEl && creditUnlockEl.checked)
+          || (rewardUnlockEl && rewardUnlockEl.checked)
+          || (tokenUnlockEl && tokenUnlockEl.checked)
+          || (subscriberUnlockEl && subscriberUnlockEl.checked);
+        var hasPack = premiumPackEl && premiumPackEl.value && premiumPackEl.value.trim() !== '';
+        if (!anyDirectMethod && hasPack && visibleInFeedEl) {
+          visibleInFeedEl.checked = false;
+        }
+        if (!anyDirectMethod && !hasPack && creditUnlockEl) {
+          creditUnlockEl.checked = true;
         }
       }
 

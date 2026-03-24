@@ -30,6 +30,8 @@ import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.RewardsRepository
 import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
+import com.picpose.bestphotographyapp.domain.model.isPackOnlyPrompt
+import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
@@ -264,6 +266,15 @@ class PromptsV2ViewModel @Inject constructor(
         val prompt = snapshot.prompts.firstOrNull { it.id == promptId } ?: return
         if (!prompt.isLocked) {
             _uiState.update { it.copy(errorMessage = "This prompt is already unlocked.") }
+            return
+        }
+        if (!prompt.supportsCreditsUnlock()) {
+            val message = if (prompt.isPackOnlyPrompt()) {
+                "This prompt is available via Premium Pack."
+            } else {
+                "Credits unlock is not available for this prompt."
+            }
+            _uiState.update { it.copy(errorMessage = message) }
             return
         }
         if (!isLoggedIn.value) {

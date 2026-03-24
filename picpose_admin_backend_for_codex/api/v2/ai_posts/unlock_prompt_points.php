@@ -3,6 +3,7 @@ require_once __DIR__ . '/../lib/v2_auth.php';
 require_once __DIR__ . '/../lib/v2_ab.php';
 require_once __DIR__ . '/../lib/v2_progress.php';
 require_once __DIR__ . '/../lib/v2_personalization.php';
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 require_once __DIR__ . '/../referrals/mark_qualified.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -30,12 +31,26 @@ if ($postId <= 0) {
     json_err('Invalid post_id', 400);
 }
 
+$isVisibleSelect = v2_prompt_select_column_expr($conn, 'ai_posts', 'is_visible_in_general_feed');
+$creditEnabledSelect = v2_prompt_select_column_expr($conn, 'ai_posts', 'credit_unlock_enabled');
+$rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'ai_posts', 'reward_unlock_enabled');
+$tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'ai_posts', 'token_unlock_enabled');
+$subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'ai_posts', 'subscriber_unlock_enabled');
+
 $postStmt = $conn->prepare("
-    SELECT id, COALESCE(premium_unlock_cost_points, 0) AS premium_unlock_cost_points
+    SELECT
+        id,
+        tier,
+        COALESCE(premium_unlock_cost_points, 0) AS premium_unlock_cost_points,
+        {$isVisibleSelect},
+        {$creditEnabledSelect},
+        {$rewardEnabledSelect},
+        {$tokenEnabledSelect},
+        {$subscriberEnabledSelect},
+        EXISTS(SELECT 1 FROM premium_pack_items ppi WHERE ppi.post_id = ai_posts.id) AS is_in_pack
     FROM ai_posts
     WHERE id = ?
       AND status = 'published'
-      AND tier = 'PREMIUM'
     LIMIT 1
 ");
 if (!$postStmt) {
@@ -48,11 +63,22 @@ $post = $postRes ? $postRes->fetch_assoc() : null;
 $postStmt->close();
 
 if (!$post) {
+    json_err('Prompt not found', 404);
+}
+
+$flags = v2_prompt_resolve_flags_from_row(
+    $post,
+    ((int)($post['is_in_pack'] ?? 0) === 1)
+);
+
+if (!($flags['is_premium'] ?? false) || !($flags['is_credit_unlockable'] ?? false)) {
     json_err('Prompt not eligible for points unlock', 404);
 }
 
-$configuredCost = (int)($post['premium_unlock_cost_points'] ?? 0);
-$normalCost = $configuredCost > 0 ? $configuredCost : 200;
+$normalCost = (int)($flags['premium_unlock_cost_points'] ?? 0);
+if ($normalCost <= 0) {
+    $normalCost = 200;
+}
 $variant = get_user_variant($conn, $userId, 'premium_unlock_cost_multiplier');
 $multiplier = v2_ab_variant_numeric($conn, 'premium_unlock_cost_multiplier', $variant, 1.0);
 if ($multiplier <= 0) {

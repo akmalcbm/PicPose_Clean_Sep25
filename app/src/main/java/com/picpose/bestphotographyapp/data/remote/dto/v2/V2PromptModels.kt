@@ -46,13 +46,33 @@ data class V2PromptDto(
     @SerializedName("tier") val tier: String = "FREE",
     @SerializedName("premiumUnlockCostPoints") val premiumUnlockCostPoints: Int = 0,
     @SerializedName("premiumPack") val premiumPack: String? = null,
+    @SerializedName("isPremium") val backendIsPremium: Boolean? = null,
+    @SerializedName("premiumSourceType") val premiumSourceType: String? = null,
+    @SerializedName("accessType") val accessType: String? = null,
+    @SerializedName("isVisibleInGeneralFeed") val isVisibleInGeneralFeed: Boolean? = null,
+    @SerializedName("isPackOnly") val isPackOnly: Boolean? = null,
+    @SerializedName("isCreditUnlockable") val isCreditUnlockable: Boolean? = null,
+    @SerializedName("isRewardedUnlockable") val isRewardedUnlockable: Boolean? = null,
+    @SerializedName("isTokenUnlockable") val isTokenUnlockable: Boolean? = null,
+    @SerializedName("isSubscriberUnlockable") val isSubscriberUnlockable: Boolean? = null,
+    @SerializedName("availableUnlockMethods") val availableUnlockMethods: List<String> = emptyList(),
+    @SerializedName("premiumPackIds") val premiumPackIds: List<Int> = emptyList(),
+    @SerializedName("primaryPackId") val primaryPackId: Int? = null,
+    @SerializedName("primaryPackName") val primaryPackName: String? = null,
+    @SerializedName("primaryPackDescription") val primaryPackDescription: String? = null,
+    @SerializedName("primaryPackThumbnailUrl") val primaryPackThumbnailUrl: String? = null,
+    @SerializedName("primaryPackPricePoints") val primaryPackPricePoints: Int? = null,
+    @SerializedName("primaryPackOwned") val primaryPackOwned: Boolean = false,
     @SerializedName("isLocked") val isLocked: Boolean = false,
+    @SerializedName("alreadyUnlocked") val alreadyUnlocked: Boolean? = null,
     @SerializedName("teaserText") val teaserText: String? = null,
 ) {
     val isPremium: Boolean
-        get() = tier.equals("PREMIUM", ignoreCase = true) ||
+        get() = backendIsPremium ?: (
+            tier.equals("PREMIUM", ignoreCase = true) ||
             premiumUnlockCostPoints > 0 ||
             !premiumPack.isNullOrBlank()
+            )
 }
 
 @Keep

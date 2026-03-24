@@ -38,6 +38,35 @@ function parseTags($tagsField) {
     return array_values(array_unique(array_filter(array_map('trim', explode(',', $tagsField)))));
 }
 
+function aiPostsHasGeneralVisibility(mysqli $conn): bool
+{
+    static $checked = null;
+    if ($checked !== null) {
+        return $checked;
+    }
+
+    $sql = "
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'ai_posts'
+          AND column_name = 'is_visible_in_general_feed'
+        LIMIT 1
+    ";
+    $res = $conn->query($sql);
+    $checked = (bool)($res && $res->fetch_assoc());
+    return $checked;
+}
+
+function aiPostsGeneralVisibilitySql(mysqli $conn, string $alias = 'p'): string
+{
+    $legacy = "CASE WHEN EXISTS(SELECT 1 FROM premium_pack_items ppi_vis WHERE ppi_vis.post_id = {$alias}.id) AND UPPER(COALESCE({$alias}.tier, 'FREE')) <> 'PREMIUM' THEN 0 ELSE 1 END";
+    if (aiPostsHasGeneralVisibility($conn)) {
+        return "COALESCE({$alias}.is_visible_in_general_feed, {$legacy})";
+    }
+    return $legacy;
+}
+
 /* ================= QUERY PARAMS ================= */
 $limit  = isset($_GET['limit'])  ? max(1, intval($_GET['limit']))  : 20;
 $offset = isset($_GET['offset']) ? max(0, intval($_GET['offset'])) : 0;
@@ -51,6 +80,7 @@ $categoryName = $_GET['category'] ?? null;    // 🔁 backward compatible
 
 $popular  = isset($_GET['popular'])  && ($_GET['popular'] == '1'  || $_GET['popular'] === 'true');
 $featured = isset($_GET['featured']) && ($_GET['featured'] == '1' || $_GET['featured'] === 'true');
+$generalVisibilitySql = aiPostsGeneralVisibilitySql($conn, 'p');
 
 /* ================= MAIN SQL ================= */
 $sql = "
@@ -76,6 +106,7 @@ SELECT
 FROM ai_posts p
 LEFT JOIN categories c ON c.id = p.category_id
 WHERE p.status = ?
+  AND {$generalVisibilitySql} = 1
 ";
 
 $params = [$status];
@@ -179,6 +210,7 @@ SELECT COUNT(*) AS total
 FROM ai_posts p
 LEFT JOIN categories c ON c.id = p.category_id
 WHERE p.status = ?
+  AND {$generalVisibilitySql} = 1
 ";
 
 $countParams = [$status];

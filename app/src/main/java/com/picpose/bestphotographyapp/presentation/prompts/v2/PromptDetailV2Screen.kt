@@ -147,6 +147,12 @@ import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.service.ads.AdManager
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
+import com.picpose.bestphotographyapp.domain.model.isPackOnlyPrompt
+import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
+import com.picpose.bestphotographyapp.domain.model.supportsRewardedUnlock
+import com.picpose.bestphotographyapp.domain.model.supportsSubscriberAccess
+import com.picpose.bestphotographyapp.domain.model.supportsTokenUnlock
+import com.picpose.bestphotographyapp.domain.model.toPromptAccessState
 import com.picpose.bestphotographyapp.presentation.prompts.detail.FullScreenImageDialog
 import com.picpose.bestphotographyapp.presentation.prompts.detail.openGemini
 import com.picpose.bestphotographyapp.utils.ShareUtils
@@ -162,6 +168,7 @@ fun PromptDetailV2Screen(
     onBack: () -> Unit,
     onRequireLogin: () -> Unit,
     onOpenSubscribe: () -> Unit,
+    onOpenPack: (Int) -> Unit,
     onPromptClick: (String) -> Unit = {},
     onTagClick: (String) -> Unit = {},
     viewModel: PromptDetailV2ViewModel = hiltViewModel(),
@@ -183,6 +190,7 @@ fun PromptDetailV2Screen(
 
     var currentPromptId by remember { mutableStateOf(promptId) }
     var showImageDialog by remember { mutableStateOf(false) }
+    var rewardEarnedForCurrentAd by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         adManager.initialize(clickFrequency = 3)
@@ -318,19 +326,35 @@ fun PromptDetailV2Screen(
                             },
                             onRequireLogin = onRequireLogin,
                             onOpenSubscribe = onOpenSubscribe,
+                            onOpenPack = onOpenPack,
                             onUnlockWithAd = {
                                 val hostActivity = activity
-                                if (hostActivity == null) {
-                                    viewModel.setMessage(context.getString(R.string.rewards_ad_requires_activity))
-                                } else {
-                                    rewardedAdManager.showRewardedAd(
-                                        activity = hostActivity,
-                                        placementKey = AdsManager.KEY_REWARDED_AD,
-                                        onRewardEarned = { adRewardId ->
-                                            viewModel.unlockWithAd(promptId = uiState.prompt!!.id, adRewardId = adRewardId)
-                                        },
-                                        onUnavailable = viewModel::setMessage,
-                                    )
+                                when {
+                                    hostActivity == null -> viewModel.setMessage(context.getString(R.string.rewards_ad_requires_activity))
+                                    rewardedAdState.isShowing -> viewModel.setMessage(context.getString(R.string.rewards_ad_in_progress))
+                                    rewardedAdState.isLoading && !rewardedAdState.isReady ->
+                                        viewModel.setMessage(context.getString(R.string.rewards_loading_reward_ad))
+                                    !rewardedAdState.isReady -> {
+                                        rewardedAdManager.loadRewardedAd(context, AdsManager.KEY_REWARDED_AD)
+                                        viewModel.setMessage(context.getString(R.string.rewards_loading_reward_ad))
+                                    }
+                                    else -> {
+                                        rewardEarnedForCurrentAd = false
+                                        rewardedAdManager.showRewardedAd(
+                                            activity = hostActivity,
+                                            placementKey = AdsManager.KEY_REWARDED_AD,
+                                            onRewardEarned = { adRewardId ->
+                                                rewardEarnedForCurrentAd = true
+                                                viewModel.unlockWithAd(promptId = uiState.prompt!!.id, adRewardId = adRewardId)
+                                            },
+                                            onUnavailable = viewModel::setMessage,
+                                            onDismissed = {
+                                                if (!rewardEarnedForCurrentAd) {
+                                                    viewModel.setMessage(context.getString(R.string.rewards_ad_not_completed))
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
                             },
                             onUnlockWithPoints = { viewModel.unlockWithPoints(uiState.prompt!!.id) },
@@ -493,6 +517,7 @@ private fun PromptContent(
     onCopyPrompt: () -> Unit,
     onRequireLogin: () -> Unit,
     onOpenSubscribe: () -> Unit,
+    onOpenPack: (Int) -> Unit,
     onUnlockWithAd: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onUnlockWithToken: () -> Unit,
@@ -652,6 +677,7 @@ private fun PromptContent(
                 onCopyPrompt = onCopyPrompt,
                 onRequireLogin = onRequireLogin,
                 onOpenSubscribe = onOpenSubscribe,
+                onOpenPack = onOpenPack,
                 onUnlockWithAd = onUnlockWithAd,
                 onUnlockWithPoints = onUnlockWithPoints,
                 onUnlockWithToken = onUnlockWithToken,
@@ -943,6 +969,7 @@ private fun PromptBodyCard(
     onCopyPrompt: () -> Unit,
     onRequireLogin: () -> Unit,
     onOpenSubscribe: () -> Unit,
+    onOpenPack: (Int) -> Unit,
     onUnlockWithAd: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onUnlockWithToken: () -> Unit,
@@ -952,6 +979,14 @@ private fun PromptBodyCard(
     var showGeminiDialog by remember { mutableStateOf(false) }
     var skipGeminiDialog by rememberSaveable { mutableStateOf(false) }
     var dontAskAgain by rememberSaveable { mutableStateOf(false) }
+    val unlockOptions = prompt.toPromptAccessState().unlockOptions
+    val canViewPack = unlockOptions.canViewPack
+    val isPackOnly = prompt.isPackOnlyPrompt()
+    val canUnlockWithCredits = prompt.supportsCreditsUnlock()
+    val canUnlockWithRewarded = prompt.supportsRewardedUnlock()
+    val canUnlockWithToken = prompt.supportsTokenUnlock()
+    val canUnlockWithSubscriber = prompt.supportsSubscriberAccess()
+    val hasAnyUnlockAction = canViewPack || canUnlockWithCredits || canUnlockWithRewarded || canUnlockWithToken || canUnlockWithSubscriber
 
     Card(
         modifier = Modifier
@@ -982,11 +1017,41 @@ private fun PromptBodyCard(
                 LockedPromptPreview(prompt.teaserText.orEmpty())
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "Unlock this premium prompt using an ad, credits, or unlock token.",
+                    text = when {
+                        isPackOnly && canViewPack -> "Available in Premium Pack."
+                        canUnlockWithCredits || canUnlockWithRewarded || canUnlockWithToken -> "Unlock this premium prompt with available options below."
+                        canUnlockWithSubscriber -> "Unlock with your active subscription."
+                        else -> "This premium prompt is currently not unlockable from this screen."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
+
+                if (canViewPack && !unlockOptions.primaryPackName.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                            Text(
+                                text = unlockOptions.primaryPackName ?: "",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (!unlockOptions.primaryPackDescription.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = unlockOptions.primaryPackDescription ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 when {
                     authState == PromptDetailAuthState.Loading -> {
@@ -1033,53 +1098,79 @@ private fun PromptBodyCard(
 
                     else -> {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(
-                                onClick = onUnlockWithAd,
-                                enabled = !unlockState.isUnlockingWithAd,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Icon(Icons.Default.VideoLibrary, contentDescription = null)
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    when {
-                                        unlockState.isUnlockingWithAd -> stringResource(R.string.pack_unlocking)
-                                        rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
-                                        else -> stringResource(R.string.rewards_watch_ad_short)
-                                    },
-                                )
+                            if (canViewPack && unlockOptions.primaryPackId != null) {
+                                Button(
+                                    onClick = { onOpenPack(unlockOptions.primaryPackId) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(stringResource(R.string.pack_open_pack))
+                                }
                             }
 
-                            Button(
-                                onClick = onUnlockWithPoints,
-                                enabled = !unlockState.isUnlockingWithPoints,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    if (unlockState.isUnlockingWithPoints) {
-                                        stringResource(R.string.pack_unlocking)
-                                    } else {
-                                        stringResource(R.string.pack_unlock_for_credits, prompt.premiumUnlockCostPoints)
-                                    },
-                                )
+                            if (canUnlockWithRewarded) {
+                                Button(
+                                    onClick = onUnlockWithAd,
+                                    enabled = !unlockState.isUnlockingWithAd,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Icon(Icons.Default.VideoLibrary, contentDescription = null)
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    Text(
+                                        when {
+                                            unlockState.isUnlockingWithAd -> stringResource(R.string.pack_unlocking)
+                                            rewardedAdLoading && !rewardedAdReady -> stringResource(R.string.rewards_loading_reward_ad)
+                                            else -> stringResource(R.string.rewards_watch_ad_short)
+                                        },
+                                    )
+                                }
                             }
 
-                            OutlinedButton(
-                                onClick = onUnlockWithToken,
-                                enabled = !unlockState.isUnlockingWithToken,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Icon(Icons.Default.WorkspacePremium, contentDescription = null)
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text(
-                                    if (unlockState.isUnlockingWithToken) stringResource(R.string.loading) else stringResource(R.string.token_prompt_unlock),
-                                )
+                            if (canUnlockWithCredits) {
+                                val unlockCost = unlockOptions.creditCost ?: prompt.premiumUnlockCostPoints
+                                Button(
+                                    onClick = onUnlockWithPoints,
+                                    enabled = !unlockState.isUnlockingWithPoints,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        if (unlockState.isUnlockingWithPoints) {
+                                            stringResource(R.string.pack_unlocking)
+                                        } else {
+                                            stringResource(R.string.pack_unlock_for_credits, unlockCost)
+                                        },
+                                    )
+                                }
                             }
 
-                            OutlinedButton(
-                                onClick = onOpenSubscribe,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Subscribe / Go Pro")
+                            if (canUnlockWithToken) {
+                                OutlinedButton(
+                                    onClick = onUnlockWithToken,
+                                    enabled = !unlockState.isUnlockingWithToken,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Icon(Icons.Default.WorkspacePremium, contentDescription = null)
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    Text(
+                                        if (unlockState.isUnlockingWithToken) stringResource(R.string.loading) else stringResource(R.string.token_prompt_unlock),
+                                    )
+                                }
+                            }
+
+                            if (canUnlockWithSubscriber) {
+                                OutlinedButton(
+                                    onClick = onOpenSubscribe,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Subscribe / Go Pro")
+                                }
+                            }
+
+                            if (!hasAnyUnlockAction) {
+                                Text(
+                                    text = "No unlock option is currently available for this prompt.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }

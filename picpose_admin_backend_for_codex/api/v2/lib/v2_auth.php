@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/v2_common.php';
 
+function v2_account_type_has_subscription(?string $accountType): bool
+{
+    $normalized = strtolower(trim((string)$accountType));
+    return in_array($normalized, ['premium', 'pro', 'subscriber', 'subscribed'], true);
+}
+
 function get_bearer_token(): ?string
 {
     $headers = function_exists('getallheaders') ? getallheaders() : [];
@@ -50,5 +56,6 @@ function require_user(mysqli $conn): array
         'id' => (int)($user['id'] ?? 0),
         'email' => (string)($user['email'] ?? ''),
         'account_type' => (string)($user['account_type'] ?? 'normal'),
+        'has_active_subscription' => v2_account_type_has_subscription((string)($user['account_type'] ?? 'normal')),
     ];
 }

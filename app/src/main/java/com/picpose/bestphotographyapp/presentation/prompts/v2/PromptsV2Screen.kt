@@ -134,6 +134,9 @@ import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
+import com.picpose.bestphotographyapp.domain.model.isPackOnlyPrompt
+import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
+import com.picpose.bestphotographyapp.domain.model.supportsRewardedUnlock
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.utils.setText
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -824,6 +827,9 @@ private fun PromptV2ListCard(
 
                 PromptCardCtaSection(
                     isLocked = prompt.isLocked,
+                    supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
+                    supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
+                    isPackOnly = prompt.isPackOnlyPrompt(),
                     unlockCostPoints = prompt.premiumUnlockCostPoints,
                     pointsBalance = pointsBalance,
                     isLoggedIn = isLoggedIn,
@@ -921,6 +927,9 @@ private fun PromptV2GridCard(
 
                 PromptCardCtaSection(
                     isLocked = prompt.isLocked,
+                    supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
+                    supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
+                    isPackOnly = prompt.isPackOnlyPrompt(),
                     unlockCostPoints = prompt.premiumUnlockCostPoints,
                     pointsBalance = pointsBalance,
                     isLoggedIn = isLoggedIn,
@@ -997,6 +1006,9 @@ private fun PromptStatsActionSection(
 @Composable
 private fun PromptCardCtaSection(
     isLocked: Boolean,
+    supportsCreditsUnlock: Boolean,
+    supportsRewardedUnlock: Boolean,
+    isPackOnly: Boolean,
     unlockCostPoints: Int,
     pointsBalance: Int?,
     isLoggedIn: Boolean,
@@ -1009,6 +1021,9 @@ private fun PromptCardCtaSection(
 ) {
     if (isLocked) {
         PremiumUnlockPanel(
+            supportsCreditsUnlock = supportsCreditsUnlock,
+            supportsRewardedUnlock = supportsRewardedUnlock,
+            isPackOnly = isPackOnly,
             unlockCostPoints = unlockCostPoints,
             pointsBalance = pointsBalance,
             isLoggedIn = isLoggedIn,
@@ -1031,6 +1046,9 @@ private fun PromptCardCtaSection(
 
 @Composable
 private fun PremiumUnlockPanel(
+    supportsCreditsUnlock: Boolean,
+    supportsRewardedUnlock: Boolean,
+    isPackOnly: Boolean,
     unlockCostPoints: Int,
     pointsBalance: Int?,
     isLoggedIn: Boolean,
@@ -1043,12 +1061,14 @@ private fun PremiumUnlockPanel(
 ) {
     val unlockCost = unlockCostPoints.coerceAtLeast(0)
     val hasEnoughCredits = pointsBalance?.let { it >= unlockCost } ?: true
-    val canUnlockWithCredits = isLoggedIn && hasEnoughCredits && !isUnlocking
+    val canUnlockWithCredits = supportsCreditsUnlock && isLoggedIn && hasEnoughCredits && !isUnlocking
+    val hasAnyDirectUnlock = supportsCreditsUnlock || supportsRewardedUnlock
 
     val primaryButtonText = when {
+        isPackOnly && !hasAnyDirectUnlock -> stringResource(R.string.pack_open_pack)
         isUnlocking -> stringResource(R.string.pack_unlocking)
         !isLoggedIn -> stringResource(R.string.prompt_unlock_login_required)
-        unlockCost > 0 -> stringResource(R.string.pack_unlock_for_credits, unlockCost)
+        supportsCreditsUnlock && unlockCost > 0 -> stringResource(R.string.pack_unlock_for_credits, unlockCost)
         else -> stringResource(R.string.prompt_unlock_now)
     }
 
@@ -1099,8 +1119,9 @@ private fun PremiumUnlockPanel(
 
             Text(
                 text = when {
+                    isPackOnly && !hasAnyDirectUnlock -> stringResource(R.string.pack_locked_prompt_title)
                     !isLoggedIn -> stringResource(R.string.prompt_unlock_login_hint)
-                    pointsBalance != null && !hasEnoughCredits -> stringResource(
+                    supportsCreditsUnlock && pointsBalance != null && !hasEnoughCredits -> stringResource(
                         R.string.prompt_unlock_not_enough_hint,
                         unlockCost,
                     )
@@ -1116,37 +1137,44 @@ private fun PremiumUnlockPanel(
                 text = primaryButtonText,
                 onClick = {
                     when {
+                        isPackOnly && !hasAnyDirectUnlock -> onOpen()
                         !isLoggedIn -> onOpen()
+                        supportsRewardedUnlock && !supportsCreditsUnlock -> onWatchAd()
                         canUnlockWithCredits -> onUnlockWithPoints()
+                        else -> onOpen()
                     }
                 },
-                enabled = !isUnlocking && (!isLoggedIn || hasEnoughCredits),
+                enabled = !isUnlocking && (isPackOnly || !isLoggedIn || !supportsCreditsUnlock || hasEnoughCredits),
                 modifier = Modifier.fillMaxWidth(),
                 compact = compact,
-                leadingIcon = Icons.Default.MonetizationOn,
+                leadingIcon = if (isPackOnly && !hasAnyDirectUnlock) Icons.Default.Lock else Icons.Default.MonetizationOn,
                 showLoading = isUnlocking,
             )
 
-            Spacer(modifier = Modifier.height(if (compact) 6.dp else 8.dp))
+            if (supportsRewardedUnlock || !isPackOnly) {
+                Spacer(modifier = Modifier.height(if (compact) 6.dp else 8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
-            ) {
-                PromptSecondaryButton(
-                    text = stringResource(R.string.prompt_open),
-                    icon = Icons.Default.Lock,
-                    onClick = onOpen,
-                    modifier = Modifier.weight(1f),
-                    compact = compact,
-                )
-                PromptSecondaryButton(
-                    text = stringResource(R.string.rewards_watch_ad_short),
-                    icon = Icons.Default.VideoLibrary,
-                    onClick = onWatchAd,
-                    modifier = Modifier.weight(1f),
-                    compact = compact,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+                ) {
+                    PromptSecondaryButton(
+                        text = stringResource(R.string.prompt_open),
+                        icon = Icons.Default.Lock,
+                        onClick = onOpen,
+                        modifier = Modifier.weight(1f),
+                        compact = compact,
+                    )
+                    if (supportsRewardedUnlock) {
+                        PromptSecondaryButton(
+                            text = stringResource(R.string.rewards_watch_ad_short),
+                            icon = Icons.Default.VideoLibrary,
+                            onClick = onWatchAd,
+                            modifier = Modifier.weight(1f),
+                            compact = compact,
+                        )
+                    }
+                }
             }
         }
     }

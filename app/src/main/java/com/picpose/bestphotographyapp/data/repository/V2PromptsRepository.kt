@@ -131,9 +131,6 @@ class V2PromptsRepository @Inject constructor(
     suspend fun unlockPromptWithToken(promptId: String): Result<UnlockResponseDto> = withContext(Dispatchers.IO) {
         runCatching {
             val response = apiService.unlockPromptByToken(UnlockPromptByTokenRequest(postId = promptId))
-            if (response.code() == 404) {
-                throw V2FeatureUnavailableException("Token unlock is not available yet.")
-            }
             parseUnlockResponse(response)
         }
     }

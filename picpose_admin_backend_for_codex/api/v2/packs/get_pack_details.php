@@ -1,34 +1,9 @@
 <?php
 require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     json_err('Method Not Allowed', 405);
-}
-
-function v2_pack_details_make_image_url(?string $path, string $baseUrl): ?string
-{
-    if (empty($path)) return null;
-    if (preg_match('#^https?://#i', $path)) return $path;
-    return $baseUrl . ltrim($path, '/');
-}
-
-function v2_pack_details_parse_tags(?string $tagsField): array
-{
-    if (empty($tagsField)) return [];
-    $decoded = json_decode($tagsField, true);
-    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        return array_values(array_unique(array_filter($decoded)));
-    }
-    return array_values(array_unique(array_filter(array_map('trim', explode(',', $tagsField)))));
-}
-
-function v2_pack_details_first_words(?string $text, int $words = 15): string
-{
-    $clean = trim((string)$text);
-    if ($clean === '') return '';
-    $tokens = preg_split('/\s+/', $clean);
-    if (!is_array($tokens)) return '';
-    return implode(' ', array_slice($tokens, 0, max(1, $words)));
 }
 
 $packId = (int)($_GET['id'] ?? 0);
@@ -36,8 +11,11 @@ if ($packId <= 0) {
     json_err('Invalid pack id', 400);
 }
 
-$userId = v2_pack_optional_user_id($conn);
-$packStmt = $conn->prepare("
+$userProfile = v2_prompt_optional_user_profile($conn);
+$userId = $userProfile['id'] ?? v2_pack_optional_user_id($conn);
+$hasActiveSubscription = (bool)($userProfile['has_active_subscription'] ?? false);
+
+$packStmt = $conn->prepare(" 
     SELECT
         pp.id,
         pp.name,
@@ -74,11 +52,17 @@ if (!$pack) {
     json_err('Pack not found', 404);
 }
 
-$ownsPack = $userId ? v2_pack_user_owns_pack($conn, $userId, $packId) : false;
+$ownsPack = ($userId !== null) ? v2_pack_user_owns_pack($conn, (int)$userId, $packId) : false;
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
 
-$sql = "
+$isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
+$creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
+$rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'reward_unlock_enabled');
+$tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'token_unlock_enabled');
+$subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'subscriber_unlock_enabled');
+
+$sql = " 
     SELECT
         p.id,
         p.title,
@@ -99,6 +83,11 @@ $sql = "
         p.tier,
         p.premium_unlock_cost_points,
         p.premium_pack,
+        {$isVisibleSelect},
+        {$creditEnabledSelect},
+        {$rewardEnabledSelect},
+        {$tokenEnabledSelect},
+        {$subscriberEnabledSelect},
         p.tags,
         c.name AS category_name
     FROM premium_pack_items ppi
@@ -117,43 +106,45 @@ $stmt->execute();
 $res = $stmt->get_result();
 
 $rows = [];
-while ($row = $res->fetch_assoc()) {
+$postIds = [];
+while ($row = ($res ? $res->fetch_assoc() : null)) {
     $rows[] = $row;
+    $postIds[] = (int)($row['id'] ?? 0);
 }
 $stmt->close();
 
+$postIds = array_values(array_unique(array_filter($postIds, static fn (int $id): bool => $id > 0)));
+$unlockMap = ($userId !== null) ? v2_pack_prompt_entitlement_map($conn, (int)$userId, $postIds) : [];
+$packLinksMap = v2_prompt_pack_links_for_posts($conn, $postIds, $userId !== null ? (int)$userId : null);
+
 $items = [];
 foreach ($rows as $row) {
-    $tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-    $promptText = (string)($row['prompt_text'] ?? '');
-    $isUnlocked = $ownsPack;
-    $isLocked = !$isUnlocked;
+    $postId = (int)($row['id'] ?? 0);
+    if ($postId <= 0) {
+        continue;
+    }
 
-    $items[] = [
-        'id' => (string)$row['id'],
-        'title' => $row['title'],
-        'shortPrompt' => $row['short_description'],
-        'fullPrompt' => $isLocked ? null : $promptText,
-        'imageUrl' => v2_pack_details_make_image_url($row['image_url1'], $baseUrl),
-        'imageUrl2' => v2_pack_details_make_image_url($row['image_url2'], $baseUrl),
-        'category' => $row['category_name'],
-        'tags' => v2_pack_details_parse_tags($row['tags'] ?? null),
-        'likes' => (int)$row['likes'],
-        'favorites' => (int)$row['favorites'],
-        'copies' => (int)$row['copies'],
-        'views' => (int)$row['views'],
-        'isPopular' => (bool)$row['is_popular'],
-        'isFeatured' => (bool)$row['is_featured'],
-        'status' => $row['status'],
-        'priority' => (int)$row['priority'],
-        'createdAt' => $row['created_at'],
-        'updatedAt' => $row['updated_at'],
-        'tier' => $tier,
-        'premiumUnlockCostPoints' => ((int)($row['premium_unlock_cost_points'] ?? 0) > 0) ? (int)$row['premium_unlock_cost_points'] : 200,
-        'premiumPack' => $row['premium_pack'],
-        'isLocked' => $isLocked,
-        'teaserText' => $isLocked ? v2_pack_details_first_words($promptText, 15) : null,
-    ];
+    $packLinks = $packLinksMap[$postId] ?? [];
+    $flags = v2_prompt_resolve_flags_from_row($row, true);
+
+    $isUnlocked = v2_prompt_is_unlocked(
+        $flags,
+        isset($unlockMap[$postId]),
+        $hasActiveSubscription
+    );
+
+    // If the user owns this pack, all contained prompts are unlocked.
+    if ($ownsPack) {
+        $isUnlocked = true;
+    }
+
+    $items[] = v2_prompt_build_payload(
+        $row,
+        $flags,
+        $isUnlocked,
+        $baseUrl,
+        $packLinks
+    );
 }
 
 json_ok([
@@ -162,7 +153,7 @@ json_ok([
         'id' => (int)$pack['id'],
         'name' => $pack['name'],
         'description' => $pack['description'],
-        'thumbnailUrl' => v2_pack_details_make_image_url($pack['thumbnail_path'] ?? null, $baseUrl),
+        'thumbnailUrl' => v2_prompt_make_image_url($pack['thumbnail_path'] ?? null, $baseUrl),
         'pricePoints' => (int)$pack['price_points'],
         'itemCount' => (int)$pack['item_count'],
         'isActive' => (bool)$pack['is_active'],

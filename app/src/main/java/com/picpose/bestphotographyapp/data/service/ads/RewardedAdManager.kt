@@ -27,9 +27,15 @@ import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.components.ads.RewardedAdController
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 data class RewardedAdUiState(
@@ -43,6 +49,8 @@ data class RewardedAdUiState(
 class RewardedAdManager @Inject constructor() {
     private var controller: RewardedAdController? = null
     private var placementKey: String = AdsManager.KEY_REWARDED_AD
+    private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var preloadTimeoutJob: Job? = null
 
     private val _uiState = MutableStateFlow(RewardedAdUiState())
     val uiState: StateFlow<RewardedAdUiState> = _uiState.asStateFlow()
@@ -53,16 +61,60 @@ class RewardedAdManager @Inject constructor() {
     ) {
         this.placementKey = placementKey
         val rewardedController = controller ?: RewardedAdController(placementKey).also { controller = it }
+        val adUnitId = AdsManager.getAdUnitId(placementKey)
+
+        preloadTimeoutJob?.cancel()
+
+        if (!AdsManager.canShowAds()) {
+            _uiState.value = RewardedAdUiState(
+                isLoading = false,
+                isReady = false,
+                isShowing = false,
+                lastError = "Rewarded ads are currently unavailable.",
+            )
+            return
+        }
+        if (adUnitId.isNullOrBlank()) {
+            _uiState.value = RewardedAdUiState(
+                isLoading = false,
+                isReady = false,
+                isShowing = false,
+                lastError = "Rewarded ad placement is not configured.",
+            )
+            return
+        }
+        if (!AdsManager.shouldShowNow(placementKey)) {
+            _uiState.value = RewardedAdUiState(
+                isLoading = false,
+                isReady = false,
+                isShowing = false,
+                lastError = "Rewarded ad is on cooldown. Try again shortly.",
+            )
+            return
+        }
 
         _uiState.value = _uiState.value.copy(isLoading = true, isShowing = false, lastError = null)
+        preloadTimeoutJob = managerScope.launch {
+            delay(8_000)
+            if (_uiState.value.isLoading) {
+                _uiState.value = RewardedAdUiState(
+                    isLoading = false,
+                    isReady = false,
+                    isShowing = false,
+                    lastError = "Rewarded ad is taking longer than expected. Please try again.",
+                )
+            }
+        }
         rewardedController.preload(
             context = context.applicationContext,
             callbacks = object : RewardedAdController.Callbacks {
                 override fun onLoaded() {
+                    preloadTimeoutJob?.cancel()
                     _uiState.value = RewardedAdUiState(isLoading = false, isReady = true, isShowing = false, lastError = null)
                 }
 
                 override fun onFailed(error: com.google.android.gms.ads.LoadAdError) {
+                    preloadTimeoutJob?.cancel()
                     _uiState.value = RewardedAdUiState(
                         isLoading = false,
                         isReady = false,
@@ -91,9 +143,14 @@ class RewardedAdManager @Inject constructor() {
             return
         }
 
+        if (_uiState.value.isLoading && !_uiState.value.isReady) {
+            onUnavailable("Preparing your reward…")
+            return
+        }
+
         if (!_uiState.value.isReady) {
             loadRewardedAd(activity.applicationContext, placementKey)
-            onUnavailable("Preparing your reward…")
+            onUnavailable(_uiState.value.lastError ?: "Preparing your reward…")
             return
         }
 
@@ -112,12 +169,14 @@ class RewardedAdManager @Inject constructor() {
                 }
 
                 override fun onDismissed() {
+                    preloadTimeoutJob?.cancel()
                     _uiState.value = RewardedAdUiState(isLoading = false, isReady = false, isShowing = false, lastError = null)
                     loadRewardedAd(activity.applicationContext, placementKey)
                     onDismissed()
                 }
 
                 override fun onFailedToShow(error: com.google.android.gms.ads.AdError) {
+                    preloadTimeoutJob?.cancel()
                     _uiState.value = RewardedAdUiState(
                         isLoading = false,
                         isReady = false,

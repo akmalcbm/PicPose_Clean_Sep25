@@ -1,65 +1,11 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
-require_once __DIR__ . '/../lib/v2_auth.php';
 require_once __DIR__ . '/../lib/v2_ab.php';
-
-function v2_potd_make_image_url(?string $path, string $baseUrl): ?string
-{
-    if (empty($path)) return null;
-    if (preg_match('#^https?://#i', $path)) return $path;
-    return $baseUrl . ltrim($path, '/');
-}
-
-function v2_potd_parse_tags(?string $tagsField): array
-{
-    if (empty($tagsField)) return [];
-    $decoded = json_decode($tagsField, true);
-    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        return array_values(array_unique(array_filter($decoded)));
-    }
-    return array_values(array_unique(array_filter(array_map('trim', explode(',', $tagsField)))));
-}
-
-function v2_potd_first_words(?string $text, int $words = 15): string
-{
-    $clean = trim((string)$text);
-    if ($clean === '') return '';
-    $tokens = preg_split('/\s+/', $clean);
-    if (!is_array($tokens)) return '';
-    return implode(' ', array_slice($tokens, 0, max(1, $words)));
-}
-
-function v2_potd_optional_user_id(mysqli $conn): ?int
-{
-    $token = get_bearer_token();
-    if ($token === null) return null;
-
-    $stmt = $conn->prepare('SELECT id FROM users WHERE api_token = ? LIMIT 1');
-    if (!$stmt) return null;
-    $stmt->bind_param('s', $token);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-
-    return $row ? (int)$row['id'] : null;
-}
-
-function v2_potd_is_unlocked(mysqli $conn, int $userId, int $postId): bool
-{
-    $stmt = $conn->prepare('SELECT 1 FROM user_prompt_unlocks WHERE user_id = ? AND post_id = ? LIMIT 1');
-    if (!$stmt) return false;
-    $stmt->bind_param('ii', $userId, $postId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-    return (bool)$row;
-}
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 function v2_potd_load_today_record(mysqli $conn, string $today): ?array
 {
-    $stmt = $conn->prepare("
+    $stmt = $conn->prepare(" 
         SELECT day_date, post_id, mode, discount_cost_points
         FROM daily_featured_prompts
         WHERE day_date = ?
@@ -115,7 +61,9 @@ function v2_potd_pick_post_id(mysqli $conn): ?int
 function v2_potd_ensure_today_record(mysqli $conn, string $today): array
 {
     $existing = v2_potd_load_today_record($conn, $today);
-    if ($existing) return $existing;
+    if ($existing) {
+        return $existing;
+    }
 
     $postId = v2_potd_pick_post_id($conn);
     if (!$postId) {
@@ -132,7 +80,7 @@ function v2_potd_ensure_today_record(mysqli $conn, string $today): array
 
         $mode = 'DISCOUNT';
         $discount = 50;
-        $stmt = $conn->prepare("
+        $stmt = $conn->prepare(" 
             INSERT INTO daily_featured_prompts (day_date, post_id, mode, discount_cost_points)
             VALUES (?, ?, ?, ?)
         ");
@@ -146,7 +94,9 @@ function v2_potd_ensure_today_record(mysqli $conn, string $today): array
             if ($errno === 1062) {
                 $conn->rollback();
                 $existing = v2_potd_load_today_record($conn, $today);
-                if ($existing) return $existing;
+                if ($existing) {
+                    return $existing;
+                }
             }
             throw new RuntimeException('Failed to insert POTD row');
         }
@@ -167,7 +117,13 @@ function v2_potd_ensure_today_record(mysqli $conn, string $today): array
 $today = date('Y-m-d');
 $potd = v2_potd_ensure_today_record($conn, $today);
 
-$stmt = $conn->prepare("
+$isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
+$creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
+$rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'reward_unlock_enabled');
+$tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'token_unlock_enabled');
+$subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'subscriber_unlock_enabled');
+
+$stmt = $conn->prepare(" 
     SELECT
         p.id, p.title, p.short_description, p.prompt_text,
         p.image_url1, p.image_url2,
@@ -178,6 +134,11 @@ $stmt = $conn->prepare("
         p.is_popular, p.is_featured, p.status, p.priority,
         p.created_at, p.updated_at,
         p.tier, p.premium_unlock_cost_points, p.premium_pack,
+        {$isVisibleSelect},
+        {$creditEnabledSelect},
+        {$rewardEnabledSelect},
+        {$tokenEnabledSelect},
+        {$subscriberEnabledSelect},
         c.name AS category_name,
         p.tags
     FROM ai_posts p
@@ -201,64 +162,47 @@ if (!$row) {
 
 $mode = strtoupper((string)($potd['mode'] ?? 'NORMAL'));
 $discountCost = (int)($potd['discount_cost_points'] ?? 0);
-$baseCost = (int)($row['premium_unlock_cost_points'] ?? 0);
-if ($baseCost <= 0) $baseCost = 200;
-$effectiveCost = $mode === 'DISCOUNT' ? max(0, $discountCost) : $baseCost;
+
+$userProfile = v2_prompt_optional_user_profile($conn);
+$userId = $userProfile['id'] ?? null;
+$hasActiveSubscription = (bool)($userProfile['has_active_subscription'] ?? false);
+
+if ($mode === 'DISCOUNT' && $userId !== null) {
+    $potdVariant = get_user_variant($conn, (int)$userId, 'potd_discount_cost');
+    $discountCost = max(0, (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$discountCost)));
+}
+
+$packLinksMap = v2_prompt_pack_links_for_posts($conn, [$postId], $userId !== null ? (int)$userId : null);
+$packLinks = $packLinksMap[$postId] ?? [];
+$flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
+if (($flags['is_credit_unlockable'] ?? false) && $mode === 'DISCOUNT') {
+    $flags['premium_unlock_cost_points'] = $discountCost;
+} elseif (($flags['is_credit_unlockable'] ?? false) && $mode === 'FREE') {
+    $flags['premium_unlock_cost_points'] = 0;
+}
+
+$unlockMap = [];
+if ($userId !== null) {
+    $unlockMap = v2_pack_prompt_entitlement_map($conn, (int)$userId, [$postId]);
+}
+
+$isUnlocked = v2_prompt_is_unlocked(
+    $flags,
+    isset($unlockMap[$postId]),
+    $hasActiveSubscription
+);
+if ($mode === 'FREE') {
+    $isUnlocked = true;
+}
 
 $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
-
-$tier = strtoupper((string)($row['tier'] ?? 'FREE'));
-$isPremium = ($tier === 'PREMIUM');
-$userId = v2_potd_optional_user_id($conn);
-$hasActiveSubscription = false;
-
-if ($mode === 'DISCOUNT' && $userId) {
-    $potdVariant = get_user_variant($conn, $userId, 'potd_discount_cost');
-    $variantCost = (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$discountCost));
-    $effectiveCost = max(0, $variantCost);
-}
-
-$isUnlocked = !$isPremium;
-if ($isPremium && $mode === 'FREE') {
-    $isUnlocked = true;
-} elseif ($isPremium && $userId) {
-    $isUnlocked = v2_potd_is_unlocked($conn, $userId, (int)$row['id']) || $hasActiveSubscription;
-}
-
-$isLocked = !$isUnlocked;
-$promptText = (string)($row['prompt_text'] ?? '');
-
-$post = [
-    'id' => (string)$row['id'],
-    'title' => $row['title'],
-    'shortPrompt' => $row['short_description'],
-    'fullPrompt' => $isLocked ? null : $promptText,
-    'imageUrl' => v2_potd_make_image_url($row['image_url1'], $baseUrl),
-    'imageUrl2' => v2_potd_make_image_url($row['image_url2'], $baseUrl),
-    'category' => $row['category_name'],
-    'tags' => v2_potd_parse_tags($row['tags']),
-    'likes' => (int)$row['likes'],
-    'favorites' => (int)$row['favorites'],
-    'copies' => (int)$row['copies'],
-    'views' => (int)$row['views'],
-    'isPopular' => (bool)$row['is_popular'],
-    'isFeatured' => (bool)$row['is_featured'],
-    'status' => $row['status'],
-    'priority' => (int)$row['priority'],
-    'createdAt' => $row['created_at'],
-    'updatedAt' => $row['updated_at'],
-    'tier' => $tier,
-    'premiumUnlockCostPoints' => $effectiveCost,
-    'premiumPack' => $row['premium_pack'],
-    'isLocked' => $isLocked,
-    'teaserText' => $isLocked ? v2_potd_first_words($promptText, 15) : null,
-];
+$post = v2_prompt_build_payload($row, $flags, $isUnlocked, $baseUrl, $packLinks);
 
 json_ok([
     'success' => true,
     'day_date' => (string)$potd['day_date'],
     'post' => $post,
     'potd_mode' => $mode,
-    'potd_unlock_cost_points' => $effectiveCost,
+    'potd_unlock_cost_points' => (int)($post['premiumUnlockCostPoints'] ?? 0),
 ]);

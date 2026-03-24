@@ -474,7 +474,14 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                         navController.navigate(Screen.Login.route) { launchSingleTop = true }
                     },
                     onOpenSubscribe = {
-                        navController.navigate(Screen.Rewards.route) { launchSingleTop = true }
+                        navController.navigate(Screen.Packs.route) { launchSingleTop = true }
+                    },
+                    onOpenPack = { packId ->
+                        if (packId > 0) {
+                            navController.navigate(Screen.PackDetail.createRoute(packId)) { launchSingleTop = true }
+                        } else {
+                            navController.navigate(Screen.Packs.route) { launchSingleTop = true }
+                        }
                     },
                     onPromptClick = { nextPromptId ->
                         navController.navigate(Screen.PromptDetail.createRoute(nextPromptId)) { launchSingleTop = true }

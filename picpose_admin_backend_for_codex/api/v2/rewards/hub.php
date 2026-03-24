@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../lib/v2_ab.php';
 require_once __DIR__ . '/../lib/v2_pack_entitlements.php';
 require_once __DIR__ . '/../lib/v2_progress.php';
+require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 const V2_AD_DAILY_REWARD_CAP = 1;
 
@@ -464,6 +465,12 @@ if ($progressStmt) {
 $potdPayload = null;
 $potd = v2_hub_ensure_today_potd($conn, $today);
 if ($potd) {
+    $isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
+    $creditEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'credit_unlock_enabled');
+    $rewardEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'reward_unlock_enabled');
+    $tokenEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'token_unlock_enabled');
+    $subscriberEnabledSelect = v2_prompt_select_column_expr($conn, 'p', 'subscriber_unlock_enabled');
+
     $postStmt = $conn->prepare("
         SELECT
             p.id, p.title, p.short_description, p.prompt_text,
@@ -475,6 +482,11 @@ if ($potd) {
             p.is_popular, p.is_featured, p.status, p.priority,
             p.created_at, p.updated_at,
             p.tier, p.premium_unlock_cost_points, p.premium_pack,
+            {$isVisibleSelect},
+            {$creditEnabledSelect},
+            {$rewardEnabledSelect},
+            {$tokenEnabledSelect},
+            {$subscriberEnabledSelect},
             c.name AS category_name,
             p.tags
         FROM ai_posts p
@@ -491,53 +503,40 @@ if ($potd) {
         $postStmt->close();
 
         if ($potdPost) {
-            $baseProto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $baseUrl = $baseProto . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/';
             $mode = strtoupper((string)($potd['mode'] ?? 'NORMAL'));
             $discountCost = (int)($potd['discount_cost_points'] ?? 0);
-            $baseCost = (int)($potdPost['premium_unlock_cost_points'] ?? 0);
-            if ($baseCost <= 0) $baseCost = 200;
-            $effectiveCost = $mode === 'DISCOUNT' ? max(0, $discountCost) : $baseCost;
             if ($mode === 'DISCOUNT') {
                 $variant = get_user_variant($conn, $userId, 'potd_discount_cost');
-                $effectiveCost = max(0, (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $variant, (float)$discountCost)));
+                $discountCost = max(0, (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $variant, (float)$discountCost)));
             }
 
-            $tier = strtoupper((string)($potdPost['tier'] ?? 'FREE'));
             $entitlements = v2_pack_prompt_entitlement_map($conn, $userId, [(int)$potdPost['id']]);
-            $isUnlocked = ($tier !== 'PREMIUM') || ($mode === 'FREE') || isset($entitlements[(int)$potdPost['id']]);
-            $isLocked = !$isUnlocked;
-            $promptText = (string)($potdPost['prompt_text'] ?? '');
+            $potdPostId = (int)$potdPost['id'];
+            $packLinksMap = v2_prompt_pack_links_for_posts($conn, [$potdPostId], $userId);
+            $packLinks = $packLinksMap[$potdPostId] ?? [];
+            $flags = v2_prompt_resolve_flags_from_row($potdPost, !empty($packLinks));
+            if (($flags['is_credit_unlockable'] ?? false) && $mode === 'DISCOUNT') {
+                $flags['premium_unlock_cost_points'] = $discountCost;
+            } elseif (($flags['is_credit_unlockable'] ?? false) && $mode === 'FREE') {
+                $flags['premium_unlock_cost_points'] = 0;
+            }
+
+            $isUnlocked = v2_prompt_is_unlocked(
+                $flags,
+                isset($entitlements[$potdPostId]),
+                (bool)($user['has_active_subscription'] ?? false)
+            );
+            if ($mode === 'FREE') {
+                $isUnlocked = true;
+            }
+
+            $postPayload = v2_prompt_build_payload($potdPost, $flags, $isUnlocked, $baseUrl, $packLinks);
 
             $potdPayload = [
                 'day_date' => (string)$potd['day_date'],
                 'potd_mode' => $mode,
-                'potd_unlock_cost_points' => $effectiveCost,
-                'post' => [
-                    'id' => (string)$potdPost['id'],
-                    'title' => $potdPost['title'],
-                    'shortPrompt' => $potdPost['short_description'],
-                    'fullPrompt' => $isLocked ? null : $promptText,
-                    'imageUrl' => v2_hub_make_image_url($potdPost['image_url1'], $baseUrl),
-                    'imageUrl2' => v2_hub_make_image_url($potdPost['image_url2'], $baseUrl),
-                    'category' => $potdPost['category_name'],
-                    'tags' => v2_hub_parse_tags($potdPost['tags']),
-                    'likes' => (int)$potdPost['likes'],
-                    'favorites' => (int)$potdPost['favorites'],
-                    'copies' => (int)$potdPost['copies'],
-                    'views' => (int)$potdPost['views'],
-                    'isPopular' => (bool)$potdPost['is_popular'],
-                    'isFeatured' => (bool)$potdPost['is_featured'],
-                    'status' => $potdPost['status'],
-                    'priority' => (int)$potdPost['priority'],
-                    'createdAt' => $potdPost['created_at'],
-                    'updatedAt' => $potdPost['updated_at'],
-                    'tier' => $tier,
-                    'premiumUnlockCostPoints' => $effectiveCost,
-                    'premiumPack' => $potdPost['premium_pack'],
-                    'isLocked' => $isLocked,
-                    'teaserText' => $isLocked ? v2_hub_first_words($promptText, 15) : null,
-                ],
+                'potd_unlock_cost_points' => (int)($postPayload['premiumUnlockCostPoints'] ?? 0),
+                'post' => $postPayload,
             ];
         }
     }

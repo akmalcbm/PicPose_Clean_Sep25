@@ -28,8 +28,10 @@ import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.data.repository.V2ApiException
-import com.picpose.bestphotographyapp.data.repository.V2FeatureUnavailableException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
+import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
+import com.picpose.bestphotographyapp.domain.model.supportsRewardedUnlock
+import com.picpose.bestphotographyapp.domain.model.supportsTokenUnlock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -168,18 +170,33 @@ class PromptDetailV2ViewModel @Inject constructor(
     }
 
     fun unlockWithPoints(promptId: String) {
+        val prompt = _uiState.value.prompt ?: return
+        if (!prompt.supportsCreditsUnlock()) {
+            _uiState.update { it.copy(message = "Credits unlock is not available for this prompt.") }
+            return
+        }
         launchUnlock("points") {
             promptsRepository.unlockPromptWithPoints(promptId)
         }
     }
 
     fun unlockWithToken(promptId: String) {
+        val prompt = _uiState.value.prompt ?: return
+        if (!prompt.supportsTokenUnlock()) {
+            _uiState.update { it.copy(message = "Token unlock is not available for this prompt.") }
+            return
+        }
         launchUnlock("token") {
             promptsRepository.unlockPromptWithToken(promptId)
         }
     }
 
     fun unlockWithAd(promptId: String, adRewardId: String) {
+        val prompt = _uiState.value.prompt ?: return
+        if (!prompt.supportsRewardedUnlock()) {
+            _uiState.update { it.copy(message = "Ad unlock is not available for this prompt.") }
+            return
+        }
         launchUnlock("ad") {
             promptsRepository.unlockPromptWithAd(promptId, adRewardId)
         }
@@ -309,13 +326,14 @@ class PromptDetailV2ViewModel @Inject constructor(
                 }
                 .onFailure { throwable ->
                     val message = when (throwable) {
-                        is V2FeatureUnavailableException -> throwable.message
                         is V2ApiException -> {
                             if (throwable.code == 401 || throwable.code == 403) {
                                 _uiState.update { current ->
                                     current.copy(requiresLogin = true)
                                 }
                                 "Session expired. Please login again."
+                            } else if (throwable.code == 404) {
+                                "This unlock option is not available for this prompt."
                             } else {
                                 throwable.message
                             }

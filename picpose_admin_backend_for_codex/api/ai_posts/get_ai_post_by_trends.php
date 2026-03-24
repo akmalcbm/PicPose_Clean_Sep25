@@ -26,6 +26,29 @@ function makeImageUrl($path, $base) {
     return $base . ltrim($path, '/');
 }
 
+function ai_posts_visibility_sql(mysqli $conn, string $alias = 'p'): string {
+    static $hasColumn = null;
+    if ($hasColumn === null) {
+        $res = $conn->query("
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'ai_posts'
+              AND column_name = 'is_visible_in_general_feed'
+            LIMIT 1
+        ");
+        $hasColumn = (bool)($res && $res->fetch_assoc());
+    }
+
+    $legacyExpr = "CASE WHEN EXISTS(SELECT 1 FROM premium_pack_items ppi_vis WHERE ppi_vis.post_id = {$alias}.id) AND UPPER(COALESCE({$alias}.tier, 'FREE')) <> 'PREMIUM' THEN 0 ELSE 1 END";
+    if ($hasColumn) {
+        return "COALESCE({$alias}.is_visible_in_general_feed, {$legacyExpr})";
+    }
+    return $legacyExpr;
+}
+
+$visibilitySql = ai_posts_visibility_sql($conn, 'p');
+
 // 🧮 TRENDING LOGIC
 // Uses weighted score: (likes * 3) + (favorites * 5) + (views * 1)
 // Prioritizes recent posts within last 30 days
@@ -46,6 +69,7 @@ $sql = "
     FROM ai_posts p
     LEFT JOIN categories c ON c.id = p.category_id
     WHERE p.status = 'published'
+      AND {$visibilitySql} = 1
       AND p.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     ORDER BY trending_score DESC, p.created_at DESC
     LIMIT ? OFFSET ?;
