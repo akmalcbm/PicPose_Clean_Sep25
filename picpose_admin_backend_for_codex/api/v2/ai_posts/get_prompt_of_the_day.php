@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../lib/v2_common.php';
-require_once __DIR__ . '/../lib/v2_ab.php';
 require_once __DIR__ . '/../lib/v2_prompt_access.php';
 
 function v2_potd_load_today_record(mysqli $conn, string $today): ?array
@@ -114,7 +113,7 @@ function v2_potd_ensure_today_record(mysqli $conn, string $today): array
     return $inserted;
 }
 
-$today = date('Y-m-d');
+$today = v2_prompt_current_db_date($conn);
 $potd = v2_potd_ensure_today_record($conn, $today);
 
 $isVisibleSelect = v2_prompt_select_column_expr($conn, 'p', 'is_visible_in_general_feed');
@@ -160,26 +159,21 @@ if (!$row) {
     json_err('Prompt of the day not found', 404);
 }
 
-$mode = strtoupper((string)($potd['mode'] ?? 'NORMAL'));
-$discountCost = (int)($potd['discount_cost_points'] ?? 0);
-
 $userProfile = v2_prompt_optional_user_profile($conn);
 $userId = $userProfile['id'] ?? null;
 $hasActiveSubscription = (bool)($userProfile['has_active_subscription'] ?? false);
 
-if ($mode === 'DISCOUNT' && $userId !== null) {
-    $potdVariant = get_user_variant($conn, (int)$userId, 'potd_discount_cost');
-    $discountCost = max(0, (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$discountCost)));
-}
-
 $packLinksMap = v2_prompt_pack_links_for_posts($conn, [$postId], $userId !== null ? (int)$userId : null);
 $packLinks = $packLinksMap[$postId] ?? [];
 $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
-if (($flags['is_credit_unlockable'] ?? false) && $mode === 'DISCOUNT') {
-    $flags['premium_unlock_cost_points'] = $discountCost;
-} elseif (($flags['is_credit_unlockable'] ?? false) && $mode === 'FREE') {
-    $flags['premium_unlock_cost_points'] = 0;
-}
+$costMeta = v2_prompt_apply_effective_credit_cost(
+    $conn,
+    $postId,
+    $flags,
+    $userId !== null ? (int)$userId : null,
+    $potd
+);
+$mode = strtoupper((string)($costMeta['potd_mode'] ?? 'NORMAL'));
 
 $unlockMap = [];
 if ($userId !== null) {

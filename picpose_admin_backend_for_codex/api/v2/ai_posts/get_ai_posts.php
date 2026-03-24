@@ -144,12 +144,21 @@ $unlockMap = ($authUserId !== null)
     ? v2_pack_prompt_entitlement_map($conn, (int)$authUserId, $postIds)
     : [];
 $packLinksMap = v2_prompt_pack_links_for_posts($conn, $postIds, $authUserId !== null ? (int)$authUserId : null);
+$todayDate = v2_prompt_current_db_date($conn);
+$potdOfferMap = v2_prompt_load_today_offers_for_posts($conn, $postIds, $todayDate);
 
 $posts = [];
 foreach ($rows as $row) {
     $postId = (int)$row['id'];
     $packLinks = $packLinksMap[$postId] ?? [];
     $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
+    v2_prompt_apply_effective_credit_cost(
+        $conn,
+        $postId,
+        $flags,
+        $authUserId !== null ? (int)$authUserId : null,
+        $potdOfferMap[$postId] ?? null
+    );
 
     if (!$includeHidden && !($flags['is_visible_in_general_feed'] ?? true)) {
         continue;

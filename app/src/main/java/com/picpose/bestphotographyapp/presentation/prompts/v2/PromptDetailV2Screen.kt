@@ -1127,9 +1127,37 @@ private fun PromptBodyCard(
 
                             if (canUnlockWithCredits) {
                                 val unlockCost = unlockOptions.creditCost ?: prompt.premiumUnlockCostPoints
+                                val pointsBalance = unlockState.pointsBalance
+                                val hasResolvedBalance = pointsBalance != null
+                                val hasEnoughBalance = hasResolvedBalance && pointsBalance >= unlockCost
+
+                                Text(
+                                    text = when {
+                                        unlockState.isPointsBalanceLoading -> "Checking your credits balance..."
+                                        hasResolvedBalance -> stringResource(
+                                            R.string.prompt_balance_credits,
+                                            pointsBalance ?: 0,
+                                        )
+                                        else -> "Unable to verify credits balance right now."
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+
+                                if (hasResolvedBalance && !hasEnoughBalance) {
+                                    Text(
+                                        text = "You need $unlockCost credits, but your balance is only ${pointsBalance ?: 0}.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+
                                 Button(
                                     onClick = onUnlockWithPoints,
-                                    enabled = !unlockState.isUnlockingWithPoints,
+                                    enabled = !unlockState.isUnlockingWithPoints &&
+                                        !unlockState.isPointsBalanceLoading &&
+                                        hasResolvedBalance &&
+                                        hasEnoughBalance,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(

@@ -88,6 +88,12 @@ function get_user_variant(mysqli $conn, int $userId, string $experimentKey): ?st
         return null;
     }
 
+    static $variantCache = [];
+    $cacheKey = $userId . ':' . $experimentKey;
+    if (array_key_exists($cacheKey, $variantCache)) {
+        return $variantCache[$cacheKey];
+    }
+
     $assignStmt = $conn->prepare("
         SELECT variant
         FROM ab_user_assignments
@@ -104,7 +110,8 @@ function get_user_variant(mysqli $conn, int $userId, string $experimentKey): ?st
     $assignStmt->close();
 
     if ($assignment && !empty($assignment['variant'])) {
-        return (string)$assignment['variant'];
+        $variantCache[$cacheKey] = (string)$assignment['variant'];
+        return $variantCache[$cacheKey];
     }
 
     $expStmt = $conn->prepare("
@@ -123,12 +130,14 @@ function get_user_variant(mysqli $conn, int $userId, string $experimentKey): ?st
     $expStmt->close();
 
     if (!$experiment) {
+        $variantCache[$cacheKey] = null;
         return null;
     }
 
     $variants = v2_ab_parse_variants($experiment['variants_json'] ?? null);
     $chosen = v2_ab_choose_variant($variants);
     if ($chosen === null) {
+        $variantCache[$cacheKey] = null;
         return null;
     }
 
@@ -145,19 +154,28 @@ function get_user_variant(mysqli $conn, int $userId, string $experimentKey): ?st
     $insertStmt->close();
 
     if ($ok) {
-        return $chosen;
+        $variantCache[$cacheKey] = $chosen;
+        return $variantCache[$cacheKey];
     }
     if ($errno === 1062) {
+        unset($variantCache[$cacheKey]);
         return get_user_variant($conn, $userId, $experimentKey);
     }
 
-    return $chosen;
+    $variantCache[$cacheKey] = $chosen;
+    return $variantCache[$cacheKey];
 }
 
 function v2_ab_variant_payload(mysqli $conn, string $experimentKey, ?string $variantName): ?array
 {
     if ($variantName === null || $experimentKey === '') {
         return null;
+    }
+
+    static $payloadCache = [];
+    $cacheKey = $experimentKey . ':' . $variantName;
+    if (array_key_exists($cacheKey, $payloadCache)) {
+        return $payloadCache[$cacheKey];
     }
 
     $stmt = $conn->prepare("
@@ -176,16 +194,19 @@ function v2_ab_variant_payload(mysqli $conn, string $experimentKey, ?string $var
     $stmt->close();
 
     if (!$row) {
+        $payloadCache[$cacheKey] = null;
         return null;
     }
 
     $variants = v2_ab_parse_variants($row['variants_json'] ?? null);
     foreach ($variants as $variant) {
         if ((string)$variant['name'] === $variantName) {
-            return is_array($variant['payload']) ? $variant['payload'] : null;
+            $payloadCache[$cacheKey] = is_array($variant['payload']) ? $variant['payload'] : null;
+            return $payloadCache[$cacheKey];
         }
     }
 
+    $payloadCache[$cacheKey] = null;
     return null;
 }
 

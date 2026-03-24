@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/v2_auth.php';
+require_once __DIR__ . '/v2_ab.php';
 require_once __DIR__ . '/v2_pack_entitlements.php';
 
 function v2_prompt_column_exists(mysqli $conn, string $columnName): bool
@@ -32,6 +33,141 @@ function v2_prompt_column_exists(mysqli $conn, string $columnName): bool
 
     $cache[$columnName] = $exists;
     return $exists;
+}
+
+function v2_prompt_current_db_date(mysqli $conn): string
+{
+    $res = $conn->query("SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS day_date");
+    $row = ($res instanceof mysqli_result) ? $res->fetch_assoc() : null;
+    $dayDate = (string)($row['day_date'] ?? '');
+    return $dayDate !== '' ? $dayDate : date('Y-m-d');
+}
+
+function v2_prompt_load_today_offer_for_post(mysqli $conn, int $postId, ?string $dayDate = null): ?array
+{
+    if ($postId <= 0) {
+        return null;
+    }
+
+    $resolvedDay = $dayDate ?: v2_prompt_current_db_date($conn);
+    $stmt = $conn->prepare("
+        SELECT day_date, post_id, mode, discount_cost_points
+        FROM daily_featured_prompts
+        WHERE day_date = ?
+          AND post_id = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('si', $resolvedDay, $postId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function v2_prompt_load_today_offers_for_posts(mysqli $conn, array $postIds, ?string $dayDate = null): array
+{
+    $normalizedIds = array_values(array_unique(array_filter(array_map('intval', $postIds), static fn (int $id): bool => $id > 0)));
+    if (empty($normalizedIds)) {
+        return [];
+    }
+
+    $resolvedDay = $dayDate ?: v2_prompt_current_db_date($conn);
+    $placeholders = implode(',', array_fill(0, count($normalizedIds), '?'));
+    $sql = "
+        SELECT day_date, post_id, mode, discount_cost_points
+        FROM daily_featured_prompts
+        WHERE day_date = ?
+          AND post_id IN ({$placeholders})
+    ";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return [];
+    }
+
+    $types = 's' . str_repeat('i', count($normalizedIds));
+    $params = array_merge([$resolvedDay], $normalizedIds);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    $map = [];
+    while ($row = ($res ? $res->fetch_assoc() : null)) {
+        $id = (int)($row['post_id'] ?? 0);
+        if ($id > 0) {
+            $map[$id] = $row;
+        }
+    }
+    $stmt->close();
+
+    return $map;
+}
+
+function v2_prompt_apply_effective_credit_cost(
+    mysqli $conn,
+    int $postId,
+    array &$flags,
+    ?int $userId = null,
+    ?array $potdOverride = null
+): array {
+    $isCreditUnlockable = (bool)($flags['is_credit_unlockable'] ?? false);
+    $baseCost = (int)($flags['premium_unlock_cost_points'] ?? 0);
+    if ($isCreditUnlockable && $baseCost <= 0) {
+        $baseCost = 200;
+    }
+    if ($baseCost < 0) {
+        $baseCost = 0;
+    }
+
+    $cost = $baseCost;
+    if ($isCreditUnlockable && $userId !== null && $userId > 0) {
+        $variant = get_user_variant($conn, $userId, 'premium_unlock_cost_multiplier');
+        $multiplier = v2_ab_variant_numeric($conn, 'premium_unlock_cost_multiplier', $variant, 1.0);
+        if ($multiplier <= 0) {
+            $multiplier = 1.0;
+        }
+        $cost = max(0, (int)round($cost * $multiplier));
+    }
+
+    $potdMode = 'NORMAL';
+    $potdDiscountCost = 0;
+    $potdDayDate = null;
+    $potdRow = $potdOverride ?: v2_prompt_load_today_offer_for_post($conn, $postId);
+    if ($potdRow) {
+        $potdMode = strtoupper((string)($potdRow['mode'] ?? 'NORMAL'));
+        $potdDiscountCost = max(0, (int)($potdRow['discount_cost_points'] ?? 0));
+        $potdDayDate = (string)($potdRow['day_date'] ?? '');
+    }
+
+    if ($isCreditUnlockable) {
+        if ($potdMode === 'DISCOUNT') {
+            $resolvedDiscount = $potdDiscountCost;
+            if ($userId !== null && $userId > 0) {
+                $potdVariant = get_user_variant($conn, $userId, 'potd_discount_cost');
+                $resolvedDiscount = max(
+                    0,
+                    (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$potdDiscountCost))
+                );
+            }
+            $cost = max(0, $resolvedDiscount);
+        } elseif ($potdMode === 'FREE') {
+            $cost = 0;
+        }
+    }
+
+    $flags['premium_unlock_cost_points'] = max(0, $cost);
+
+    return [
+        'cost' => (int)$flags['premium_unlock_cost_points'],
+        'potd_mode' => $potdMode,
+        'potd_discount_cost_points' => $potdDiscountCost,
+        'potd_day_date' => $potdDayDate,
+    ];
 }
 
 function v2_prompt_select_column_expr(mysqli $conn, string $postAlias, string $columnName): string

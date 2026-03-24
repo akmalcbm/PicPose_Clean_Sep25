@@ -496,7 +496,8 @@ class PromptsV2ViewModel @Inject constructor(
         if (throwable is V2ApiException) {
             return when {
                 throwable.code == 401 || throwable.code == 403 -> "Session expired. Please log in again."
-                throwable.code == 402 || raw.contains("insufficient", ignoreCase = true) -> "Not enough credits to unlock this prompt."
+                throwable.code == 402 || raw.contains("insufficient", ignoreCase = true) ->
+                    raw.ifBlank { "Not enough credits to unlock this prompt." }
                 raw.contains("already unlocked", ignoreCase = true) -> "You already unlocked this prompt."
                 throwable.code in 500..599 -> "Server error while unlocking. Please try again."
                 else -> raw.ifBlank { "Unable to unlock prompt right now." }

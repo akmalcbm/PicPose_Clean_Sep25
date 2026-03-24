@@ -27,17 +27,21 @@ import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.data.local.datastore.UserSessionManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
+import com.picpose.bestphotographyapp.data.repository.RewardsRepository
 import com.picpose.bestphotographyapp.data.repository.V2ApiException
 import com.picpose.bestphotographyapp.data.repository.V2PromptsRepository
+import com.picpose.bestphotographyapp.domain.model.toPromptAccessState
 import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
 import com.picpose.bestphotographyapp.domain.model.supportsRewardedUnlock
 import com.picpose.bestphotographyapp.domain.model.supportsTokenUnlock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.io.IOException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -60,6 +64,8 @@ data class PromptDetailV2UiState(
     val isUnlockingWithPoints: Boolean = false,
     val isUnlockingWithToken: Boolean = false,
     val isUnlockingWithAd: Boolean = false,
+    val pointsBalance: Int? = null,
+    val isPointsBalanceLoading: Boolean = false,
 )
 
 enum class PromptDetailAuthState {
@@ -72,13 +78,15 @@ enum class PromptDetailAuthState {
 class PromptDetailV2ViewModel @Inject constructor(
     private val promptsRepository: V2PromptsRepository,
     private val engagementRepository: EngagementRepository,
-    userSessionManager: UserSessionManager,
+    private val rewardsRepository: RewardsRepository,
+    private val userSessionManager: UserSessionManager,
 ) : ViewModel() {
     private var similarOffset: Int = 0
     private val similarLimit: Int = 10
     private var hasMoreSimilar: Boolean = true
     private var similarPromptClickCount: Int = 0
     private val interstitialInterval: Int = 3
+    private var lastPointsSyncToken: String? = null
 
     private val _uiState = MutableStateFlow(PromptDetailV2UiState())
     val uiState: StateFlow<PromptDetailV2UiState> = _uiState.asStateFlow()
@@ -100,6 +108,28 @@ class PromptDetailV2ViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false,
         )
+
+    init {
+        viewModelScope.launch {
+            userSessionManager.authenticatedSession.collectLatest { session ->
+                if (session == null) {
+                    lastPointsSyncToken = null
+                    _uiState.update {
+                        it.copy(
+                            pointsBalance = null,
+                            isPointsBalanceLoading = false,
+                        )
+                    }
+                } else {
+                    val currentToken = session.token
+                    if (currentToken != lastPointsSyncToken) {
+                        lastPointsSyncToken = currentToken
+                        syncPointsBalance(forceRefresh = false, reportFailureToUser = false)
+                    }
+                }
+            }
+        }
+    }
 
     fun loadPrompt(promptId: String, forceRefresh: Boolean = false) {
         if (_uiState.value.isLoading && !forceRefresh) return
@@ -146,6 +176,9 @@ class PromptDetailV2ViewModel @Inject constructor(
                             isFavoriteLocal = localState?.isFavorited == true,
                         )
                     }
+                    if (prompt.supportsCreditsUnlock() && authState.value == PromptDetailAuthState.LoggedIn) {
+                        syncPointsBalance(forceRefresh = false, reportFailureToUser = false)
+                    }
                     loadSimilarPrompts(reset = true)
                 }
                 .onFailure { throwable ->
@@ -175,8 +208,86 @@ class PromptDetailV2ViewModel @Inject constructor(
             _uiState.update { it.copy(message = "Credits unlock is not available for this prompt.") }
             return
         }
-        launchUnlock("points") {
+        if (_uiState.value.isUnlockingWithPoints) return
+        if (authState.value != PromptDetailAuthState.LoggedIn) {
+            _uiState.update {
+                it.copy(
+                    requiresLogin = true,
+                    message = "Please login to unlock premium prompts.",
+                )
+            }
+            return
+        }
+
+        val unlockCost = resolveCreditUnlockCost(prompt)
+        _uiState.update { current ->
+            current.copy(
+                isUnlockingWithPoints = true,
+                message = null,
+                requiresLogin = false,
+            )
+        }
+
+        viewModelScope.launch {
+            val resolvedBalance = ensurePointsBalanceLoaded(forceRefresh = false)
+            if (resolvedBalance == null) {
+                _uiState.update { current ->
+                    current.copy(
+                        isUnlockingWithPoints = false,
+                        message = "Unable to verify your credits right now. Please try again.",
+                    )
+                }
+                return@launch
+            }
+
+            if (unlockCost > resolvedBalance) {
+                _uiState.update { current ->
+                    current.copy(
+                        isUnlockingWithPoints = false,
+                        message = buildInsufficientCreditsMessage(unlockCost, resolvedBalance),
+                    )
+                }
+                return@launch
+            }
+
             promptsRepository.unlockPromptWithPoints(promptId)
+                .onSuccess { result ->
+                    val serverCost = result.cost ?: unlockCost
+                    val latestBalance = result.pointsBalance
+                        ?: (resolvedBalance - serverCost).coerceAtLeast(0)
+
+                    _uiState.update { current ->
+                        current.copy(
+                            pointsBalance = latestBalance,
+                            message = when {
+                                result.duplicate -> "You already unlocked this prompt."
+                                result.unlocked -> "Prompt unlocked."
+                                else -> "Unlock completed."
+                            },
+                        )
+                    }
+
+                    loadPrompt(promptId, forceRefresh = true)
+                    syncPointsBalance(forceRefresh = true, reportFailureToUser = false)
+                }
+                .onFailure { throwable ->
+                    val requiresLogin = throwable is V2ApiException &&
+                        (throwable.code == 401 || throwable.code == 403)
+                    _uiState.update { current ->
+                        current.copy(
+                            requiresLogin = requiresLogin,
+                            message = mapPointsUnlockError(
+                                throwable = throwable,
+                                requiredCredits = unlockCost,
+                                currentBalance = resolvedBalance,
+                            ),
+                        )
+                    }
+                }
+
+            _uiState.update { current ->
+                current.copy(isUnlockingWithPoints = false)
+            }
         }
     }
 
@@ -293,6 +404,129 @@ class PromptDetailV2ViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun resolveCreditUnlockCost(prompt: V2PromptDto): Int {
+        val unlockOptions = prompt.toPromptAccessState().unlockOptions
+        return (unlockOptions.creditCost ?: prompt.premiumUnlockCostPoints).coerceAtLeast(0)
+    }
+
+    private suspend fun ensurePointsBalanceLoaded(forceRefresh: Boolean): Int? {
+        if (authState.value != PromptDetailAuthState.LoggedIn) {
+            return null
+        }
+
+        val currentBalance = _uiState.value.pointsBalance
+        if (!forceRefresh && currentBalance != null) {
+            return currentBalance
+        }
+
+        var fallbackBalance: Int? = currentBalance
+        if (!forceRefresh && fallbackBalance == null) {
+            rewardsRepository.getCachedHub()?.let { cached ->
+                fallbackBalance = cached.pointsBalance
+                _uiState.update { state ->
+                    state.copy(
+                        pointsBalance = cached.pointsBalance,
+                        isPointsBalanceLoading = false,
+                    )
+                }
+            }
+            if (fallbackBalance != null) {
+                return fallbackBalance
+            }
+        }
+
+        _uiState.update { state ->
+            state.copy(isPointsBalanceLoading = true)
+        }
+
+        val refreshedBalance = rewardsRepository.refreshHub()
+            .onSuccess { hub ->
+                _uiState.update { state ->
+                    state.copy(
+                        pointsBalance = hub.pointsBalance,
+                        isPointsBalanceLoading = false,
+                    )
+                }
+            }
+            .onFailure {
+                _uiState.update { state ->
+                    state.copy(isPointsBalanceLoading = false)
+                }
+            }
+            .getOrNull()
+            ?.pointsBalance
+
+        return refreshedBalance ?: fallbackBalance
+    }
+
+    private fun syncPointsBalance(forceRefresh: Boolean, reportFailureToUser: Boolean) {
+        viewModelScope.launch {
+            if (!forceRefresh) {
+                rewardsRepository.getCachedHub()?.let { cached ->
+                    _uiState.update { state ->
+                        state.copy(pointsBalance = cached.pointsBalance)
+                    }
+                }
+            }
+
+            _uiState.update { state ->
+                state.copy(isPointsBalanceLoading = forceRefresh || state.pointsBalance == null)
+            }
+
+            rewardsRepository.refreshHub()
+                .onSuccess { hub ->
+                    _uiState.update { state ->
+                        state.copy(
+                            pointsBalance = hub.pointsBalance,
+                            isPointsBalanceLoading = false,
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update { state ->
+                        state.copy(isPointsBalanceLoading = false)
+                    }
+                    if (reportFailureToUser) {
+                        _uiState.update { state ->
+                            state.copy(message = throwable.message ?: "Unable to refresh your credits right now.")
+                        }
+                    }
+                }
+        }
+    }
+
+    private fun buildInsufficientCreditsMessage(requiredCredits: Int, currentBalance: Int): String {
+        return "You need $requiredCredits credits, but your balance is only $currentBalance. Visit Rewards to earn more."
+    }
+
+    private fun mapPointsUnlockError(
+        throwable: Throwable,
+        requiredCredits: Int,
+        currentBalance: Int,
+    ): String {
+        val raw = throwable.message.orEmpty()
+        if (throwable is IOException) {
+            return "Network error while unlocking prompt. Please try again."
+        }
+        if (throwable is V2ApiException) {
+            return when {
+                throwable.code == 401 || throwable.code == 403 -> "Session expired. Please login again."
+                throwable.code == 404 || raw.contains("not eligible", ignoreCase = true) ->
+                    "This prompt cannot be unlocked with credits."
+                throwable.code == 402 || raw.contains("insufficient", ignoreCase = true) -> {
+                    if (raw.contains("you need", ignoreCase = true) && raw.contains("credits", ignoreCase = true)) {
+                        raw
+                    } else {
+                        buildInsufficientCreditsMessage(requiredCredits, currentBalance)
+                    }
+                }
+                throwable.code in 500..599 -> "Server error while unlocking. Please try again."
+                else -> raw.ifBlank { "Unable to unlock prompt right now." }
+            }
+        }
+        return raw.ifBlank { "Unable to unlock prompt right now." }
     }
 
     private fun launchUnlock(

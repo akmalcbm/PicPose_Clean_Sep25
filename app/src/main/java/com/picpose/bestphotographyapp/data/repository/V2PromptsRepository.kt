@@ -166,7 +166,20 @@ class V2PromptsRepository @Inject constructor(
 
     private fun extractMessage(raw: String): String {
         return runCatching {
-            JSONObject(raw).optString("message").takeIf { it.isNotBlank() }
+            val body = JSONObject(raw)
+            val message = body.optString("message").takeIf { it.isNotBlank() }
+            val required = body.optInt("required_points", Int.MIN_VALUE)
+            val current = body.optInt("current_points", Int.MIN_VALUE)
+
+            if (
+                required != Int.MIN_VALUE &&
+                current != Int.MIN_VALUE &&
+                message?.contains("insufficient", ignoreCase = true) == true
+            ) {
+                "You need $required credits, but your balance is only $current."
+            } else {
+                message
+            }
         }.getOrNull() ?: raw
     }
 

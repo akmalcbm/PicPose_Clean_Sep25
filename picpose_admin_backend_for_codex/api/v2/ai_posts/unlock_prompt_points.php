@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../lib/v2_auth.php';
-require_once __DIR__ . '/../lib/v2_ab.php';
 require_once __DIR__ . '/../lib/v2_progress.php';
 require_once __DIR__ . '/../lib/v2_personalization.php';
 require_once __DIR__ . '/../lib/v2_prompt_access.php';
@@ -75,44 +74,11 @@ if (!($flags['is_premium'] ?? false) || !($flags['is_credit_unlockable'] ?? fals
     json_err('Prompt not eligible for points unlock', 404);
 }
 
-$normalCost = (int)($flags['premium_unlock_cost_points'] ?? 0);
-if ($normalCost <= 0) {
-    $normalCost = 200;
-}
-$variant = get_user_variant($conn, $userId, 'premium_unlock_cost_multiplier');
-$multiplier = v2_ab_variant_numeric($conn, 'premium_unlock_cost_multiplier', $variant, 1.0);
-if ($multiplier <= 0) {
-    $multiplier = 1.0;
-}
-$cost = max(0, (int)round($normalCost * $multiplier));
+$costMeta = v2_prompt_apply_effective_credit_cost($conn, $postId, $flags, $userId);
+$cost = (int)($costMeta['cost'] ?? 0);
+$potdMode = strtoupper((string)($costMeta['potd_mode'] ?? 'NORMAL'));
 
-$potdMode = 'NORMAL';
-$potdDiscountCost = 0;
-$potdStmt = $conn->prepare("
-    SELECT mode, discount_cost_points
-    FROM daily_featured_prompts
-    WHERE day_date = CURDATE()
-      AND post_id = ?
-    LIMIT 1
-");
-if ($potdStmt) {
-    $potdStmt->bind_param('i', $postId);
-    $potdStmt->execute();
-    $potdRes = $potdStmt->get_result();
-    $potdRow = $potdRes ? $potdRes->fetch_assoc() : null;
-    $potdStmt->close();
-
-    if ($potdRow) {
-        $potdMode = strtoupper((string)($potdRow['mode'] ?? 'NORMAL'));
-        $potdDiscountCost = (int)($potdRow['discount_cost_points'] ?? 0);
-    }
-}
-
-if ($potdMode === 'DISCOUNT') {
-    $potdVariant = get_user_variant($conn, $userId, 'potd_discount_cost');
-    $potdCost = (int)round(v2_ab_variant_numeric($conn, 'potd_discount_cost', $potdVariant, (float)$potdDiscountCost));
-    $cost = max(0, $potdCost);
-} elseif ($potdMode === 'FREE' && !$unlockForever) {
+if ($potdMode === 'FREE' && !$unlockForever) {
     $balStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? LIMIT 1');
     if (!$balStmt) {
         json_err('Database query preparation failed', 500);
@@ -131,6 +97,7 @@ if ($potdMode === 'DISCOUNT') {
     ]);
 }
 
+$currentBalanceForError = null;
 $conn->begin_transaction();
 try {
     $walletStmt = $conn->prepare('SELECT points_balance FROM user_wallet WHERE user_id = ? FOR UPDATE');
@@ -173,6 +140,7 @@ try {
     }
 
     $currentBalance = (int)$walletRow['points_balance'];
+    $currentBalanceForError = $currentBalance;
 
     $unlockStmt = $conn->prepare("
         INSERT INTO user_prompt_unlocks (user_id, post_id, unlock_type, points_spent, ref_type, ref_id)
@@ -265,7 +233,14 @@ try {
     $conn->rollback();
 
     if ($e->getMessage() === 'Insufficient points') {
-        json_err('Insufficient points', 402);
+        http_response_code(402);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Insufficient points',
+            'required_points' => $cost,
+            'current_points' => $currentBalanceForError ?? 0,
+        ]);
+        exit();
     }
 
     error_log('unlock_prompt_points failed for user ' . $userId . ' post ' . $postId . ': ' . $e->getMessage());

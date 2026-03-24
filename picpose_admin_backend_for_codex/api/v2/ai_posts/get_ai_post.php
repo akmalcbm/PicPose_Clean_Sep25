@@ -65,6 +65,12 @@ $packLinksMap = v2_prompt_pack_links_for_posts($conn, [$promptId], $authUserId !
 $packLinks = $packLinksMap[$promptId] ?? [];
 
 $flags = v2_prompt_resolve_flags_from_row($row, !empty($packLinks));
+v2_prompt_apply_effective_credit_cost(
+    $conn,
+    $promptId,
+    $flags,
+    $authUserId !== null ? (int)$authUserId : null
+);
 $isUnlocked = v2_prompt_is_unlocked(
     $flags,
     isset($entitlementMap[$promptId]),
