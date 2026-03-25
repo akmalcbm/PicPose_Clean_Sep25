@@ -23,7 +23,9 @@ package com.picpose.bestphotographyapp.presentation.packs
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,10 +37,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -57,6 +61,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.ShimmerBox
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 
@@ -211,16 +217,28 @@ fun PackDetailsScreen(
                         )
                     }
 
-                    items(uiState.items, key = { it.id }) { prompt ->
-                        PackPromptRow(
-                            prompt = prompt,
-                            isPackOwned = ownsPack,
-                            onPromptClick = onPromptClick,
-                            onLockedClick = {
-                                viewModel.clearUnlockDialogFeedback()
-                                lockedPromptTitle = prompt.title
-                            },
-                        )
+                    if (uiState.isLoading && uiState.items.isEmpty()) {
+                        items(count = 4) { index ->
+                            PackPromptCard(
+                                title = "loading_$index",
+                                description = "",
+                                thumbnailUrl = null,
+                                state = PackPromptCardState.Loading,
+                                onClick = null,
+                            )
+                        }
+                    } else {
+                        items(uiState.items, key = { it.id }) { prompt ->
+                            PackPromptRow(
+                                prompt = prompt,
+                                isPackOwned = ownsPack,
+                                onPromptClick = onPromptClick,
+                                onLockedClick = {
+                                    viewModel.clearUnlockDialogFeedback()
+                                    lockedPromptTitle = prompt.title
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -351,6 +369,12 @@ private fun PackHeaderCard(
     }
 }
 
+private enum class PackPromptCardState {
+    Loading,
+    Locked,
+    Unlocked,
+}
+
 @Composable
 private fun PackPromptRow(
     prompt: V2PromptDto,
@@ -358,7 +382,7 @@ private fun PackPromptRow(
     onPromptClick: (String) -> Unit,
     onLockedClick: () -> Unit,
 ) {
-    val isLocked = !isPackOwned
+    val isLocked = prompt.isLocked || !isPackOwned
     val teaser = prompt.teaserText ?: prompt.shortPrompt.orEmpty()
     val subtitle = if (teaser.isNotBlank()) {
         teaser
@@ -367,106 +391,213 @@ private fun PackPromptRow(
     } else {
         stringResource(R.string.pack_row_unlocked_hint)
     }
-    Card(
+
+    PackPromptCard(
+        title = prompt.title,
+        description = subtitle,
+        thumbnailUrl = prompt.imageUrl,
+        state = if (isLocked) PackPromptCardState.Locked else PackPromptCardState.Unlocked,
         onClick = {
             if (isLocked) onLockedClick() else onPromptClick(prompt.id)
         },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isLocked) {
-                MaterialTheme.colorScheme.surfaceContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(18.dp),
-        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun PackPromptCard(
+    title: String,
+    description: String,
+    thumbnailUrl: String?,
+    state: PackPromptCardState,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isLoading = state == PackPromptCardState.Loading
+    val isLocked = state == PackPromptCardState.Locked
+    val containerColor = when (state) {
+        PackPromptCardState.Loading -> colorScheme.surfaceContainerLow
+        PackPromptCardState.Locked -> colorScheme.surfaceContainer
+        PackPromptCardState.Unlocked -> colorScheme.surfaceContainerLow
+    }
+    val borderColor = when (state) {
+        PackPromptCardState.Loading -> colorScheme.outlineVariant.copy(alpha = 0.55f)
+        PackPromptCardState.Locked -> colorScheme.outlineVariant
+        PackPromptCardState.Unlocked -> colorScheme.surfaceContainerHighest
+    }
+    val statusLabel = when (state) {
+        PackPromptCardState.Loading -> stringResource(R.string.loading)
+        PackPromptCardState.Locked -> stringResource(R.string.prompt_locked)
+        PackPromptCardState.Unlocked -> stringResource(R.string.prompt_unlocked)
+    }
+    val actionLabel = when (state) {
+        PackPromptCardState.Loading -> stringResource(R.string.loading)
+        PackPromptCardState.Locked -> stringResource(R.string.pack_unlock_pack_action)
+        PackPromptCardState.Unlocked -> stringResource(R.string.prompt_open)
+    }
+    val actionIcon = when (state) {
+        PackPromptCardState.Loading -> null
+        PackPromptCardState.Locked -> Icons.Default.Lock
+        PackPromptCardState.Unlocked -> Icons.AutoMirrored.Filled.ArrowForward
+    }
+
+    Card(
+        onClick = { onClick?.invoke() },
+        enabled = onClick != null && !isLoading,
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isLocked) 0.dp else 1.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(width = 112.dp, height = 90.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .width(92.dp)
+                    .aspectRatio(3f / 4f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(colorScheme.surfaceContainerHighest),
             ) {
-                if (!prompt.imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = prompt.imageUrl,
-                        contentDescription = prompt.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                when {
+                    isLoading -> {
+                        ShimmerBox(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(18.dp),
+                        )
+                    }
+
+                    !thumbnailUrl.isNullOrBlank() -> {
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    else -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            colorScheme.primaryContainer,
+                                            colorScheme.surfaceContainerHighest,
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                tint = colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
                     }
                 }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                )
-                            )
-                        )
-                )
-                if (isLocked) {
+
+                if (isLocked && !isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)),
-                    ) {
-                        PremiumLockBadge(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(8.dp)
-                        )
-                    }
+                            .background(colorScheme.surface.copy(alpha = 0.18f)),
+                    )
                 }
             }
+
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    prompt.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                StatusPill(
+                    label = statusLabel,
+                    state = state,
                 )
-                Text(
-                    text = subtitle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                FilledTonalButton(
-                    onClick = {
-                        if (isLocked) onLockedClick() else onPromptClick(prompt.id)
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text(
-                        if (isLocked) {
-                            stringResource(R.string.pack_unlock_pack_action)
-                        } else {
-                            stringResource(R.string.prompt_open)
-                        }
+
+                if (isLoading) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(22.dp),
+                        shape = RoundedCornerShape(10.dp),
                     )
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth(0.88f)
+                            .height(16.dp),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                } else {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                if (isLoading) {
+                    FilledTonalButton(
+                        onClick = {},
+                        enabled = false,
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(text = actionLabel)
+                    }
+                } else if (isLocked) {
+                    FilledTonalButton(
+                        onClick = { onClick?.invoke() },
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Icon(
+                            imageVector = actionIcon ?: Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(text = actionLabel)
+                    }
+                } else {
+                    Button(
+                        onClick = { onClick?.invoke() },
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Icon(
+                            imageVector = actionIcon ?: Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(text = actionLabel)
+                    }
                 }
             }
         }
@@ -474,32 +605,47 @@ private fun PackPromptRow(
 }
 
 @Composable
-private fun PremiumLockBadge(
-    modifier: Modifier = Modifier,
+private fun StatusPill(
+    label: String,
+    state: PackPromptCardState,
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.96f),
-        ),
+    val colorScheme = MaterialTheme.colorScheme
+    val (containerColor, contentColor, icon) = when (state) {
+        PackPromptCardState.Loading -> Triple(
+            colorScheme.surfaceContainerHighest,
+            colorScheme.onSurfaceVariant,
+            Icons.Default.WorkspacePremium,
+        )
+        PackPromptCardState.Locked -> Triple(
+            colorScheme.secondaryContainer,
+            colorScheme.onSecondaryContainer,
+            Icons.Default.Lock,
+        )
+        PackPromptCardState.Unlocked -> Triple(
+            colorScheme.primaryContainer,
+            colorScheme.onPrimaryContainer,
+            Icons.Default.LockOpen,
+        )
+    }
+
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
         shape = RoundedCornerShape(999.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Lock,
+                imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(14.dp),
             )
             Text(
-                text = stringResource(R.string.premium),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
             )
         }

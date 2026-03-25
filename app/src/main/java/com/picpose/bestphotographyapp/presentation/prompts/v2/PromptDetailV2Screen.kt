@@ -119,6 +119,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalConfiguration
@@ -1884,6 +1885,8 @@ private fun SimilarPromptCardVerticalV2(
     prompt: V2PromptDto,
     onClick: () -> Unit,
 ) {
+    val thumbnailWidth = 132.dp
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1896,112 +1899,171 @@ private fun SimilarPromptCardVerticalV2(
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
         ),
     ) {
-        Row(
+        SimilarPromptCardRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-        ) {
-            Box {
-                SubcomposeAsyncImage(
-                    model = prompt.imageUrl ?: prompt.imageUrl2,
-                    contentDescription = prompt.title,
+            thumbnailWidth = thumbnailWidth,
+            thumbnail = {
+                Box(
                     modifier = Modifier
-                        .width(132.dp)
-                        .height(132.dp),
-                    contentScale = ContentScale.Crop,
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 ) {
-                    when (painter.state) {
-                        is AsyncImagePainter.State.Loading -> {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                    SubcomposeAsyncImage(
+                        model = prompt.imageUrl ?: prompt.imageUrl2,
+                        contentDescription = prompt.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    ) {
+                        when (painter.state) {
+                            is AsyncImagePainter.State.Loading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                                }
                             }
-                        }
 
-                        is AsyncImagePainter.State.Error -> {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.BrokenImage,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(24.dp),
-                                )
+                            is AsyncImagePainter.State.Error -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.BrokenImage,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
                             }
-                        }
 
-                        else -> SubcomposeAsyncImageContent()
+                            else -> SubcomposeAsyncImageContent()
+                        }
+                    }
+
+                    if (prompt.isLocked) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp),
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.premium),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                     }
                 }
+            },
+            content = {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = prompt.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
 
-                if (prompt.isLocked) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp),
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    ) {
+                    if (!prompt.shortPrompt.isNullOrBlank()) {
                         Text(
-                            text = stringResource(R.string.premium),
+                            text = if (prompt.isLocked) prompt.teaserText.orEmpty() else prompt.shortPrompt.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = formatCompactNumber(prompt.views),
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Icon(
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            text = formatCompactNumber(prompt.likes),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
-            }
+            },
+        )
+    }
+}
 
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = prompt.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+@Composable
+private fun SimilarPromptCardRow(
+    thumbnailWidth: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+    thumbnail: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val minimumHeight = 132.dp
 
-                if (!prompt.shortPrompt.isNullOrBlank()) {
-                    Text(
-                        text = if (prompt.isLocked) prompt.teaserText.orEmpty() else prompt.shortPrompt.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+    Layout(
+        modifier = modifier,
+        content = {
+            Box { thumbnail() }
+            Box { content() }
+        },
+    ) { measurables, constraints ->
+        val thumbnailWidthPx = thumbnailWidth.roundToPx().coerceAtMost(constraints.maxWidth)
+        val minimumHeightPx = minimumHeight.roundToPx()
+        val contentWidth = (constraints.maxWidth - thumbnailWidthPx).coerceAtLeast(0)
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Visibility,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = formatCompactNumber(prompt.views),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                    Text(
-                        text = formatCompactNumber(prompt.likes),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
+        val contentPlaceable = measurables[1].measure(
+            constraints.copy(
+                minWidth = contentWidth,
+                maxWidth = contentWidth,
+                minHeight = 0,
+            ),
+        )
+
+        val layoutHeight = maxOf(minimumHeightPx, contentPlaceable.height)
+        val thumbnailPlaceable = measurables[0].measure(
+            constraints.copy(
+                minWidth = thumbnailWidthPx,
+                maxWidth = thumbnailWidthPx,
+                minHeight = layoutHeight,
+                maxHeight = layoutHeight,
+            ),
+        )
+
+        layout(width = constraints.maxWidth, height = layoutHeight) {
+            thumbnailPlaceable.placeRelative(0, 0)
+            val contentY = ((layoutHeight - contentPlaceable.height) / 2).coerceAtLeast(0)
+            contentPlaceable.placeRelative(thumbnailWidthPx, contentY)
         }
     }
 }

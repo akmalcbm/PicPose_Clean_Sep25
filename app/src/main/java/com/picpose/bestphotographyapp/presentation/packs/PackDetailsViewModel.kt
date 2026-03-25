@@ -136,7 +136,7 @@ class PackDetailsViewModel @Inject constructor(
                         current.copy(
                             isUnlocking = false,
                             pack = current.pack?.copy(ownsPack = true),
-                            items = current.items.map { it.copy(isLocked = false, teaserText = null) },
+                            items = current.items.map { it.toUnlockedItem() },
                             pointsBalance = response.pointsBalance ?: current.pointsBalance,
                             unlockDialogError = null,
                             unlockDialogInsufficientCredits = false,
@@ -218,6 +218,28 @@ class PackDetailsViewModel @Inject constructor(
                 unlockDialogInsufficientCredits = source == PackUnlockSource.LockedPromptSheet,
             )
         }
+    }
+
+    private fun V2PromptDto.toUnlockedItem(): V2PromptDto {
+        val safeTags = (tags as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+        val safeUnlockMethods = (availableUnlockMethods as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+        val safePackIds = (premiumPackIds as? List<*>)?.mapNotNull { value ->
+            when (value) {
+                is Number -> value.toInt()
+                is String -> value.toIntOrNull()
+                else -> null
+            }
+        } ?: emptyList()
+
+        return runCatching {
+            copy(
+                isLocked = false,
+                teaserText = null,
+                tags = safeTags,
+                availableUnlockMethods = safeUnlockMethods,
+                premiumPackIds = safePackIds,
+            )
+        }.getOrElse { this }
     }
 
     private fun Throwable.isInsufficientCreditsFailure(): Boolean {
