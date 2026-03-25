@@ -25,6 +25,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
@@ -119,9 +120,17 @@ class SettingsViewModel @Inject constructor(
     // UPDATE LANGUAGE
     // ----------------------------
     fun setLanguage(languageCode: String) {
+        val normalized = languageCode.ifBlank { "system" }
         viewModelScope.launch {
-            settingsManager.setLanguage(languageCode)
-            AppLocaleManager.applyLanguage(languageCode)
+            if (language.value != normalized) {
+                settingsManager.setLanguage(normalized)
+            }
+
+            val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            val targetTags = AppLocaleManager.resolveLanguageTags(normalized)
+            if (currentTags != targetTags) {
+                AppLocaleManager.applyLanguage(normalized)
+            }
         }
     }
 

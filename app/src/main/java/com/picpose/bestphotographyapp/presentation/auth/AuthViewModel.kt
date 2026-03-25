@@ -92,7 +92,7 @@ class AuthViewModel @Inject constructor(
 ) : ViewModel() {
 
     // SDK-specific clients are kept here so Compose screens stay declarative.
-    private var googleClient: GoogleAuthUiClient? = null
+    private val googleClient: GoogleAuthUiClient by lazy { GoogleAuthUiClient(appContext) }
     private val facebookClient = FacebookAuthClient()
     private val twitterClient = TwitterAuthClient()
     private val authActionMutex = Mutex()
@@ -126,17 +126,7 @@ class AuthViewModel @Inject constructor(
      * the activity or Compose layer starts credential collection, then the
      * resulting token is exchanged with the backend via the repository.
      */
-    fun initGoogleClient(context: Context) {
-        googleClient = GoogleAuthUiClient(context)
-        debugLog("google_client_initialized")
-    }
-
-    suspend fun startGoogleSignIn(): Result<GetCredentialResponse?> {
-        val google = googleClient
-        if (google == null) {
-            debugLog("google_sign_in_not_initialized")
-            return Result.failure(IllegalStateException(appContext.getString(R.string.google_login_failed)))
-        }
+    suspend fun startGoogleSignIn(activity: Activity): Result<GetCredentialResponse?> {
         if (_authState.value is AuthState.Loading) {
             debugLog("google_sign_in_ignored_loading")
             return Result.failure(IllegalStateException(appContext.getString(R.string.auth_action_in_progress)))
@@ -144,7 +134,7 @@ class AuthViewModel @Inject constructor(
 
         return try {
             debugLog("google_sign_in_launching")
-            val response = google.signIn()
+            val response = googleClient.signIn(activity)
             debugLog("google_sign_in_response_received hasResponse=${response != null}")
             Result.success(response)
         } catch (e: NoCredentialException) {
@@ -176,7 +166,7 @@ class AuthViewModel @Inject constructor(
         }
 
         val googleData = try {
-            googleClient?.parseGoogleCredential(response)
+            googleClient.parseGoogleCredential(response)
         } catch (e: Exception) {
             Log.e("AuthViewModel", buildGoogleSignInErrorLog("finishGoogleSignIn.parseCredential", e), e)
             null

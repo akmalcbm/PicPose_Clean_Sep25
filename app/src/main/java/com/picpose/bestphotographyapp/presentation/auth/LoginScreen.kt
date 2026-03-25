@@ -21,6 +21,9 @@
 
 package com.picpose.bestphotographyapp.presentation.auth
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
@@ -34,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -77,6 +81,7 @@ fun LoginScreen(
     val authState by authViewModel.authState.collectAsState()
     val hasAcceptedPrivacyTerms by authViewModel.hasAcceptedPrivacyTerms.collectAsState()
     var consentChecked by remember(hasAcceptedPrivacyTerms) { mutableStateOf(hasAcceptedPrivacyTerms) }
+    var googleSignInInFlight by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -84,7 +89,6 @@ fun LoginScreen(
     // Reset skip state
     LaunchedEffect(Unit) {
         authViewModel.resetSkip()
-        authViewModel.initGoogleClient(context)
     }
 
     // Auto navigate after success
@@ -379,10 +383,10 @@ fun LoginScreen(
                                 if (BuildConfig.DEBUG) {
                                     Log.d(
                                         "AuthFlow",
-                                        "google_click agreeChecked=$consentChecked hasAccepted=$hasAcceptedPrivacyTerms loading=${authState is AuthState.Loading}"
+                                        "google_click agreeChecked=$consentChecked hasAccepted=$hasAcceptedPrivacyTerms loading=${authState is AuthState.Loading} inFlight=$googleSignInInFlight"
                                     )
                                 }
-                                if (authState is AuthState.Loading) return@launch
+                                if (authState is AuthState.Loading || googleSignInInFlight) return@launch
                                 if (!hasAcceptedPrivacyTerms && !consentChecked) {
                                     snackbarHostState.showSnackbar(
                                         message = context.getString(R.string.please_accept_terms_to_continue)
@@ -392,9 +396,19 @@ fun LoginScreen(
                                 if (!hasAcceptedPrivacyTerms) {
                                     authViewModel.setPrivacyTermsAccepted(true)
                                 }
+                                val activity = context.findActivity()
+                                if (activity == null || activity.isFinishing || activity.isDestroyed) {
+                                    googleSignInInFlight = false
+                                    snackbarHostState.showSnackbar(
+                                        message = context.getString(R.string.google_login_failed)
+                                    )
+                                    return@launch
+                                }
+                                googleSignInInFlight = true
                                 try {
-                                    val startResult = authViewModel.startGoogleSignIn()
+                                    val startResult = authViewModel.startGoogleSignIn(activity)
                                     val response = startResult.getOrElse { error ->
+                                        googleSignInInFlight = false
                                         snackbarHostState.showSnackbar(
                                             message = error.localizedMessage
                                                 ?: context.getString(R.string.google_login_failed)
@@ -402,11 +416,13 @@ fun LoginScreen(
                                         return@launch
                                     }
                                     authViewModel.finishGoogleSignIn(response) { result ->
+                                        googleSignInInFlight = false
                                         result.exceptionOrNull()?.localizedMessage?.let { message ->
                                             scope.launch { snackbarHostState.showSnackbar(message) }
                                         }
                                     }
                                 } catch (e: Exception) {
+                                    googleSignInInFlight = false
                                     if (BuildConfig.DEBUG) {
                                         Log.e("AuthFlow", "google_click_exception", e)
                                     }
@@ -424,7 +440,7 @@ fun LoginScreen(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 shape = MaterialTheme.shapes.medium
                             ),
-                        enabled = authState !is AuthState.Loading
+                        enabled = authState !is AuthState.Loading && !googleSignInInFlight
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_google),
@@ -483,5 +499,13 @@ fun LoginScreen(
 
             Spacer(Modifier.height(40.dp))
         }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? {
+    return when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
     }
 }
