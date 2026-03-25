@@ -94,7 +94,6 @@ import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.presentation.explore.*
-import com.picpose.bestphotographyapp.core.utils.ConnectivityObserver
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 
 /** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
@@ -159,9 +158,6 @@ fun ExploreScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-
-    val connectivityObserver = remember { ConnectivityObserver(context) }
-    val networkStatus by connectivityObserver.observe().collectAsState(initial = ConnectivityObserver.Status.Available)
 
     // 🔁 Native Ad pool (preload multiple)
     var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
@@ -257,146 +253,166 @@ fun ExploreScreen(
             }
         }
 
-        // No internet
-        if (networkStatus != ConnectivityObserver.Status.Available && uiState.content.isEmpty() && !uiState.isLoading) {
-            NoInternetSection(onRetry = { exploreViewModel.refresh() })
-        } else {
-            when (uiState.loadState) {
-                ExploreLoadState.INITIAL -> {
-                    // full screen shimmer
-                    ShimmerLoadingExploreScreen()
+        when (val screenState = uiState.screenState) {
+            ExploreScreenState.InitialLoading -> {
+                ShimmerLoadingExploreScreen(
+                    showSlowNetworkHint = false,
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+            is ExploreScreenState.Loading -> {
+                ShimmerLoadingExploreScreen(
+                    showSlowNetworkHint = screenState.showSlowNetworkHint,
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+            ExploreScreenState.Empty -> {
+                EmptyStateSection(
+                    searchQuery = uiState.searchQuery,
+                    selectedCategory = uiState.selectedCategory,
+                    onClearFilters = {
+                        exploreViewModel.updateSearchQuery("")
+                        exploreViewModel.updateCategory(allCategoryLabel)
+                        exploreViewModel.updateContentFilter(ContentFilter.ALL)
+                        exploreViewModel.refresh(resetFilters = true)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(innerPadding)
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
+            }
+            is ExploreScreenState.Offline -> {
+                ErrorStateSection(
+                    title = screenState.error.title,
+                    message = screenState.error.description,
+                    onRetry = { exploreViewModel.refresh(resetFilters = false) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(innerPadding)
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
+            }
+            is ExploreScreenState.Error -> {
+                ErrorStateSection(
+                    title = screenState.error.title,
+                    message = screenState.error.description,
+                    onRetry = { exploreViewModel.refresh(resetFilters = false) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(innerPadding)
+                        .padding(top = 40.dp, bottom = 60.dp)
+                )
+            }
+            is ExploreScreenState.Content -> {
+                val sortedContent = remember(uiState.content) {
+                    uiState.content.sortedBy {
+                        when (it) {
+                            is ExploreContent.AIPromptContent -> 0
+                            is ExploreContent.GuidePostContent -> 1
+                            else -> 2
+                        }
+                    }
                 }
-                ExploreLoadState.LOADING -> {
-                    // fallback loading (should be rarely used because INITIAL handles loading with empty content)
-                    LoadingSection()
-                }
-                ExploreLoadState.EMPTY -> {
-                    EmptyStateSection(
-                        searchQuery = uiState.searchQuery,
-                        selectedCategory = uiState.selectedCategory,
-                        onClearFilters = {
-                            exploreViewModel.updateSearchQuery("")
-                            exploreViewModel.updateCategory(allCategoryLabel)
-                            exploreViewModel.updateContentFilter(ContentFilter.ALL)
-                            exploreViewModel.refresh(resetFilters = true)
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 60.dp)
-                    )
-                }
-                ExploreLoadState.ERROR -> {
-                    ErrorStateSection(
-                        message = uiState.error ?: stringResource(R.string.error),
-                        onRetry = { exploreViewModel.refresh(resetFilters = false) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 40.dp, bottom = 60.dp)
-                    )
-                }
-                ExploreLoadState.SUCCESS -> {
-                    val sortedContent = remember(uiState.content) {
-                        uiState.content.sortedBy {
-                            when (it) {
-                                is ExploreContent.AIPromptContent -> 0
-                                is ExploreContent.GuidePostContent -> 1
-                                else -> 2
+
+                LazyColumn(
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(
+                        top = 8.dp,
+                        start = 12.dp,
+                        end = 12.dp,
+                        bottom = 24.dp
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(innerPadding)
+                ) {
+                    if (uiState.content.isNotEmpty() && showFilters) {
+                        stickyHeader {
+                            FrostedFiltersStickyHeader(uiState = uiState, viewModel = exploreViewModel)
+                        }
+                    }
+
+                    if (screenState.showSlowNetworkHint && uiState.isLoading && uiState.content.isNotEmpty()) {
+                        item {
+                            LoadingHintCard(
+                                text = stringResource(R.string.explore_slow_network_hint),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    itemsIndexed(
+                        items = sortedContent,
+                        key = { index, content ->
+                            when (content) {
+                                is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
+                                is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
+                                else -> "CONTENT_${content.hashCode()}_$index"
+                            }
+                        }
+                    ) { index, content ->
+
+                        val gap = dynamicGap(index)
+                        val adToShow = if (nativeAds.isNotEmpty()) {
+                            nativeAds[(index / gap) % nativeAds.size]
+                        } else null
+
+                        val shouldShowAdHere =
+                            adToShow != null &&
+                                index >= gap &&
+                                (index % gap == gap - 1)
+
+                        if (shouldShowAdHere) {
+                            LargeNativeAdCard(
+                                nativeAd = adToShow,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        when (content) {
+                            is ExploreContent.AIPromptContent -> {
+                                val local = localStates[content.prompt.id]
+
+                                AIPromptCardWithEffects(
+                                    prompt = content.prompt,
+                                    localEngagement = local,
+                                    onClick = {
+                                        content.prompt.id?.let {
+                                            onNavigateToPromptDetail(content.prompt)
+                                        }
+                                    },
+                                    onCopy = {
+                                        val text = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
+                                        copyToClipboard(context, clipboard, text, coroutineScope)
+                                    },
+                                    showFavoriteIcon = true,
+                                    onLikeClick = { updatedPrompt ->
+                                        exploreViewModel.togglePromptLike(updatedPrompt)
+                                    },
+                                    onBookmarkClick = { updatedPrompt ->
+                                        exploreViewModel.togglePromptBookmark(updatedPrompt)
+                                    },
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+
+                            is ExploreContent.GuidePostContent -> {
+                                GuidePostCard(
+                                    guidePost = content.guidePost,
+                                    onClick = { onNavigateToGuidePostDetail(content.guidePost) },
+                                    onFavoriteClick = { exploreViewModel.toggleGuidePostFavorite(it) },
+                                    modifier = Modifier.animateItem()
+                                )
                             }
                         }
                     }
 
-                    LazyColumn(
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(
-                            top = 8.dp,
-                            start = 12.dp,
-                            end = 12.dp,
-                            bottom = 24.dp
-                        ),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(innerPadding)
-                    ) {
-                        if (uiState.content.isNotEmpty() && showFilters) {
-                            stickyHeader {
-                                FrostedFiltersStickyHeader(uiState = uiState, viewModel = exploreViewModel)
-                            }
-                        }
-
-                        itemsIndexed(
-                            items = sortedContent,
-                            key = { index, content ->
-                                when (content) {
-                                    is ExploreContent.AIPromptContent -> "AIPROMPT_${content.prompt.id}_$index"
-                                    is ExploreContent.GuidePostContent -> "GUIDEPOST_${content.guidePost.id}_$index"
-                                    else -> "CONTENT_${content.hashCode()}_$index"
-                                }
-                            }
-                        ) { index, content ->
-
-                            val gap = dynamicGap(index)
-                            val adToShow = if (nativeAds.isNotEmpty()) {
-                                nativeAds[(index / gap) % nativeAds.size]
-                            } else null
-
-                            val shouldShowAdHere =
-                                adToShow != null &&
-                                        index >= gap &&
-                                        (index % gap == gap - 1)
-
-                            if (shouldShowAdHere) {
-                                LargeNativeAdCard(
-                                    nativeAd = adToShow,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(Modifier.height(16.dp))
-                            }
-
-                            when (content) {
-                                is ExploreContent.AIPromptContent -> {
-
-                                    // ✅ ADD THIS LINE
-                                    val local = localStates[content.prompt.id]
-
-                                    AIPromptCardWithEffects(
-                                        prompt = content.prompt,
-                                        localEngagement = local, // ✅ NOW CORRECT
-                                        onClick = {
-                                            content.prompt.id?.let { id ->
-                                                //viewModel.onPromptViewed(id)   // ✅ VIEW INCREMENT
-                                                onNavigateToPromptDetail(content.prompt)
-                                            }
-                                        },
-                                        onCopy = {
-                                            val text = content.prompt.shortPrompt ?: content.prompt.fullPrompt ?: ""
-                                            copyToClipboard(context, clipboard, text, coroutineScope)
-                                        },
-                                        showFavoriteIcon = true,
-                                        onLikeClick = { updatedPrompt ->
-                                            exploreViewModel.togglePromptLike(updatedPrompt)
-                                        },
-                                        onBookmarkClick = { updatedPrompt ->
-                                            exploreViewModel.togglePromptBookmark(updatedPrompt)
-                                        },
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                is ExploreContent.GuidePostContent -> {
-                                    GuidePostCard(
-                                        guidePost = content.guidePost,
-                                        onClick = { onNavigateToGuidePostDetail(content.guidePost) },
-                                        onFavoriteClick = { exploreViewModel.toggleGuidePostFavorite(it) },
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-                            }
-                        }
-
-                        // inline shimmers when loading more
-                        if (uiState.isLoading && uiState.content.isNotEmpty()) {
-                            item { RepeatInlineShimmers() }
-                        }
+                    if (uiState.isLoading && uiState.content.isNotEmpty()) {
+                        item { RepeatInlineShimmers() }
                     }
                 }
             }
@@ -421,7 +437,10 @@ fun NoInternetSection(onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
+private fun ShimmerLoadingExploreScreen(
+    showSlowNetworkHint: Boolean,
+    modifier: Modifier = Modifier
+) {
     val infiniteTransition = rememberInfiniteTransition()
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -432,8 +451,17 @@ private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 8.dp, start = 12.dp, end = 12.dp, bottom = 24.dp),
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
+        if (showSlowNetworkHint) {
+            item {
+                LoadingHintCard(
+                    text = stringResource(R.string.explore_slow_network_hint),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
         items(4) {
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp)
@@ -453,6 +481,27 @@ private fun ShimmerLoadingExploreScreen(innerPadding: PaddingValues? = null) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingHintCard(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        )
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        )
     }
 }
 
@@ -662,6 +711,7 @@ private fun LoadingSection() {
 
 @Composable
 private fun ErrorStateSection(
+    title: String,
     message: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
@@ -690,12 +740,12 @@ private fun ErrorStateSection(
                     tint = MaterialTheme.colorScheme.error
                 )
                 Text(
-                    text = stringResource(R.string.error),
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = stringResource(R.string.no_internet_connection),
+                    text = message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

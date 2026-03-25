@@ -124,15 +124,15 @@ fun RewardsScreen(
     if (showApplyCodeDialog) {
         AlertDialog(
             onDismissRequest = { showApplyCodeDialog = false },
-            title = { Text("Apply referral code") },
+            title = { Text(stringResource(R.string.referral_apply_code)) },
             text = {
                 OutlinedTextField(
                     value = applyCodeValue,
                     onValueChange = { applyCodeValue = it.uppercase() },
-                    label = { Text("Referral code") },
+                    label = { Text(stringResource(R.string.referral_code_label)) },
                     singleLine = true,
                     supportingText = {
-                        Text("Rewards unlock after qualifying action (e.g., first premium unlock or first generation).")
+                        Text(stringResource(R.string.referral_qualify_helper))
                     },
                 )
             },
@@ -144,12 +144,12 @@ fun RewardsScreen(
                         applyCodeValue = ""
                     }
                 ) {
-                    Text("Apply")
+                    Text(stringResource(R.string.apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showApplyCodeDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )
@@ -192,11 +192,11 @@ fun RewardsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Login to earn credits and unlock premium prompts.", fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.rewards_login_prompt), fontWeight = FontWeight.SemiBold)
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(onClick = onRequireLogin, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Login")
+                                    Text(stringResource(R.string.login))
                                 }
                             }
                         }
@@ -231,7 +231,7 @@ fun RewardsScreen(
                             if (!isLoggedIn) {
                                 onRequireLogin()
                             } else if (hostActivity == null) {
-                                viewModel.setStatusMessage("Rewarded ads require an activity context.")
+                                viewModel.setStatusMessage(context.getString(R.string.rewards_ad_requires_activity))
                             } else {
                                 rewardedAdManager.showRewardedAd(
                                     activity = hostActivity,
@@ -267,17 +267,24 @@ fun RewardsScreen(
                         pendingCount = uiState.referralPendingCount,
                         onShare = { code ->
                             val shareMessage = buildString {
-                                append("Install PicPose: AI Prompts & Posing Guide\n")
+                                append(context.getString(R.string.referral_share_invite_header))
+                                append("\n")
                                 append(BuildConfig.REFERRAL_PLAY_URL)
-                                append("\nUse my referral code: ")
-                                append(code)
-                                append("\nAfter installing, open Rewards -> Apply Code.")
+                                append("\n")
+                                append(context.getString(R.string.referral_share_use_code, code))
+                                append("\n")
+                                append(context.getString(R.string.referral_share_apply_hint))
                             }
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareMessage)
                             }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share referral code"))
+                            context.startActivity(
+                                Intent.createChooser(
+                                    shareIntent,
+                                    context.getString(R.string.referral_share_chooser_title),
+                                )
+                            )
                         },
                         onApply = {
                             if (isLoggedIn) showApplyCodeDialog = true else onRequireLogin()
@@ -318,9 +325,9 @@ private fun BalanceCard(
 ) {
     Card {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text("Wallet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.rewards_wallet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("$pointsBalance credits", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.rewards_credits_amount, pointsBalance), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 tokenBalances.forEach { (type, balance) ->
@@ -344,14 +351,14 @@ private fun StreakCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.EmojiEvents, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Daily streak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.rewards_streak_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Current streak: $streakCount")
+            Text(stringResource(R.string.rewards_streak_active, streakCount))
             Spacer(modifier = Modifier.height(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 rewardsSchedule.forEachIndexed { index, reward ->
-                    AssistChip(onClick = {}, label = { Text("Day ${index + 1}: $reward") })
+                    AssistChip(onClick = {}, label = { Text("${stringResource(R.string.rewards_streak_day_label, index + 1)}: $reward") })
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -360,7 +367,7 @@ private fun StreakCard(
                 enabled = isLoggedIn && !todayClaimed,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (todayClaimed) "Claimed today" else "Claim today's reward")
+                Text(if (todayClaimed) stringResource(R.string.rewards_claimed_for_today) else stringResource(R.string.rewards_claim_short))
             }
         }
     }
@@ -377,10 +384,10 @@ private fun EarnCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.VideoLibrary, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Earn points", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.pack_earn_credits_action), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Watch a rewarded ad to earn server-verified credits.")
+            Text(stringResource(R.string.rewards_earn_card_subtitle))
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onWatchAd, modifier = Modifier.fillMaxWidth(), enabled = isLoggedIn) {
                 Text(
@@ -406,10 +413,10 @@ private fun PromptOfDayCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Star, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Prompt of the Day", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.rewards_prompt_of_day_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text(prompt?.title ?: "Today's featured prompt is loading.")
+            Text(prompt?.title ?: stringResource(R.string.rewards_fetching_featured_prompt))
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = prompt?.teaserText ?: prompt?.shortPrompt.orEmpty(),
@@ -420,7 +427,7 @@ private fun PromptOfDayCard(
             Spacer(modifier = Modifier.height(10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 mode?.let { AssistChip(onClick = {}, label = { Text(it) }) }
-                if (cost > 0) AssistChip(onClick = {}, label = { Text("$cost credits") })
+                if (cost > 0) AssistChip(onClick = {}, label = { Text(stringResource(R.string.rewards_cost_credits, cost)) })
             }
             Spacer(modifier = Modifier.height(12.dp))
             Button(
@@ -428,7 +435,7 @@ private fun PromptOfDayCard(
                 enabled = prompt != null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Open prompt")
+                Text(stringResource(R.string.prompt_open))
             }
         }
     }
@@ -448,10 +455,10 @@ private fun ReferralCard(
 ) {
     val normalizedStatus = status?.uppercase()
     val statusText = when (normalizedStatus) {
-        "PENDING" -> "Reward will unlock after your first premium unlock"
-        "QUALIFIED" -> "Referral qualified. Claim your reward now."
-        "REWARDED" -> "Reward credited to your wallet"
-        else -> if (isLoggedIn) "Apply a referral code to earn bonus credits after your first premium unlock." else "Login to generate and claim referral rewards."
+        "PENDING" -> stringResource(R.string.referral_complete_unlock_to_qualify)
+        "QUALIFIED" -> stringResource(R.string.referral_claim_reward)
+        "REWARDED" -> stringResource(R.string.referral_reward_claimed)
+        else -> if (isLoggedIn) stringResource(R.string.referral_apply_code_first) else stringResource(R.string.referral_login_to_claim_rewards)
     }
 
     Card {
@@ -459,23 +466,29 @@ private fun ReferralCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Share, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Referrals", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.referral_card_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text(if (isLoggedIn) "My referral code: ${code ?: "Loading..."}" else "Login to generate and claim referral rewards.")
+            Text(
+                if (isLoggedIn) {
+                    "${stringResource(R.string.referral_code_label)}: ${code ?: stringResource(R.string.referral_card_code_loading)}"
+                } else {
+                    stringResource(R.string.referral_login_to_claim_rewards)
+                }
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(statusText, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                "Rewards unlock after qualifying action (e.g., first premium unlock or first generation).",
+                stringResource(R.string.referral_qualify_helper),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text("Referred: $referredCount") })
-                AssistChip(onClick = {}, label = { Text("Pending: $pendingCount") })
-                AssistChip(onClick = {}, label = { Text("Rewarded: $rewardedCount") })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.referral_card_referred_count, referredCount)) })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.referral_card_pending_count, pendingCount)) })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.referral_card_rewarded_count, rewardedCount)) })
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -484,10 +497,10 @@ private fun ReferralCard(
                     enabled = isLoggedIn && code != null,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Share")
+                    Text(stringResource(R.string.share))
                 }
                 Button(onClick = onApply, modifier = Modifier.weight(1f)) {
-                    Text("Apply code")
+                    Text(stringResource(R.string.referral_apply_code))
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
@@ -498,9 +511,9 @@ private fun ReferralCard(
             ) {
                 Text(
                     when (normalizedStatus) {
-                        "REWARDED" -> "Reward claimed"
-                        "QUALIFIED" -> "Claim reward"
-                        else -> "Claim after qualifying"
+                        "REWARDED" -> stringResource(R.string.referral_reward_claimed)
+                        "QUALIFIED" -> stringResource(R.string.referral_claim_reward)
+                        else -> stringResource(R.string.referral_complete_unlock_to_qualify)
                     }
                 )
             }
@@ -520,17 +533,17 @@ private fun PacksCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CardGiftcard, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Packs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.packs_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text("Active packs: ${packs.size} • Owned: $ownedCount")
+            Text(stringResource(R.string.packs_owned_active_summary, ownedCount, packs.size))
             Spacer(modifier = Modifier.height(8.dp))
             packs.take(3).forEach { pack ->
-                Text("• ${pack.name} (${pack.pricePoints} credits)")
+                Text("• ${pack.name} (${stringResource(R.string.rewards_cost_credits, pack.pricePoints)})")
             }
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onOpenPacks, modifier = Modifier.fillMaxWidth(), enabled = isLoggedIn) {
-                Text("Browse packs")
+                Text(stringResource(R.string.packs_browse_all))
             }
         }
     }
@@ -550,11 +563,11 @@ private fun ProgressCard(
     }
     Card {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text("Progress", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.rewards_progress_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Level $level")
+            Text(stringResource(R.string.rewards_level_label, level))
             Spacer(modifier = Modifier.height(4.dp))
-            Text("$xp / $nextLevelXp XP")
+            Text(stringResource(R.string.rewards_xp_progress, xp, nextLevelXp))
             Spacer(modifier = Modifier.height(10.dp))
             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
         }

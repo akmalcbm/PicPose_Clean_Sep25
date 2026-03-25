@@ -16,6 +16,8 @@
         <item>🪄 用正确的提示词让画面更出色</item>
         <item>📖 一条提示词分享一个 AI 创意</item>
     </string-array>
+
+
     <string-array name="profile_fallback_bios">
         <item>热爱摄影，专注于创意拍摄。</item>
         <item>每天探索 AI 提示词与相机技巧。</item>
@@ -23,6 +25,8 @@
         <item>融合创意与视觉表达。</item>
         <item>持续学习，打造更出色的画面。</item>
     </string-array>
+
+
     <string-array name="photography_tips_fallback">
         <item>在提示词中使用更具体的描述词，AI 效果更好。</item>
         <item>黄金时刻提供最柔和、最上镜的自然光。</item>
@@ -37,4 +41,5 @@
         <item>试试 AI 提示词：街拍风格，黑白，城市环境。</item>
         <item>试试 AI 提示词：时尚摄影，戏剧光，棚拍布光。</item>
     </string-array>
+
 </resources>

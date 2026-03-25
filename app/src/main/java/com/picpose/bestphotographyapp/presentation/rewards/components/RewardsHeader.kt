@@ -44,8 +44,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 
 @Composable
 fun RewardsHeader(
@@ -88,16 +90,16 @@ fun RewardsHeader(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
-                        Text("Progress", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.rewards_progress_title), style = MaterialTheme.typography.labelLarge)
                         Text(
-                            "Level $level",
+                            stringResource(R.string.rewards_level_label, level),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                         )
                     }
                     AssistChip(
                         onClick = {},
-                        label = { Text("$displayedPoints credits") },
+                        label = { Text(stringResource(R.string.rewards_credits_amount, displayedPoints)) },
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
@@ -110,7 +112,7 @@ fun RewardsHeader(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "$xp / $nextLevelXp XP",
+                    stringResource(R.string.rewards_xp_progress, xp, nextLevelXp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -119,7 +121,7 @@ fun RewardsHeader(
                         Column {
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(onClick = onLoginClick, modifier = Modifier.fillMaxWidth()) {
-                                Text("Login to claim rewards")
+                                Text(stringResource(R.string.rewards_login_to_claim_short))
                             }
                         }
                     }

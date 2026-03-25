@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
+import com.picpose.bestphotographyapp.core.network.NetworkMonitor
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.local.database.entity.EngagementEntity
 import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
@@ -39,12 +40,21 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.EOFException
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 private const val TAG = "ExploreViewModel"
+private const val SLOW_LOADING_HINT_DELAY_MS = 2_500L
 
 // Unified content
 sealed class ExploreContent {
@@ -74,6 +84,32 @@ enum class ContentFilter(@StringRes val labelRes: Int) {
     GUIDE_POSTS(R.string.guide_posts)
 }
 
+enum class ExploreErrorType {
+    OFFLINE,
+    TIMEOUT,
+    SERVER,
+    PARSING,
+    UNKNOWN
+}
+
+data class ExploreUiError(
+    val type: ExploreErrorType,
+    val title: String,
+    val description: String
+)
+
+sealed interface ExploreScreenState {
+    data object InitialLoading : ExploreScreenState
+    data class Loading(val showSlowNetworkHint: Boolean = false) : ExploreScreenState
+    data class Content(
+        val isAppending: Boolean = false,
+        val showSlowNetworkHint: Boolean = false
+    ) : ExploreScreenState
+    data object Empty : ExploreScreenState
+    data class Error(val error: ExploreUiError) : ExploreScreenState
+    data class Offline(val error: ExploreUiError) : ExploreScreenState
+}
+
 data class ExploreUiState(
     val hasLoadedOnce: Boolean = false,
     val isLoading: Boolean = true,
@@ -87,28 +123,11 @@ data class ExploreUiState(
     val selectedSortOption: SortOption = SortOption.NEWEST,
     val searchQuery: String = "",
     val error: String? = null,
+    val currentError: ExploreUiError? = null,
     val hasMore: Boolean = true,
-    val currentPage: Int = 1
-) {
-    val loadState: ExploreLoadState
-        get() = when {
-            // Initial open or first request in progress
-            isLoading && !hasLoadedOnce && content.isEmpty() -> ExploreLoadState.INITIAL
-
-            // Loading while there is existing content -> show list + inline shimmer
-            isLoading && content.isNotEmpty() -> ExploreLoadState.SUCCESS
-
-            // Error with no data
-            !isLoading && error != null && content.isEmpty() -> ExploreLoadState.ERROR
-
-            // Empty only after first request completed successfully
-            !isLoading && hasLoadedOnce && error == null && content.isEmpty() -> ExploreLoadState.EMPTY
-
-            else -> ExploreLoadState.SUCCESS
-        }
-}
-
-enum class ExploreLoadState { INITIAL, LOADING, SUCCESS, EMPTY, ERROR }
+    val currentPage: Int = 1,
+    val screenState: ExploreScreenState = ExploreScreenState.InitialLoading
+)
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -117,6 +136,7 @@ class ExploreViewModel @Inject constructor(
     private val engagementRepository: EngagementRepository,
     private val analyticsLogger: AnalyticsLogger,
     private val crashReporter: CrashReporter,
+    private val networkMonitor: NetworkMonitor,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExploreUiState())
@@ -126,7 +146,13 @@ class ExploreViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private var lastTrackedSearchQuery: String? = null
     private var loadContentJob: Job? = null
-    private data class LoadSlice<T>(val data: List<T>, val failed: Boolean)
+    private var slowLoadingHintJob: Job? = null
+    private var activeLoadRequestId: Long = 0L
+
+    private data class LoadSlice<T>(
+        val data: List<T>,
+        val error: Throwable? = null
+    )
 
     // Cache
     private var cachedAIPrompts: List<AIPrompt>? = null
@@ -146,6 +172,8 @@ class ExploreViewModel @Inject constructor(
         // debounced search
         viewModelScope.launch {
             _searchQuery.debounce(300)
+                .drop(1) // ignore initial blank query; initial load already runs below
+                .distinctUntilChanged()
                 .collectLatest { query ->
                     val normalized = query.trim()
                     if (normalized.isNotBlank() && normalized != lastTrackedSearchQuery) {
@@ -164,10 +192,9 @@ class ExploreViewModel @Inject constructor(
 
     // ---------- UI handlers (do NOT clear content immediately; keep visible during refresh) ----------
     fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
         invalidateCache()
-        _uiState.update { it.copy(searchQuery = query, currentPage = 1) }
-        loadContent(forceRefresh = true)
+        _uiState.update { it.copy(searchQuery = query, currentPage = 1, hasMore = true) }
+        _searchQuery.value = query
     }
 
     fun updateContentFilter(filter: ContentFilter) {
@@ -201,6 +228,8 @@ class ExploreViewModel @Inject constructor(
                 isRefreshing = true,
                 isLoading = true,
                 currentPage = 1,
+                error = null,
+                currentError = null,
                 // only reset filters if requested; keep content to avoid flicker
                 searchQuery = if (resetFilters) "" else prev.searchQuery,
                 selectedCategory = if (resetFilters) allCategoryLabel else prev.selectedCategory,
@@ -222,30 +251,63 @@ class ExploreViewModel @Inject constructor(
     // ---------- Core loader ----------
     private fun loadContent(forceRefresh: Boolean = false, append: Boolean = false) {
         loadContentJob?.cancel()
+        slowLoadingHintJob?.cancel()
+        val requestId = ++activeLoadRequestId
+
         loadContentJob = viewModelScope.launch {
             try {
-                // when not paginating, show loading (do not clear existing content here)
-                if (!append) _uiState.update { it.copy(isLoading = true) }
+                _uiState.update { current ->
+                    val nextScreenState = when {
+                        append -> ExploreScreenState.Content(isAppending = true)
+                        current.content.isEmpty() && !current.hasLoadedOnce -> ExploreScreenState.InitialLoading
+                        current.content.isEmpty() -> ExploreScreenState.Loading()
+                        else -> ExploreScreenState.Content()
+                    }
+                    current.copy(
+                        isLoading = true,
+                        error = null,
+                        currentError = null,
+                        screenState = nextScreenState
+                    )
+                }
+
+                if (!append) {
+                    startSlowLoadingHintTimer(requestId)
+                }
 
                 val state = _uiState.value
                 val shouldLoadAI = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.AI_PROMPTS)
                 val shouldLoadGuides = state.selectedContentFilter in listOf(ContentFilter.ALL, ContentFilter.GUIDE_POSTS)
 
-                val aiSlice = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else LoadSlice(emptyList(), failed = false)
-                val guideSlice = if (shouldLoadGuides) loadGuidePosts(forceRefresh, state) else LoadSlice(emptyList(), failed = false)
+                val aiSlice = if (shouldLoadAI) loadAIPrompts(forceRefresh, state) else LoadSlice(emptyList(), error = null)
+                val guideSlice = if (shouldLoadGuides) loadGuidePosts(forceRefresh, state) else LoadSlice(emptyList(), error = null)
 
                 val aiPrompts = aiSlice.data
                 val guidePosts = guideSlice.data
 
                 val mixed = combineAndSortContent(aiPrompts, guidePosts, state).distinctBy { it.id }
-                val anySourceFailed = aiSlice.failed || guideSlice.failed
-                val hasAnyData = mixed.isNotEmpty()
-                val shouldShowError = anySourceFailed && !hasAnyData
+                val primaryFailure = aiSlice.error ?: guideSlice.error
+
+                slowLoadingHintJob?.cancel()
 
                 _uiState.update {
                     val newContent = if (append) (it.content + mixed).distinctBy { c -> c.id } else mixed
-                    val errorMessage = if (shouldShowError) {
-                        appContext.getString(R.string.error)
+                    val showGlobalFailure = primaryFailure != null && newContent.isEmpty()
+                    val classifiedError = if (showGlobalFailure) classifyError(primaryFailure) else null
+
+                    val nextScreenState = when {
+                        classifiedError != null && classifiedError.type == ExploreErrorType.OFFLINE ->
+                            ExploreScreenState.Offline(classifiedError)
+                        classifiedError != null ->
+                            ExploreScreenState.Error(classifiedError)
+                        newContent.isEmpty() ->
+                            ExploreScreenState.Empty
+                        else ->
+                            ExploreScreenState.Content(isAppending = false, showSlowNetworkHint = false)
+                    }
+
+                    val errorMessage = if (classifiedError != null) {
+                        classifiedError.description
                     } else {
                         null
                     }
@@ -258,7 +320,9 @@ class ExploreViewModel @Inject constructor(
                         guidePosts = guidePosts,
                         hasMore = mixed.isNotEmpty(),
                         hasLoadedOnce = true,
-                        error = errorMessage
+                        error = errorMessage,
+                        currentError = classifiedError,
+                        screenState = nextScreenState
                     )
                 }
 
@@ -268,16 +332,109 @@ class ExploreViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "loadContent error: ${e.message}")
                 crashReporter.recordUnexpectedNetworkFailure("explore_load_content", e)
+                slowLoadingHintJob?.cancel()
+                val classifiedError = classifyError(e)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = e.message,
-                        hasLoadedOnce = true
+                        error = classifiedError.description,
+                        currentError = classifiedError,
+                        hasLoadedOnce = true,
+                        screenState = if (classifiedError.type == ExploreErrorType.OFFLINE) {
+                            ExploreScreenState.Offline(classifiedError)
+                        } else {
+                            ExploreScreenState.Error(classifiedError)
+                        }
                     )
                 }
             }
         }
+    }
+
+    private fun startSlowLoadingHintTimer(requestId: Long) {
+        slowLoadingHintJob = viewModelScope.launch {
+            delay(SLOW_LOADING_HINT_DELAY_MS)
+            if (requestId != activeLoadRequestId) return@launch
+
+            _uiState.update { current ->
+                if (!current.isLoading) return@update current
+
+                val slowState = when (val state = current.screenState) {
+                    ExploreScreenState.InitialLoading,
+                    is ExploreScreenState.Loading -> ExploreScreenState.Loading(showSlowNetworkHint = true)
+                    is ExploreScreenState.Content -> state.copy(showSlowNetworkHint = true)
+                    else -> current.screenState
+                }
+                current.copy(screenState = slowState)
+            }
+        }
+    }
+
+    private fun classifyError(throwable: Throwable): ExploreUiError {
+        val root = rootCause(throwable)
+        val rawMessage = throwable.message.orEmpty()
+
+        val type = when {
+            !networkMonitor.isOnline() -> ExploreErrorType.OFFLINE
+            isOfflineFailure(root) -> ExploreErrorType.OFFLINE
+            root is SocketTimeoutException -> ExploreErrorType.TIMEOUT
+            root is HttpException || rawMessage.startsWith("HTTP 5") -> ExploreErrorType.SERVER
+            isParsingFailure(root, rawMessage) -> ExploreErrorType.PARSING
+            else -> ExploreErrorType.UNKNOWN
+        }
+
+        return when (type) {
+            ExploreErrorType.OFFLINE -> ExploreUiError(
+                type = type,
+                title = appContext.getString(R.string.no_internet_connection),
+                description = appContext.getString(R.string.connect_wifi_mobile_data)
+            )
+            ExploreErrorType.TIMEOUT -> ExploreUiError(
+                type = type,
+                title = appContext.getString(R.string.explore_error_timeout_title),
+                description = appContext.getString(R.string.explore_error_timeout_description)
+            )
+            ExploreErrorType.SERVER -> ExploreUiError(
+                type = type,
+                title = appContext.getString(R.string.explore_error_server_title),
+                description = appContext.getString(R.string.explore_error_server_description)
+            )
+            ExploreErrorType.PARSING -> ExploreUiError(
+                type = type,
+                title = appContext.getString(R.string.explore_error_parsing_title),
+                description = appContext.getString(R.string.explore_error_parsing_description)
+            )
+            ExploreErrorType.UNKNOWN -> ExploreUiError(
+                type = type,
+                title = appContext.getString(R.string.error),
+                description = rawMessage.ifBlank {
+                    appContext.getString(R.string.explore_error_generic_description)
+                }
+            )
+        }
+    }
+
+    private fun rootCause(throwable: Throwable): Throwable {
+        var current = throwable
+        while (current.cause != null && current.cause !== current) {
+            current = current.cause!!
+        }
+        return current
+    }
+
+    private fun isOfflineFailure(throwable: Throwable): Boolean {
+        return throwable is UnknownHostException ||
+            throwable is ConnectException ||
+            throwable is NoRouteToHostException ||
+            throwable is SocketException
+    }
+
+    private fun isParsingFailure(throwable: Throwable, rawMessage: String): Boolean {
+        return throwable is EOFException ||
+            throwable is IllegalStateException ||
+            rawMessage.contains("JSON", ignoreCase = true) ||
+            rawMessage.contains("Malformed", ignoreCase = true)
     }
 
     // ---------- Data loaders (cache-aware) ----------
@@ -290,12 +447,12 @@ class ExploreViewModel @Inject constructor(
         // use cache only for first page and when not forcing refresh
         if (!forceRefresh && state.currentPage == 1 && cachedAIPrompts != null && (now - lastCacheTime) < CACHE_DURATION) {
             Log.d(TAG, "Using cached AI prompts (page=${state.currentPage})")
-            return LoadSlice(data = filterAIPrompts(cachedAIPrompts!!, state), failed = false)
+            return LoadSlice(data = filterAIPrompts(cachedAIPrompts!!, state), error = null)
         }
 
         return try {
             var result: List<AIPrompt> = emptyList()
-            var failed = false
+            var failure: Throwable? = null
             val flow = when (state.selectedSortOption) {
                 SortOption.NEWEST -> homeRepository.getAiPostsSimple(page = state.currentPage, limit = limit, category = category, search = search)
                 SortOption.POPULAR -> homeRepository.getTrendingAiPosts(limit = limit, offset = (state.currentPage - 1) * limit)
@@ -318,28 +475,28 @@ class ExploreViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         Log.w(TAG, "Failed to load AI prompts: ${e.message}")
-                        failed = true
+                        failure = e
                     }
                 )
             }
 
             Log.d(TAG, "Loaded ${result.size} AI prompts (page=${state.currentPage})")
-            LoadSlice(data = filterAIPrompts(result, state), failed = failed)
+            LoadSlice(data = filterAIPrompts(result, state), error = failure)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading AI prompts: ${e.message}")
-            LoadSlice(data = emptyList(), failed = true)
+            LoadSlice(data = emptyList(), error = e)
         }
     }
 
     private suspend fun loadGuidePosts(forceRefresh: Boolean, state: ExploreUiState): LoadSlice<GuidePost> {
         val now = System.currentTimeMillis()
         if (!forceRefresh && cachedGuidePosts != null && (now - lastCacheTime) < CACHE_DURATION) {
-            return LoadSlice(data = filterGuidePosts(cachedGuidePosts!!, state), failed = false)
+            return LoadSlice(data = filterGuidePosts(cachedGuidePosts!!, state), error = null)
         }
 
         return try {
             var result: List<GuidePost> = emptyList()
-            var failed = false
+            var failure: Throwable? = null
             homeRepository.getGuidePosts(page = state.currentPage, limit = 20, search = state.searchQuery.ifBlank { null })
                 .collect { apiResult ->
                     apiResult.fold(
@@ -348,17 +505,17 @@ class ExploreViewModel @Inject constructor(
                             lastCacheTime = now
                             result = data.items
                         },
-                        onFailure = {
-                            failed = true
-                            Log.w(TAG, "Guide posts load failed: ${it.message}")
+                        onFailure = { err ->
+                            failure = err
+                            Log.w(TAG, "Guide posts load failed: ${err.message}")
                         }
                     )
                 }
 
-            LoadSlice(data = filterGuidePosts(result, state), failed = failed)
+            LoadSlice(data = filterGuidePosts(result, state), error = failure)
         } catch (e: Exception) {
             Log.e(TAG, "Error loading guide posts: ${e.message}")
-            LoadSlice(data = emptyList(), failed = true)
+            LoadSlice(data = emptyList(), error = e)
         }
     }
 
@@ -463,7 +620,17 @@ class ExploreViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _uiState.update { it.copy(error = null) }
+        _uiState.update { state ->
+            state.copy(
+                error = null,
+                currentError = null,
+                screenState = when {
+                    state.content.isNotEmpty() -> ExploreScreenState.Content()
+                    state.hasLoadedOnce -> ExploreScreenState.Empty
+                    else -> ExploreScreenState.InitialLoading
+                }
+            )
+        }
     }
 
 

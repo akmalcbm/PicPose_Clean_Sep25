@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">PicPose</string>
-    <!-- Authentication -->
     <string name="login">登录</string>
     <string name="register">注册</string>
     <string name="email">邮箱</string>
@@ -16,10 +15,7 @@
     <string name="forgot_password">忘记密码？</string>
     <string name="logout">退出登录</string>
     <string name="logout_subtitle_device">在此设备上退出登录</string>
-
     <string name="google_client_id">424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com</string>
-
-    <!-- Settings -->
     <string name="settings">设置</string>
     <string name="dark_mode">深色模式</string>
     <string name="language">语言</string>
@@ -70,22 +66,16 @@
     <string name="notification_note_body_prefix">你可以随时从 </string>
     <string name="allow">允许</string>
     <string name="not_now">暂不</string>
-
-    <!-- Profile -->
     <string name="profile">个人资料</string>
     <string name="edit_profile">编辑资料</string>
     <string name="followers">关注者</string>
     <string name="following">正在关注</string>
     <string name="posts">帖子</string>
-
-    <!-- Errors -->
     <string name="error_email_required">请输入邮箱</string>
     <string name="error_password_required">请输入密码</string>
     <string name="error_name_required">请输入姓名</string>
     <string name="error_invalid_email">邮箱地址无效</string>
     <string name="error_password_too_short">密码至少 6 个字符</string>
-
-    <!-- General -->
     <string name="loading">加载中…</string>
     <string name="save">保存</string>
     <string name="cancel">取消</string>
@@ -100,8 +90,6 @@
     <string name="google">Google</string>
     <string name="reset">重置</string>
     <string name="enabled">已启用</string>
-
-    <!-- AI Prompt Favorites Screen -->
     <string name="favorite_prompts_title">收藏的提示词 (%d)</string>
     <string name="back_button_content_description">返回</string>
     <string name="all_favorites_exported_toast">所有收藏已导出到剪贴板！</string>
@@ -113,15 +101,11 @@
     <string name="browse_prompts_button">浏览提示词</string>
     <string name="facebook_app_id" translatable="false">1158827679752112</string>
     <string name="facebook_client_token" translatable="false">0656140dee77bb556f0f3eb80cbb7d67</string>
-
-    <!-- Home / Sections -->
     <string name="trending">热门</string>
     <string name="featured">精选</string>
     <string name="popular">最受欢迎</string>
     <string name="view_all_title">查看全部</string>
     <string name="no_posts_available">暂无帖子</string>
-
-    <!-- Actions -->
     <string name="like">赞</string>
     <string name="favorite">收藏</string>
     <string name="share">分享</string>
@@ -130,32 +114,22 @@
     <string name="search">搜索</string>
     <string name="submit_search">提交搜索</string>
     <string name="dismiss">关闭</string>
-
-    <!-- Tips -->
     <string name="daily_ai_tip">每日 AI 小贴士</string>
     <string name="tip">小贴士</string>
     <string name="next_tip">下一条</string>
     <string name="read_more">阅读更多</string>
     <string name="show_less">收起</string>
     <string name="tap_to_see_another_tip">点击刷新 🔄 查看另一条小贴士</string>
-
-    <!-- Time -->
     <string name="minutes_format">%1$d 分钟</string>
     <string name="minutes_compact_format">%1$d分</string>
-
-    <!-- Search -->
     <string name="search_prompts_guides_placeholder">
     搜索提示词、指南…
 </string>
-
-    <!-- Welcome -->
     <string name="welcome_to_picpose">欢迎使用 PicPose</string>
     <string name="welcome_subtitle">
     智能 AI 摄影技巧 &amp; 提示词
 </string>
     <string name="like_count">点赞</string>
-
-
     <string name="about">关于</string>
     <string name="about_app_title">关于应用</string>
     <string name="about_the_app">了解本应用</string>
@@ -292,7 +266,7 @@
     <string name="full_prompt_label">完整提示词</string>
     <string name="full_screen_image">全屏图片</string>
     <string name="gallery_picker_coming_soon">相册选择器即将推出</string>
-    <string name="gemini_continue_message">Gemini continue message</string>
+    <string name="gemini_continue_message">在 Gemini 中继续</string>
     <string name="get_help_and_contact_support">获取帮助并联系支持</string>
     <string name="go_back">返回</string>
     <string name="google_credential_missing">缺少 Google 凭证</string>
@@ -465,7 +439,7 @@
     <string name="share_hashtag_guide">#指南</string>
     <string name="share_hashtag_photography">#摄影</string>
     <string name="share_post_intro">看看这条帖子：%1$s</string>
-    <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
+    <string name="share_prompt_header">🔥 PicPose：AI 提示词手册 🔥</string>
     <string name="share_prompt_subheader">✨ 试试 PicPose App，获取更多精彩 AI 提示词 &amp; 姿势灵感！</string>
     <string name="share_prompt_via">通过以下方式分享提示词</string>
     <string name="share_guide_via">通过以下方式分享指南</string>
@@ -523,4 +497,245 @@
     <string name="watch_ad_for_reward">观看广告获取奖励</string>
     <string name="you_are_not_logged_in">您尚未登录</string>
     <string name="hello_world">你好，世界！</string>
+    <string name="after">后</string>
+    <string name="app_version_label">PicPose %1$s</string>
+    <string name="apply">应用</string>
+    <string name="auth_action_in_progress">身份验证已在进行中</string>
+    <string name="auth_invalid_user_data">收到的用户数据无效，请重试。</string>
+    <string name="before">前</string>
+    <string name="bg_options">背景选项</string>
+    <string name="bio_ideas_subtitle">点击一个即可应用</string>
+    <string name="bio_ideas_title">个人简介灵感</string>
+    <string name="bio_pick_idea">选择一个简介灵感</string>
+    <string name="bio_random">随机</string>
+    <string name="bio_search_hint">搜索简介灵感</string>
+    <string name="bio_select_hint">点击灯泡从现有简介建议中选择</string>
+    <string name="bio_style_hint">让它更有趣、更有创作者风格</string>
+    <string name="blur_bg">模糊原图</string>
+    <string name="confirm_password">确认密码</string>
+    <string name="continue_action">继续</string>
+    <string name="delete_account_action">删除账号</string>
+    <string name="delete_account_confirm_message">This action is permanent and cannot be undone.
+
+Your PicPose account and associated profile data will be deleted. Some security and compliance records may be retained for up to 90 days.
+
+Do you want to continue?</string>
+    <string name="delete_account_failed">删除账号失败</string>
+    <string name="delete_account_in_progress">正在删除…</string>
+    <string name="delete_account_subtitle">永久删除你的账号和数据</string>
+    <string name="delete_account_success">账号删除成功</string>
+    <string name="delete_account_title">删除账号</string>
+    <string name="delete_account_type_delete_instruction">要继续，请在下方输入 DELETE。</string>
+    <string name="delete_account_type_delete_label">输入 DELETE 以确认</string>
+    <string name="email_not_verified_label">未验证</string>
+    <string name="email_verification">邮箱验证</string>
+    <string name="email_verification_invalid_or_expired">验证链接无效或已过期。</string>
+    <string name="email_verification_success">邮箱验证成功。</string>
+    <string name="email_verified_label">已验证</string>
+    <string name="enter_email_for_reset">输入你的邮箱以接收重置说明。</string>
+    <string name="explore_error_generic_description">出了点问题，请重试。</string>
+    <string name="explore_error_parsing_description">无法处理最新内容，请重试。</string>
+    <string name="explore_error_parsing_title">数据错误</string>
+    <string name="explore_error_server_description">当前无法加载探索页，请稍后重试。</string>
+    <string name="explore_error_server_title">服务器不可用</string>
+    <string name="explore_error_timeout_description">网络较慢，请重试。</string>
+    <string name="explore_error_timeout_title">请求超时</string>
+    <string name="explore_slow_network_hint">网络较慢，仍在尝试…</string>
+    <string name="filter_best_value">最超值</string>
+    <string name="filter_owned">已拥有</string>
+    <string name="forgot_password_title">忘记密码</string>
+    <string name="go_to_profile">前往个人资料</string>
+    <string name="google_no_credentials_available">此设备未找到 Google 账号凭据。请添加 Google 账号后重试。</string>
+    <string name="google_sign_in_cancelled">Google 登录已取消</string>
+    <string name="google_token_missing">缺少 Google 登录令牌</string>
+    <string name="high_quality_online">高质量（在线）</string>
+    <string name="home_checking_connection_banner">正在检查连接…</string>
+    <string name="home_loading_content_banner">正在加载内容…</string>
+    <string name="home_offline_limited_content">你当前离线，正在显示有限内容。</string>
+    <string name="home_quick_search_placeholder">搜索提示词、指南、帖子…</string>
+    <string name="home_search_no_results_subtitle">试试其他关键词，或前往探索使用高级筛选。</string>
+    <string name="home_search_no_results_title">未找到结果</string>
+    <string name="home_search_results_title">快速结果</string>
+    <string name="home_search_view_all">在探索中查看全部结果</string>
+    <string name="login_consent_agree_text">我同意《隐私政策》和《条款》。</string>
+    <string name="network_error_try_again">网络错误，请重试。</string>
+    <string name="new_password">新密码</string>
+    <string name="no_categories_available_yet">暂无可用分类。</string>
+    <string name="no_community_highlights_yet">暂无社区精选内容。</string>
+    <string name="no_guides_available_yet">暂无可用指南。</string>
+    <string name="no_recent_posts_available_yet">暂无最新帖子。</string>
+    <string name="notification_channel_general_description">重要更新与公告</string>
+    <string name="notification_channel_general_name">常规更新</string>
+    <string name="notification_channel_guides_description">新的热门摄影指南</string>
+    <string name="notification_channel_guides_name">指南</string>
+    <string name="notification_channel_prompts_description">新的 AI 提示词和创意</string>
+    <string name="notification_channel_prompts_name">提示词</string>
+    <string name="offline_basic">离线（基础）</string>
+    <string name="pack_default_description">解锁此高级包，获取精选创意提示词。</string>
+    <string name="pack_details_title">包详情</string>
+    <string name="pack_earn_credits_action">赚取积分</string>
+    <string name="pack_locked_prompt_message">“%1$s”属于 %2$s。解锁该包（%3$d 积分）即可访问其中全部提示词。</string>
+    <string name="pack_locked_prompt_title">高级包已锁定</string>
+    <string name="pack_open_pack">打开包</string>
+    <string name="pack_owned">已拥有</string>
+    <string name="pack_prompts">提示词</string>
+    <string name="pack_row_locked_hint">此提示词仅限包内。解锁该包后可打开。</string>
+    <string name="pack_row_unlocked_hint">已包含在你的高级包中。</string>
+    <string name="pack_unlock_current_balance">你的余额：%1$d 积分</string>
+    <string name="pack_unlock_deficit">还需 %1$d 积分</string>
+    <string name="pack_unlock_for_credits">花费 %1$d 积分解锁</string>
+    <string name="pack_unlock_insufficient_inline">你的积分不足。前往奖励页赚取更多积分。</string>
+    <string name="pack_unlock_not_enough_action">积分不足</string>
+    <string name="pack_unlock_pack_action">解锁包</string>
+    <string name="pack_unlock_prompt_message">“%1$s”属于 %2$s。解锁整个包需 %3$d 积分。</string>
+    <string name="pack_unlock_prompt_title">解锁提示词</string>
+    <string name="pack_unlock_required_credits">需要：%1$d 积分</string>
+    <string name="pack_unlocking">解锁中…</string>
+    <string name="packs_browse_all">浏览全部包</string>
+    <string name="packs_empty_subtitle">尝试其他筛选或刷新。</string>
+    <string name="packs_empty_title">暂无可显示的包</string>
+    <string name="packs_owned_active_summary">已拥有：%1$d • 活跃：%2$d</string>
+    <string name="packs_title">高级包</string>
+    <string name="password_reset_success">密码重置成功。请重新登录。</string>
+    <string name="password_strength_error">请至少使用 8 位且包含字母和数字。</string>
+    <string name="passwords_do_not_match">两次输入的密码不一致。</string>
+    <string name="pick_image">选择图片</string>
+    <string name="pick_image_to_start">选择一张图片开始</string>
+    <string name="please_accept_terms_to_continue">请先同意条款再继续</string>
+    <string name="profile_email_unverified_hint">请验证邮箱以保护账号并保留找回方式。</string>
+    <string name="profile_email_unverified_title">邮箱未验证</string>
+    <string name="profile_email_verified_hint">你的账号邮箱已验证。</string>
+    <string name="profile_email_verified_title">邮箱已验证</string>
+    <string name="prompt_balance_credits">余额：%1$d 积分</string>
+    <string name="prompt_locked">已锁定</string>
+    <string name="prompt_open">打开</string>
+    <string name="prompt_subscribe_go_pro">订阅 / 升级 Pro</string>
+    <string name="prompt_unlock_balance_shortage">你需要 %1$d 积分，但当前余额仅为 %2$d。</string>
+    <string name="prompt_unlock_balance_unavailable">当前无法验证积分余额。</string>
+    <string name="prompt_unlock_checking_balance">正在检查你的积分余额…</string>
+    <string name="prompt_unlock_instant_hint">立即解锁，马上使用完整提示词。</string>
+    <string name="prompt_unlock_login_hint">登录后可使用积分解锁此提示词。</string>
+    <string name="prompt_unlock_login_required">登录后解锁</string>
+    <string name="prompt_unlock_not_enough_hint">解锁此高级提示词需要 %1$d 积分。</string>
+    <string name="prompt_unlock_now">立即解锁</string>
+    <string name="prompt_unlock_option_unavailable">当前此提示词暂无可用解锁方式。</string>
+    <string name="prompt_unlock_premium_title">高级提示词访问</string>
+    <string name="prompt_unlocked">已解锁</string>
+    <string name="quality_mode">质量模式</string>
+    <string name="referral_apply_code">应用邀请码</string>
+    <string name="referral_apply_code_first">请先应用邀请码</string>
+    <string name="referral_applying_code">应用中…</string>
+    <string name="referral_card_apply_code_cta">有邀请码？立即应用</string>
+    <string name="referral_card_code_loading">正在生成邀请码…</string>
+    <string name="referral_card_copy_code">复制邀请码</string>
+    <string name="referral_card_invite_friends">邀请好友</string>
+    <string name="referral_card_login_required">登录后生成你的邀请码</string>
+    <string name="referral_card_pending_count">待完成 %1$d</string>
+    <string name="referral_card_referred_count">已邀请 %1$d</string>
+    <string name="referral_card_rewarded_count">已奖励 %1$d</string>
+    <string name="referral_card_subtitle">分享你的邀请码给好友，好友达标后你即可获得奖励。</string>
+    <string name="referral_card_title">邀请并赚取</string>
+    <string name="referral_claim_reward">领取奖励</string>
+    <string name="referral_code_copied">邀请码已复制</string>
+    <string name="referral_code_label">邀请码</string>
+    <string name="referral_complete_unlock_to_qualify">完成首次解锁后可达标</string>
+    <string name="referral_login_to_claim">登录后领取</string>
+    <string name="referral_login_to_claim_rewards">登录后领取奖励和邀请返利。</string>
+    <string name="referral_qualify_helper">完成达标操作后解锁奖励（如首次高级解锁或首次生成）。</string>
+    <string name="referral_reward_claimed">奖励已领取</string>
+    <string name="remove_bg">抠图</string>
+    <string name="remove_bg_card_desc">使用 AI 去除图片背景，可选在线高质量或离线基础模式。</string>
+    <string name="remove_bg_disclosure_body">高质量背景移除可能会将图片上传至服务器处理。</string>
+    <string name="remove_bg_disclosure_title">云端处理说明</string>
+    <string name="remove_bg_preview_title">抠图预览</string>
+    <string name="remove_bg_processing">正在移除背景…</string>
+    <string name="resend_verification_link">重新发送验证链接</string>
+    <string name="reset_password_cta">重置密码</string>
+    <string name="reset_password_email_sent_generic">如果账号存在，将发送重置说明。</string>
+    <string name="reset_password_title">重置密码</string>
+    <string name="reset_token_invalid_or_expired">重置链接无效或已过期。</string>
+    <string name="rewards_ad_daily_progress">今日广告 %1$d/%2$d</string>
+    <string name="rewards_ad_in_progress">奖励广告正在进行中。</string>
+    <string name="rewards_ad_limit_reached">今日广告奖励已领取。</string>
+    <string name="rewards_ad_not_completed">广告未完整观看，未增加积分。</string>
+    <string name="rewards_ad_points_added_snackbar">已增加 +%1$d 广告积分</string>
+    <string name="rewards_ad_requires_activity">打开广告需要当前活动页面。</string>
+    <string name="rewards_ad_temporarily_unavailable">奖励广告暂不可用。</string>
+    <string name="rewards_balance_syncing">余额同步中…</string>
+    <string name="rewards_bonus">Bonus</string>
+    <string name="rewards_claim_plus_credits">领取 +%1$d 积分</string>
+    <string name="rewards_claim_short">领取</string>
+    <string name="rewards_claimed_for_today">今日已领取</string>
+    <string name="rewards_claimed_short">已领取</string>
+    <string name="rewards_claiming">领取中…</string>
+    <string name="rewards_cost_credits">%1$d 积分</string>
+    <string name="rewards_credits">积分</string>
+    <string name="rewards_credits_amount">%1$d 积分</string>
+    <string name="rewards_earn_card_subtitle">快速补充你的积分钱包。</string>
+    <string name="rewards_earn_row_rewarded_ad">奖励广告</string>
+    <string name="rewards_fetching_featured_prompt">正在获取今日精选提示词…</string>
+    <string name="rewards_level_label">Level %1$d</string>
+    <string name="rewards_loading_reward_ad">正在准备你的奖励…</string>
+    <string name="rewards_login_again">重新登录</string>
+    <string name="rewards_login_prompt">登录后可领取奖励、连续签到和邀请返利。</string>
+    <string name="rewards_login_to_claim_reward">登录后领取奖励</string>
+    <string name="rewards_login_to_claim_short">登录后领取奖励</string>
+    <string name="rewards_open_free_today">今日免费打开</string>
+    <string name="rewards_points_added_snackbar">已增加 +%1$d 积分</string>
+    <string name="rewards_progress_title">进度</string>
+    <string name="rewards_prompt_of_day_subtitle">今日精选创意灵感。</string>
+    <string name="rewards_prompt_of_day_title">今日提示词</string>
+    <string name="rewards_recent_activity_empty">暂无最近积分记录。</string>
+    <string name="rewards_recent_activity_title">最近活动</string>
+    <string name="rewards_referral_rewards_subtitle">邀请好友达标后即可领取额外积分奖励。</string>
+    <string name="rewards_referral_rewards_title">邀请奖励</string>
+    <string name="rewards_retry_ad_load">重试加载广告</string>
+    <string name="rewards_session_expired_prompt">会话已过期，请重新登录以继续奖励。</string>
+    <string name="rewards_streak_active">已连续 %1$d 天</string>
+    <string name="rewards_streak_already_claimed_next_tomorrow">今日连续奖励已领取，明天继续领取下一档。</string>
+    <string name="rewards_streak_claim_below_hint">在下方“每日连续”中领取，可获得 +%1$d 积分。</string>
+    <string name="rewards_streak_claim_now_message">立即领取以保持连续奖励。</string>
+    <string name="rewards_streak_claimed_next_reward">今日已领取。下一奖励：第 %1$d 天（+%2$d）。</string>
+    <string name="rewards_streak_consistency_message">坚持得很好，明天回来可得 +%1$d。</string>
+    <string name="rewards_streak_day_label">第 %1$d 天</string>
+    <string name="rewards_streak_final_day_ready">最后一天奖励 +%1$d 已就绪。</string>
+    <string name="rewards_streak_start_today">今天开始你的连续奖励</string>
+    <string name="rewards_streak_title">每日连续</string>
+    <string name="rewards_streak_today_reward">今天：第 %1$d 天奖励 +%2$d。</string>
+    <string name="rewards_streak_weekly_complete">每周循环已完成，继续坚持获得更高势能。</string>
+    <string name="rewards_today_featured_prompt">今日精选提示词</string>
+    <string name="rewards_today_pick">今日推荐</string>
+    <string name="rewards_unlock_forever">永久解锁</string>
+    <string name="rewards_wallet_subtitle">使用积分解锁高级提示词和高级包。</string>
+    <string name="rewards_wallet_title">钱包与积分</string>
+    <string name="rewards_watch_ad_confirm_action">是的，立即观看</string>
+    <string name="rewards_watch_ad_confirm_message">你将观看一条奖励广告，完成后可获得 +%1$d 积分。</string>
+    <string name="rewards_watch_ad_confirm_title">观看奖励广告？</string>
+    <string name="rewards_watch_ad_plus">观看广告（+积分）</string>
+    <string name="rewards_watch_ad_plus_amount">观看奖励广告（+%1$d 积分）</string>
+    <string name="rewards_watch_ad_short">观看奖励广告</string>
+    <string name="rewards_watch_ad_value_statement">观看奖励广告，完成后可获得经服务器验证的 +%1$d 积分。</string>
+    <string name="rewards_xp_progress">%1$d / %2$d XP</string>
+    <string name="save_png">保存 PNG</string>
+    <string name="section_load_error_message">无法加载 %1$s，请检查网络。</string>
+    <string name="send_reset_link">发送重置链接</string>
+    <string name="token_image_gen_priority">优先图像生成次数</string>
+    <string name="token_prompt_unlock">提示词解锁令牌</string>
+    <string name="transparent_bg">透明</string>
+    <string name="verification_email_sent">验证链接已发送。</string>
+    <string name="verify_email">验证邮箱</string>
+    <string name="verifying_email">正在验证你的邮箱…</string>
+    <string name="delete_account_delete_keyword">DELETE</string>
+    <string name="prompt_unlock_available_in_pack">可在高级包中获取。</string>
+    <string name="prompt_unlock_available_options_hint">可使用下方可用方式解锁此高级提示词。</string>
+    <string name="prompt_unlock_checking_session">正在检查会话…</string>
+    <string name="prompt_unlock_login_again_hint">请重新登录以继续解锁高级提示词。</string>
+    <string name="prompt_unlock_not_available_from_screen">当前无法在此页面解锁该高级提示词。</string>
+    <string name="prompt_unlock_preview">解锁后可查看完整提示词。</string>
+    <string name="prompt_unlock_with_subscription_hint">使用你的订阅即可解锁。</string>
+    <string name="referral_share_apply_hint">安装后，打开 Rewards -&gt; Apply Code。</string>
+    <string name="referral_share_chooser_title">分享邀请码</string>
+    <string name="referral_share_invite_header">安装 PicPose：AI 提示词与摆姿指南</string>
+    <string name="referral_share_use_code">使用我的邀请码：%1$s</string>
+    <string name="rewards_plus_credits_amount">+%1$d</string>
 </resources>

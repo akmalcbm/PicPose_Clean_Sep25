@@ -196,13 +196,17 @@ fun RewardsScreenV3(
             when (event) {
                 is RewardsUiEvent.ClaimSuccess -> {
                     showConfetti = true
-                    snackbarHostState.showSnackbar("+${event.pointsAdded} credits added")
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.rewards_points_added_snackbar, event.pointsAdded)
+                    )
                     delay(1200)
                     showConfetti = false
                 }
                 is RewardsUiEvent.AdRewardSuccess -> {
                     showCoinBurst = true
-                    snackbarHostState.showSnackbar("+${event.pointsAdded} ad credits added")
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.rewards_ad_points_added_snackbar, event.pointsAdded)
+                    )
                     delay(900)
                     showCoinBurst = false
                 }
@@ -383,6 +387,16 @@ fun RewardsScreenV3(
                             )
                         }
                         item {
+                            PacksRow(
+                                packs = uiState.packs,
+                                ownedCount = uiState.ownedPackCount,
+                                isLoggedIn = hasRewardsAccess,
+                                onOpenPacks = {
+                                    if (hasRewardsAccess) onOpenPacks() else onRequireLogin()
+                                },
+                            )
+                        }
+                        item {
                             ReferralCard(
                                 isLoggedIn = hasRewardsAccess,
                                 code = uiState.referralCode,
@@ -402,33 +416,30 @@ fun RewardsScreenV3(
                                 },
                                 onShare = { code ->
                                     val shareMessage = buildString {
-                                        append("Install PicPose: AI Prompts & Posing Guide\n")
+                                        append(context.getString(R.string.referral_share_invite_header))
+                                        append("\n")
                                         append(BuildConfig.REFERRAL_PLAY_URL)
-                                        append("\nUse my referral code: ")
-                                        append(code)
-                                        append("\nAfter installing, open Rewards -> Apply Code.")
+                                        append("\n")
+                                        append(context.getString(R.string.referral_share_use_code, code))
+                                        append("\n")
+                                        append(context.getString(R.string.referral_share_apply_hint))
                                     }
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
                                         putExtra(Intent.EXTRA_TEXT, shareMessage)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share referral code"))
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            shareIntent,
+                                            context.getString(R.string.referral_share_chooser_title)
+                                        )
+                                    )
                                 },
                                 onOpenApplyCode = {
                                     if (hasRewardsAccess) showApplySheet = true else onRequireLogin()
                                 },
                                 onClaimReward = {
                                     if (hasRewardsAccess) viewModel.claimReferralReward() else onRequireLogin()
-                                },
-                            )
-                        }
-                        item {
-                            PacksRow(
-                                packs = uiState.packs,
-                                ownedCount = uiState.ownedPackCount,
-                                isLoggedIn = hasRewardsAccess,
-                                onOpenPacks = {
-                                    if (hasRewardsAccess) onOpenPacks() else onRequireLogin()
                                 },
                             )
                         }

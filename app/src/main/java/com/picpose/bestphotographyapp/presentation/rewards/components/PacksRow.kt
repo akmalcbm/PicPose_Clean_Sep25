@@ -96,7 +96,7 @@ fun PacksRow(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Owned: $ownedCount • Active: ${packs.size}",
+                stringResource(R.string.packs_owned_active_summary, ownedCount, packs.size),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -122,7 +122,7 @@ fun PacksRow(
                 enabled = isLoggedIn,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Browse all packs")
+                Text(stringResource(R.string.packs_browse_all))
             }
         }
     }

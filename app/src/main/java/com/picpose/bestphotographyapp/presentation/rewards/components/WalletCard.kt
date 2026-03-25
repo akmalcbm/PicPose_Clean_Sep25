@@ -105,12 +105,12 @@ fun WalletCard(
                 }
                 Column {
                     Text(
-                        text = "Wallet & Credits",
+                        text = stringResource(R.string.rewards_wallet_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Use credits for premium prompts and packs.",
+                        text = stringResource(R.string.rewards_wallet_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,13 +119,13 @@ fun WalletCard(
 
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                "$displayedPoints credits",
+                stringResource(R.string.rewards_credits_amount, displayedPoints),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
             )
             if (displayedPoints != pointsBalance) {
                 Text(
-                    "Balance syncing...",
+                    stringResource(R.string.rewards_balance_syncing),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

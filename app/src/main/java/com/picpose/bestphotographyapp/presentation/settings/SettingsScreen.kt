@@ -310,7 +310,7 @@ fun SettingsScreen(
 
             item {
                 Text(
-                    text = "PicPose ${BuildConfig.VERSION_NAME}",
+                    text = stringResource(R.string.app_version_label, BuildConfig.VERSION_NAME),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -415,7 +415,8 @@ fun SettingsScreen(
         }
 
         if (showDeleteAccountDialog) {
-            val isDeletePhraseValid = deleteConfirmInput.trim() == "DELETE"
+            val deleteKeyword = stringResource(R.string.delete_account_delete_keyword)
+            val isDeletePhraseValid = deleteConfirmInput.trim() == deleteKeyword
             AlertDialog(
                 onDismissRequest = {
                     if (!isDeletingAccount) showDeleteAccountDialog = false
@@ -435,7 +436,7 @@ fun SettingsScreen(
                             singleLine = true,
                             enabled = !isDeletingAccount,
                             label = { Text(stringResource(R.string.delete_account_type_delete_label)) },
-                            placeholder = { Text("DELETE") },
+                            placeholder = { Text(deleteKeyword) },
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Characters
                             ),

@@ -53,8 +53,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 import kotlin.math.absoluteValue
 
 @Composable
@@ -112,13 +114,16 @@ fun StreakStepper(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Daily Streak",
+                        text = stringResource(R.string.rewards_streak_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = if (safeStreak == 0) "Start your streak today"
-                        else "$safeStreak-day streak active",
+                        text = if (safeStreak == 0) {
+                            stringResource(R.string.rewards_streak_start_today)
+                        } else {
+                            stringResource(R.string.rewards_streak_active, safeStreak)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -128,7 +133,7 @@ fun StreakStepper(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                 ) {
                     Text(
-                        text = "Day $claimDayInCycle",
+                        text = stringResource(R.string.rewards_streak_day_label, claimDayInCycle),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -149,9 +154,9 @@ fun StreakStepper(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (todayClaimed) {
-                    "Claimed for today. Next reward: Day $nextDayInCycle (+$nextReward)."
+                    stringResource(R.string.rewards_streak_claimed_next_reward, nextDayInCycle, nextReward)
                 } else {
-                    "Today: Day $claimDayInCycle reward +$claimReward."
+                    stringResource(R.string.rewards_streak_today_reward, claimDayInCycle, claimReward)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -180,9 +185,9 @@ fun StreakStepper(
 
             Spacer(modifier = Modifier.height(14.dp))
             val milestoneText = when {
-                todayClaimed -> "Great consistency. Come back tomorrow for +$nextReward."
-                claimDayInCycle == cycleLength -> "Final day reward +$claimReward is ready."
-                else -> "Claim now to keep your streak alive."
+                todayClaimed -> stringResource(R.string.rewards_streak_consistency_message, nextReward)
+                claimDayInCycle == cycleLength -> stringResource(R.string.rewards_streak_final_day_ready, claimReward)
+                else -> stringResource(R.string.rewards_streak_claim_now_message)
             }
             Text(
                 text = milestoneText,
@@ -192,7 +197,7 @@ fun StreakStepper(
 
             AnimatedVisibility(visible = todayClaimed && safeStreak >= cycleLength) {
                 Text(
-                    text = "Weekly cycle complete. Keep going for bigger momentum.",
+                    text = stringResource(R.string.rewards_streak_weekly_complete),
                     modifier = Modifier.padding(top = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -210,13 +215,14 @@ fun StreakStepper(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
                     )
-                    Text("  Claiming...")
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.rewards_claiming))
                 } else {
                     Text(
                         when {
-                            todayClaimed -> "Claimed for today"
-                            !isLoggedIn -> "Login to claim reward"
-                            else -> "Claim +$claimReward credits"
+                            todayClaimed -> stringResource(R.string.rewards_claimed_for_today)
+                            !isLoggedIn -> stringResource(R.string.rewards_login_to_claim_reward)
+                            else -> stringResource(R.string.rewards_claim_plus_credits, claimReward)
                         }
                     )
                 }
@@ -286,7 +292,7 @@ private fun StreakDayBadge(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Day $day",
+                text = stringResource(R.string.rewards_streak_day_label, day),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.second,

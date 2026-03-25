@@ -127,9 +127,13 @@ fun EarnCard(
                     )
                 }
                 Column {
-                    Text("Earn Credits", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
-                        "Fast ways to top up your wallet.",
+                        stringResource(R.string.pack_earn_credits_action),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        stringResource(R.string.rewards_earn_card_subtitle),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -139,27 +143,31 @@ fun EarnCard(
 
             EarnOpportunityRow(
                 icon = Icons.Default.VideoLibrary,
-                title = "Rewarded ad",
+                title = stringResource(R.string.rewards_earn_row_rewarded_ad),
                 subtitle = stringResource(R.string.rewards_watch_ad_value_statement, adRewardPoints),
-                value = "+$adRewardPoints",
+                value = stringResource(R.string.rewards_plus_credits_amount, adRewardPoints),
             )
             Spacer(modifier = Modifier.height(8.dp))
             EarnOpportunityRow(
                 icon = Icons.Default.LocalFireDepartment,
-                title = "Daily streak",
+                title = stringResource(R.string.rewards_streak_title),
                 subtitle = if (todayClaimed) {
-                    "Today's streak is already claimed. Next reward continues tomorrow."
+                    stringResource(R.string.rewards_streak_already_claimed_next_tomorrow)
                 } else {
-                    "Claim in Daily Streak below to earn +$streakRewardToday credits."
+                    stringResource(R.string.rewards_streak_claim_below_hint, streakRewardToday)
                 },
-                value = if (todayClaimed) "Claimed" else "+$streakRewardToday",
+                value = if (todayClaimed) {
+                    stringResource(R.string.rewards_claimed_short)
+                } else {
+                    stringResource(R.string.rewards_plus_credits_amount, streakRewardToday)
+                },
             )
             Spacer(modifier = Modifier.height(8.dp))
             EarnOpportunityRow(
                 icon = Icons.Default.Groups,
-                title = "Referral rewards",
-                subtitle = "Invite friends and claim bonus credits when they qualify.",
-                value = "Bonus",
+                title = stringResource(R.string.rewards_referral_rewards_title),
+                subtitle = stringResource(R.string.rewards_referral_rewards_subtitle),
+                value = stringResource(R.string.rewards_bonus),
             )
 
             if (adDailyCount != null && adDailyCap != null && adDailyCap > 0) {

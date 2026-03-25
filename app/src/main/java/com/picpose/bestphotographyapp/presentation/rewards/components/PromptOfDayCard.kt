@@ -23,25 +23,33 @@ package com.picpose.bestphotographyapp.presentation.rewards.components
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,9 +61,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.picpose.bestphotographyapp.R
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 
@@ -70,6 +80,10 @@ fun PromptOfDayCard(
     onUnlockDiscount: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isFreeMode = mode.equals("FREE", true)
+    val isDiscountMode = mode.equals("DISCOUNT", true)
+    val shouldShowUnlockForever = isFreeMode || isDiscountMode
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -89,12 +103,13 @@ fun PromptOfDayCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Prompt of the Day",
+                        text = stringResource(R.string.rewards_prompt_of_day_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = subtitle?.takeIf { it.isNotBlank() } ?: "Today's featured creative idea.",
+                        text = subtitle?.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.rewards_prompt_of_day_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -115,7 +130,8 @@ fun PromptOfDayCard(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = badgeText?.takeIf { it.isNotBlank() } ?: "Today's Pick",
+                            text = badgeText?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.rewards_today_pick),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontWeight = FontWeight.SemiBold,
@@ -125,80 +141,102 @@ fun PromptOfDayCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Box(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(208.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                ),
             ) {
-                if (!prompt?.imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = prompt?.imageUrl,
-                        contentDescription = prompt?.title ?: "Prompt image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(208.dp),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!prompt?.imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = prompt.imageUrl,
+                            contentDescription = prompt.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primaryContainer,
+                                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.72f),
+                                            MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(30.dp),
+                            )
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(208.dp)
+                            .fillMaxSize()
                             .background(
-                                Brush.linearGradient(
+                                Brush.verticalGradient(
                                     listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.02f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                                     )
                                 )
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(208.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-                                )
                             )
-                        )
-                )
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        mode?.takeIf { it.isNotBlank() }?.let {
-                            AssistChip(onClick = {}, label = { Text(it.uppercase()) })
-                        }
-                        if (cost > 0) {
-                            AssistChip(onClick = {}, label = { Text("$cost credits") })
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = prompt?.title ?: "Today's featured prompt",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(12.dp),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            mode?.takeIf { it.isNotBlank() }?.let {
+                                AssistChip(
+                                    onClick = {},
+                                    enabled = false,
+                                    label = { Text(it.uppercase()) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        disabledContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f),
+                                        disabledLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    ),
+                                )
+                            }
+                            if (cost > 0) {
+                                AssistChip(
+                                    onClick = {},
+                                    enabled = false,
+                                    label = { Text(stringResource(R.string.rewards_cost_credits, cost)) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.96f),
+                                        disabledLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = prompt?.title ?: stringResource(R.string.rewards_today_featured_prompt),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -207,7 +245,7 @@ fun PromptOfDayCard(
                 if (promptId.isNullOrBlank()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            "Fetching today's featured prompt...",
+                            stringResource(R.string.rewards_fetching_featured_prompt),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Button(
@@ -215,9 +253,15 @@ fun PromptOfDayCard(
                             enabled = false,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp),
+                                .heightIn(min = 50.dp),
+                            shape = RoundedCornerShape(14.dp),
                         ) {
-                            Text("Loading")
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.loading))
                         }
                     }
                 } else {
@@ -228,29 +272,55 @@ fun PromptOfDayCard(
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = { onOpenPrompt(promptId) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 48.dp),
-                            ) {
-                                Text(if (mode.equals("FREE", true)) "Open Free Today" else "Open Prompt")
-                            }
-                            if (mode.equals("DISCOUNT", true) || mode.equals("FREE", true)) {
-                                FilledTonalButton(
-                                    onClick = { onUnlockDiscount(promptId) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp),
-                                ) {
-                                    val label = if (mode.equals("DISCOUNT", true)) {
-                                        "Unlock for $cost credits"
-                                    } else {
-                                        "Unlock Forever"
-                                    }
-                                    Text(label)
+
+                        Button(
+                            onClick = { onOpenPrompt(promptId) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (isFreeMode) {
+                                    stringResource(R.string.rewards_open_free_today)
+                                } else {
+                                    stringResource(R.string.prompt_open)
                                 }
+                            )
+                        }
+
+                        if (shouldShowUnlockForever) {
+                            FilledTonalButton(
+                                onClick = { onUnlockDiscount(promptId) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LockOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                val label = if (isDiscountMode) {
+                                    stringResource(R.string.pack_unlock_for_credits, cost)
+                                } else {
+                                    stringResource(R.string.rewards_unlock_forever)
+                                }
+                                Text(label)
                             }
                         }
                     }

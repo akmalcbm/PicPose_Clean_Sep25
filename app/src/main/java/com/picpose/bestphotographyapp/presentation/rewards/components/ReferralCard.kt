@@ -195,7 +195,7 @@ fun ReferralCard(
                             onClick = { code?.let(onCopyCode) },
                             enabled = isLoggedIn && !code.isNullOrBlank(),
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy code")
+                            Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.referral_card_copy_code))
                         }
                     }
                 }

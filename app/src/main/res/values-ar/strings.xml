@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">PicPose</string>
-
-    <!-- Authentication -->
     <string name="login">تسجيل الدخول</string>
     <string name="register">التسجيل</string>
     <string name="email">البريد الإلكتروني</string>
@@ -17,10 +15,7 @@
     <string name="forgot_password">هل نسيت كلمة المرور؟</string>
     <string name="logout">تسجيل الخروج</string>
     <string name="logout_subtitle_device">تسجيل الخروج من هذا الجهاز</string>
-
     <string name="google_client_id">424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com</string>
-
-    <!-- Settings -->
     <string name="settings">الإعدادات</string>
     <string name="dark_mode">الوضع الداكن</string>
     <string name="language">اللغة</string>
@@ -71,22 +66,16 @@
     <string name="notification_note_body_prefix">يمكنك إيقاف الإشعارات في أي وقت من </string>
     <string name="allow">سماح</string>
     <string name="not_now">ليس الآن</string>
-
-    <!-- Profile -->
     <string name="profile">الملف الشخصي</string>
     <string name="edit_profile">تعديل الملف الشخصي</string>
     <string name="followers">المتابعون</string>
     <string name="following">يتابع</string>
     <string name="posts">المنشورات</string>
-
-    <!-- Errors -->
     <string name="error_email_required">البريد الإلكتروني مطلوب</string>
     <string name="error_password_required">كلمة المرور مطلوبة</string>
     <string name="error_name_required">الاسم مطلوب</string>
     <string name="error_invalid_email">عنوان بريد إلكتروني غير صالح</string>
     <string name="error_password_too_short">يجب أن تكون كلمة المرور 6 أحرف على الأقل</string>
-
-    <!-- General -->
     <string name="loading">جارٍ التحميل…</string>
     <string name="save">حفظ</string>
     <string name="cancel">إلغاء</string>
@@ -101,8 +90,6 @@
     <string name="google">Google</string>
     <string name="reset">إعادة ضبط</string>
     <string name="enabled">مفعّل</string>
-
-    <!-- AI Prompt Favorites Screen -->
     <string name="favorite_prompts_title">المطالبات المفضلة (%d)</string>
     <string name="back_button_content_description">رجوع</string>
     <string name="all_favorites_exported_toast">تم تصدير كل المفضلة إلى الحافظة!</string>
@@ -114,15 +101,11 @@
     <string name="browse_prompts_button">تصفح المطالبات</string>
     <string name="facebook_app_id" translatable="false">1158827679752112</string>
     <string name="facebook_client_token" translatable="false">0656140dee77bb556f0f3eb80cbb7d67</string>
-
-    <!-- Home / Sections -->
     <string name="trending">الشائع</string>
     <string name="featured">المميز</string>
     <string name="popular">الأكثر شيوعًا</string>
     <string name="view_all_title">عرض الكل</string>
     <string name="no_posts_available">لا توجد منشورات</string>
-
-    <!-- Actions -->
     <string name="like">إعجاب</string>
     <string name="favorite">مفضلة</string>
     <string name="share">مشاركة</string>
@@ -131,32 +114,22 @@
     <string name="search">بحث</string>
     <string name="submit_search">إرسال البحث</string>
     <string name="dismiss">إغلاق</string>
-
-    <!-- Tips -->
     <string name="daily_ai_tip">نصيحة ذكاء اصطناعي يومية</string>
     <string name="tip">نصيحة</string>
     <string name="next_tip">النصيحة التالية</string>
     <string name="read_more">اقرأ المزيد</string>
     <string name="show_less">عرض أقل</string>
     <string name="tap_to_see_another_tip">اضغط للتحديث 🔄 لرؤية نصيحة أخرى</string>
-
-    <!-- Time -->
     <string name="minutes_format">%1$d دقيقة</string>
     <string name="minutes_compact_format">%1$dد</string>
-
-    <!-- Search -->
     <string name="search_prompts_guides_placeholder">
     ابحث في المطالبات والأدلة…
 </string>
-
-    <!-- Welcome -->
     <string name="welcome_to_picpose">مرحبًا بك في PicPose</string>
     <string name="welcome_subtitle">
     نصائح تصوير ذكية بالذكاء الاصطناعي &amp; مطالبات
 </string>
     <string name="like_count">إعجابات</string>
-
-
     <string name="about">حول</string>
     <string name="about_app_title">حول التطبيق</string>
     <string name="about_the_app">تعرّف على التطبيق</string>
@@ -543,27 +516,226 @@
     <string name="no_categories_available_yet">لا توجد فئات متاحة حتى الآن.</string>
     <string name="no_recent_posts_available_yet">لا توجد منشورات حديثة حتى الآن.</string>
     <string name="no_guides_available_yet">لا توجد أدلة متاحة حتى الآن.</string>
-    <string name="forgot_password_title">Forgot Password</string>
-    <string name="enter_email_for_reset">Enter your email to receive reset instructions.</string>
-    <string name="send_reset_link">Send reset link</string>
-    <string name="reset_password_email_sent_generic">If an account exists, instructions will be sent.</string>
-    <string name="network_error_try_again">Network error. Please try again.</string>
-    <string name="reset_password_title">Reset Password</string>
-    <string name="new_password">New Password</string>
-    <string name="confirm_password">Confirm Password</string>
-    <string name="password_strength_error">Use at least 8 characters with letters and numbers.</string>
-    <string name="passwords_do_not_match">Passwords do not match.</string>
-    <string name="reset_password_cta">Reset password</string>
-    <string name="reset_token_invalid_or_expired">Invalid or expired reset link.</string>
-    <string name="password_reset_success">Password reset successful. Please login again.</string>
-    <string name="verify_email">Verify Email</string>
-    <string name="verifying_email">Verifying your email...</string>
-    <string name="go_to_profile">Go to Profile</string>
-    <string name="verification_email_sent">Verification link sent.</string>
-    <string name="email_verification_success">Email verified successfully.</string>
-    <string name="email_verification_invalid_or_expired">Verification link is invalid or expired.</string>
-    <string name="email_verification">Email Verification</string>
-    <string name="email_verified_label">Verified</string>
-    <string name="email_not_verified_label">Not verified</string>
-    <string name="resend_verification_link">Resend verification link</string>
+    <string name="forgot_password_title">هل نسيت كلمة السر</string>
+    <string name="enter_email_for_reset">أدخل بريدك الإلكتروني لتلقي تعليمات إعادة التعيين.</string>
+    <string name="send_reset_link">إرسال رابط إعادة التعيين</string>
+    <string name="reset_password_email_sent_generic">في حالة وجود حساب، سيتم إرسال التعليمات.</string>
+    <string name="network_error_try_again">خطأ في الشبكة. يرجى المحاولة مرة أخرى.</string>
+    <string name="reset_password_title">إعادة تعيين كلمة المرور</string>
+    <string name="new_password">كلمة المرور الجديدة</string>
+    <string name="confirm_password">تأكيد كلمة المرور</string>
+    <string name="password_strength_error">استخدم 8 أحرف على الأقل مكونة من حروف وأرقام.</string>
+    <string name="passwords_do_not_match">كلمات المرور غير متطابقة.</string>
+    <string name="reset_password_cta">إعادة تعيين كلمة المرور</string>
+    <string name="reset_token_invalid_or_expired">رابط إعادة التعيين غير صالح أو منتهي الصلاحية.</string>
+    <string name="password_reset_success">تمت إعادة تعيين كلمة المرور بنجاح. الرجاء تسجيل الدخول مرة أخرى.</string>
+    <string name="verify_email">التحقق من البريد الإلكتروني</string>
+    <string name="verifying_email">جارٍ التحقق من بريدك الإلكتروني...</string>
+    <string name="go_to_profile">انتقل إلى الملف الشخصي</string>
+    <string name="verification_email_sent">تم إرسال رابط التحقق.</string>
+    <string name="email_verification_success">تم التحقق من البريد الإلكتروني بنجاح.</string>
+    <string name="email_verification_invalid_or_expired">رابط التحقق غير صالح أو منتهي الصلاحية.</string>
+    <string name="email_verification">التحقق من البريد الإلكتروني</string>
+    <string name="email_verified_label">تم التحقق منه</string>
+    <string name="email_not_verified_label">لم يتم التحقق منها</string>
+    <string name="resend_verification_link">إعادة إرسال رابط التحقق</string>
+    <string name="after">بعد</string>
+    <string name="app_version_label">PicPose %1$s</string>
+    <string name="apply">يتقدم</string>
+    <string name="auth_action_in_progress">المصادقة قيد التقدم بالفعل</string>
+    <string name="auth_invalid_user_data">تم استلام بيانات مستخدم غير صالحة. يرجى المحاولة مرة أخرى.</string>
+    <string name="before">قبل</string>
+    <string name="bg_options">خيارات الخلفية</string>
+    <string name="bio_ideas_subtitle">اضغط على واحدة لتطبيقها</string>
+    <string name="bio_ideas_title">أفكار حيوية</string>
+    <string name="bio_pick_idea">اختر فكرة حيوية</string>
+    <string name="bio_random">عشوائي</string>
+    <string name="bio_search_hint">بحث عن الأفكار الحيوية</string>
+    <string name="bio_select_hint">اضغط على المصباح للاختيار من بين الاقتراحات الحيوية الموجودة</string>
+    <string name="bio_style_hint">اجعلها ممتعة وأسلوب المبدع</string>
+    <string name="blur_bg">طمس الأصلي</string>
+    <string name="continue_action">يكمل</string>
+    <string name="delete_account_action">حذف الحساب</string>
+    <string name="delete_account_confirm_message">This action is permanent and cannot be undone.
+
+Your PicPose account and associated profile data will be deleted. Some security and compliance records may be retained for up to 90 days.
+
+Do you want to continue?</string>
+    <string name="delete_account_failed">فشل في حذف الحساب</string>
+    <string name="delete_account_in_progress">جارٍ الحذف...</string>
+    <string name="delete_account_subtitle">حذف حسابك وبياناتك نهائيًا</string>
+    <string name="delete_account_success">تم حذف الحساب بنجاح</string>
+    <string name="delete_account_title">حذف الحساب</string>
+    <string name="delete_account_type_delete_instruction">للمتابعة، اكتب DELETE أدناه.</string>
+    <string name="delete_account_type_delete_label">اكتب DELETE للتأكيد</string>
+    <string name="explore_error_generic_description">حدث خطأ ما. يرجى المحاولة مرة أخرى.</string>
+    <string name="explore_error_parsing_description">لم نتمكن من معالجة أحدث محتوى. يرجى إعادة المحاولة.</string>
+    <string name="explore_error_parsing_title">خطأ في البيانات</string>
+    <string name="explore_error_server_description">لم نتمكن من تحميل الاستكشاف الآن. يرجى المحاولة مرة أخرى.</string>
+    <string name="explore_error_server_title">الخادم غير متاح</string>
+    <string name="explore_error_timeout_description">الشبكة بطيئة. يرجى المحاولة مرة أخرى.</string>
+    <string name="explore_error_timeout_title">انتهت مهلة الطلب</string>
+    <string name="explore_slow_network_hint">الشبكة بطيئة ومازالت تحاول...</string>
+    <string name="filter_best_value">أفضل قيمة</string>
+    <string name="filter_owned">مملوكة</string>
+    <string name="google_no_credentials_available">لم يتم العثور على بيانات اعتماد حساب Google على هذا الجهاز. أضف حساب Google وحاول مرة أخرى.</string>
+    <string name="google_sign_in_cancelled">تم إلغاء تسجيل الدخول إلى Google</string>
+    <string name="google_token_missing">الرمز المميز لتسجيل الدخول إلى Google مفقود</string>
+    <string name="high_quality_online">جودة عالية (أون لاين)</string>
+    <string name="login_consent_agree_text">أوافق على سياسة الخصوصية والشروط.</string>
+    <string name="offline_basic">غير متصل (أساسي)</string>
+    <string name="pack_default_description">افتح هذه الحزمة المميزة للوصول إلى المطالبات الإبداعية المنسقة.</string>
+    <string name="pack_details_title">تفاصيل الحزمة</string>
+    <string name="pack_earn_credits_action">كسب الاعتمادات</string>
+    <string name="pack_locked_prompt_message">"%1$s" جزء من %2$s. افتح الحزمة للحصول على أرصدة %3$d للوصول إلى جميع المطالبات الموجودة بداخلها.</string>
+    <string name="pack_locked_prompt_title">حزمة بريميوم مقفلة</string>
+    <string name="pack_open_pack">افتح الحزمة</string>
+    <string name="pack_owned">مملوكة</string>
+    <string name="pack_prompts">يطالب</string>
+    <string name="pack_row_locked_hint">موجه الحزمة الحصرية. افتح العبوة لفتحها.</string>
+    <string name="pack_row_unlocked_hint">متضمنة في الحزمة المميزة الخاصة بك.</string>
+    <string name="pack_unlock_current_balance">رصيدك: %1$d رصيد</string>
+    <string name="pack_unlock_deficit">بحاجة إلى %1$d المزيد من الاعتمادات</string>
+    <string name="pack_unlock_for_credits">فتح للحصول على أرصدة %1$d</string>
+    <string name="pack_unlock_insufficient_inline">ليس لديك ما يكفي من الاعتمادات. قم بزيارة المكافآت لكسب المزيد.</string>
+    <string name="pack_unlock_not_enough_action">الاعتمادات ليست كافية</string>
+    <string name="pack_unlock_pack_action">فتح الحزمة</string>
+    <string name="pack_unlock_prompt_message">"%1$s" جزء من %2$s. افتح الحزمة الكاملة للحصول على أرصدة %3$d.</string>
+    <string name="pack_unlock_prompt_title">فتح المطالبة</string>
+    <string name="pack_unlock_required_credits">مطلوب: %1$d الاعتمادات</string>
+    <string name="pack_unlocking">فتح…</string>
+    <string name="packs_browse_all">تصفح جميع الحزم</string>
+    <string name="packs_empty_subtitle">جرب مرشحًا آخر أو قم بالتحديث.</string>
+    <string name="packs_empty_title">لا توجد حزم لإظهارها</string>
+    <string name="packs_owned_active_summary">المملوكة: %1$d • النشطة: %2$d</string>
+    <string name="packs_title">حزم متميزة</string>
+    <string name="pick_image">اختر الصورة</string>
+    <string name="pick_image_to_start">اختر صورة للبدء</string>
+    <string name="please_accept_terms_to_continue">يرجى قبول الشروط للمتابعة</string>
+    <string name="profile_email_unverified_hint">قم بتأكيد بريدك الإلكتروني لتأمين حسابك وإبقاء خيارات الاسترداد متاحة.</string>
+    <string name="profile_email_unverified_title">لم يتم التحقق من البريد الإلكتروني</string>
+    <string name="profile_email_verified_hint">تم التحقق من البريد الإلكتروني لحسابك.</string>
+    <string name="profile_email_verified_title">تم التحقق من البريد الإلكتروني</string>
+    <string name="prompt_balance_credits">الرصيد: %1$d رصيد</string>
+    <string name="prompt_locked">مغلق</string>
+    <string name="prompt_open">يفتح</string>
+    <string name="prompt_subscribe_go_pro">الاشتراك / الذهاب برو</string>
+    <string name="prompt_unlock_balance_shortage">أنت بحاجة إلى %1$d رصيد، لكن رصيدك هو %2$d فقط.</string>
+    <string name="prompt_unlock_balance_unavailable">غير قادر على التحقق من رصيد الاعتمادات في الوقت الحالي.</string>
+    <string name="prompt_unlock_checking_balance">التحقق من رصيد الاعتمادات الخاصة بك...</string>
+    <string name="prompt_unlock_instant_hint">افتح القفل على الفور واستخدم المطالبة الكاملة على الفور.</string>
+    <string name="prompt_unlock_login_hint">قم بتسجيل الدخول لفتح هذه المطالبة بالاعتمادات.</string>
+    <string name="prompt_unlock_login_required">تسجيل الدخول لفتح</string>
+    <string name="prompt_unlock_not_enough_hint">أنت بحاجة إلى رصيد %1$d لفتح هذه المطالبة المميزة.</string>
+    <string name="prompt_unlock_now">افتح الآن</string>
+    <string name="prompt_unlock_option_unavailable">لا يوجد خيار إلغاء القفل متاح حاليًا لهذه المطالبة.</string>
+    <string name="prompt_unlock_premium_title">الوصول الفوري المميز</string>
+    <string name="prompt_unlocked">مفتوح</string>
+    <string name="quality_mode">وضع الجودة</string>
+    <string name="referral_apply_code">تطبيق الكود</string>
+    <string name="referral_apply_code_first">قم بتطبيق الكود أولاً</string>
+    <string name="referral_applying_code">جارٍ التقديم…</string>
+    <string name="referral_card_apply_code_cta">هل لديك رمز؟ تطبيق الكود</string>
+    <string name="referral_card_code_loading">جارٍ إنشاء الكود…</string>
+    <string name="referral_card_copy_code">نسخ الرمز</string>
+    <string name="referral_card_invite_friends">دعوة الأصدقاء</string>
+    <string name="referral_card_login_required">قم بتسجيل الدخول لإنشاء الكود الخاص بك</string>
+    <string name="referral_card_pending_count">في انتظار %1$d</string>
+    <string name="referral_card_referred_count">تمت الإشارة إليه %1$d</string>
+    <string name="referral_card_rewarded_count">مكافأة %1$d</string>
+    <string name="referral_card_subtitle">شارك رمز الإحالة الخاص بك مع الأصدقاء واحصل على مكافآت عندما يتأهلون.</string>
+    <string name="referral_card_title">دعوة وكسب</string>
+    <string name="referral_claim_reward">المطالبة بالمكافأة</string>
+    <string name="referral_code_copied">تم نسخ رمز الإحالة</string>
+    <string name="referral_code_label">رمز الإحالة</string>
+    <string name="referral_complete_unlock_to_qualify">أكمل فتحك الأول للتأهل</string>
+    <string name="referral_login_to_claim">تسجيل الدخول للمطالبة</string>
+    <string name="referral_login_to_claim_rewards">تسجيل الدخول للمطالبة بالمكافآت والإحالات.</string>
+    <string name="referral_qualify_helper">يتم فتح المكافآت بعد إجراء التأهل (على سبيل المثال، أول فتح مميز أو الجيل الأول).</string>
+    <string name="referral_reward_claimed">المكافأة المطالب بها</string>
+    <string name="remove_bg">إزالة بي جي</string>
+    <string name="remove_bg_card_desc">استخدم الذكاء الاصطناعي لإزالة خلفيات الصور بجودة عبر الإنترنت أو بالرجوع إلى وضع عدم الاتصال.</string>
+    <string name="remove_bg_disclosure_body">قد تؤدي عملية إزالة الخلفية عالية الجودة إلى تحميل صورتك إلى خادمنا للمعالجة.</string>
+    <string name="remove_bg_disclosure_title">الكشف عن المعالجة السحابية</string>
+    <string name="remove_bg_preview_title">معاينة إزالة الخلفية</string>
+    <string name="remove_bg_processing">جارٍ إزالة الخلفية...</string>
+    <string name="rewards_ad_daily_progress">%1$d/%2$d إعلانات اليوم</string>
+    <string name="rewards_ad_in_progress">هناك إعلان بمكافأة قيد التقدم بالفعل.</string>
+    <string name="rewards_ad_limit_reached">لقد تمت المطالبة بمكافأة إعلان اليوم بالفعل.</string>
+    <string name="rewards_ad_not_completed">تم إغلاق الإعلان قبل الإكتمال. لم تتم إضافة أي اعتمادات.</string>
+    <string name="rewards_ad_points_added_snackbar">تمت إضافة +%1$d أرصدة إعلانية</string>
+    <string name="rewards_ad_requires_activity">يتطلب فتح الإعلان شاشة نشطة.</string>
+    <string name="rewards_ad_temporarily_unavailable">إعلان المكافأة غير متاح مؤقتًا.</string>
+    <string name="rewards_balance_syncing">مزامنة الرصيد...</string>
+    <string name="rewards_bonus">Bonus</string>
+    <string name="rewards_claim_plus_credits">المطالبة +%1$d الاعتمادات</string>
+    <string name="rewards_claim_short">مطالبة</string>
+    <string name="rewards_claimed_for_today">المطالبة لهذا اليوم</string>
+    <string name="rewards_claimed_short">ادعى</string>
+    <string name="rewards_claiming">جارٍ المطالبة...</string>
+    <string name="rewards_cost_credits">%1$d الاعتمادات</string>
+    <string name="rewards_credits">الاعتمادات</string>
+    <string name="rewards_credits_amount">%1$d الاعتمادات</string>
+    <string name="rewards_earn_card_subtitle">طرق سريعة لتعبئة محفظتك.</string>
+    <string name="rewards_earn_row_rewarded_ad">إعلان بمكافأة</string>
+    <string name="rewards_fetching_featured_prompt">جارٍ جلب المطالبة المميزة اليوم...</string>
+    <string name="rewards_level_label">Level %1$d</string>
+    <string name="rewards_loading_reward_ad">جارٍ إعداد مكافأتك...</string>
+    <string name="rewards_login_again">تسجيل الدخول مرة أخرى</string>
+    <string name="rewards_login_prompt">قم بتسجيل الدخول للمطالبة بالمكافآت والخط والإحالات.</string>
+    <string name="rewards_login_to_claim_reward">تسجيل الدخول للمطالبة بالمكافأة</string>
+    <string name="rewards_login_to_claim_short">تسجيل الدخول للمطالبة بالمكافآت</string>
+    <string name="rewards_open_free_today">افتح مجانًا اليوم</string>
+    <string name="rewards_points_added_snackbar">تمت إضافة الاعتمادات +%1$d</string>
+    <string name="rewards_progress_title">تقدم</string>
+    <string name="rewards_prompt_of_day_subtitle">اليوم فكرة إبداعية مميزة.</string>
+    <string name="rewards_prompt_of_day_title">مطالبة اليوم</string>
+    <string name="rewards_recent_activity_empty">لا يوجد نشاط ائتماني حديث حتى الآن.</string>
+    <string name="rewards_recent_activity_title">النشاط الأخير</string>
+    <string name="rewards_referral_rewards_subtitle">قم بدعوة الأصدقاء والمطالبة بأرصدة المكافأة عندما يتأهلون.</string>
+    <string name="rewards_referral_rewards_title">مكافآت الإحالة</string>
+    <string name="rewards_retry_ad_load">أعد محاولة تحميل الإعلان</string>
+    <string name="rewards_session_expired_prompt">انتهت جلستك. قم بتسجيل الدخول مرة أخرى لمواصلة المكافآت.</string>
+    <string name="rewards_streak_active">%1$d خط نشط لمدة يوم</string>
+    <string name="rewards_streak_already_claimed_next_tomorrow">تمت المطالبة بخط اليوم بالفعل. المكافأة التالية تستمر غدا.</string>
+    <string name="rewards_streak_claim_below_hint">قم بالمطالبة في Daily Streak أدناه لكسب +%1$d أرصدة.</string>
+    <string name="rewards_streak_claim_now_message">قم بالمطالبة الآن للحفاظ على خطك على قيد الحياة.</string>
+    <string name="rewards_streak_claimed_next_reward">المطالبة لهذا اليوم. المكافأة التالية: اليوم %1$d (+%2$d).</string>
+    <string name="rewards_streak_consistency_message">اتساق كبير. عُد غدًا من أجل +%1$d.</string>
+    <string name="rewards_streak_day_label">يوم %1$d</string>
+    <string name="rewards_streak_final_day_ready">مكافأة اليوم الأخير +%1$d جاهزة.</string>
+    <string name="rewards_streak_start_today">ابدأ خطك اليوم</string>
+    <string name="rewards_streak_title">الخط اليومي</string>
+    <string name="rewards_streak_today_reward">اليوم: مكافأة اليوم %1$d +%2$d.</string>
+    <string name="rewards_streak_weekly_complete">اكتملت الدورة الأسبوعية. استمر في تحقيق زخم أكبر.</string>
+    <string name="rewards_today_featured_prompt">اليوم المميز موجه</string>
+    <string name="rewards_today_pick">اختيار اليوم</string>
+    <string name="rewards_unlock_forever">فتح إلى الأبد</string>
+    <string name="rewards_wallet_subtitle">استخدم الاعتمادات للمطالبات والحزم المميزة.</string>
+    <string name="rewards_wallet_title">المحفظة والائتمانات</string>
+    <string name="rewards_watch_ad_confirm_action">نعم، شاهد الآن</string>
+    <string name="rewards_watch_ad_confirm_message">لن تشاهد إعلانًا بمكافأة ولن تحصل على +%1$d أرصدة إلا بعد إكماله بنجاح.</string>
+    <string name="rewards_watch_ad_confirm_title">هل تشاهد إعلانًا بمكافأة؟</string>
+    <string name="rewards_watch_ad_plus">مشاهدة الإعلان (+الاعتمادات)</string>
+    <string name="rewards_watch_ad_plus_amount">شاهد إعلان المكافأة (+%1$d أرصدة)</string>
+    <string name="rewards_watch_ad_short">شاهد إعلان المكافأة</string>
+    <string name="rewards_watch_ad_value_statement">شاهد إعلانًا بمكافأة لتربح +%1$d أرصدة تم التحقق منها بعد اكتماله.</string>
+    <string name="rewards_xp_progress">%1$d / %2$d XP</string>
+    <string name="save_png">حفظ PNG</string>
+    <string name="token_image_gen_priority">أجيال الصور ذات الأولوية</string>
+    <string name="token_prompt_unlock">رموز فتح سريعة</string>
+    <string name="transparent_bg">شفاف</string>
+    <string name="delete_account_delete_keyword">DELETE</string>
+    <string name="prompt_unlock_available_in_pack">متوفر في حزمة بريميوم.</string>
+    <string name="prompt_unlock_available_options_hint">افتح هذه المطالبة المميزة بالخيارات المتاحة أدناه.</string>
+    <string name="prompt_unlock_checking_session">جارٍ التحقق من الجلسة...</string>
+    <string name="prompt_unlock_login_again_hint">يرجى تسجيل الدخول مرة أخرى لمواصلة فتح المطالبات المتميزة.</string>
+    <string name="prompt_unlock_not_available_from_screen">هذه المطالبة المميزة غير قابلة للفتح حاليًا من هذه الشاشة.</string>
+    <string name="prompt_unlock_preview">افتح القفل لعرض المطالبة الكاملة.</string>
+    <string name="prompt_unlock_with_subscription_hint">فتح مع اشتراكك النشط.</string>
+    <string name="referral_share_apply_hint">بعد التثبيت، افتح Rewards -&gt; Apply Code.</string>
+    <string name="referral_share_chooser_title">مشاركة رمز الإحالة</string>
+    <string name="referral_share_invite_header">قم بتثبيت PicPose: مطالبات الذكاء الاصطناعي ودليل الوضعيات</string>
+    <string name="referral_share_use_code">استخدم رمز الإحالة الخاص بي: %1$s</string>
+    <string name="rewards_plus_credits_amount">+%1$d</string>
 </resources>

@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">पिकपोज़</string>
-    
-    <!-- Authentication -->
     <string name="login">लॉगिन</string>
     <string name="register">पंजीकरण</string>
     <string name="email">ईमेल</string>
@@ -18,8 +16,6 @@
     <string name="logout">लॉगआउट</string>
     <string name="logout_subtitle_device">इस डिवाइस से साइन आउट करें</string>
     <string name="google_client_id">424655024692-i2dupr2t96snjnlo82f5o1dcvu63stbm.apps.googleusercontent.com</string>
-
-    <!-- Settings -->
     <string name="settings">सेटिंग्स</string>
     <string name="dark_mode">डार्क मोड</string>
     <string name="language">भाषा</string>
@@ -28,24 +24,18 @@
     <string name="enable_dark_mode">डार्क मोड सक्षम करें</string>
     <string name="enable_notifications">सूचनाएं सक्षम करें</string>
     <string name="select_language">भाषा चुनें</string>
-    <string name="english">English</string>
+    <string name="english">अंग्रेज़ी</string>
     <string name="hindi">हिन्दी</string>
-    
-    <!-- Profile -->
     <string name="profile">प्रोफ़ाइल</string>
     <string name="edit_profile">प्रोफ़ाइल संपादित करें</string>
     <string name="followers">अनुयायी</string>
     <string name="following">फॉलो किए जा रहे</string>
     <string name="posts">पोस्ट</string>
-    
-    <!-- Errors -->
     <string name="error_email_required">ईमेल आवश्यक है</string>
     <string name="error_password_required">पासवर्ड आवश्यक है</string>
     <string name="error_name_required">नाम आवश्यक है</string>
     <string name="error_invalid_email">अमान्य ईमेल पता</string>
     <string name="error_password_too_short">पासवर्ड कम से कम 6 अक्षर का होना चाहिए</string>
-    
-    <!-- General -->
     <string name="loading">लोड हो रहा है…</string>
     <string name="save">सहेजें</string>
     <string name="cancel">रद्द करें</string>
@@ -89,7 +79,7 @@
     <string name="reset_gemini_message">जेमिनी खोलने से पहले फिर से पूछा जाएगा।</string>
     <string name="reset">रीसेट</string>
     <string name="enabled">सक्रिय</string>
-    <string name="language_english">English</string>
+    <string name="language_english">अंग्रेज़ी</string>
     <string name="language_hindi">हिन्दी</string>
     <string name="notification_title">अपडेट रहें 📢</string>
     <string name="notification_message_header">सूचनाएं सक्षम करें ताकि आप पा सकें:\n\n</string>
@@ -100,9 +90,6 @@
     <string name="notification_note_body_prefix">आप कभी भी सूचनाएं बंद कर सकते हैं, </string>
     <string name="allow">अनुमति दें</string>
     <string name="not_now">अभी नहीं</string>
-
-
-    <!-- एआई प्रॉम्प्ट पसंदीदा स्क्रीन -->
     <string name="favorite_prompts_title">पसंदीदा प्रॉम्प्ट (%d)</string>
     <string name="back_button_content_description">वापस</string>
     <string name="all_favorites_exported_toast">सभी पसंदीदा क्लिपबोर्ड में निर्यात किए गए!</string>
@@ -112,16 +99,12 @@
     <string name="no_favorite_prompts_title">कोई पसंदीदा प्रॉम्प्ट नहीं</string>
     <string name="no_favorite_prompts_description">एआई प्रॉम्प्ट खोजें और अपने पसंदीदा यहाँ जोड़ें!</string>
     <string name="browse_prompts_button">प्रॉम्प्ट ब्राउज़ करें</string>
-
-    <!-- Home / Sections -->
     <string name="facebook_client_token">0656140dee77bb556f0f3eb80cbb7d67</string>
     <string name="trending">ट्रेंडिंग</string>
     <string name="featured">विशेष</string>
     <string name="popular">लोकप्रिय</string>
     <string name="view_all_title">सभी देखें</string>
     <string name="no_posts_available">कोई पोस्ट उपलब्ध नहीं है</string>
-
-    <!-- Actions -->
     <string name="like">लाइक</string>
     <string name="favorite">पसंदीदा</string>
     <string name="share">शेयर</string>
@@ -130,8 +113,6 @@
     <string name="search">खोजें</string>
     <string name="submit_search">खोज सबमिट करें</string>
     <string name="dismiss">बंद करें</string>
-
-    <!-- Tips -->
     <string name="daily_ai_tip">दैनिक AI टिप</string>
     <string name="tip">टिप</string>
     <string name="next_tip">अगली टिप</string>
@@ -140,28 +121,19 @@
     <string name="tap_to_see_another_tip">
         दूसरी टिप देखने के लिए 🔄 टैप करें
     </string>
-
-    <!-- Time -->
     <string name="minutes_format">%1$d मिनट</string>
     <string name="minutes_compact_format">%1$dमि</string>
-
-    <!-- Search -->
     <string name="search_prompts_guides_placeholder">
         प्रॉम्प्ट और गाइड खोजें…
     </string>
-
-    <!-- Welcome -->
     <string name="welcome_to_picpose">PicPose में आपका स्वागत है</string>
     <string name="welcome_subtitle">
         स्मार्ट AI फोटोग्राफी टिप्स और प्रॉम्प्ट
     </string>
     <string name="like_count">लाइक</string>
-
-
     <string name="about">जानकारी</string>
     <string name="about_app_title">ऐप के बारे में</string>
     <string name="about_the_app">ऐप के बारे में जानें</string>
-
     <string name="achievement_creative_streak">क्रिएटिव स्ट्रीक उपलब्धि</string>
     <string name="achievement_creative_streak_desc">लगातार क्रिएटिव रहने की उपलब्धि का विवरण</string>
     <string name="achievement_first_upload">पहला अपलोड</string>
@@ -171,19 +143,15 @@
     <string name="achievement_social_butterfly">सोशल बटरफ्लाई</string>
     <string name="achievement_social_butterfly_desc">सोशल रूप से सक्रिय रहने की उपलब्धि का विवरण</string>
     <string name="achievements">उपलब्धियाँ</string>
-
     <string name="ad_free">विज्ञापन मुक्त</string>
     <string name="ad_placeholder">विज्ञापन स्थान</string>
-
     <string name="add_to_favorites">पसंदीदा में जोड़ें</string>
     <string name="added_to_favorites">पसंदीदा में जोड़ा गया</string>
     <string name="admin">एडमिन</string>
-
     <string name="ai_bio">AI बायो</string>
     <string name="ai_bio_suggestions">AI बायो सुझाव</string>
     <string name="ai_enhancement_coming_soon">AI एन्हांसमेंट जल्द आ रहा है</string>
     <string name="ai_prompt_creation_coming_soon">AI प्रॉम्प्ट निर्माण जल्द आ रहा है</string>
-
     <string name="ai_prompt_details_title">AI प्रॉम्प्ट विवरण</string>
     <string name="ai_prompt_label">AI प्रॉम्प्ट लेबल</string>
     <string name="ai_prompt_action_cancel">रद्द करें</string>
@@ -199,177 +167,113 @@
     <string name="ai_prompt_toast_copied_opening_gemini">क्लिपबोर्ड में कॉपी किया गया। Gemini खोला जा रहा है।</string>
     <string name="ai_prompts">AI प्रॉम्प्ट्स</string>
     <string name="ai_prompts_with_emoji">🤖 AI प्रॉम्प्ट्स</string>
-
     <string name="all">सभी</string>
     <string name="all_content">सभी कंटेंट</string>
     <string name="all_favorites_copied">सभी पसंदीदा कॉपी कर लिए गए</string>
     <string name="all_filters_and_content_refreshed">सभी फ़िल्टर और कंटेंट रिफ्रेश हो गए</string>
     <string name="all_prompts_count">सभी प्रॉम्प्ट्स (%1$d)</string>
-
     <string name="app_info">ऐप जानकारी</string>
     <string name="app_settings">ऐप सेटिंग्स</string>
-
     <string name="available_rewards">उपलब्ध रिवॉर्ड्स</string>
     <string name="best_for_generating_results">बेहतर परिणाम बनाने के लिए उपयुक्त</string>
-
     <string name="bio">बायो</string>
     <string name="by_author">%1$s द्वारा</string>
-
     <string name="camera_feature_coming_soon">कैमरा फीचर जल्द आ रहा है</string>
-
     <string name="categories_subtitle">विभिन्न स्टाइल एक्सप्लोर करें</string>
     <string name="categories_title">कैटेगरीज़</string>
-
     <string name="category_abstract">एब्स्ट्रैक्ट</string>
     <string name="category_nature">प्रकृति</string>
     <string name="category_portrait">पोर्ट्रेट</string>
     <string name="category_street">स्ट्रीट</string>
-
     <string name="change_view">व्यू बदलें</string>
-
     <string name="check_back_later_for_new_content">नए कंटेंट के लिए बाद में देखें</string>
     <string name="check_back_later_for_new_prompts">नए प्रॉम्प्ट्स के लिए बाद में देखें</string>
-
     <string name="choose_from_gallery">गैलरी से चुनें</string>
     <string name="clear_filters">फ़िल्टर हटाएँ</string>
-
     <string name="close">बंद करें</string>
     <string name="close_search">सर्च बंद करें</string>
-
     <string name="collage_maker_coming_soon">कोलाज मेकर जल्द आ रहा है</string>
-
     <string name="community_highlights_subtitle">ट्रेंडिंग और फीचर्ड पोस्ट एक्सप्लोर करें</string>
     <string name="community_highlights_title">कम्युनिटी हाइलाइट्स</string>
-
     <string name="completed">पूर्ण</string>
-
     <string name="connect_wifi_mobile_data">Wi-Fi या मोबाइल डेटा कनेक्ट करें</string>
-
     <string name="continue_in_gemini">Gemini में जारी रखें</string>
     <string name="continue_label">जारी रखें</string>
-
     <string name="copies">कॉपीज़</string>
     <string name="copy">कॉपी करें</string>
     <string name="copy_full_prompt">पूरा प्रॉम्प्ट कॉपी करें</string>
     <string name="copy_prompt">प्रॉम्प्ट कॉपी करें</string>
     <string name="copy_prompts_open_gemini">प्रॉम्प्ट कॉपी कर Gemini खोलें</string>
-
     <string name="create_category_content_creation">कंटेंट क्रिएशन</string>
     <string name="create_category_guides_tips">गाइड्स और टिप्स</string>
     <string name="create_category_photography">फोटोग्राफी</string>
-
     <string name="create_header_subtitle">कुछ नया बनाएं</string>
     <string name="create_header_title">क्रिएट करें</string>
-
     <string name="create_option_add_filters">फ़िल्टर जोड़ें</string>
     <string name="create_option_add_filters_desc">अपनी फोटो में फ़िल्टर जोड़ें</string>
-
     <string name="create_option_add_text">टेक्स्ट जोड़ें</string>
     <string name="create_option_add_text_desc">अपनी फोटो में टेक्स्ट जोड़ें</string>
-
     <string name="create_option_ai_enhancement">AI एन्हांसमेंट</string>
     <string name="create_option_ai_enhancement_desc">AI से फोटो को बेहतर बनाएं</string>
-
     <string name="create_option_ai_prompt">AI प्रॉम्प्ट</string>
     <string name="create_option_ai_prompt_desc">AI प्रॉम्प्ट तैयार करें</string>
-
     <string name="create_option_create_guide">गाइड बनाएं</string>
     <string name="create_option_create_guide_desc">अपनी फोटोग्राफी गाइड बनाएं</string>
-
     <string name="create_option_photo_collage">फोटो कोलाज</string>
     <string name="create_option_photo_collage_desc">कई फोटो से कोलाज बनाएं</string>
-
     <string name="create_option_photo_editor">फोटो एडिटर</string>
     <string name="create_option_photo_editor_desc">फोटो एडिट करें</string>
-
     <string name="create_option_share_tip">टिप शेयर करें</string>
     <string name="create_option_share_tip_desc">अपनी टिप्स शेयर करें</string>
-
     <string name="create_option_take_photo">फोटो लें</string>
     <string name="create_option_take_photo_desc">कैमरा से फोटो लें</string>
-
     <string name="create_option_templates">टेम्पलेट्स</string>
     <string name="create_option_templates_desc">रेडीमेड टेम्पलेट्स का उपयोग करें</string>
-
     <string name="create_option_upload_photo">फोटो अपलोड करें</string>
     <string name="create_option_upload_photo_desc">गैलरी से फोटो अपलोड करें</string>
-
     <string name="create_screen_title">क्रिएट स्क्रीन</string>
-
     <string name="created_at_with_bullet"> • %1$s</string>
-
     <string name="crop_failed">क्रॉप विफल रहा</string>
-
     <string name="customize_app_preferences">ऐप प्रेफरेंस कस्टमाइज़ करें</string>
-
     <string name="developer">डेवलपर</string>
     <string name="difficulty_with_value">कठिनाई स्तर</string>
-
     <string name="discover_creative_ai_prompts">क्रिएटिव AI प्रॉम्प्ट्स खोजें</string>
-
     <string name="dont_ask_again">दोबारा न पूछें</string>
-
     <string name="download_on_play_store">Play Store से डाउनलोड करें</string>
-
     <string name="earn_points_and_unlock_rewards">पॉइंट्स कमाएँ और रिवॉर्ड्स अनलॉक करें</string>
-
     <string name="edit">एडिट करें</string>
-
     <string name="error">त्रुटि</string>
     <string name="error_with_message">त्रुटि: %1$s</string>
-
     <string name="explore_all_ai_prompts">सभी AI प्रॉम्प्ट्स एक्सप्लोर करें</string>
     <string name="explore_title">एक्सप्लोर</string>
     <string name="create">क्रिएट</string>
-
     <string name="facebook_login_failed">Facebook लॉगिन विफल</string>
     <string name="facebook_null_token">Facebook से null टोकन मिला</string>
-
     <string name="failed_to_copy_text">टेक्स्ट कॉपी नहीं हो पाया</string>
     <string name="failed_to_load_about_information">ऐप की जानकारी लोड नहीं हो सकी</string>
-
     <string name="failed_to_load_app_settings">ऐप सेटिंग्स लोड नहीं हो सकीं</string>
-
     <string name="failed_to_load_categories">कैटेगरीज़ लोड नहीं हो सकीं</string>
-
     <string name="failed_to_load_guide_posts">गाइड पोस्ट्स लोड नहीं हो सकीं</string>
-
     <string name="no_guides_yet">अभी कोई गाइड नहीं है</string>
     <string name="failed_to_load_privacy_policy">प्राइवेसी पॉलिसी लोड नहीं हो सकी</string>
-
     <string name="failed_to_load_prompts">प्रॉम्प्ट्स लोड नहीं हो सके</string>
-
     <string name="failed_to_load_terms_conditions">नियम और शर्तें लोड नहीं हो सकीं</string>
-
     <string name="failed_to_send_message">संदेश भेजने में विफल</string>
-
-
     <string name="favorites">पसंदीदा</string>
-
     <string name="filters_coming_soon">फ़िल्टर जल्द आ रहे हैं</string>
-
     <string name="free">फ्री</string>
-
     <string name="full_ai_prompt">पूरा AI प्रॉम्प्ट</string>
     <string name="full_prompt_copied">पूरा प्रॉम्प्ट कॉपी हो गया</string>
     <string name="full_prompt_label">पूरा प्रॉम्प्ट लेबल</string>
-
     <string name="full_screen_image">फुल स्क्रीन इमेज</string>
-
     <string name="gallery_picker_coming_soon">गैलरी पिकर जल्द आ रहा है</string>
-
     <string name="gemini_continue_message">Gemini में जारी रखने का संदेश</string>
-
     <string name="get_help_and_contact_support">मदद लें और सपोर्ट से संपर्क करें</string>
-
     <string name="go_back">वापस जाएँ</string>
-
     <string name="google_credential_missing">Google क्रेडेंशियल उपलब्ध नहीं है</string>
     <string name="google_login_failed">Google लॉगिन विफल</string>
     <string name="google_play">Google Play</string>
-
     <string name="guest_user">गेस्ट यूज़र</string>
-
     <string name="guide_content">गाइड कंटेंट</string>
     <string name="guide_content_copied">गाइड कंटेंट कॉपी हो गया</string>
     <string name="guide_could_not_be_loaded">गाइड लोड नहीं हो सकी</string>
@@ -382,7 +286,6 @@
     <string name="guide_post_details_copied_to_clipboard">गाइड पोस्ट विवरण क्लिपबोर्ड में कॉपी किया गया</string>
     <string name="guide_post_not_found">गाइड पोस्ट नहीं मिली</string>
     <string name="guide_posts">गाइड पोस्ट्स</string>
-
     <string name="help_also_reach_us">आप हमसे यहां भी संपर्क कर सकते हैं</string>
     <string name="help_back_content_description">वापस</string>
     <string name="help_contact_email_content_description">सपोर्ट ईमेल</string>
@@ -416,66 +319,44 @@
     <string name="help_title">सहायता और समर्थन</string>
     <string name="help_your_email">ईमेल पता</string>
     <string name="help_your_name">पूरा नाम</string>
-
     <string name="hide_filters">फ़िल्टर छुपाएँ</string>
     <string name="home">होम</string>
-
     <string name="image_error">इमेज त्रुटि</string>
     <string name="image_load_error">इमेज लोड त्रुटि</string>
-
     <string name="install">इंस्टॉल करें</string>
     <string name="invalid_id">अमान्य आईडी</string>
-
     <string name="just_now">अभी अभी</string>
-
     <string name="last_updated">अंतिम अपडेट</string>
     <string name="last_updated_just_now">अभी अपडेट किया गया</string>
-
     <string name="latest">नवीनतम</string>
     <string name="latest_first">नवीनतम पहले</string>
-
     <string name="learn_more">और जानें</string>
     <string name="less">कम</string>
-
     <string name="lightning_emoji">⚡️</string>
-
     <string name="like_with_count">लाइक संख्या के साथ</string>
     <string name="likes">लाइक्स</string>
     <string name="likes_count">लाइक्स की संख्या</string>
-
     <string name="live_stats_with_emoji">✨ लाइव आँकड़े</string>
-
     <string name="load_more">और लोड करें</string>
-
     <string name="loading_about_information">जानकारी लोड हो रही है</string>
     <string name="loading_ad">विज्ञापन लोड हो रहा है</string>
     <string name="loading_ai_prompts">AI प्रॉम्प्ट्स लोड हो रहे हैं</string>
     <string name="loading_content">कंटेंट लोड हो रहा है</string>
     <string name="loading_privacy_policy">प्राइवेसी पॉलिसी लोड हो रही है</string>
     <string name="loading_prompt">प्रॉम्प्ट लोड हो रहा है…</string>
-
     <string name="locked">लॉक्ड</string>
-
     <string name="login_failed">लॉगिन विफल</string>
     <string name="logout_confirmation_message">लॉगआउट की पुष्टि करें</string>
-
     <string name="message_sent_successfully">संदेश सफलतापूर्वक भेजा गया</string>
-
     <string name="min_read">मिनट पढ़ने का समय</string>
     <string name="missing_pkce_verifier">PKCE वेरिफ़ायर गायब है</string>
-
     <string name="more">और</string>
-
     <string name="more_features_coming_soon">और फीचर्स जल्द आ रहे हैं</string>
     <string name="more_features_coming_soon_desc">अधिक फीचर्स जल्द उपलब्ध होंगे</string>
-
     <string name="most_liked">सबसे ज़्यादा पसंद किए गए</string>
     <string name="most_viewed">सबसे ज़्यादा देखे गए</string>
-
     <string name="my_favorites">मेरे पसंदीदा</string>
-
     <string name="newest">सबसे नए</string>
-
     <string name="no_content_available">कोई कंटेंट उपलब्ध नहीं है</string>
     <string name="no_content_found_in_this_category">इस कैटेगरी में कोई कंटेंट नहीं मिला</string>
     <string name="no_data_available">कोई डेटा उपलब्ध नहीं है</string>
@@ -487,115 +368,78 @@
     <string name="no_prompts_found_in_this_category">इस कैटेगरी में कोई प्रॉम्प्ट नहीं मिला</string>
     <string name="no_results_found">कोई परिणाम नहीं मिला</string>
     <string name="no_terms_conditions_available">कोई नियम और शर्तें उपलब्ध नहीं हैं</string>
-
     <string name="not_logged_in">लॉग इन नहीं हैं</string>
-
     <string name="notification_channel_description">नोटिफिकेशन चैनल विवरण</string>
     <string name="notification_channel_name">नोटिफिकेशन चैनल नाम</string>
-
     <string name="oops_something_went_wrong">ओह! कुछ गलत हो गया</string>
-
     <string name="phone">फोन</string>
-
     <string name="photo_editor_coming_soon">फोटो एडिटर जल्द आ रहा है</string>
-
     <string name="photography_guide_title">फोटोग्राफी गाइड</string>
     <string name="photography_guides_subtitle">एक्सपर्ट्स से सीखें</string>
     <string name="photography_guides_title">फोटोग्राफी गाइड्स</string>
-
     <string name="please_check_back_later">कृपया बाद में फिर देखें</string>
     <string name="please_enter_your_name">कृपया अपना नाम दर्ज करें</string>
     <string name="please_login_to_edit_profile">प्रोफ़ाइल एडिट करने के लिए लॉगिन करें</string>
     <string name="please_wait_before_refreshing_again">कृपया दोबारा रिफ्रेश करने से पहले प्रतीक्षा करें</string>
-
     <string name="points">पॉइंट्स</string>
     <string name="points_count">पॉइंट्स की संख्या</string>
-
     <string name="post_details_copied_to_clipboard">पोस्ट विवरण क्लिपबोर्ड में कॉपी किया गया</string>
     <string name="posts_count">%1$d पोस्ट</string>
-
     <string name="premium">प्रीमियम</string>
-
     <string name="press_back_again_to_exit">बाहर निकलने के लिए फिर से बैक दबाएँ</string>
-
     <string name="privacy_policy_title">प्राइवेसी पॉलिसी</string>
-
     <string name="professional">प्रोफेशनल</string>
-
     <string name="profile_management">प्रोफ़ाइल प्रबंधन</string>
     <string name="profile_picture">प्रोफ़ाइल फोटो</string>
     <string name="profile_updated">प्रोफ़ाइल अपडेट हो गई</string>
-
     <string name="prompt_copied_for_sharing">शेयर करने के लिए प्रॉम्प्ट कॉपी किया गया</string>
     <string name="prompt_copied_opening_gemini">प्रॉम्प्ट कॉपी कर Gemini खोला जा रहा है</string>
     <string name="prompt_copied_to_clipboard">प्रॉम्प्ट क्लिपबोर्ड में कॉपी किया गया</string>
     <string name="prompt_not_found">प्रॉम्प्ट नहीं मिला</string>
-
     <string name="prompts">प्रॉम्प्ट्स</string>
     <string name="prompts_count">प्रॉम्प्ट्स की संख्या</string>
     <string name="prompts_for_category_count">%1$s के प्रॉम्प्ट्स (%2$d)</string>
-
     <string name="quick_actions">त्वरित क्रियाएँ</string>
     <string name="quick_stats_title">📊 त्वरित आँकड़े</string>
-
     <string name="read_privacy_policy">प्राइवेसी पॉलिसी पढ़ें</string>
     <string name="read_time_with_minutes">%1$d मिनट पढ़ने का समय</string>
-
     <string name="recent_posts_subtitle">कम्युनिटी की नवीनतम पोस्ट</string>
     <string name="recent_posts_title">हाल की पोस्ट्स</string>
     <string name="recently">हाल ही में</string>
-
     <string name="redeem">रिडीम करें</string>
     <string name="refresh">रिफ्रेश करें</string>
-
     <string name="registration_failed">रजिस्ट्रेशन विफल</string>
-
     <string name="remove">हटाएँ</string>
     <string name="remove_from_favorites">पसंदीदा से हटाएँ</string>
     <string name="remove_photo">फोटो हटाएँ</string>
     <string name="removed_from_favorites">पसंदीदा से हटा दिया गया</string>
-
     <string name="retry">पुनः प्रयास करें</string>
-
     <string name="reward_ai_photo_enhancement">AI फोटो एन्हांसमेंट रिवॉर्ड</string>
     <string name="reward_ai_photo_enhancement_desc">AI से फोटो बेहतर बनाने का रिवॉर्ड</string>
-
     <string name="reward_cloud_storage_100gb">100GB क्लाउड स्टोरेज</string>
     <string name="reward_cloud_storage_100gb_desc">100GB क्लाउड स्टोरेज रिवॉर्ड</string>
-
     <string name="reward_one_on_one_photography_tips">वन-ऑन-वन फोटोग्राफी टिप्स</string>
     <string name="reward_one_on_one_photography_tips_desc">व्यक्तिगत फोटोग्राफी टिप्स रिवॉर्ड</string>
-
     <string name="reward_photo_contest_entry">फोटो प्रतियोगिता एंट्री</string>
     <string name="reward_photo_contest_entry_desc">फोटो प्रतियोगिता में भाग लेने का रिवॉर्ड</string>
-
     <string name="reward_premium_filters_pack">प्रीमियम फ़िल्टर पैक</string>
     <string name="reward_premium_filters_pack_desc">प्रीमियम फ़िल्टर पैक रिवॉर्ड</string>
-
     <string name="reward_premium_templates">प्रीमियम टेम्पलेट्स</string>
     <string name="reward_premium_templates_desc">प्रीमियम टेम्पलेट्स रिवॉर्ड</string>
-
     <string name="rewards">रिवॉर्ड्स</string>
     <string name="rewards_footer_message">रिवॉर्ड्स से संबंधित संदेश</string>
-
     <string name="save_changes">परिवर्तन सहेजें</string>
     <string name="saved_prompts">सेव किए गए प्रॉम्प्ट्स</string>
-
     <string name="search_content_placeholder">कंटेंट खोजें</string>
-
     <string name="search_icon_emoji">🔍</string>
-
     <string name="search_prompts_placeholder">प्रॉम्प्ट्स खोजें</string>
-
     <string name="selected_image">चुनी गई इमेज</string>
-
     <string name="share_all">सभी शेयर करें</string>
     <string name="share_guide_intro">गाइड शेयर परिचय</string>
     <string name="share_hashtag_guide">गाइड हैशटैग शेयर करें</string>
     <string name="share_hashtag_photography">फोटोग्राफी हैशटैग शेयर करें</string>
     <string name="share_post_intro">यह पोस्ट देखें: %1$s</string>
-
-    <string name="share_prompt_header">🔥 PicPose: AI Prompt Book 🔥</string>
+    <string name="share_prompt_header">🔥 पिकपोज़: एआई प्रॉम्प्ट बुक 🔥</string>
     <string name="share_prompt_subheader">✨ और शानदार AI प्रॉम्प्ट्स और पोज़ आइडियाज़ के लिए PicPose ऐप आज़माएँ!</string>
     <string name="share_prompt_via">प्रॉम्प्ट शेयर करें</string>
     <string name="share_guide_via">गाइड शेयर करें</string>
@@ -603,38 +447,27 @@
     <string name="share_guide_button">गाइड शेयर करें</string>
     <string name="share_cta_title">✨ PicPose में और प्रॉम्प्ट्स और गाइड्स पाएँ:</string>
     <string name="share_cta_line">Play Store से डाउनलोड करें: %1$s</string>
-
     <string name="shared_guide_post_label">शेयर की गई गाइड पोस्ट</string>
     <string name="shared_post_label">शेयर की गई पोस्ट</string>
-
     <string name="show_filters">फ़िल्टर दिखाएँ</string>
     <string name="show_more">और दिखाएँ</string>
-
     <string name="showing_cached_information">कैश की गई जानकारी दिखा रहे हैं</string>
     <string name="showing_cached_version">कैश किया गया संस्करण दिखा रहे हैं</string>
     <string name="showing_prompts_count">प्रॉम्प्ट्स की संख्या दिखा रहे हैं</string>
-
     <string name="similar_prompts">मिलते-जुलते प्रॉम्प्ट्स</string>
-
     <string name="something_went_wrong">कुछ गलत हो गया</string>
-
     <string name="sorted_latest">नवीनतम के अनुसार क्रमबद्ध</string>
     <string name="sorted_most_liked">सबसे ज़्यादा पसंद किए गए अनुसार क्रमबद्ध</string>
     <string name="sorted_most_viewed">सबसे ज़्यादा देखे गए अनुसार क्रमबद्ध</string>
-
     <string name="sponsored">प्रायोजित</string>
     <string name="sponsored_content">प्रायोजित कंटेंट</string>
-
     <string name="submit">सबमिट करें</string>
-
     <string name="support">सपोर्ट</string>
     <string name="support_email">सपोर्ट ईमेल</string>
     <string name="support_phone">सपोर्ट फोन</string>
-
     <string name="tag">टैग</string>
     <string name="tags">टैग्स</string>
     <string name="tags_with_emoji">🏷️ टैग्स</string>
-
     <string name="take_photo">फोटो लें</string>
     <string name="templates_coming_soon">टेम्पलेट्स जल्द आ रहे हैं</string>
     <string name="terms_and_conditions">नियम और शर्तें पढ़ें</string>
@@ -663,7 +496,6 @@
     <string name="warning_emoji">⚠️</string>
     <string name="watch_ad_for_reward">रिवॉर्ड के लिए विज्ञापन देखें</string>
     <string name="you_are_not_logged_in">आप लॉग इन नहीं हैं</string>
-
     <string name="hello_world">नमस्ते दुनिया!</string>
     <string name="facebook_app_id">1158827679752112</string>
     <string name="home_quick_search_placeholder">प्रॉम्प्ट, गाइड और पोस्ट खोजें…</string>
@@ -685,27 +517,227 @@
     <string name="no_categories_available_yet">अभी कोई कैटेगरी उपलब्ध नहीं है।</string>
     <string name="no_recent_posts_available_yet">अभी कोई हाल की पोस्ट उपलब्ध नहीं है।</string>
     <string name="no_guides_available_yet">अभी कोई गाइड उपलब्ध नहीं है।</string>
-    <string name="forgot_password_title">Forgot Password</string>
-    <string name="enter_email_for_reset">Enter your email to receive reset instructions.</string>
-    <string name="send_reset_link">Send reset link</string>
-    <string name="reset_password_email_sent_generic">If an account exists, instructions will be sent.</string>
-    <string name="network_error_try_again">Network error. Please try again.</string>
-    <string name="reset_password_title">Reset Password</string>
-    <string name="new_password">New Password</string>
-    <string name="confirm_password">Confirm Password</string>
-    <string name="password_strength_error">Use at least 8 characters with letters and numbers.</string>
-    <string name="passwords_do_not_match">Passwords do not match.</string>
-    <string name="reset_password_cta">Reset password</string>
-    <string name="reset_token_invalid_or_expired">Invalid or expired reset link.</string>
-    <string name="password_reset_success">Password reset successful. Please login again.</string>
-    <string name="verify_email">Verify Email</string>
-    <string name="verifying_email">Verifying your email...</string>
-    <string name="go_to_profile">Go to Profile</string>
-    <string name="verification_email_sent">Verification link sent.</string>
-    <string name="email_verification_success">Email verified successfully.</string>
-    <string name="email_verification_invalid_or_expired">Verification link is invalid or expired.</string>
-    <string name="email_verification">Email Verification</string>
-    <string name="email_verified_label">Verified</string>
-    <string name="email_not_verified_label">Not verified</string>
-    <string name="resend_verification_link">Resend verification link</string>
+    <string name="forgot_password_title">पासवर्ड भूल गए</string>
+    <string name="enter_email_for_reset">रीसेट निर्देश प्राप्त करने के लिए अपना ईमेल दर्ज करें।</string>
+    <string name="send_reset_link">रीसेट लिंक भेजें</string>
+    <string name="reset_password_email_sent_generic">यदि कोई खाता मौजूद है, तो निर्देश भेजे जाएंगे।</string>
+    <string name="network_error_try_again">नेटवर्क त्रुटि। कृपया पुन: प्रयास करें।</string>
+    <string name="reset_password_title">पासवर्ड रीसेट</string>
+    <string name="new_password">नया पासवर्ड</string>
+    <string name="confirm_password">पासवर्ड की पुष्टि कीजिये</string>
+    <string name="password_strength_error">अक्षरों और संख्याओं के साथ कम से कम 8 वर्णों का प्रयोग करें।</string>
+    <string name="passwords_do_not_match">सांकेतिक शब्द मेल नहीं खाते।</string>
+    <string name="reset_password_cta">पासवर्ड रीसेट</string>
+    <string name="reset_token_invalid_or_expired">अमान्य या समाप्त हो चुका रीसेट लिंक.</string>
+    <string name="password_reset_success">पासवर्ड रीसेट सफल. कृपया फिर भाग लें।</string>
+    <string name="verify_email">ईमेल सत्यापित करें</string>
+    <string name="verifying_email">आपका ईमेल सत्यापित किया जा रहा है...</string>
+    <string name="go_to_profile">प्रोफ़ाइल पर जाएँ</string>
+    <string name="verification_email_sent">सत्यापन लिंक भेजा गया.</string>
+    <string name="email_verification_success">ईमेल सफलतापूर्वक सत्यापित किया गया.</string>
+    <string name="email_verification_invalid_or_expired">सत्यापन लिंक अमान्य है या समाप्त हो गया है.</string>
+    <string name="email_verification">ईमेल सत्यापन</string>
+    <string name="email_verified_label">सत्यापित</string>
+    <string name="email_not_verified_label">सत्यापित नहीं है</string>
+    <string name="resend_verification_link">सत्यापन लिंक पुनः भेजें</string>
+    <string name="after">बाद</string>
+    <string name="app_version_label">PicPose %1$s</string>
+    <string name="apply">आवेदन करना</string>
+    <string name="auth_action_in_progress">प्रमाणीकरण पहले से ही प्रगति पर है</string>
+    <string name="auth_invalid_user_data">अमान्य उपयोगकर्ता डेटा प्राप्त हुआ. कृपया पुन: प्रयास करें।</string>
+    <string name="before">पहले</string>
+    <string name="bg_options">पृष्ठभूमि विकल्प</string>
+    <string name="bio_ideas_subtitle">आवेदन करने के लिए एक पर टैप करें</string>
+    <string name="bio_ideas_title">जैव विचार</string>
+    <string name="bio_pick_idea">एक जैव विचार चुनें</string>
+    <string name="bio_random">यादृच्छिक</string>
+    <string name="bio_search_hint">जैव विचार खोजें</string>
+    <string name="bio_select_hint">मौजूदा जैव सुझावों में से चयन करने के लिए बल्ब को टैप करें</string>
+    <string name="bio_style_hint">इसे मज़ेदार और निर्माता-शैली में बनाएं</string>
+    <string name="blur_bg">मूल को धुंधला करें</string>
+    <string name="continue_action">जारी रखना</string>
+    <string name="delete_account_action">खाता हटा दो</string>
+    <string name="delete_account_confirm_message">This action is permanent and cannot be undone.
+
+Your PicPose account and associated profile data will be deleted. Some security and compliance records may be retained for up to 90 days.
+
+Do you want to continue?</string>
+    <string name="delete_account_failed">खाता हटाने में विफल</string>
+    <string name="delete_account_in_progress">हटाया जा रहा है...</string>
+    <string name="delete_account_subtitle">अपना खाता और डेटा स्थायी रूप से हटाएं</string>
+    <string name="delete_account_success">खाता सफलतापूर्वक हटा दिया गया</string>
+    <string name="delete_account_title">खाता हटा दो</string>
+    <string name="delete_account_type_delete_instruction">जारी रखने के लिए, नीचे DELETE टाइप करें।</string>
+    <string name="delete_account_type_delete_label">पुष्टि करने के लिए DELETE टाइप करें</string>
+    <string name="explore_error_generic_description">कुछ गलत हो गया। कृपया पुन: प्रयास करें।</string>
+    <string name="explore_error_parsing_description">हम नवीनतम सामग्री संसाधित नहीं कर सके. कृपया फिर से कोशिश करें।</string>
+    <string name="explore_error_parsing_title">डेटा त्रुटि</string>
+    <string name="explore_error_server_description">हम अभी एक्सप्लोर लोड नहीं कर सके. कृपया पुन: प्रयास करें।</string>
+    <string name="explore_error_server_title">सर्वर अनुपलब्ध</string>
+    <string name="explore_error_timeout_description">नेटवर्क धीमा है. कृपया पुन: प्रयास करें।</string>
+    <string name="explore_error_timeout_title">अनुरोध का समय समाप्त हो गया</string>
+    <string name="explore_slow_network_hint">धीमा नेटवर्क, अभी भी प्रयास कर रहा हूं...</string>
+    <string name="filter_best_value">सबसे अच्छा मूल्य</string>
+    <string name="filter_owned">स्वामित्व</string>
+    <string name="google_no_credentials_available">इस डिवाइस पर कोई Google खाता क्रेडेंशियल नहीं मिला. एक Google खाता जोड़ें और पुनः प्रयास करें।</string>
+    <string name="google_sign_in_cancelled">Google साइन-इन रद्द कर दिया गया</string>
+    <string name="google_token_missing">Google साइन-इन टोकन गुम है</string>
+    <string name="high_quality_online">उच्च गुणवत्ता (ऑनलाइन)</string>
+    <string name="login_consent_agree_text">मैं गोपनीयता नीति और शर्तों से सहमत हूं।</string>
+    <string name="offline_basic">ऑफ़लाइन (बुनियादी)</string>
+    <string name="pack_default_description">क्यूरेटेड रचनात्मक संकेतों तक पहुंचने के लिए इस प्रीमियम पैक को अनलॉक करें।</string>
+    <string name="pack_details_title">पैक विवरण</string>
+    <string name="pack_earn_credits_action">क्रेडिट अर्जित करें</string>
+    <string name="pack_locked_prompt_message">"%1$s" %2$s का हिस्सा है। अंदर के सभी संकेतों तक पहुंचने के लिए %3$d क्रेडिट के लिए पैक को अनलॉक करें।</string>
+    <string name="pack_locked_prompt_title">प्रीमियम पैक लॉक किया गया</string>
+    <string name="pack_open_pack">पैक खोलें</string>
+    <string name="pack_owned">स्वामित्व</string>
+    <string name="pack_prompts">संकेतों</string>
+    <string name="pack_row_locked_hint">पैक-अनन्य संकेत. पैक को खोलने के लिए उसे अनलॉक करें।</string>
+    <string name="pack_row_unlocked_hint">आपके प्रीमियम पैक में शामिल है।</string>
+    <string name="pack_unlock_current_balance">आपका शेष: %1$d क्रेडिट</string>
+    <string name="pack_unlock_deficit">%1$d अधिक क्रेडिट की आवश्यकता है</string>
+    <string name="pack_unlock_for_credits">%1$d क्रेडिट के लिए अनलॉक करें</string>
+    <string name="pack_unlock_insufficient_inline">आपके पास पर्याप्त क्रेडिट नहीं है. अधिक कमाने के लिए रिवार्ड्स पर जाएँ।</string>
+    <string name="pack_unlock_not_enough_action">पर्याप्त क्रेडिट नहीं</string>
+    <string name="pack_unlock_pack_action">पैक अनलॉक करें</string>
+    <string name="pack_unlock_prompt_message">"%1$s" %2$s का हिस्सा है। %3$d क्रेडिट के लिए पूरा पैक अनलॉक करें।</string>
+    <string name="pack_unlock_prompt_title">शीघ्र अनलॉक करें</string>
+    <string name="pack_unlock_required_credits">आवश्यक: %1$d क्रेडिट</string>
+    <string name="pack_unlocking">अनलॉक हो रहा है...</string>
+    <string name="packs_browse_all">सभी पैक ब्राउज़ करें</string>
+    <string name="packs_empty_subtitle">कोई अन्य फ़िल्टर आज़माएँ या ताज़ा करें।</string>
+    <string name="packs_empty_title">दिखाने के लिए कोई पैक नहीं</string>
+    <string name="packs_owned_active_summary">स्वामित्व: %1$d • सक्रिय: %2$d</string>
+    <string name="packs_title">प्रीमियम पैक</string>
+    <string name="pick_image">छवि चुनें</string>
+    <string name="pick_image_to_start">आरंभ करने के लिए एक छवि चुनें</string>
+    <string name="play_store_url" translatable="false">https://play.google.com/store/apps/details?id=com.picpose.bestphotographyapp</string>
+    <string name="please_accept_terms_to_continue">जारी रखने के लिए कृपया शर्तें स्वीकार करें</string>
+    <string name="profile_email_unverified_hint">अपना खाता सुरक्षित करने और पुनर्प्राप्ति विकल्प उपलब्ध रखने के लिए अपना ईमेल सत्यापित करें।</string>
+    <string name="profile_email_unverified_title">ईमेल सत्यापित नहीं है</string>
+    <string name="profile_email_verified_hint">आपका खाता ईमेल सत्यापित है.</string>
+    <string name="profile_email_verified_title">ईमेल सत्यापित</string>
+    <string name="prompt_balance_credits">शेष राशि: %1$d क्रेडिट</string>
+    <string name="prompt_locked">बंद</string>
+    <string name="prompt_open">खुला</string>
+    <string name="prompt_subscribe_go_pro">सदस्यता लें / प्रो जाएं</string>
+    <string name="prompt_unlock_balance_shortage">आपको %1$d क्रेडिट की आवश्यकता है, लेकिन आपका शेष केवल %2$d है।</string>
+    <string name="prompt_unlock_balance_unavailable">अभी क्रेडिट शेष सत्यापित करने में असमर्थ.</string>
+    <string name="prompt_unlock_checking_balance">आपके क्रेडिट शेष की जाँच की जा रही है...</string>
+    <string name="prompt_unlock_instant_hint">तुरंत अनलॉक करें और तुरंत पूर्ण प्रॉम्प्ट का उपयोग करें।</string>
+    <string name="prompt_unlock_login_hint">क्रेडिट के साथ इस प्रॉम्प्ट को अनलॉक करने के लिए लॉगिन करें।</string>
+    <string name="prompt_unlock_login_required">अनलॉक करने के लिए लॉगिन करें</string>
+    <string name="prompt_unlock_not_enough_hint">इस प्रीमियम प्रॉम्प्ट को अनलॉक करने के लिए आपको %1$d क्रेडिट की आवश्यकता है।</string>
+    <string name="prompt_unlock_now">अभी अनलॉक करें</string>
+    <string name="prompt_unlock_option_unavailable">इस प्रॉम्प्ट के लिए फिलहाल कोई अनलॉक विकल्प उपलब्ध नहीं है।</string>
+    <string name="prompt_unlock_premium_title">प्रीमियम शीघ्र पहुंच</string>
+    <string name="prompt_unlocked">अनलॉक किया</string>
+    <string name="quality_mode">गुणवत्ता मोड</string>
+    <string name="referral_apply_code">कोड लागू करें</string>
+    <string name="referral_apply_code_first">पहले एक कोड लागू करें</string>
+    <string name="referral_applying_code">लागू किया जा रहा है...</string>
+    <string name="referral_card_apply_code_cta">कोई कोड है? कोड लागू करें</string>
+    <string name="referral_card_code_loading">कोड जनरेट किया जा रहा है...</string>
+    <string name="referral_card_copy_code">कोड कॉपी करें</string>
+    <string name="referral_card_invite_friends">मित्रों को आमंत्रित करें</string>
+    <string name="referral_card_login_required">अपना कोड जनरेट करने के लिए लॉगिन करें</string>
+    <string name="referral_card_pending_count">लंबित %1$d</string>
+    <string name="referral_card_referred_count">संदर्भित %1$d</string>
+    <string name="referral_card_rewarded_count">पुरस्कृत %1$d</string>
+    <string name="referral_card_subtitle">अपना रेफरल कोड दोस्तों के साथ साझा करें और उनके योग्य होने पर पुरस्कार अर्जित करें।</string>
+    <string name="referral_card_title">आमंत्रित करें और कमाएँ</string>
+    <string name="referral_claim_reward">इनाम का दावा करें</string>
+    <string name="referral_code_copied">रेफरल कोड कॉपी किया गया</string>
+    <string name="referral_code_label">रेफरल कोड</string>
+    <string name="referral_complete_unlock_to_qualify">अर्हता प्राप्त करने के लिए अपना पहला अनलॉक पूरा करें</string>
+    <string name="referral_login_to_claim">दावा करने के लिए लॉगिन करें</string>
+    <string name="referral_login_to_claim_rewards">पुरस्कार और रेफरल का दावा करने के लिए लॉगिन करें।</string>
+    <string name="referral_qualify_helper">योग्यता कार्रवाई के बाद पुरस्कार अनलॉक होते हैं (उदाहरण के लिए, पहला प्रीमियम अनलॉक या पहली पीढ़ी)।</string>
+    <string name="referral_reward_claimed">इनाम का दावा किया गया</string>
+    <string name="remove_bg">बीजी हटाएँ</string>
+    <string name="remove_bg_card_desc">ऑनलाइन गुणवत्ता या ऑफ़लाइन फ़ॉलबैक के साथ छवि पृष्ठभूमि हटाने के लिए AI का उपयोग करें।</string>
+    <string name="remove_bg_disclosure_body">उच्च गुणवत्ता वाली पृष्ठभूमि हटाने से आपकी छवि प्रसंस्करण के लिए हमारे सर्वर पर अपलोड हो सकती है।</string>
+    <string name="remove_bg_disclosure_title">क्लाउड प्रोसेसिंग प्रकटीकरण</string>
+    <string name="remove_bg_preview_title">पृष्ठभूमि हटाने का पूर्वावलोकन</string>
+    <string name="remove_bg_processing">पृष्ठभूमि हटाई जा रही है...</string>
+    <string name="rewards_ad_daily_progress">%1$d/%2$d विज्ञापन आज</string>
+    <string name="rewards_ad_in_progress">एक पुरस्कृत विज्ञापन पहले से ही प्रगति पर है.</string>
+    <string name="rewards_ad_limit_reached">आज के विज्ञापन पुरस्कार का दावा पहले ही किया जा चुका है।</string>
+    <string name="rewards_ad_not_completed">विज्ञापन पूरा होने से पहले ही बंद कर दिया गया. कोई क्रेडिट नहीं जोड़ा गया.</string>
+    <string name="rewards_ad_points_added_snackbar">+%1$d विज्ञापन क्रेडिट जोड़े गए</string>
+    <string name="rewards_ad_requires_activity">विज्ञापन खोलने के लिए एक सक्रिय स्क्रीन की आवश्यकता होती है।</string>
+    <string name="rewards_ad_temporarily_unavailable">इनाम विज्ञापन अस्थायी रूप से अनुपलब्ध है.</string>
+    <string name="rewards_balance_syncing">बैलेंस सिंक हो रहा है...</string>
+    <string name="rewards_bonus">Bonus</string>
+    <string name="rewards_claim_plus_credits">दावा +%1$d क्रेडिट</string>
+    <string name="rewards_claim_short">दावा</string>
+    <string name="rewards_claimed_for_today">आज के लिए दावा किया गया</string>
+    <string name="rewards_claimed_short">दावा किया</string>
+    <string name="rewards_claiming">दावा...</string>
+    <string name="rewards_cost_credits">%1$d क्रेडिट</string>
+    <string name="rewards_credits">क्रेडिट</string>
+    <string name="rewards_credits_amount">%1$d क्रेडिट</string>
+    <string name="rewards_earn_card_subtitle">अपने बटुए को टॉप अप करने के तेज़ तरीके।</string>
+    <string name="rewards_earn_row_rewarded_ad">पुरस्कृत विज्ञापन</string>
+    <string name="rewards_fetching_featured_prompt">आज का विशेष संकेत लाया जा रहा है...</string>
+    <string name="rewards_level_label">Level %1$d</string>
+    <string name="rewards_loading_reward_ad">आपका इनाम तैयार किया जा रहा है...</string>
+    <string name="rewards_login_again">फिर से लॉगिन करें</string>
+    <string name="rewards_login_prompt">पुरस्कार, स्ट्रीक और रेफरल का दावा करने के लिए लॉगिन करें।</string>
+    <string name="rewards_login_to_claim_reward">इनाम का दावा करने के लिए लॉगिन करें</string>
+    <string name="rewards_login_to_claim_short">पुरस्कारों का दावा करने के लिए लॉगिन करें</string>
+    <string name="rewards_open_free_today">आज निःशुल्क खोलें</string>
+    <string name="rewards_points_added_snackbar">+%1$d क्रेडिट जोड़े गए</string>
+    <string name="rewards_progress_title">प्रगति</string>
+    <string name="rewards_prompt_of_day_subtitle">आज का विशेष रचनात्मक विचार।</string>
+    <string name="rewards_prompt_of_day_title">दिन का संकेत</string>
+    <string name="rewards_recent_activity_empty">अभी तक कोई हालिया क्रेडिट गतिविधि नहीं.</string>
+    <string name="rewards_recent_activity_title">हाल की गतिविधि</string>
+    <string name="rewards_referral_rewards_subtitle">मित्रों को आमंत्रित करें और उनके योग्य होने पर बोनस क्रेडिट का दावा करें।</string>
+    <string name="rewards_referral_rewards_title">रेफरल पुरस्कार</string>
+    <string name="rewards_retry_ad_load">विज्ञापन लोड करने का पुनः प्रयास करें</string>
+    <string name="rewards_session_expired_prompt">आपका सत्र समाप्त हो गया. पुरस्कार जारी रखने के लिए फिर से लॉगिन करें।</string>
+    <string name="rewards_streak_active">%1$d-दिन की स्ट्रीक सक्रिय</string>
+    <string name="rewards_streak_already_claimed_next_tomorrow">आज की स्ट्रीक का दावा पहले ही किया जा चुका है। अगला इनाम कल जारी रहेगा.</string>
+    <string name="rewards_streak_claim_below_hint">+%1$d क्रेडिट अर्जित करने के लिए नीचे डेली स्ट्रीक में दावा करें।</string>
+    <string name="rewards_streak_claim_now_message">अपनी शृंखला को जीवित रखने के लिए अभी दावा करें।</string>
+    <string name="rewards_streak_claimed_next_reward">आज के लिए दावा किया गया. अगला इनाम: दिन %1$d (+%2$d)।</string>
+    <string name="rewards_streak_consistency_message">बढ़िया स्थिरता. +%1$d के लिए कल वापस आएँ।</string>
+    <string name="rewards_streak_day_label">दिन %1$d</string>
+    <string name="rewards_streak_final_day_ready">अंतिम दिन का इनाम +%1$d तैयार है।</string>
+    <string name="rewards_streak_start_today">आज ही अपना सिलसिला शुरू करें</string>
+    <string name="rewards_streak_title">दैनिक लकीर</string>
+    <string name="rewards_streak_today_reward">आज: दिन %1$d इनाम +%2$d।</string>
+    <string name="rewards_streak_weekly_complete">साप्ताहिक चक्र पूरा. बड़ी गति के लिए आगे बढ़ते रहें।</string>
+    <string name="rewards_today_featured_prompt">आज का विशेष संकेत</string>
+    <string name="rewards_today_pick">आज का चयन</string>
+    <string name="rewards_unlock_forever">हमेशा के लिए अनलॉक करें</string>
+    <string name="rewards_wallet_subtitle">प्रीमियम संकेतों और पैक्स के लिए क्रेडिट का उपयोग करें।</string>
+    <string name="rewards_wallet_title">वॉलेट और क्रेडिट</string>
+    <string name="rewards_watch_ad_confirm_action">हाँ, अभी देखें</string>
+    <string name="rewards_watch_ad_confirm_message">आप एक पुरस्कृत विज्ञापन देखेंगे और सफल समापन के बाद ही +%1$d क्रेडिट प्राप्त करेंगे।</string>
+    <string name="rewards_watch_ad_confirm_title">पुरस्कृत विज्ञापन देखें?</string>
+    <string name="rewards_watch_ad_plus">विज्ञापन देखें (+क्रेडिट)</string>
+    <string name="rewards_watch_ad_plus_amount">इनाम विज्ञापन देखें (+%1$d क्रेडिट)</string>
+    <string name="rewards_watch_ad_short">इनाम विज्ञापन देखें</string>
+    <string name="rewards_watch_ad_value_statement">पूरा होने के बाद +%1$d सत्यापित क्रेडिट अर्जित करने के लिए एक पुरस्कृत विज्ञापन देखें।</string>
+    <string name="rewards_xp_progress">%1$d / %2$d XP</string>
+    <string name="save_png">पीएनजी सहेजें</string>
+    <string name="token_image_gen_priority">प्राथमिकता छवि पीढ़ी</string>
+    <string name="token_prompt_unlock">शीघ्र अनलॉक टोकन</string>
+    <string name="transparent_bg">पारदर्शी</string>
+    <string name="delete_account_delete_keyword">DELETE</string>
+    <string name="prompt_unlock_available_in_pack">प्रीमियम पैक में उपलब्ध है.</string>
+    <string name="prompt_unlock_available_options_hint">नीचे उपलब्ध विकल्पों के साथ इस प्रीमियम प्रॉम्प्ट को अनलॉक करें।</string>
+    <string name="prompt_unlock_checking_session">आपके सत्र की जाँच की जा रही है...</string>
+    <string name="prompt_unlock_login_again_hint">प्रीमियम संकेतों को अनलॉक करना जारी रखने के लिए कृपया फिर से लॉगिन करें।</string>
+    <string name="prompt_unlock_not_available_from_screen">यह प्रीमियम प्रॉम्प्ट वर्तमान में इस स्क्रीन से अनलॉक करने योग्य नहीं है।</string>
+    <string name="prompt_unlock_preview">पूर्ण संकेत देखने के लिए अनलॉक करें।</string>
+    <string name="prompt_unlock_with_subscription_hint">अपनी सक्रिय सदस्यता के साथ अनलॉक करें।</string>
+    <string name="referral_share_apply_hint">इंस्टॉल करने के बाद रिवार्ड्स -&gt; कोड लागू करें खोलें।</string>
+    <string name="referral_share_chooser_title">रेफरल कोड साझा करें</string>
+    <string name="referral_share_invite_header">PicPose इंस्टॉल करें: AI संकेत और पोज़िंग गाइड</string>
+    <string name="referral_share_use_code">मेरे रेफरल कोड का उपयोग करें: %1$s</string>
+    <string name="rewards_plus_credits_amount">+%1$d</string>
 </resources>

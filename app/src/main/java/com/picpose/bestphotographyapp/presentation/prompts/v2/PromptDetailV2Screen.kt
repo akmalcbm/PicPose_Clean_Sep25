@@ -1019,10 +1019,10 @@ private fun PromptBodyCard(
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = when {
-                        isPackOnly && canViewPack -> "Available in Premium Pack."
-                        canUnlockWithCredits || canUnlockWithRewarded || canUnlockWithToken -> "Unlock this premium prompt with available options below."
-                        canUnlockWithSubscriber -> "Unlock with your active subscription."
-                        else -> "This premium prompt is currently not unlockable from this screen."
+                        isPackOnly && canViewPack -> stringResource(R.string.prompt_unlock_available_in_pack)
+                        canUnlockWithCredits || canUnlockWithRewarded || canUnlockWithToken -> stringResource(R.string.prompt_unlock_available_options_hint)
+                        canUnlockWithSubscriber -> stringResource(R.string.prompt_unlock_with_subscription_hint)
+                        else -> stringResource(R.string.prompt_unlock_not_available_from_screen)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1072,7 +1072,7 @@ private fun PromptBodyCard(
                                     strokeWidth = 2.dp,
                                 )
                                 Text(
-                                    text = "Checking your session...",
+                                    text = stringResource(R.string.prompt_unlock_checking_session),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1083,7 +1083,7 @@ private fun PromptBodyCard(
                     authState == PromptDetailAuthState.LoggedOut || unlockState.requiresLogin -> {
                         if (unlockState.requiresLogin) {
                             Text(
-                                text = "Please login again to continue unlocking premium prompts.",
+                                text = stringResource(R.string.prompt_unlock_login_again_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(bottom = 8.dp),
@@ -1134,12 +1134,12 @@ private fun PromptBodyCard(
 
                                 Text(
                                     text = when {
-                                        unlockState.isPointsBalanceLoading -> "Checking your credits balance..."
+                                        unlockState.isPointsBalanceLoading -> stringResource(R.string.prompt_unlock_checking_balance)
                                         hasResolvedBalance -> stringResource(
                                             R.string.prompt_balance_credits,
                                             pointsBalance ?: 0,
                                         )
-                                        else -> "Unable to verify credits balance right now."
+                                        else -> stringResource(R.string.prompt_unlock_balance_unavailable)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1147,7 +1147,11 @@ private fun PromptBodyCard(
 
                                 if (hasResolvedBalance && !hasEnoughBalance) {
                                     Text(
-                                        text = "You need $unlockCost credits, but your balance is only ${pointsBalance ?: 0}.",
+                                        text = stringResource(
+                                            R.string.prompt_unlock_balance_shortage,
+                                            unlockCost,
+                                            pointsBalance ?: 0,
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.error,
                                     )
@@ -1190,13 +1194,13 @@ private fun PromptBodyCard(
                                     onClick = onOpenSubscribe,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    Text("Subscribe / Go Pro")
+                                    Text(stringResource(R.string.prompt_subscribe_go_pro))
                                 }
                             }
 
                             if (!hasAnyUnlockAction) {
                                 Text(
-                                    text = "No unlock option is currently available for this prompt.",
+                                    text = stringResource(R.string.prompt_unlock_option_unavailable),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1569,7 +1573,7 @@ private fun LockedPromptPreview(teaser: String) {
             .padding(16.dp),
     ) {
         Text(
-            text = teaser.ifBlank { "Unlock to view the full prompt." }, // TODO string key: prompt_unlock_preview
+            text = teaser.ifBlank { stringResource(R.string.prompt_unlock_preview) },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 5,
