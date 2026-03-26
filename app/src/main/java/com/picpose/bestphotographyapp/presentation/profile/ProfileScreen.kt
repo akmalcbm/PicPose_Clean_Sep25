@@ -316,6 +316,7 @@ private fun ProfileHeaderCard(
 ) {
     val hasBio = !currentUser?.bio.isNullOrBlank()
     val profileBio = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio
+    val isEmailVerified = isLoggedIn && currentUser?.isEmailVerified == true
 
     Card(
         modifier = Modifier
@@ -387,19 +388,34 @@ private fun ProfileHeaderCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Text(
-                text = currentUser?.email ?: stringResource(R.string.not_logged_in),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.95f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.9f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth(0.9f)) {
+                val badgeReservedWidth = if (isEmailVerified) 24.dp else 0.dp
+                val emailMaxWidth = (maxWidth - badgeReservedWidth).coerceAtLeast(0.dp)
+
+                Row(
+                    modifier = Modifier.align(Alignment.Center),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = currentUser?.email ?: stringResource(R.string.not_logged_in),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.95f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.widthIn(max = emailMaxWidth),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (isEmailVerified) {
+                        VerifiedEmailInlineBadge()
+                    }
+                }
+            }
 
             if (isLoggedIn) {
                 VerificationStatusSection(
-                    isVerified = currentUser?.isEmailVerified == true,
+                    isVerified = isEmailVerified,
                     emailVerificationState = emailVerificationState,
                     onRequestVerification = onRequestVerification
                 )
@@ -437,7 +453,6 @@ private fun VerificationStatusSection(
     onRequestVerification: () -> Unit
 ) {
     if (isVerified) {
-        VerifiedEmailCard()
         return
     }
 
@@ -448,41 +463,24 @@ private fun VerificationStatusSection(
 }
 
 @Composable
-private fun VerifiedEmailCard() {
+private fun VerifiedEmailInlineBadge(
+    modifier: Modifier = Modifier
+) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 2.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+        modifier = modifier.size(18.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         )
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Verified,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = stringResource(R.string.profile_email_verified_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            Text(
-                text = stringResource(R.string.profile_email_verified_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Verified,
+                contentDescription = stringResource(R.string.profile_email_verified_title),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(12.dp)
             )
         }
     }
