@@ -35,8 +35,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -80,8 +78,6 @@ fun ProfileScreen(
     onNavigateToFavorites: () -> Unit,
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {},
-    onLogout: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
     appSettingsViewModel: AppSettingsViewModel = hiltViewModel()
 ) {
@@ -89,8 +85,6 @@ fun ProfileScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val emailVerificationState by authViewModel.emailVerificationRequestState.collectAsState()
     val context = LocalContext.current
-
-    var showLogoutDialog by remember { mutableStateOf(false) }
 
     // ⭐ RANDOM fallback bios (UI only)
     val fallbackBios = remember(context) {
@@ -257,41 +251,6 @@ fun ProfileScreen(
                 )
             }
 
-            // ------------------------
-            // LOGOUT / LOGIN BUTTON
-            // ------------------------
-            item {
-                if (isLoggedIn) {
-                    OutlinedButton(
-                        onClick = { showLogoutDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 54.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = stringResource(R.string.logout))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.logout))
-                    }
-                } else {
-                    Button(
-                        onClick = onNavigateToLogin,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 54.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Login, contentDescription = stringResource(R.string.login))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.login))
-                    }
-                }
-            }
-
             item {
                 Text(
                     text = stringResource(R.string.app_version_label, BuildConfig.VERSION_NAME),
@@ -306,10 +265,6 @@ fun ProfileScreen(
 
 
         }
-    }
-
-    if (showLogoutDialog) {
-        LogoutDialog(onDismiss = { showLogoutDialog = false }, onConfirm = onLogout)
     }
 }
 
@@ -753,21 +708,6 @@ private fun ProfileVersionInfoCard(
             }
         }
     }
-}
-
-@Composable
-private fun LogoutDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.logout)) },
-        text = { Text(stringResource(R.string.logout_confirmation_message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.logout)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        }
-    )
 }
 
 data class ProfileOption(val title: String, val description: String, val icon: ImageVector)

@@ -404,7 +404,7 @@
     <string name="loading_prompt">Loading prompt…</string>
     <string name="locked">locked</string>
     <string name="login_failed">Login failed</string>
-    <string name="logout_confirmation_message">logout confirmation message</string>
+    <string name="logout_confirmation_message">Are you sure you want to log out?</string>
     <string name="message_sent_successfully">Message sent successfully</string>
     <string name="min_read">Min read</string>
     <string name="missing_pkce_verifier">Missing PKCE verifier</string>

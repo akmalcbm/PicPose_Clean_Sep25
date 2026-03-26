@@ -148,6 +148,7 @@ fun SettingsScreen(
     val isDeletingAccount by authViewModel.isDeletingAccount.collectAsState()
 
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var deleteConfirmInput by remember(showDeleteAccountDialog) { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -198,7 +199,7 @@ fun SettingsScreen(
                                 icon = Icons.AutoMirrored.Filled.Logout,
                                 title = stringResource(R.string.logout),
                                 subtitle = stringResource(R.string.logout_subtitle_device),
-                                onClick = onLogout
+                                onClick = { showLogoutConfirmDialog = true }
                             )
 
                             SectionDivider()
@@ -393,6 +394,39 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        if (showLogoutConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutConfirmDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                title = { Text(stringResource(R.string.logout)) },
+                text = { Text(stringResource(R.string.logout_confirmation_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showLogoutConfirmDialog = false
+                            onLogout()
+                        }
+                    ) {
+                        Text(
+                            text = stringResource(R.string.logout),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutConfirmDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }

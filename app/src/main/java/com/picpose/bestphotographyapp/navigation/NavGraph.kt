@@ -273,17 +273,8 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
                 navController = navController,
                 onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) { launchSingleTop = true } },
-                onNavigateToLogin = { navController.navigate(Screen.Login.route) { launchSingleTop = true } },
                 onNavigateToAllPrompts = { navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true } },
                 onNavigateToFavorites = { navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true } },
-                onLogout = {
-                    authViewModel.logout {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    }
-                }
             )
         }
 
