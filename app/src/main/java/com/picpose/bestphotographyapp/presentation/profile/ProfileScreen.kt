@@ -233,6 +233,14 @@ fun ProfileScreen(
                 )
             }
 
+            item {
+                ProfileVersionInfoCard(
+                    title = stringResource(R.string.version),
+                    subtitle = BuildConfig.VERSION_NAME,
+                    icon = Icons.Filled.Info
+                )
+            }
+
             // ------------------------
             // SUPPORT
             // ------------------------
@@ -286,15 +294,17 @@ fun ProfileScreen(
 
             item {
                 Text(
-                    text = "${stringResource(R.string.version)} ${BuildConfig.VERSION_NAME}",
+                    text = stringResource(R.string.app_version_label, BuildConfig.VERSION_NAME),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 8.dp),
-                    textAlign = TextAlign.Center
+                        .padding(top = 2.dp)
                 )
             }
+
+
         }
     }
 
@@ -683,6 +693,64 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
             )
+        }
+    }
+}
+
+@Composable
+private fun ProfileVersionInfoCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp, pressedElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 76.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = appInnerSurfaceColor(alpha = 0.5f)
+            ) {
+                Box(
+                    modifier = Modifier.size(42.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

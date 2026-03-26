@@ -53,7 +53,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
@@ -97,7 +96,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
 import com.picpose.bestphotographyapp.components.common.appSectionCardColors
@@ -306,27 +304,6 @@ fun SettingsScreen(
                 }
             }
 
-            item {
-                SettingsSectionCard(title = stringResource(R.string.app_info)) {
-                    SettingsRow(
-                        icon = Icons.Default.Info,
-                        title = stringResource(R.string.version),
-                        subtitle = BuildConfig.VERSION_NAME
-                    )
-                }
-            }
-
-            item {
-                Text(
-                    text = stringResource(R.string.app_version_label, BuildConfig.VERSION_NAME),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp)
-                )
-            }
         }
 
         if (showSystemNotificationSettingsDialog) {
