@@ -119,7 +119,7 @@ fun StreakStepper(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.rewards_streak_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(

@@ -53,6 +53,8 @@ import com.picpose.bestphotographyapp.utils.setText
 import com.picpose.bestphotographyapp.components.common.AIPromptCard
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
+import com.picpose.bestphotographyapp.components.common.ScrollAwareTopControls
+import com.picpose.bestphotographyapp.components.common.rememberScrollAwareTopControlsVisibility
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import kotlinx.coroutines.delay
@@ -90,6 +92,12 @@ fun AIPromptFavoritesScreen(
     val filteredFavoritePrompts = remember(favoritePrompts, normalizedFavoritesQuery) {
         favoritePrompts.filter { SearchMatchers.matchesAIPrompt(it, normalizedFavoritesQuery) }
     }
+    val showSearchControls = rememberScrollAwareTopControlsVisibility(
+        enabled = filteredFavoritePrompts.isNotEmpty(),
+        scrollPositionProvider = {
+            lazyListState.firstVisibleItemIndex to lazyListState.firstVisibleItemScrollOffset
+        },
+    )
 
     LaunchedEffect(Unit) {
         Log.e("FAV_DEBUG", "FavoritesScreen OPENED - Count: ${favoritePrompts.size}")
@@ -173,26 +181,28 @@ fun AIPromptFavoritesScreen(
                 // ✅ Favorites list - WITH SCROLL STATE ONLY
                 else -> {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        OutlinedTextField(
-                            value = favoritesSearchQuery,
-                            onValueChange = { favoritesSearchQuery = it },
-                            placeholder = { Text(stringResource(R.string.search_prompts_placeholder)) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            trailingIcon = {
-                                if (favoritesSearchQuery.isNotBlank()) {
-                                    IconButton(onClick = { favoritesSearchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = stringResource(R.string.clear)
-                                        )
+                        ScrollAwareTopControls(visible = showSearchControls) {
+                            OutlinedTextField(
+                                value = favoritesSearchQuery,
+                                onValueChange = { favoritesSearchQuery = it },
+                                placeholder = { Text(stringResource(R.string.search_prompts_placeholder)) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (favoritesSearchQuery.isNotBlank()) {
+                                        IconButton(onClick = { favoritesSearchQuery = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = stringResource(R.string.clear)
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
 
                         if (normalizedFavoritesQuery.isNotBlank() && filteredFavoritePrompts.isEmpty()) {
                             EmptyPromptsSearchState(

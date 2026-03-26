@@ -132,6 +132,8 @@ import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCardForGrid
 import com.picpose.bestphotographyapp.components.common.PicPoseTopAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
+import com.picpose.bestphotographyapp.components.common.ScrollAwareTopControls
+import com.picpose.bestphotographyapp.components.common.rememberScrollAwareTopControlsVisibility
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.domain.model.isPackOnlyPrompt
@@ -190,9 +192,21 @@ fun PromptsV2Screen(
         uiState.prompts.filter { prompt ->
             matchesSelectedCategory(prompt, uiState.selectedCategory) &&
                 matchesSelectedFilter(prompt, uiState.selectedFilter) &&
-                SearchMatchers.matchesV2Prompt(prompt, normalizedQuery)
+            SearchMatchers.matchesV2Prompt(prompt, normalizedQuery)
         }
     }
+
+    val showFilterControls = rememberScrollAwareTopControlsVisibility(
+        enabled = displayPrompts.isNotEmpty(),
+        scrollPositionProvider = {
+            if (viewMode == V2ViewMode.LIST) {
+                listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+            } else {
+                gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
+            }
+        },
+        resetKey = viewMode,
+    )
 
     val canShowNativeAds = remember(adsConfigState) {
         adsConfigState is AdsConfigState.Ready && AdsManager.canShowAds()
@@ -345,28 +359,32 @@ fun PromptsV2Screen(
                 )
             }
 
-            PromptsV2CategoryRow(
-                categories = uiState.categories,
-                selectedCategory = uiState.selectedCategory,
-                listState = categoryListState,
-                onCategorySelected = { index, category ->
-                    coroutineScope.launch {
-                        categoryListState.animateScrollToItem(index = index, scrollOffset = -200)
-                    }
-                    coroutineScope.launch {
-                        listState.scrollToItem(0)
-                        gridState.scrollToItem(0)
-                    }
-                    viewModel.onCategorySelected(category)
-                },
-            )
+            ScrollAwareTopControls(visible = showFilterControls) {
+                Column {
+                    PromptsV2CategoryRow(
+                        categories = uiState.categories,
+                        selectedCategory = uiState.selectedCategory,
+                        listState = categoryListState,
+                        onCategorySelected = { index, category ->
+                            coroutineScope.launch {
+                                categoryListState.animateScrollToItem(index = index, scrollOffset = -200)
+                            }
+                            coroutineScope.launch {
+                                listState.scrollToItem(0)
+                                gridState.scrollToItem(0)
+                            }
+                            viewModel.onCategorySelected(category)
+                        },
+                    )
 
-            PromptsV2FilterRow(
-                selectedFilter = uiState.selectedFilter,
-                onFilterSelected = viewModel::onFilterSelected,
-            )
+                    PromptsV2FilterRow(
+                        selectedFilter = uiState.selectedFilter,
+                        onFilterSelected = viewModel::onFilterSelected,
+                    )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+            }
 
             when {
                 uiState.isLoading && uiState.prompts.isEmpty() -> {
