@@ -208,96 +208,81 @@ fun AIPromptCardWithEffects(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
 
-                // ACTION ROW
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    // LEFT: Category + Popular
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-
-                        prompt.category?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = colors.primary,
-                                    fontWeight = FontWeight.Medium
+                PicPoseMetadataContainer(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val primaryTag = prompt.category?.takeIf { it.isNotBlank() }
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (primaryTag != null) {
+                                PicPoseMetaChip(
+                                    text = primaryTag,
+                                    modifier = Modifier.widthIn(max = 92.dp),
                                 )
+                            } else if (prompt.isPopular) {
+                                PicPoseMetaChip(
+                                    text = stringResource(R.string.popular),
+                                    modifier = Modifier.widthIn(max = 86.dp),
+                                    containerColor = colors.tertiaryContainer.copy(alpha = 0.46f),
+                                    contentColor = colors.onTertiaryContainer,
+                                )
+                            }
+
+                            PicPoseStatChip(
+                                icon = Icons.Default.Visibility,
+                                value = displayViews,
+                                compact = true,
                             )
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        if (prompt.isPopular) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Whatshot,
-                                    null,
-                                    tint = colors.error,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    stringResource(R.string.popular),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = colors.error
+                            PicPoseStatChip(
+                                icon = Icons.Default.ThumbUp,
+                                value = displayLikes,
+                                compact = true,
+                            )
+                            if (showFavoriteIcon) {
+                                PicPoseStatChip(
+                                    icon = Icons.Default.BookmarkAdded,
+                                    value = displayFavorites,
+                                    compact = true,
                                 )
                             }
                         }
-                    }
 
-                    // RIGHT GROUP
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-
-                        // ❤️ LIKE BUTTON
                         Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clickable { handleLike() }
-                                .padding(4.dp)
                         ) {
-                            Icon(
-                                imageVector = if (isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
+                            PicPoseActionIconButton(
+                                icon = if (isLiked) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt,
                                 contentDescription = if (isLiked) stringResource(R.string.unlike) else stringResource(R.string.like),
-                                tint = if (isLiked) MaterialTheme.colorScheme.primary else colors.onSurfaceVariant,
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .scale(likeScale.value)
+                                onClick = { handleLike() },
+                                active = isLiked,
+                                compact = true,
+                                modifier = Modifier.scale(likeScale.value),
                             )
-
-                            Spacer(Modifier.width(4.dp))
-
-                            Text("$displayLikes")
-                        }
-
-                        Spacer(Modifier.width(14.dp))
-
-                        // 🔖 BOOKMARK BUTTON
-                        Icon(
-                            if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
-                            null,
-                            tint = if (isBookmarked) colors.primary else colors.onSurfaceVariant,
-                            modifier = Modifier
-                                .size(22.dp)
-                                .scale(bookmarkScale.value)
-                                .clickable { handleBookmark() }
-                        )
-
-                        Spacer(Modifier.width(14.dp))
-
-                        // 👁 VIEWS (Server only)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Visibility,
-                                null,
-                                tint = colors.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text("$displayViews")
+                            if (showFavoriteIcon) {
+                                PicPoseActionIconButton(
+                                    icon = if (isBookmarked) Icons.Default.BookmarkAdded else Icons.Default.BookmarkBorder,
+                                    contentDescription = if (isBookmarked) {
+                                        stringResource(R.string.remove_from_favorites)
+                                    } else {
+                                        stringResource(R.string.add_to_favorites)
+                                    },
+                                    onClick = { handleBookmark() },
+                                    active = isBookmarked,
+                                    compact = true,
+                                    modifier = Modifier.scale(bookmarkScale.value),
+                                )
+                            }
                         }
                     }
                 }
