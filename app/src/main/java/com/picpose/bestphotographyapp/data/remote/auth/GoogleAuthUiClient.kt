@@ -30,7 +30,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 /**
@@ -41,18 +41,14 @@ class GoogleAuthUiClient(context: Context) {
 
     private val credentialManager: CredentialManager = CredentialManager.create(context)
 
-    private fun buildGoogleIdOption(): GetGoogleIdOption {
-        return GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
-            .setServerClientId(GOOGLE_WEB_CLIENT_ID)
-            .build()
+    private fun buildSignInWithGoogleOption(): GetSignInWithGoogleOption {
+        return GetSignInWithGoogleOption.Builder(GOOGLE_WEB_CLIENT_ID).build()
     }
 
     suspend fun signIn(activity: Activity): GetCredentialResponse? {
         return try {
             val request = GetCredentialRequest.Builder()
-                .addCredentialOption(buildGoogleIdOption())
+                .addCredentialOption(buildSignInWithGoogleOption())
                 .build()
 
             credentialManager.getCredential(context = activity, request = request)

@@ -221,6 +221,8 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.google.identity)
     // Firebase Messaging (FCM)
     implementation(libs.firebase.messaging)
