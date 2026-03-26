@@ -186,7 +186,7 @@ fun PackDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .windowInsetsPadding(
-                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -198,7 +198,7 @@ fun PackDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .windowInsetsPadding(
-                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
                         ),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),

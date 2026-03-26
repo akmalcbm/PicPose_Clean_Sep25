@@ -212,7 +212,8 @@ fun HomeTopBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface, //surfaceContainer, used for same as Bottom Nav Bar
             titleContentColor = MaterialTheme.colorScheme.onSurface
-        )
+        ),
+        windowInsets = WindowInsets(0),
 
     )
 }

@@ -12,6 +12,7 @@
 
 package com.picpose.bestphotographyapp.components.common
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -81,5 +82,6 @@ fun PicPoseAppBar(
         actions = actions,
         colors = colors,
         scrollBehavior = scrollBehavior,
+        windowInsets = WindowInsets(0),
     )
 }

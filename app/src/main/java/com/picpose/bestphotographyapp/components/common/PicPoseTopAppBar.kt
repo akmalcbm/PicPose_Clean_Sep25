@@ -24,6 +24,7 @@ package com.picpose.bestphotographyapp.components.common
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -107,6 +108,7 @@ fun PicPoseTopAppBar(
         actions = { actions() },
         colors = colors,
         scrollBehavior = scrollBehavior,
+        windowInsets = WindowInsets(0),
     )
 }
 

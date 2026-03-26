@@ -200,7 +200,7 @@ fun ViewAllPromptsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
                     .windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
                     ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(

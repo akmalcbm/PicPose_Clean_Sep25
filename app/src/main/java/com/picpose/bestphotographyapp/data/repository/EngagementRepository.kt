@@ -354,7 +354,7 @@ class EngagementRepository @Inject constructor(
     /* VIEW - UPDATED WITH 5-SECOND DELAY SUPPORT */
     /* ---------------------------------------------------- */
 
-    suspend fun registerView(promptId: String) {
+    suspend fun registerView(promptId: String): Int? {
         Log.d(TAG, "registerView called for: $promptId")
 
         val now = System.currentTimeMillis()
@@ -387,7 +387,7 @@ class EngagementRepository @Inject constructor(
         }
 
         // Sync with server in background
-        syncViewWithServer(promptId)
+        return syncViewWithServer(promptId)
     }
 
     /**
@@ -398,25 +398,28 @@ class EngagementRepository @Inject constructor(
         registerView(promptId)
     }
 
-    private suspend fun syncViewWithServer(promptId: String) {
-        val state = engagementDao.getById(promptId) ?: return
+    private suspend fun syncViewWithServer(promptId: String): Int? {
+        val state = engagementDao.getById(promptId) ?: return null
         val pending = state.pendingViewSync
 
-        if (pending <= 0) return
+        if (pending <= 0) return null
 
         try {
             // Sync with server
-            api.incrementView(promptId.toInt(), RetrofitClient.defaultApiKey)
+            val response = api.incrementView(promptId.toInt(), RetrofitClient.defaultApiKey)
+            val serverViews = response.body()?.views
 
             // Mark as synced
             engagementDao.upsert(
                 state.copy(pendingViewSync = 0)
             )
             Log.d(TAG, "View synced with server for: $promptId")
+            return serverViews?.coerceAtLeast(0)
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to sync view for $promptId: ${e.message}")
             // Keep pending count for retry later
+            return null
         }
     }
 
@@ -511,10 +514,9 @@ class EngagementRepository @Inject constructor(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun getDisplayViews(prompt: AIPrompt, localEngagement: EngagementEntity?): Int {
-        val serverViews = prompt.views.coerceAtLeast(0)
-        val localViews = localEngagement?.localViewCount?.coerceAtLeast(0) ?: 0
-        return serverViews + localViews
+        return prompt.views.coerceAtLeast(0)
     }
 
     private suspend fun incrementCachedCopyStat() {

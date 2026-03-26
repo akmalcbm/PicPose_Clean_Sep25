@@ -424,7 +424,7 @@ fun GuideDetailScreen(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(
-                WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
             )
     ) {
         // Top App Bar

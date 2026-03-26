@@ -65,7 +65,7 @@ fun EdgeToEdgeScaffold(
         topBar = { topBar?.invoke() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+            WindowInsetsSides.Horizontal
         ),
         modifier = modifier.background(backgroundColor)
     ) { innerPadding ->

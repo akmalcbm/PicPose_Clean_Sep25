@@ -59,7 +59,6 @@ import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.BookmarkAdded
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonetizationOn
@@ -112,7 +111,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -135,7 +133,6 @@ import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButto
 import com.picpose.bestphotographyapp.components.common.ScrollAwareTopControls
 import com.picpose.bestphotographyapp.components.common.rememberScrollAwareTopControlsVisibility
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
-import com.picpose.bestphotographyapp.data.repository.EngagementRepository
 import com.picpose.bestphotographyapp.domain.model.isPackOnlyPrompt
 import com.picpose.bestphotographyapp.domain.model.supportsCreditsUnlock
 import com.picpose.bestphotographyapp.domain.model.supportsRewardedUnlock
@@ -170,8 +167,6 @@ fun PromptsV2Screen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val adsConfigState by AdsManager.configState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    val clipboard = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
 
     var showSearch by rememberSaveable { mutableStateOf(false) }
@@ -430,19 +425,6 @@ fun PromptsV2Screen(
                                 onOpen = { onPromptClick(prompt.id) },
                                 onUnlockWithPoints = { viewModel.unlockPromptWithPoints(prompt.id) },
                                 onWatchAd = { onPromptClick(prompt.id) },
-                                onCopy = {
-                                    val copyText = prompt.copyTextForList()
-                                    if (copyText.isNotBlank()) {
-                                        coroutineScope.launch {
-                                            clipboard.setText(copyText, label = "prompt")
-                                            snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_toast))
-                                        }
-                                        viewModel.trackPromptUsage(
-                                            promptId = prompt.id,
-                                            action = EngagementRepository.PromptUsageAction.COPY
-                                        )
-                                    }
-                                },
                                 onLike = { viewModel.onLikeClicked(prompt.id) },
                                 onFavorite = { viewModel.onFavoriteClicked(prompt.id) },
                             )
@@ -454,7 +436,7 @@ fun PromptsV2Screen(
                             )
 
                             if (ad != null) {
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
                                 when (chooseMixedAdStyle(prompt.id, V2ViewMode.LIST)) {
                                     PromptNativeAdStyle.Compact -> {
                                         InlineNativeAdCard(nativeAd = ad, modifier = Modifier.fillMaxWidth())
@@ -519,19 +501,6 @@ fun PromptsV2Screen(
                                         onOpen = { onPromptClick(prompt.id) },
                                         onUnlockWithPoints = { viewModel.unlockPromptWithPoints(prompt.id) },
                                         onWatchAd = { onPromptClick(prompt.id) },
-                                        onCopy = {
-                                            val copyText = prompt.copyTextForList()
-                                            if (copyText.isNotBlank()) {
-                                                coroutineScope.launch {
-                                                    clipboard.setText(copyText, label = "prompt")
-                                                    snackbarHostState.showSnackbar(context.getString(R.string.prompt_copied_toast))
-                                                }
-                                                viewModel.trackPromptUsage(
-                                                    promptId = prompt.id,
-                                                    action = EngagementRepository.PromptUsageAction.COPY
-                                                )
-                                            }
-                                        },
                                         onLike = { viewModel.onLikeClicked(prompt.id) },
                                         onFavorite = { viewModel.onFavoriteClicked(prompt.id) },
                                     )
@@ -780,7 +749,6 @@ private fun PromptV2ListCard(
     onOpen: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onWatchAd: () -> Unit,
-    onCopy: () -> Unit,
     onLike: () -> Unit,
     onFavorite: () -> Unit,
 ) {
@@ -826,17 +794,12 @@ private fun PromptV2ListCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                PromptMetaChipsRow(prompt = prompt)
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 PromptStatsActionSection(
                     views = views,
                     likes = likes,
                     favorites = favorites,
                     liked = liked,
                     favorited = favorited,
-                    onCopy = onCopy,
                     onLike = onLike,
                     onFavorite = onFavorite,
                 )
@@ -872,7 +835,6 @@ private fun PromptV2GridCard(
     onOpen: () -> Unit,
     onUnlockWithPoints: () -> Unit,
     onWatchAd: () -> Unit,
-    onCopy: () -> Unit,
     onLike: () -> Unit,
     onFavorite: () -> Unit,
 ) {
@@ -922,20 +884,12 @@ private fun PromptV2GridCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                PromptMetaChipsRow(
-                    prompt = prompt,
-                    compact = true,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 PromptStatsActionSection(
                     views = views,
                     likes = likes,
                     favorites = favorites,
                     liked = liked,
                     favorited = favorited,
-                    onCopy = onCopy,
                     onLike = onLike,
                     onFavorite = onFavorite,
                     compact = true,
@@ -970,7 +924,6 @@ private fun PromptStatsActionSection(
     favorites: Int,
     liked: Boolean,
     favorited: Boolean,
-    onCopy: () -> Unit,
     onLike: () -> Unit,
     onFavorite: () -> Unit,
     compact: Boolean = false,
@@ -996,12 +949,6 @@ private fun PromptStatsActionSection(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)) {
-                PromptActionIconButton(
-                    icon = Icons.Default.ContentCopy,
-                    contentDescription = stringResource(R.string.ai_prompt_action_copy_prompt),
-                    onClick = onCopy,
-                    compact = compact,
-                )
                 PromptActionIconButton(
                     icon = if (liked) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
                     contentDescription = stringResource(R.string.like),
@@ -1388,31 +1335,6 @@ private fun PromptFeaturedBadge(compact: Boolean = false) {
 }
 
 @Composable
-private fun PromptMetaChipsRow(
-    prompt: V2PromptDto,
-    compact: Boolean = false,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        prompt.category?.takeIf { it.isNotBlank() }?.let { category ->
-            PromptMetaChip(
-                text = category,
-                compact = compact,
-                maxLines = 1,
-            )
-        }
-        if (prompt.premiumUnlockCostPoints > 0) {
-            PromptMetaChip(
-                text = "${prompt.premiumUnlockCostPoints} ${stringResource(R.string.rewards_credits)}",
-                compact = compact,
-            )
-        }
-    }
-}
-
-@Composable
 private fun PromptMetaChip(
     text: String,
     compact: Boolean = false,
@@ -1713,14 +1635,6 @@ private fun V2PromptDto.previewText(): String {
         teaserText.orEmpty().ifBlank { shortPrompt.orEmpty() }
     } else {
         shortPrompt.orEmpty().ifBlank { fullPrompt.orEmpty() }
-    }
-}
-
-private fun V2PromptDto.copyTextForList(): String {
-    return if (isLocked) {
-        teaserText.orEmpty().ifBlank { shortPrompt.orEmpty() }
-    } else {
-        fullPrompt.orEmpty().ifBlank { shortPrompt.orEmpty() }
     }
 }
 

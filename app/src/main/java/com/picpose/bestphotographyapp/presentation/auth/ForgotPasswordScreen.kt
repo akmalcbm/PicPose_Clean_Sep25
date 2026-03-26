@@ -24,6 +24,7 @@ package com.picpose.bestphotographyapp.presentation.auth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -74,7 +75,8 @@ fun ForgotPasswordScreen(
                 title = stringResource(R.string.forgot_password_title),
                 onBack = onBack,
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0),
     ) { padding ->
         Column(
             modifier = Modifier

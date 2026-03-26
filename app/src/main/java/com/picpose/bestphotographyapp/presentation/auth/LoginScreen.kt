@@ -114,7 +114,8 @@ fun LoginScreen(
                     }
                 }
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0),
     ) { paddingValues ->
 
         Column(

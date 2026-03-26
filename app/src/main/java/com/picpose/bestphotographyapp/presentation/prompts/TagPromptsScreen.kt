@@ -208,13 +208,15 @@ fun TagPromptsScreen(
                     navigationIconContentColor = Color.White,
                     titleContentColor = Color.White,
                     actionIconContentColor = Color.White
-                )
+                ),
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             TagBannerAd()
-        }
+        },
+        contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
 
         when {

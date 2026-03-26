@@ -87,6 +87,7 @@ class PromptDetailV2ViewModel @Inject constructor(
     private var similarPromptClickCount: Int = 0
     private val interstitialInterval: Int = 3
     private var lastPointsSyncToken: String? = null
+    private var lastTrackedViewPromptId: String? = null
 
     private val _uiState = MutableStateFlow(PromptDetailV2UiState())
     val uiState: StateFlow<PromptDetailV2UiState> = _uiState.asStateFlow()
@@ -157,13 +158,18 @@ class PromptDetailV2ViewModel @Inject constructor(
         viewModelScope.launch {
             promptsRepository.getPromptDetail(promptId)
                 .onSuccess { prompt ->
-                    runCatching {
-                        engagementRepository.registerView(prompt.id)
+                    val trackedViews = if (lastTrackedViewPromptId != prompt.id) {
+                        lastTrackedViewPromptId = prompt.id
+                        runCatching {
+                            engagementRepository.registerView(prompt.id)
+                        }.getOrNull()
+                    } else {
+                        null
                     }
                     val localState = runCatching { engagementRepository.getState(prompt.id) }.getOrNull()
                     val likesCount = prompt.likes.coerceAtLeast(0) + if (localState?.isLiked == true) 1 else 0
                     val favoritesCount = prompt.favorites.coerceAtLeast(0) + if (localState?.isFavorited == true) 1 else 0
-                    val viewsCount = prompt.views.coerceAtLeast(0) + (localState?.localViewCount ?: 0).coerceAtLeast(0)
+                    val viewsCount = (trackedViews ?: prompt.views).coerceAtLeast(0)
 
                     _uiState.update { current ->
                         current.copy(
