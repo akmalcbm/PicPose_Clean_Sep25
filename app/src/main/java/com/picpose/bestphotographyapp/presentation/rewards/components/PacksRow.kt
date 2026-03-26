@@ -46,7 +46,6 @@ import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -65,6 +64,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import com.picpose.bestphotographyapp.data.remote.dto.v2.PackSummaryDto
 
 @Composable
@@ -77,8 +80,10 @@ fun PacksRow(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
@@ -138,10 +143,10 @@ private fun PackPreviewCard(
             .width(286.dp)
             .height(140.dp)
             .clickable(onClick = onOpenPacks),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(16.dp),
+        border = appSectionCardBorder(alpha = 0.16f),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp, pressedElevation = 3.dp),
+        colors = appSectionCardColors(),
     ) {
         Row(
             modifier = Modifier
@@ -255,7 +260,7 @@ private fun PackInlineBadge(
     Surface(
         shape = RoundedCornerShape(999.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

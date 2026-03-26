@@ -57,6 +57,11 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.appInnerSurfaceColor
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.presentation.home.components.QuickActionsCard
 import com.picpose.bestphotographyapp.presentation.home.components.QuickStatsCard
@@ -316,15 +321,10 @@ private fun ProfileHeaderCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp, pressedElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -341,9 +341,9 @@ private fun ProfileHeaderCard(
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                     width = 2.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                 ),
-                shadowElevation = 6.dp
+                shadowElevation = 2.dp
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -408,10 +408,10 @@ private fun ProfileHeaderCard(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                color = appInnerSurfaceColor(alpha = 0.5f),
                 border = BorderStroke(
                     1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
                 )
             ) {
                 Text(
@@ -622,7 +622,7 @@ private fun SectionHeader(title: String) {
         )
         HorizontalDivider(
             modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
         )
     }
 }
@@ -632,12 +632,10 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp)
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -648,7 +646,7 @@ fun ProfileOptionCard(option: ProfileOption, onClick: () -> Unit) {
         ) {
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+                color = appInnerSurfaceColor(alpha = 0.5f)
             ) {
                 Box(
                     modifier = Modifier

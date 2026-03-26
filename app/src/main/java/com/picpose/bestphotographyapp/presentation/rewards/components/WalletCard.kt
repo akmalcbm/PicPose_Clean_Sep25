@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -57,6 +56,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdUiState
 import com.picpose.bestphotographyapp.presentation.rewards.CreditActivityItem
 
@@ -78,8 +81,10 @@ fun WalletCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
@@ -200,7 +205,7 @@ fun WalletCard(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
@@ -248,7 +253,7 @@ fun WalletCard(
                             )
                         }
                         if (index < displayedActivities.lastIndex) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
                         }
                     }
                 }

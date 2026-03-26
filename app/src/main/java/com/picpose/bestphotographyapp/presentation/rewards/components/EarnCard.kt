@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -65,6 +64,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdUiState
 
 @Composable
@@ -101,8 +104,10 @@ fun EarnCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier

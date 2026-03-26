@@ -48,7 +48,6 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -66,6 +65,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import coil.compose.AsyncImage
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
 
@@ -86,9 +89,10 @@ fun PromptOfDayCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
@@ -147,10 +151,10 @@ fun PromptOfDayCard(
                     .height(208.dp)
                     .clip(RoundedCornerShape(18.dp)),
                 shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                 border = BorderStroke(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                 ),
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -168,9 +172,9 @@ fun PromptOfDayCard(
                                 .background(
                                     Brush.linearGradient(
                                         listOf(
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.72f),
-                                            MaterialTheme.colorScheme.surfaceContainerHighest,
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.56f),
+                                            MaterialTheme.colorScheme.surface,
                                         )
                                     )
                                 ),

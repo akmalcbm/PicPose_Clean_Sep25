@@ -51,7 +51,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
@@ -94,6 +93,10 @@ import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
+import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
+import com.picpose.bestphotographyapp.components.common.appSectionCardColors
+import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
+import com.picpose.bestphotographyapp.components.common.appSectionCardShape
 import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.presentation.rewards.components.EarnCard
 import com.picpose.bestphotographyapp.presentation.rewards.components.PacksRow
@@ -468,7 +471,13 @@ private fun LoginRequiredCard(
     sessionExpired: Boolean,
     onRequireLogin: () -> Unit,
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = appSectionCardShape,
+        colors = appSectionCardColors(),
+        border = appSectionCardBorder(),
+        elevation = appSectionCardElevation(defaultElevation = 2.dp),
+    ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
@@ -512,7 +521,10 @@ private fun RewardsLoadingSkeleton() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(124.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = appSectionCardShape,
+                colors = appSectionCardColors(),
+                border = appSectionCardBorder(),
+                elevation = appSectionCardElevation(defaultElevation = 2.dp),
             ) {
                 Box(
                     modifier = Modifier
