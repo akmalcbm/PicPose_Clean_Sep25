@@ -365,6 +365,7 @@ fun GuideDetailScreen(
                     onClick = { showImageDialog = false },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .statusBarsPadding()
                         .padding(12.dp)
                         .size(44.dp)
                         .background(
@@ -419,7 +420,13 @@ fun GuideDetailScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+            )
+    ) {
         // Top App Bar
         PicPoseTopAppBar(
             title = stringResource(R.string.photography_guide_title),
