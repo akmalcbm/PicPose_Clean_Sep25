@@ -60,6 +60,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.AIPrompt
 import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.components.ads.AdBadge
 import com.picpose.bestphotographyapp.components.common.AIPromptCard
+import com.picpose.bestphotographyapp.components.common.PicPoseWindowInsets
 import com.picpose.bestphotographyapp.presentation.prompts.AIPromptViewModel
 import kotlinx.coroutines.launch
 
@@ -75,6 +76,7 @@ fun TagPromptsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val topBarInsets = PicPoseWindowInsets.topAppBar()
 
     val listState = rememberLazyListState()
 
@@ -209,7 +211,7 @@ fun TagPromptsScreen(
                     titleContentColor = Color.White,
                     actionIconContentColor = Color.White
                 ),
-                windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+                windowInsets = topBarInsets,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

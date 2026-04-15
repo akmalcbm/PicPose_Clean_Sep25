@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.PicPoseWindowInsets
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -71,6 +72,7 @@ fun HomeTopBar(
     var isSearchExpanded by remember { mutableStateOf(initialSearch.isNotBlank()) }
     var query by remember { mutableStateOf(initialSearch) }
     val focusManager = LocalFocusManager.current
+    val topBarInsets = PicPoseWindowInsets.topAppBar()
 
     TopAppBar(
         title = {
@@ -213,7 +215,7 @@ fun HomeTopBar(
             containerColor = MaterialTheme.colorScheme.surface, //surfaceContainer, used for same as Bottom Nav Bar
             titleContentColor = MaterialTheme.colorScheme.onSurface
         ),
-        windowInsets = WindowInsets(0),
+        windowInsets = topBarInsets,
 
     )
 }

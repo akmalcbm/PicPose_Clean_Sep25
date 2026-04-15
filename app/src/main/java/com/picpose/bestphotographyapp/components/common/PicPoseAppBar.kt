@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,9 +50,11 @@ fun PicPoseAppBar(
     colors: TopAppBarColors = PicPoseAppBarDefaults.colors(),
     titleStyle: TextStyle = MaterialTheme.typography.headlineSmall,
     titleFontWeight: FontWeight = FontWeight.Bold,
+    windowInsets: WindowInsets? = null,
     titleContent: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
+    val resolvedWindowInsets = windowInsets ?: PicPoseWindowInsets.topAppBar()
     TopAppBar(
         title = {
             if (titleContent != null) {
@@ -71,17 +71,16 @@ fun PicPoseAppBar(
         },
         navigationIcon = {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.back),
-                    )
-                }
+                PicPoseTopBarActionButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back),
+                    onClick = onBack,
+                )
             }
         },
         actions = actions,
         colors = colors,
         scrollBehavior = scrollBehavior,
-        windowInsets = WindowInsets(0),
+        windowInsets = resolvedWindowInsets,
     )
 }

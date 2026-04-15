@@ -23,13 +23,9 @@ package com.picpose.bestphotographyapp.navigation
 import android.app.Activity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -42,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.picpose.bestphotographyapp.components.common.PicPoseWindowInsets
 import com.picpose.bestphotographyapp.core.analytics.AnalyticsLogger
 import com.picpose.bestphotographyapp.core.crash.CrashReporter
 import com.picpose.bestphotographyapp.components.common.BottomNavigationBar
@@ -120,10 +117,9 @@ private fun String?.toScreenName(): String? {
 
 @Composable
 private fun AuthScaffold(content: @Composable () -> Unit) {
+    val contentInsets = PicPoseWindowInsets.screenContent()
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.Bottom
-        )
+        contentWindowInsets = contentInsets
     ) { innerPadding ->
         InsetOwnedContent(innerPadding = innerPadding, content = content)
     }
@@ -135,10 +131,9 @@ fun MainScaffold(
     navController: NavHostController,
     content: @Composable () -> Unit
 ) {
+    val contentInsets = PicPoseWindowInsets.screenContent()
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.Bottom
-        ),
+        contentWindowInsets = contentInsets,
         bottomBar = {
             if (showBottomBar) {
                 BottomNavigationBar(navController = navController)

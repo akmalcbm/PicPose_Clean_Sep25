@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.data.remote.dto.v2.PackSummaryDto
 import com.picpose.bestphotographyapp.data.remote.dto.v2.V2PromptDto
@@ -161,9 +162,11 @@ fun RewardsScreen(
             PicPoseAppBar(
                 title = stringResource(R.string.rewards),
                 actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
-                    }
+                    PicPoseTopBarActionButton(
+                        icon = Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.refresh),
+                        onClick = viewModel::refresh,
+                    )
                 },
             )
         },

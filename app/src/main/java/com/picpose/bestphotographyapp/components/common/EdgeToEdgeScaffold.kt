@@ -23,12 +23,8 @@ package com.picpose.bestphotographyapp.components.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -61,12 +57,11 @@ fun EdgeToEdgeScaffold(
     backgroundColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.background,
     content: @Composable (innerPadding: androidx.compose.foundation.layout.PaddingValues) -> Unit
 ) {
+    val contentInsets = PicPoseWindowInsets.screenContent()
     Scaffold(
         topBar = { topBar?.invoke() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal
-        ),
+        contentWindowInsets = contentInsets,
         modifier = modifier.background(backgroundColor)
     ) { innerPadding ->
 

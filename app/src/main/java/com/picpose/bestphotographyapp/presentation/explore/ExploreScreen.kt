@@ -93,6 +93,7 @@ import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 
@@ -545,14 +546,6 @@ private fun ExploreTopBar(
     var isSearchExpanded by remember { mutableStateOf(false) }
     var isFilterExpanded by remember { mutableStateOf(false) }
 
-    // continuous rotation via infinite transition, only applied when loading
-    val infinite = rememberInfiniteTransition()
-    val spin by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(animation = tween(900, easing = LinearEasing))
-    )
-
     PicPoseAppBar(
         title = stringResource(R.string.explore_title),
         titleContent = {
@@ -584,17 +577,18 @@ private fun ExploreTopBar(
         },
         actions = {
             if (!isSearchExpanded) {
-                IconButton(onClick = { isSearchExpanded = true }) {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
-                }
+                PicPoseTopBarActionButton(
+                    icon = Icons.Default.Search,
+                    contentDescription = stringResource(R.string.search),
+                    onClick = { isSearchExpanded = true },
+                )
 
-                IconButton(onClick = { onRefresh() }) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = stringResource(R.string.refresh),
-                        modifier = Modifier.rotate(if (isManualRefreshLoading) spin else 0f)
-                    )
-                }
+                PicPoseTopBarActionButton(
+                    icon = Icons.Default.Refresh,
+                    contentDescription = stringResource(R.string.refresh),
+                    onClick = onRefresh,
+                    active = isManualRefreshLoading,
+                )
 
                 val filterRotation by animateFloatAsState(targetValue = if (isFilterExpanded) 180f else 0f, animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f))
                 val scale by animateFloatAsState(targetValue = if (isFilterExpanded) 1.1f else 1f, animationSpec = spring(stiffness = 400f))

@@ -69,8 +69,10 @@ fun PicPoseTopAppBar(
     onBack: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     colors: TopAppBarColors = PicPoseTopBarDefaults.colors(),
+    windowInsets: WindowInsets? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
+    val resolvedWindowInsets = windowInsets ?: PicPoseWindowInsets.topAppBar()
     TopAppBar(
         title = {
             Column {
@@ -108,7 +110,7 @@ fun PicPoseTopAppBar(
         actions = { actions() },
         colors = colors,
         scrollBehavior = scrollBehavior,
-        windowInsets = WindowInsets(0),
+        windowInsets = resolvedWindowInsets,
     )
 }
 
