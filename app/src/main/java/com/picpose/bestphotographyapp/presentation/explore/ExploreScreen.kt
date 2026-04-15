@@ -38,7 +38,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -93,6 +92,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarFrame
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.utils.copyToClipboard
@@ -610,39 +610,13 @@ private fun ExploreTopBar(
                     ),
                 )
 
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isManualRefreshLoading) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    },
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isManualRefreshLoading) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
-                        },
-                    ),
-                    tonalElevation = if (isManualRefreshLoading) 2.dp else 0.dp,
-                ) {
-                    IconButton(
-                        onClick = onRefresh,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.refresh),
-                            modifier = Modifier.rotate(if (isManualRefreshLoading) refreshRotation else 0f),
-                            tint = if (isManualRefreshLoading) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
+                PicPoseTopBarActionButton(
+                    icon = Icons.Default.Refresh,
+                    contentDescription = stringResource(R.string.refresh),
+                    onClick = onRefresh,
+                    active = isManualRefreshLoading,
+                    iconModifier = Modifier.rotate(if (isManualRefreshLoading) refreshRotation else 0f),
+                )
             }
         },
         actions = {
@@ -1016,48 +990,21 @@ private fun FilterButtonWithIndicator(
         modifier = Modifier.wrapContentSize(),
         contentAlignment = Alignment.Center
     ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = if (isFilterExpanded) {
-                MaterialTheme.colorScheme.secondaryContainer
+        PicPoseTopBarActionButton(
+            icon = Icons.Default.FilterList,
+            contentDescription = if (isFilterExpanded) {
+                stringResource(R.string.hide_filters)
             } else {
-                MaterialTheme.colorScheme.surfaceContainerHigh
+                stringResource(R.string.show_filters)
             },
-            border = BorderStroke(
-                width = 1.dp,
-                color = if (isFilterExpanded) {
-                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.26f)
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
-                },
-            ),
-            tonalElevation = if (isFilterExpanded) 2.dp else 0.dp,
-        ) {
-            IconButton(
-                onClick = onClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .graphicsLayer {
-                        rotationZ = rotation
-                        scaleX = scale
-                        scaleY = scale
-                    }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = if (isFilterExpanded) {
-                        stringResource(R.string.hide_filters)
-                    } else {
-                        stringResource(R.string.show_filters)
-                    },
-                    tint = if (isFilterExpanded) {
-                        MaterialTheme.colorScheme.secondary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-        }
+            onClick = onClick,
+            active = isFilterExpanded,
+            iconModifier = Modifier.graphicsLayer {
+                rotationZ = rotation
+                scaleX = scale
+                scaleY = scale
+            },
+        )
 
         // ✅ Now AnimatedVisibility has its own neutral scope
         Box(contentAlignment = Alignment.Center) {

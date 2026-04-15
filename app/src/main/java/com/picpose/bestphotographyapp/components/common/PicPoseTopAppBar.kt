@@ -174,6 +174,7 @@ fun PicPoseTopBarActionButton(
     contentDescription: String,
     onClick: () -> Unit,
     active: Boolean = false,
+    iconModifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -199,6 +200,7 @@ fun PicPoseTopBarActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
+                modifier = iconModifier,
                 tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
