@@ -1,15 +1,23 @@
 <resources>
-    <style name="Theme.PicPose" parent="Theme.Material3.DynamicColors.DayNight">
-        <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+    <style name="Base.Theme.PicPose" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
-    <style name="Theme.PicPose.Splash" parent="Theme.PicPose">
+    <style name="Theme.PicPose" parent="Base.Theme.PicPose" />
+
+    <style name="Theme.PicPose.Splash" parent="Theme.SplashScreen">
         <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_splash</item>
         <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
         <item name="android:windowSplashScreenAnimationDuration">300</item>
-        <item name="android:statusBarColor">@color/splash_bg</item>
-        <item name="android:navigationBarColor">@color/splash_bg</item>
+        <item name="postSplashScreenTheme">@style/Theme.PicPose</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 </resources>

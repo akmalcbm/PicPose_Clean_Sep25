@@ -21,6 +21,8 @@
 package com.picpose.bestphotographyapp.data.remote
 
 import com.google.gson.Gson
+import com.picpose.bestphotographyapp.data.remote.response.AdsConfigResponse
+import com.picpose.bestphotographyapp.data.remote.response.toDomainOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

@@ -38,6 +38,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -92,8 +93,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
-import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
-import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarFrame
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.utils.copyToClipboard
 
@@ -543,57 +543,120 @@ private fun ExploreTopBar(
     onSortOptionSelected: (SortOption) -> Unit,
     isManualRefreshLoading: Boolean
 ) {
-    var isSearchExpanded by remember { mutableStateOf(false) }
     var isFilterExpanded by remember { mutableStateOf(false) }
+    val infiniteTransition = rememberInfiniteTransition()
+    val refreshRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+    )
 
-    PicPoseAppBar(
-        title = stringResource(R.string.explore_title),
-        titleContent = {
-            AnimatedContent(targetState = isSearchExpanded, transitionSpec = {
-                slideInHorizontally() + fadeIn() togetherWith slideOutHorizontally() + fadeOut()
-            }) { expanded ->
-                if (expanded) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text(stringResource(R.string.search_content_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        trailingIcon = {
-                            IconButton(onClick = { isSearchExpanded = false; onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_search))
+    PicPoseTopBarFrame(
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.search_content_placeholder),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.close_search),
+                                )
                             }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(20.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f),
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isManualRefreshLoading) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHigh
+                    },
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isManualRefreshLoading) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
                         },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.explore_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    ),
+                    tonalElevation = if (isManualRefreshLoading) 2.dp else 0.dp,
+                ) {
+                    IconButton(
+                        onClick = onRefresh,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.refresh),
+                            modifier = Modifier.rotate(if (isManualRefreshLoading) refreshRotation else 0f),
+                            tint = if (isManualRefreshLoading) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
                 }
             }
         },
         actions = {
-            if (!isSearchExpanded) {
-                PicPoseTopBarActionButton(
-                    icon = Icons.Default.Search,
-                    contentDescription = stringResource(R.string.search),
-                    onClick = { isSearchExpanded = true },
-                )
-
-                PicPoseTopBarActionButton(
-                    icon = Icons.Default.Refresh,
-                    contentDescription = stringResource(R.string.refresh),
-                    onClick = onRefresh,
-                    active = isManualRefreshLoading,
-                )
-
-                val filterRotation by animateFloatAsState(targetValue = if (isFilterExpanded) 180f else 0f, animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f))
-                val scale by animateFloatAsState(targetValue = if (isFilterExpanded) 1.1f else 1f, animationSpec = spring(stiffness = 400f))
-                FilterButtonWithIndicator(isFilterExpanded = isFilterExpanded, rotation = filterRotation, scale = scale, onClick = { isFilterExpanded = !isFilterExpanded; onToggleFilters() })
-            }
+            val filterRotation by animateFloatAsState(targetValue = if (isFilterExpanded) 180f else 0f, animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f))
+            val scale by animateFloatAsState(targetValue = if (isFilterExpanded) 1.1f else 1f, animationSpec = spring(stiffness = 400f))
+            FilterButtonWithIndicator(
+                isFilterExpanded = isFilterExpanded,
+                rotation = filterRotation,
+                scale = scale,
+                onClick = {
+                    isFilterExpanded = !isFilterExpanded
+                    onToggleFilters()
+                },
+            )
         },
     )
 
@@ -953,22 +1016,47 @@ private fun FilterButtonWithIndicator(
         modifier = Modifier.wrapContentSize(),
         contentAlignment = Alignment.Center
     ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.graphicsLayer {
-                rotationZ = rotation
-                scaleX = scale
-                scaleY = scale
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.FilterList,
-                contentDescription = if (isFilterExpanded) {
-                    stringResource(R.string.hide_filters)
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = if (isFilterExpanded) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (isFilterExpanded) {
+                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.26f)
                 } else {
-                    stringResource(R.string.show_filters)
-                }
-            )
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
+                },
+            ),
+            tonalElevation = if (isFilterExpanded) 2.dp else 0.dp,
+        ) {
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier
+                    .size(40.dp)
+                    .graphicsLayer {
+                        rotationZ = rotation
+                        scaleX = scale
+                        scaleY = scale
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = if (isFilterExpanded) {
+                        stringResource(R.string.hide_filters)
+                    } else {
+                        stringResource(R.string.show_filters)
+                    },
+                    tint = if (isFilterExpanded) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
         }
 
         // ✅ Now AnimatedVisibility has its own neutral scope
