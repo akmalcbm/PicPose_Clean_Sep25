@@ -58,6 +58,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 firebaseMessagingKtx = "25.0.1"
 playServicesMeasurementApi = "23.0.0"
+ucrop = "2.2.8"
 #constraintlayout = "2.2.0" # This may not be needed for Compose projects
 
 
@@ -154,6 +155,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 play-services-measurement-api = { group = "com.google.android.gms", name = "play-services-measurement-api", version.ref = "playServicesMeasurementApi" }
+ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

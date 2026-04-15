@@ -29,6 +29,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -39,7 +41,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -73,6 +76,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
 
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                Color.Transparent.toArgb(),
+                Color.Transparent.toArgb()
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                Color.Transparent.toArgb(),
+                Color.Transparent.toArgb()
+            )
+        )
+
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
         analyticsLogger.logAppOpen()
 
@@ -82,8 +96,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         consumeNotificationIntent(intent, source = "onCreate")
-
-        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()

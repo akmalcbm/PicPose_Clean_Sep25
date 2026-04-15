@@ -59,8 +59,8 @@ android {
         applicationId = "com.picpose.bestphotographyapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "3.0.0"
+        versionCode = 4
+        versionName = "4.0.0"
 
         // API key must come from local/CI gradle properties.
         buildConfigField(
@@ -265,7 +265,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    implementation("com.github.yalantis:ucrop:2.2.8")
+    implementation(libs.ucrop)
 
     implementation(libs.play.services.ads)         // Google AdMob
     implementation(libs.facebook.audience.network) // Meta Audience Network

@@ -23,7 +23,6 @@ package com.picpose.bestphotographyapp.components.designsystem.theme
 
 import android.app.Activity
 import android.os.Build
-import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -100,32 +99,10 @@ fun PicPoseTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            val statusBarColor = colorScheme.background.toArgb()
-            val navigationBarColor = colorScheme.background.toArgb()
-
-            // ✅ Method 1: Check for available method at runtime
-            try {
-                // Try to use WindowCompat if available
-                val setStatusBarColorMethod = WindowCompat::class.java.getMethod(
-                    "setStatusBarColor",
-                    Window::class.java,
-                    Int::class.java
-                )
-                setStatusBarColorMethod.invoke(null, window, statusBarColor)
-
-                val setNavBarColorMethod = WindowCompat::class.java.getMethod(
-                    "setNavigationBarColor",
-                    Window::class.java,
-                    Int::class.java
-                )
-                setNavBarColorMethod.invoke(null, window, navigationBarColor)
-            } catch (e: Exception) {
-                // Fallback to direct window properties with suppression
-                @Suppress("DEPRECATION")
-                window.statusBarColor = statusBarColor
-                @Suppress("DEPRECATION")
-                window.navigationBarColor = navigationBarColor
-            }
+            @Suppress("DEPRECATION")
+            window.statusBarColor = Color.Transparent.toArgb()
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = Color.Transparent.toArgb()
 
             // WindowInsetsController works fine
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
