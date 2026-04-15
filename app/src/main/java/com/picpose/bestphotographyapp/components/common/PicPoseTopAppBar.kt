@@ -22,10 +22,17 @@
 package com.picpose.bestphotographyapp.components.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -35,12 +42,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -60,6 +68,52 @@ object PicPoseTopBarDefaults {
     )
 }
 
+@Composable
+fun PicPoseTopBarFrame(
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    navigationIcon: (@Composable () -> Unit)? = null,
+    colors: TopAppBarColors = PicPoseTopBarDefaults.colors(),
+    windowInsets: WindowInsets? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    val resolvedWindowInsets = windowInsets ?: PicPoseWindowInsets.topAppBar()
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = colors.containerColor,
+        contentColor = colors.titleContentColor,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(resolvedWindowInsets)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .heightIn(min = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (navigationIcon != null) {
+                navigationIcon()
+            }
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                title()
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                actions()
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PicPoseTopAppBar(
@@ -72,8 +126,7 @@ fun PicPoseTopAppBar(
     windowInsets: WindowInsets? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    val resolvedWindowInsets = windowInsets ?: PicPoseWindowInsets.topAppBar()
-    TopAppBar(
+    PicPoseTopBarFrame(
         title = {
             Column {
                 eyebrow?.takeIf { it.isNotBlank() }?.let {
@@ -98,19 +151,20 @@ fun PicPoseTopAppBar(
                 )
             }
         },
-        navigationIcon = {
-            if (onBack != null) {
+        navigationIcon = if (onBack != null) {
+            {
                 PicPoseTopBarActionButton(
                     icon = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back),
                     onClick = onBack,
                 )
             }
+        } else {
+            null
         },
-        actions = { actions() },
+        actions = actions,
         colors = colors,
-        scrollBehavior = scrollBehavior,
-        windowInsets = resolvedWindowInsets,
+        windowInsets = windowInsets,
     )
 }
 
