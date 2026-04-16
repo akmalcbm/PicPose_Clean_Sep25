@@ -32,11 +32,9 @@ import com.picpose.bestphotographyapp.R
 object PicPoseAppBarDefaults {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun colors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    fun colors(): TopAppBarColors = PicPoseTopBarDefaults.colors(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
         titleContentColor = MaterialTheme.colorScheme.onSurface,
-        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-        actionIconContentColor = MaterialTheme.colorScheme.onSurface,
     )
 }
 

@@ -92,8 +92,9 @@ import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
+import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
-import com.picpose.bestphotographyapp.components.common.PicPoseTopBarFrame
+import com.picpose.bestphotographyapp.components.common.PicPoseTopBarSearchField
 import com.picpose.bestphotographyapp.components.common.ObserveTabReselectionScrollToTop
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.utils.copyToClipboard
@@ -562,72 +563,25 @@ private fun ExploreTopBar(
         ),
     )
 
-    PicPoseTopBarFrame(
-        title = {
-            Row(
+    PicPoseAppBar(
+        title = "",
+        titleContent = {
+            PicPoseTopBarSearchField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = stringResource(R.string.search_content_placeholder),
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = {
-                        Text(
-                            text = stringResource(R.string.search_content_placeholder),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotBlank()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.close_search),
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(20.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f),
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                )
-
-                PicPoseTopBarActionButton(
-                    icon = Icons.Default.Refresh,
-                    contentDescription = stringResource(R.string.refresh),
-                    onClick = onRefresh,
-                    active = isManualRefreshLoading,
-                    iconModifier = Modifier.rotate(if (isManualRefreshLoading) refreshRotation else 0f),
-                )
-            }
+            )
         },
         actions = {
+            PicPoseTopBarActionButton(
+                icon = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.refresh),
+                onClick = onRefresh,
+                active = isManualRefreshLoading,
+                iconModifier = Modifier.rotate(if (isManualRefreshLoading) refreshRotation else 0f),
+            )
+
             val filterRotation by animateFloatAsState(targetValue = if (isFilterExpanded) 180f else 0f, animationSpec = spring(stiffness = 300f, dampingRatio = 0.6f))
             val scale by animateFloatAsState(targetValue = if (isFilterExpanded) 1.1f else 1f, animationSpec = spring(stiffness = 400f))
             FilterButtonWithIndicator(
