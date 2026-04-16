@@ -47,6 +47,7 @@ import com.picpose.bestphotographyapp.data.remote.dto.GuidePost
 import com.picpose.bestphotographyapp.utils.MediaUrlResolver
 import com.picpose.bestphotographyapp.utils.formatNumber
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.AppCTAButton
 import com.picpose.bestphotographyapp.components.common.NetworkImageWithShimmer
 import kotlin.math.max
 
@@ -71,7 +72,7 @@ fun GuidePostCards(
     Card(
         modifier = modifier
             .width(280.dp)
-            .height(340.dp)
+            .heightIn(min = 340.dp)
             .clickable { onGuidePostClick() },
         shape = shape,
         elevation = premiumListCardElevation(),
@@ -79,7 +80,7 @@ fun GuidePostCards(
         border = premiumListCardBorder()
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Card(
                 modifier = Modifier
@@ -101,54 +102,49 @@ fun GuidePostCards(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .heightIn(min = 136.dp)
             ) {
-                Text(
-                    text = guidePost.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (description.isNotBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = guidePost.title,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+
+                    if (description.isNotBlank()) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
+                AppCTAButton(
+                    text = stringResource(R.string.view_details),
                     onClick = onGuidePostClick,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(50),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Text(
-                        text = stringResource(R.string.view_details),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                    ),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
             }
         }
     }

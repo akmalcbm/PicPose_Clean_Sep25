@@ -65,6 +65,7 @@ import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.picpose.bestphotographyapp.R
+import com.picpose.bestphotographyapp.components.common.AppCTAButtonDefaults
 
 enum class NativeAdStyle { Compact, LargeMedia }
 
@@ -354,7 +355,7 @@ private fun createNativeAdView(
             textSize = 16f
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                48.toPx(context)
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 setMargins(14.toPx(context), 8.toPx(context), 14.toPx(context), 14.toPx(context))
             }
@@ -429,13 +430,13 @@ private fun createNativeAdView(
         }
 
         val cta = Button(context).apply {
-            stylePrimaryCta(context, ctaBgColor, ctaTextColor, radiusDp = 10f, horizontalDp = 14, verticalDp = 8)
+            stylePrimaryCta(context, ctaBgColor, ctaTextColor, radiusDp = 10f)
             textSize = 14f
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                36.toPx(context)
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { setMargins(10.toPx(context), 0, 10.toPx(context), 10.toPx(context)) }
             visibility = View.GONE
         }
@@ -550,9 +551,7 @@ private fun Button.stylePrimaryCta(
     context: Context,
     bgColor: Int,
     textColor: Int,
-    radiusDp: Float,
-    horizontalDp: Int = 16,
-    verticalDp: Int = 12
+    radiusDp: Float
 ) {
     isAllCaps = true
     typeface = Typeface.DEFAULT_BOLD
@@ -562,10 +561,19 @@ private fun Button.stylePrimaryCta(
     stateListAnimator = null
     clipToOutline = true
     outlineProvider = roundedOutline(radiusDp, context)
+    gravity = Gravity.CENTER
+    textAlignment = View.TEXT_ALIGNMENT_CENTER
+    minHeight = AppCTAButtonDefaults.MinHeightDp.toPx(context)
+    minimumHeight = minHeight
+    minimumWidth = 0
+    minWidth = 0
+    maxLines = 1
+    ellipsize = TextUtils.TruncateAt.END
+    includeFontPadding = false
     setPadding(
-        horizontalDp.toPx(context),
-        verticalDp.toPx(context),
-        horizontalDp.toPx(context),
-        verticalDp.toPx(context)
+        AppCTAButtonDefaults.HorizontalPaddingDp.toPx(context),
+        AppCTAButtonDefaults.VerticalPaddingDp.toPx(context),
+        AppCTAButtonDefaults.HorizontalPaddingDp.toPx(context),
+        AppCTAButtonDefaults.VerticalPaddingDp.toPx(context)
     )
 }

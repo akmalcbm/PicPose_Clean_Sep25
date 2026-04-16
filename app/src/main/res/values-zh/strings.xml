@@ -335,7 +335,7 @@
     <string name="like_with_count">点赞（含数量）</string>
     <string name="likes">点赞</string>
     <string name="likes_count">点赞数</string>
-    <string name="live_stats_with_emoji">✨实时数据</string>
+    <string name="live_stats_with_emoji">✨统计</string>
     <string name="load_more">加载更多</string>
     <string name="loading_about_information">正在加载关于信息</string>
     <string name="loading_ad">正在加载广告</string>

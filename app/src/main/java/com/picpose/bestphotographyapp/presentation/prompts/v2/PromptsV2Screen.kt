@@ -804,22 +804,24 @@ private fun PromptV2ListCard(
                     onFavorite = onFavorite,
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                if (prompt.isLocked) {
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                PromptCardCtaSection(
-                    isLocked = prompt.isLocked,
-                    supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
-                    supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
-                    isPackOnly = prompt.isPackOnlyPrompt(),
-                    unlockCostPoints = prompt.premiumUnlockCostPoints,
-                    pointsBalance = pointsBalance,
-                    isLoggedIn = isLoggedIn,
-                    isUnlocking = isUnlocking,
-                    onOpen = onOpen,
-                    onUnlockWithPoints = onUnlockWithPoints,
-                    onWatchAd = onWatchAd,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    PromptCardCtaSection(
+                        isLocked = prompt.isLocked,
+                        supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
+                        supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
+                        isPackOnly = prompt.isPackOnlyPrompt(),
+                        unlockCostPoints = prompt.premiumUnlockCostPoints,
+                        pointsBalance = pointsBalance,
+                        isLoggedIn = isLoggedIn,
+                        isUnlocking = isUnlocking,
+                        onOpen = onOpen,
+                        onUnlockWithPoints = onUnlockWithPoints,
+                        onWatchAd = onWatchAd,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -895,23 +897,25 @@ private fun PromptV2GridCard(
                     compact = true,
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (prompt.isLocked) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                PromptCardCtaSection(
-                    isLocked = prompt.isLocked,
-                    supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
-                    supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
-                    isPackOnly = prompt.isPackOnlyPrompt(),
-                    unlockCostPoints = prompt.premiumUnlockCostPoints,
-                    pointsBalance = pointsBalance,
-                    isLoggedIn = isLoggedIn,
-                    isUnlocking = isUnlocking,
-                    onOpen = onOpen,
-                    onUnlockWithPoints = onUnlockWithPoints,
-                    onWatchAd = onWatchAd,
-                    compact = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    PromptCardCtaSection(
+                        isLocked = prompt.isLocked,
+                        supportsCreditsUnlock = prompt.supportsCreditsUnlock(),
+                        supportsRewardedUnlock = prompt.supportsRewardedUnlock(),
+                        isPackOnly = prompt.isPackOnlyPrompt(),
+                        unlockCostPoints = prompt.premiumUnlockCostPoints,
+                        pointsBalance = pointsBalance,
+                        isLoggedIn = isLoggedIn,
+                        isUnlocking = isUnlocking,
+                        onOpen = onOpen,
+                        onUnlockWithPoints = onUnlockWithPoints,
+                        onWatchAd = onWatchAd,
+                        compact = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -996,13 +1000,6 @@ private fun PromptCardCtaSection(
             onOpen = onOpen,
             onUnlockWithPoints = onUnlockWithPoints,
             onWatchAd = onWatchAd,
-            modifier = modifier,
-            compact = compact,
-        )
-    } else {
-        PromptPrimaryButton(
-            text = stringResource(R.string.prompt_open),
-            onClick = onOpen,
             modifier = modifier,
             compact = compact,
         )
@@ -1116,30 +1113,16 @@ private fun PremiumUnlockPanel(
                 showLoading = isUnlocking,
             )
 
-            if (supportsRewardedUnlock || !isPackOnly) {
+            if (supportsRewardedUnlock) {
                 Spacer(modifier = Modifier.height(if (compact) 6.dp else 8.dp))
 
-                Row(
+                PromptSecondaryButton(
+                    text = stringResource(R.string.rewards_watch_ad_short),
+                    icon = Icons.Default.VideoLibrary,
+                    onClick = onWatchAd,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
-                ) {
-                    PromptSecondaryButton(
-                        text = stringResource(R.string.prompt_open),
-                        icon = Icons.Default.Lock,
-                        onClick = onOpen,
-                        modifier = Modifier.weight(1f),
-                        compact = compact,
-                    )
-                    if (supportsRewardedUnlock) {
-                        PromptSecondaryButton(
-                            text = stringResource(R.string.rewards_watch_ad_short),
-                            icon = Icons.Default.VideoLibrary,
-                            onClick = onWatchAd,
-                            modifier = Modifier.weight(1f),
-                            compact = compact,
-                        )
-                    }
-                }
+                    compact = compact,
+                )
             }
         }
     }

@@ -394,7 +394,7 @@
     <string name="like_with_count">like with count</string>
     <string name="likes">likes</string>
     <string name="likes_count">likes count</string>
-    <string name="live_stats_with_emoji">✨Live Stats</string>
+    <string name="live_stats_with_emoji">✨Stats</string>
     <string name="load_more">load more</string>
     <string name="loading_about_information">loading about information</string>
     <string name="loading_ad">loading ad</string>
@@ -456,6 +456,18 @@
     <string name="privacy_policy_title">Privacy Policy</string>
     <string name="professional">Professional</string>
     <string name="profile_management">Profile management</string>
+    <string name="profile_actions_title">Profile actions</string>
+    <string name="profile_actions_subtitle">Manage your photo and profile details from one place.</string>
+    <string name="profile_action_view_photo">View photo</string>
+    <string name="profile_action_view_photo_subtitle">Open your current profile photo in a larger preview.</string>
+    <string name="profile_action_change_photo">Change photo</string>
+    <string name="profile_action_add_photo">Add photo</string>
+    <string name="profile_action_change_photo_subtitle">Continue to Edit Profile to pick, crop, and update your photo.</string>
+    <string name="profile_login_required_title">Login required</string>
+    <string name="profile_login_required_message">Sign in to add a profile photo, edit your details, and personalize your PicPose account.</string>
+    <string name="profile_manage_header_hint_logged_in">Tap to manage your photo and profile</string>
+    <string name="profile_manage_header_hint_logged_out">Tap to sign in and personalize your profile</string>
+    <string name="profile_add_photo_hint">Tap to add a profile photo and complete your profile</string>
     <string name="profile_picture">Profile picture</string>
     <string name="profile_updated">Profile updated</string>
     <string name="prompt_copied_for_sharing">Prompt copied for sharing</string>

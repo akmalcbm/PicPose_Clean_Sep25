@@ -280,6 +280,7 @@ fun NavGraph(
                 navController = navController,
                 scrollToTopEvents = bottomTabReselectManager.scrollToTopEvents(Screen.Profile.route),
                 onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) { launchSingleTop = true } },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) { launchSingleTop = true } },
                 onNavigateToAllPrompts = { navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true } },
                 onNavigateToFavorites = { navController.navigate(Screen.AIPromptFavorites.route) { launchSingleTop = true } },

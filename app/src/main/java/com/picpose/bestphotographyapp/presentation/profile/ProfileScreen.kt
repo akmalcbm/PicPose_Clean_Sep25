@@ -26,6 +26,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -35,10 +36,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.SubcomposeAsyncImage
@@ -73,6 +77,7 @@ import com.picpose.bestphotographyapp.presentation.auth.OperationState
 import com.picpose.bestphotographyapp.presentation.home.StatsViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +87,7 @@ fun ProfileScreen(
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel(),
     appSettingsViewModel: AppSettingsViewModel = hiltViewModel()
@@ -91,6 +97,12 @@ fun ProfileScreen(
     val emailVerificationState by authViewModel.emailVerificationRequestState.collectAsState()
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    val profilePhotoUrl = currentUser?.displayProfilePicture?.takeIf { it.isNotBlank() }
+    val actionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var showHeaderActions by rememberSaveable { mutableStateOf(false) }
+    var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
+    var showPhotoPreview by rememberSaveable { mutableStateOf(false) }
 
     // ⭐ RANDOM fallback bios (UI only)
     val fallbackBios = remember(context) {
@@ -127,6 +139,53 @@ fun ProfileScreen(
         scrollToTopEvents = scrollToTopEvents,
         listState = listState
     )
+
+    if (showHeaderActions) {
+        ProfileHeaderActionSheet(
+            hasProfileImage = profilePhotoUrl != null,
+            sheetState = actionSheetState,
+            onDismiss = { showHeaderActions = false },
+            onViewPhoto = {
+                scope.launch {
+                    actionSheetState.hide()
+                    showHeaderActions = false
+                    showPhotoPreview = true
+                }
+            },
+            onChangePhoto = {
+                scope.launch {
+                    actionSheetState.hide()
+                    showHeaderActions = false
+                    onNavigateToEditProfile()
+                }
+            },
+            onEditProfile = {
+                scope.launch {
+                    actionSheetState.hide()
+                    showHeaderActions = false
+                    onNavigateToEditProfile()
+                }
+            }
+        )
+    }
+
+    if (showLoginPrompt) {
+        ProfileLoginRequiredDialog(
+            onDismiss = { showLoginPrompt = false },
+            onLogin = {
+                showLoginPrompt = false
+                onNavigateToLogin()
+            }
+        )
+    }
+
+    if (showPhotoPreview && profilePhotoUrl != null) {
+        ProfilePhotoPreviewDialog(
+            imageUrl = profilePhotoUrl,
+            displayName = currentUser?.displayName ?: stringResource(R.string.profile),
+            onDismiss = { showPhotoPreview = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -166,7 +225,14 @@ fun ProfileScreen(
                         fallbackBio = chosenFallbackBio,
                         isLoggedIn = isLoggedIn,
                         emailVerificationState = emailVerificationState,
-                        onRequestVerification = authViewModel::requestEmailVerification
+                        onRequestVerification = authViewModel::requestEmailVerification,
+                        onClick = {
+                            if (isLoggedIn) {
+                                showHeaderActions = true
+                            } else {
+                                showLoginPrompt = true
+                            }
+                        }
                     )
                 }
             }
@@ -289,13 +355,16 @@ private fun ProfileHeaderCard(
     fallbackBio: String,
     isLoggedIn: Boolean,
     emailVerificationState: OperationState,
-    onRequestVerification: () -> Unit
+    onRequestVerification: () -> Unit,
+    onClick: () -> Unit
 ) {
     val hasBio = !currentUser?.bio.isNullOrBlank()
     val profileBio = currentUser?.bio?.takeIf { it.isNotBlank() } ?: fallbackBio
     val isEmailVerified = isLoggedIn && currentUser?.isEmailVerified == true
+    val hasProfileImage = !currentUser?.displayProfilePicture.isNullOrBlank()
 
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
@@ -352,6 +421,29 @@ private fun ProfileHeaderCard(
                             modifier = Modifier.size(108.dp)
                         )
                     }
+
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .size(30.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isLoggedIn) Icons.Filled.CameraAlt else Icons.AutoMirrored.Filled.Login,
+                                contentDescription = if (isLoggedIn) {
+                                    stringResource(R.string.profile_manage_header_hint_logged_in)
+                                } else {
+                                    stringResource(R.string.profile_manage_header_hint_logged_out)
+                                },
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -398,6 +490,21 @@ private fun ProfileHeaderCard(
                 )
             }
 
+            Text(
+                text = if (isLoggedIn) {
+                    if (hasProfileImage) {
+                        stringResource(R.string.profile_manage_header_hint_logged_in)
+                    } else {
+                        stringResource(R.string.profile_add_photo_hint)
+                    }
+                } else {
+                    stringResource(R.string.profile_manage_header_hint_logged_out)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -418,6 +525,208 @@ private fun ProfileHeaderCard(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileHeaderActionSheet(
+    hasProfileImage: Boolean,
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    onViewPhoto: () -> Unit,
+    onChangePhoto: () -> Unit,
+    onEditProfile: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.profile_actions_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.profile_actions_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+            )
+
+            if (hasProfileImage) {
+                ProfileHeaderActionItem(
+                    icon = Icons.Filled.Visibility,
+                    title = stringResource(R.string.profile_action_view_photo),
+                    subtitle = stringResource(R.string.profile_action_view_photo_subtitle),
+                    onClick = onViewPhoto
+                )
+            }
+
+            ProfileHeaderActionItem(
+                icon = if (hasProfileImage) Icons.Filled.CameraAlt else Icons.Filled.AddAPhoto,
+                title = stringResource(
+                    if (hasProfileImage) R.string.profile_action_change_photo else R.string.profile_action_add_photo
+                ),
+                subtitle = stringResource(R.string.profile_action_change_photo_subtitle),
+                onClick = onChangePhoto
+            )
+
+            ProfileHeaderActionItem(
+                icon = Icons.Filled.Edit,
+                title = stringResource(R.string.edit_profile),
+                subtitle = stringResource(R.string.update_profile_information),
+                onClick = onEditProfile
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProfileHeaderActionItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Medium
+            )
+        },
+        supportingContent = {
+            Text(text = subtitle)
+        },
+        leadingContent = {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun ProfileLoginRequiredDialog(
+    onDismiss: () -> Unit,
+    onLogin: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Login,
+                contentDescription = null
+            )
+        },
+        title = {
+            Text(text = stringResource(R.string.profile_login_required_title))
+        },
+        text = {
+            Text(text = stringResource(R.string.profile_login_required_message))
+        },
+        confirmButton = {
+            Button(onClick = onLogin) {
+                Text(text = stringResource(R.string.login))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun ProfilePhotoPreviewDialog(
+    imageUrl: String,
+    displayName: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.profile_picture),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
+                )
+                SubcomposeAsyncImage(
+                    model = imageUrl,
+                    contentDescription = stringResource(R.string.profile_picture),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(22.dp))
+                ) {
+                    if (painter.state is coil.compose.AsyncImagePainter.State.Loading) {
+                        ShimmerBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(22.dp)),
+                            shape = RoundedCornerShape(22.dp)
+                        )
+                    } else {
+                        SubcomposeAsyncImageContent()
+                    }
+                }
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(text = stringResource(R.string.close))
+                }
             }
         }
     }
