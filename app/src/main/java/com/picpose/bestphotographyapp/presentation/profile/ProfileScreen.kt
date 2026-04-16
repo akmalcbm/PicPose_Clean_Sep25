@@ -31,6 +31,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,6 +57,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.components.common.appInnerSurfaceColor
+import com.picpose.bestphotographyapp.components.common.ObserveTabReselectionScrollToTop
 import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
 import com.picpose.bestphotographyapp.components.common.appSectionCardColors
 import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
@@ -69,11 +71,14 @@ import com.picpose.bestphotographyapp.presentation.settings.AppSettingsViewModel
 import com.picpose.bestphotographyapp.presentation.auth.AuthViewModel
 import com.picpose.bestphotographyapp.presentation.auth.OperationState
 import com.picpose.bestphotographyapp.presentation.home.StatsViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
+    scrollToTopEvents: Flow<Unit> = emptyFlow(),
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToEditProfile: () -> Unit = {},
@@ -85,6 +90,7 @@ fun ProfileScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val emailVerificationState by authViewModel.emailVerificationRequestState.collectAsState()
     val context = LocalContext.current
+    val listState = rememberLazyListState()
 
     // ⭐ RANDOM fallback bios (UI only)
     val fallbackBios = remember(context) {
@@ -117,6 +123,11 @@ fun ProfileScreen(
         }
     }
 
+    ObserveTabReselectionScrollToTop(
+        scrollToTopEvents = scrollToTopEvents,
+        listState = listState
+    )
+
     Scaffold(
         topBar = {
             PicPoseAppBar(
@@ -127,6 +138,7 @@ fun ProfileScreen(
     ) { innerPadding ->
 
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)

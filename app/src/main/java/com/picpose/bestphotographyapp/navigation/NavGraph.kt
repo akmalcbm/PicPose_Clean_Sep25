@@ -72,7 +72,11 @@ import com.picpose.bestphotographyapp.presentation.settings.SettingsScreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun NavGraph(navController: NavHostController, activity: Activity? = null) {
+fun NavGraph(
+    navController: NavHostController,
+    activity: Activity? = null,
+    bottomTabReselectManager: BottomTabReselectManager
+) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val isLoggedIn = authViewModel.isLoggedIn.collectAsState().value
     // Resolve the start destination from persisted auth state whenever the graph is recreated.
@@ -133,6 +137,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
 
             HomeScreen(
                 viewModel = homeVM,
+                scrollToTopEvents = bottomTabReselectManager.scrollToTopEvents(Screen.Home.route),
 
                 onNavigateToAllPrompts = {
                     navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true }
@@ -208,6 +213,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
 
             ExploreScreen(
                 initialSearchQuery = incomingQuery,
+                scrollToTopEvents = bottomTabReselectManager.scrollToTopEvents(Screen.Explore.route),
                 onNavigateToPromptDetail = { aiPrompt ->
                     val safeId = Uri.encode(aiPrompt.id)
                     navController.navigate(Screen.PromptDetail.createRoute(safeId)) { launchSingleTop = true }
@@ -223,6 +229,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         composable(route = Screen.Create.route) { CreateScreen() }
         composable(route = Screen.Rewards.route) {
             V3RewardsScreen(
+                scrollToTopEvents = bottomTabReselectManager.scrollToTopEvents(Screen.Rewards.route),
                 onOpenPrompt = { promptId ->
                     navController.navigate(Screen.PromptDetail.createRoute(promptId)) { launchSingleTop = true }
                 },
@@ -271,6 +278,7 @@ fun NavGraph(navController: NavHostController, activity: Activity? = null) {
         composable(route = Screen.Profile.route) {
             ProfileScreen(
                 navController = navController,
+                scrollToTopEvents = bottomTabReselectManager.scrollToTopEvents(Screen.Profile.route),
                 onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) { launchSingleTop = true } },
                 onNavigateToAllPrompts = { navController.navigate(Screen.AllAIPrompts.route) { launchSingleTop = true } },

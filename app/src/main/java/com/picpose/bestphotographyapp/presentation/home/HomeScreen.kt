@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 
@@ -91,8 +92,11 @@ import com.picpose.bestphotographyapp.components.ads.AdsManager
 import com.picpose.bestphotographyapp.components.ads.LargeNativeAdCard
 import com.picpose.bestphotographyapp.components.ads.NativeAdController
 import com.picpose.bestphotographyapp.components.ads.NativeAdUiState
+import com.picpose.bestphotographyapp.components.common.ObserveTabReselectionScrollToTop
 import com.picpose.bestphotographyapp.presentation.search.SearchMatchers
 import com.picpose.bestphotographyapp.presentation.settings.SettingsViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import com.picpose.bestphotographyapp.R
 import androidx.compose.ui.res.stringResource
@@ -113,6 +117,7 @@ import androidx.compose.ui.res.stringResource
  */
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    scrollToTopEvents: Flow<Unit> = emptyFlow(),
     onNavigateToAllPrompts: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToCategory: (Category) -> Unit,
@@ -129,6 +134,7 @@ fun HomeScreen(
     val localEngagementStates by viewModel.localEngagementStates.collectAsState()
     val statsViewModel: StatsViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     val authViewModel: AuthViewModel = hiltViewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -319,6 +325,11 @@ fun HomeScreen(
         }
     }
 
+    ObserveTabReselectionScrollToTop(
+        scrollToTopEvents = scrollToTopEvents,
+        listState = listState
+    )
+
     if (showPermissionDialog) {
         NotificationPermissionDialog(
             onAllow = {
@@ -366,6 +377,7 @@ fun HomeScreen(
             }
         ) {
             LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(

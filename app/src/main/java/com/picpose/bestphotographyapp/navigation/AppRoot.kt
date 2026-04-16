@@ -65,6 +65,7 @@ fun AppRoot(
     val isAuthRoute = currentRoute in authRoutes
     val showBottomBar = currentRoute in mainBottomBarRoutes
     var lastScreenName by remember { mutableStateOf<String?>(null) }
+    val bottomTabReselectManager = remember { BottomTabReselectManager() }
 
     LaunchedEffect(deepLink) {
         deepLink?.let { link ->
@@ -87,14 +88,23 @@ fun AppRoot(
 
     if (isAuthRoute) {
         AuthScaffold {
-            NavGraph(navController = navController, activity = activity)
+            NavGraph(
+                navController = navController,
+                activity = activity,
+                bottomTabReselectManager = bottomTabReselectManager
+            )
         }
     } else {
         MainScaffold(
             showBottomBar = showBottomBar,
-            navController = navController
+            navController = navController,
+            bottomTabReselectManager = bottomTabReselectManager
         ) {
-            NavGraph(navController = navController, activity = activity)
+            NavGraph(
+                navController = navController,
+                activity = activity,
+                bottomTabReselectManager = bottomTabReselectManager
+            )
         }
     }
 }
@@ -129,6 +139,7 @@ private fun AuthScaffold(content: @Composable () -> Unit) {
 fun MainScaffold(
     showBottomBar: Boolean,
     navController: NavHostController,
+    bottomTabReselectManager: BottomTabReselectManager,
     content: @Composable () -> Unit
 ) {
     val contentInsets = PicPoseWindowInsets.screenContent()
@@ -136,7 +147,10 @@ fun MainScaffold(
         contentWindowInsets = contentInsets,
         bottomBar = {
             if (showBottomBar) {
-                BottomNavigationBar(navController = navController)
+                BottomNavigationBar(
+                    navController = navController,
+                    bottomTabReselectManager = bottomTabReselectManager
+                )
             }
         }
     ) { innerPadding ->

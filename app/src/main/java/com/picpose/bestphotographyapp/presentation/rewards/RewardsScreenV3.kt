@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -91,6 +92,7 @@ import com.picpose.bestphotographyapp.BuildConfig
 import com.picpose.bestphotographyapp.R
 import com.picpose.bestphotographyapp.data.service.ads.RewardedAdManager
 import com.picpose.bestphotographyapp.components.common.PicPoseAppBar
+import com.picpose.bestphotographyapp.components.common.ObserveTabReselectionScrollToTop
 import com.picpose.bestphotographyapp.components.common.appSectionCardBorder
 import com.picpose.bestphotographyapp.components.common.appSectionCardColors
 import com.picpose.bestphotographyapp.components.common.appSectionCardElevation
@@ -104,12 +106,15 @@ import com.picpose.bestphotographyapp.presentation.rewards.components.RewardsHea
 import com.picpose.bestphotographyapp.presentation.rewards.components.StreakStepper
 import com.picpose.bestphotographyapp.presentation.rewards.components.WalletCard
 import com.picpose.bestphotographyapp.utils.setText
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreenV3(
+    scrollToTopEvents: Flow<Unit> = emptyFlow(),
     onOpenPrompt: (String) -> Unit,
     onRequireLogin: () -> Unit,
     onOpenPacks: () -> Unit,
@@ -126,6 +131,7 @@ fun RewardsScreenV3(
     val rewardedAdManager = remember { RewardedAdManager() }
     val rewardedAdState by rewardedAdManager.uiState.collectAsState()
     val displayedPoints by animateIntAsState(uiState.pointsBalance, label = "points_counter")
+    val listState = rememberLazyListState()
 
     var showApplySheet by rememberSaveable { mutableStateOf(false) }
     var applyCode by rememberSaveable { mutableStateOf("") }
@@ -223,6 +229,11 @@ fun RewardsScreenV3(
         }
     }
 
+    ObserveTabReselectionScrollToTop(
+        scrollToTopEvents = scrollToTopEvents,
+        listState = listState
+    )
+
     if (showApplySheet) {
         ModalBottomSheet(onDismissRequest = { showApplySheet = false }) {
             Column(
@@ -311,6 +322,7 @@ fun RewardsScreenV3(
                     RewardsLoadingSkeleton()
                 } else {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),

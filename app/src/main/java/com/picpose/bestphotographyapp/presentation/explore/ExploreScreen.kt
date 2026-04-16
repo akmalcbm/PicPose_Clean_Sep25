@@ -94,8 +94,11 @@ import com.picpose.bestphotographyapp.components.common.AIPromptCardWithEffects
 import com.picpose.bestphotographyapp.components.common.GuidePostCard
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarActionButton
 import com.picpose.bestphotographyapp.components.common.PicPoseTopBarFrame
+import com.picpose.bestphotographyapp.components.common.ObserveTabReselectionScrollToTop
 import com.picpose.bestphotographyapp.presentation.explore.*
 import com.picpose.bestphotographyapp.utils.copyToClipboard
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 /** 🧠 Smart dynamic frequency (scroll-depth based, 6–8 range) */
 /** ⚡ Enhanced adaptive frequency for best UX + Revenue */
@@ -136,6 +139,7 @@ private fun dynamicGap(
 @Composable
 fun ExploreScreen(
     initialSearchQuery: String? = null,
+    scrollToTopEvents: Flow<Unit> = emptyFlow(),
     onNavigateToPromptDetail: (AIPrompt) -> Unit = {},
     onNavigateToGuidePostDetail: (GuidePost) -> Unit = {},
     exploreViewModel: ExploreViewModel = hiltViewModel()
@@ -159,6 +163,10 @@ fun ExploreScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    ObserveTabReselectionScrollToTop(
+        scrollToTopEvents = scrollToTopEvents,
+        listState = listState
+    )
 
     // 🔁 Native Ad pool (preload multiple)
     var nativeAds by remember { mutableStateOf<List<NativeAd>>(emptyList()) }
